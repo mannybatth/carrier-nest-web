@@ -6,7 +6,10 @@
         "dev": "next",
         "build": "next build",
         "start": "next start",
-        "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix"
+        "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix",
+        "db-push": "prisma db push",
+        "generate": "prisma generate",
+        "studio": "prisma studio"
     },
     "keywords": [],
     "author": "",
