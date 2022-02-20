@@ -31,7 +31,7 @@ const Post: React.FC<PostProps> = (props) => {
             <div>
                 <h2>{title}</h2>
                 <p>By {props?.author?.name || 'Unknown author'}</p>
-                <ReactMarkdown children={props.content} />
+                <ReactMarkdown>{props.content}</ReactMarkdown>
             </div>
             <style jsx>{`
                 .page {
