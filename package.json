@@ -1,24 +1,32 @@
 {
-  "name": "hello-next",
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-    "dev": "next",
-    "build": "next build",
-    "start": "next start"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "next": "12.0.10",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-markdown": "8.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "17.0.14",
-    "@types/react": "17.0.38",
-    "typescript": "4.5.5"
-  }
+    "name": "hello-next",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "dev": "next",
+        "build": "next build",
+        "start": "next start",
+        "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "eslint-config-prettier": "^8.4.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "next": "12.0.10",
+        "prettier": "^2.5.1",
+        "react": "17.0.2",
+        "react-dom": "17.0.2",
+        "react-markdown": "8.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "17.0.14",
+        "@types/react": "17.0.38",
+        "@typescript-eslint/eslint-plugin": "^5.12.0",
+        "@typescript-eslint/parser": "^5.12.0",
+        "eslint": "^8.9.0",
+        "eslint-plugin-react": "^7.28.0",
+        "typescript": "4.5.5"
+    }
 }
