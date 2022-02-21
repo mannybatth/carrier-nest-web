@@ -9,5 +9,8 @@
     "html.format.wrapLineLength": 140,
     "html.format.wrapAttributes": "auto",
     "files.trimTrailingWhitespace": true,
-    "files.insertFinalNewline": true
+    "files.insertFinalNewline": true,
+    "cSpell.words": [
+        "tailwindcss"
+    ]
 }

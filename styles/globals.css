@@ -1,6 +1,10 @@
 @tailwind base;
 
 @layer base {
+    html,
+    body {
+        @apply h-full;
+    }
     h1 {
         @apply text-2xl;
     }
@@ -11,7 +15,7 @@
         @apply text-lg;
     }
     a {
-        @apply text-blue-600 underline;
+        @apply text-blue-600;
     }
 }
 
