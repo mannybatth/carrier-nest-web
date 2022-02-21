@@ -12,7 +12,7 @@ const AuthGuard: React.FC = ({ children }: { children: JSX.Element }) => {
         }
     }, [status, router]);
 
-    if (status !== 'unauthenticated') {
+    if (status !== 'unauthenticated' && status !== 'loading') {
         return <>{children}</>;
     }
 
