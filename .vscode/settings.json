@@ -12,5 +12,6 @@
     "files.insertFinalNewline": true,
     "cSpell.words": [
         "tailwindcss"
-    ]
+    ],
+    "headwind.runOnSave": true
 }
