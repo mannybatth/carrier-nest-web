@@ -5,12 +5,13 @@ import Navigation from './Navigation';
 import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
+import AuthGuard from '../AuthGuard';
 
 const Layout: React.FC = ({ children }: { children: JSX.Element }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div>
+        <AuthGuard>
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <Dialog as="div" className="fixed inset-0 z-40 flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child
@@ -111,7 +112,7 @@ const Layout: React.FC = ({ children }: { children: JSX.Element }) => {
 
                 <main className="flex-1">{children}</main>
             </div>
-        </div>
+        </AuthGuard>
     );
 };
 
