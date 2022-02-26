@@ -7,15 +7,6 @@ generator client {
     provider = "prisma-client-js"
 }
 
-model Post {
-    id        Int     @id @default(autoincrement())
-    title     String
-    content   String?
-    published Boolean @default(false)
-    author    User?   @relation(fields: [authorId], references: [id])
-    authorId  Int?
-}
-
 model Account {
     id                Int     @id @default(autoincrement())
     type              String
@@ -46,14 +37,19 @@ model Session {
 }
 
 model User {
-    id            Int       @id @default(autoincrement())
+    id            Int            @id @default(autoincrement())
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
     name          String?
-    email         String?   @unique
+    email         String?        @unique
     emailVerified DateTime?
     image         String?
-    posts         Post[]
     accounts      Account[]
     sessions      Session[]
+    loads         Load[]
+    loadAddresses LoadAddress[]
+    invoices      Invoice[]
+    loadDocuments LoadDocument[]
 }
 
 model VerificationToken {
@@ -63,4 +59,107 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Load {
+    id              Int            @id @default(autoincrement())
+    user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId          Int
+    customer        Customer       @relation(fields: [customerId], references: [id])
+    customerId      Int
+    driver          Driver?        @relation(fields: [driverId], references: [id])
+    driverId        Int?
+    createdAt       DateTime       @default(now())
+    updatedAt       DateTime       @updatedAt
+    refNum          String
+    status          String
+    statusUpdatedAt DateTime?
+    pickUpDate      DateTime
+    pickUpTime      String
+    dropOffDate     DateTime
+    dropOffTime     String
+    fromAddress     LoadAddress    @relation("fromAddress", fields: [fromAddressId], references: [id])
+    fromAddressId   Int
+    toAddress       LoadAddress    @relation("toAddress", fields: [toAddressId], references: [id])
+    toAddressId     Int
+    rate            Decimal
+    invoice         Invoice?
+    distance        Int
+    distanceUnit    String
+    loadDocuments   LoadDocument[]
+}
+
+model LoadAddress {
+    id               Int    @id @default(autoincrement())
+    user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId           Int
+    street           String
+    city             String
+    state            String
+    zip              String
+    country          String
+    fromAddressLoads Load[] @relation("fromAddress")
+    toAddressLoads   Load[] @relation("toAddress")
+}
+
+model Customer {
+    id                 Int      @id @default(autoincrement())
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    name               String
+    contactEmail       String?
+    billingEmail       String?
+    paymentStatusEmail String?
+    street             String?
+    city               String?
+    state              String?
+    zip                String?
+    country            String?
+    loads              Load[]
+}
+
+model Driver {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    name      String
+    email     String?
+    phone     String?
+    Load      Load[]
+}
+
+model Invoice {
+    id          Int           @id @default(autoincrement())
+    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId      Int
+    load        Load          @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    loadId      Int           @unique
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    status      String
+    totalAmount Decimal
+    paidAmount  Decimal
+    paidAt      DateTime?
+    dueNetDays  Int           @default(0)
+    extraItems  InvoiceItem[]
+}
+
+model InvoiceItem {
+    id        Int     @id @default(autoincrement())
+    invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    invoiceId Int
+    title     String
+    amount    Decimal
+}
+
+model LoadDocument {
+    id        Int      @id @default(autoincrement())
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    Int
+    load      Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    loadId    Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title     String
+    filename  String
 }

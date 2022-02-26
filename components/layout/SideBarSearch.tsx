@@ -56,7 +56,7 @@ const SideBarSearch: React.FC = () => {
                             as="div"
                             className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-1 ring-black ring-opacity-5"
                             value=""
-                            onChange={(person: any) => alert(person.name)}
+                            onChange={(person: any) => setOpen(false)}
                         >
                             <div className="relative">
                                 <SearchIcon

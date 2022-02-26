@@ -19,7 +19,7 @@ const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon },
     { name: 'Loads', href: '/loads', icon: TruckIcon },
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
-    { name: 'Drivers', href: '/driver', icon: IdentificationIcon },
+    { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
     { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
     { name: 'Reporting', href: '/reporting', icon: ChartPieIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
@@ -34,7 +34,7 @@ const Navigation: React.FC = () => {
 
     return (
         <div>
-            <nav className="flex-1 mt-5 ">
+            <nav className="flex-1 mt-5">
                 {navigation.map((item) => (
                     <Link href={item.href} key={item.name}>
                         <a
