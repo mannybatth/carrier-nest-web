@@ -17,6 +17,12 @@
     a {
         @apply text-blue-600;
     }
+    .DayPickerInput {
+        @apply w-full;
+    }
+    .DayPickerInput input {
+        @apply block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+    }
 }
 
 @tailwind components;

@@ -1,8 +1,9 @@
 import React from 'react';
 import { AppProps } from 'next/app';
+import Head from 'next/head';
 import { SessionProvider } from 'next-auth/react';
 import '../styles/globals.css';
-import Head from 'next/head';
+import 'react-day-picker/lib/style.css';
 
 const App = ({ Component, pageProps }: AppProps) => {
     return (

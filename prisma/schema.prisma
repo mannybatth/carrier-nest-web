@@ -78,10 +78,8 @@ model Load {
     pickUpTime      String
     dropOffDate     DateTime
     dropOffTime     String
-    fromAddress     LoadAddress    @relation("fromAddress", fields: [fromAddressId], references: [id])
-    fromAddressId   Int
-    toAddress       LoadAddress    @relation("toAddress", fields: [toAddressId], references: [id])
-    toAddressId     Int
+    fromAddresses   LoadAddress[]  @relation("fromAddress")
+    toAddresses     LoadAddress[]  @relation("toAddress")
     rate            Decimal
     invoice         Invoice?
     distance        Int
@@ -90,16 +88,18 @@ model Load {
 }
 
 model LoadAddress {
-    id               Int    @id @default(autoincrement())
-    user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId           Int
-    street           String
-    city             String
-    state            String
-    zip              String
-    country          String
-    fromAddressLoads Load[] @relation("fromAddress")
-    toAddressLoads   Load[] @relation("toAddress")
+    id         Int    @id @default(autoincrement())
+    user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId     Int
+    street     String
+    city       String
+    state      String
+    zip        String
+    country    String
+    fromLoad   Load?  @relation("fromAddress", fields: [fromLoadId], references: [id])
+    fromLoadId Int?
+    toLoad     Load?  @relation("toAddress", fields: [toLoadId], references: [id])
+    toLoadId   Int?
 }
 
 model Customer {
