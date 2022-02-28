@@ -4,6 +4,7 @@ import { LoadStopType, Prisma } from '@prisma/client';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import LoadFormStop from '../../components/load-form/LoadFormStop';
 import { SimpleLoad, SimpleLoadStop } from '../../interfaces/models';
+import { PlusSmIcon } from '@heroicons/react/outline';
 
 const CreateLoad: React.FC = () => {
     const [load, setLoad] = React.useState<SimpleLoad>(null);
@@ -80,7 +81,7 @@ const CreateLoad: React.FC = () => {
                                             type="text"
                                             name="price"
                                             id="price"
-                                            className="block w-full pr-12 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 pl-7 sm:text-sm"
+                                            className="block w-full pr-12 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 pl-7 sm:text-sm"
                                             placeholder="0.00"
                                             aria-describedby="price-currency"
                                         />
@@ -105,13 +106,26 @@ const CreateLoad: React.FC = () => {
                                 ))}
 
                                 <div className="col-span-6">
-                                    <a
-                                        onClick={() => {
-                                            addStop();
-                                        }}
-                                    >
-                                        + Add Stop
-                                    </a>
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                            <div className="w-full border-t border-gray-300" />
+                                        </div>
+                                        <div className="relative flex justify-center">
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-4 py-0.5 text-xs font-medium leading-5 text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                                onClick={() => {
+                                                    addStop();
+                                                }}
+                                            >
+                                                <PlusSmIcon
+                                                    className="-ml-1.5 mr-1 h-4 w-4 text-gray-400"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>Add Stop</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <LoadFormStop type={LoadStopType.RECEIVER} />
                             </div>
