@@ -74,10 +74,6 @@ model Load {
     refNum          String
     status          String
     statusUpdatedAt DateTime?
-    pickUpDate      DateTime
-    pickUpTime      String
-    dropOffDate     DateTime
-    dropOffTime     String
     loadStops       LoadStop[]
     rate            Decimal
     invoice         Invoice?
@@ -97,11 +93,14 @@ model LoadStop {
     user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId  Int
     type    LoadStopType
+    name    String
     street  String
     city    String
     state   String
     zip     String
     country String
+    date    DateTime
+    time    String
     Load    Load?        @relation(fields: [loadId], references: [id])
     loadId  Int?
 }

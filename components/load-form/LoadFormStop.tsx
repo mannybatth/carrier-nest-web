@@ -8,7 +8,7 @@ export type LoadFormStopProps = {
     type: LoadStopType;
     totalStops?: number;
     index?: number;
-    onRemoveStop?: (index: number) => void;
+    onRemoveStop?: () => void;
 };
 
 const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
@@ -54,7 +54,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
                         <a
                             className="text-sm"
                             onClick={() => {
-                                props.onRemoveStop(props.index);
+                                props.onRemoveStop();
                             }}
                         >
                             Remove Stop

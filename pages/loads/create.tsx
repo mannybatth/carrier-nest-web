@@ -1,14 +1,33 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
-import { LoadStopType } from '@prisma/client';
+import { LoadStopType, Prisma } from '@prisma/client';
 import BreadCrumb from '../../components/layout/BreadCrumb';
-import LoadFormStop from '../../components/load-form/loadFormStop';
+import LoadFormStop from '../../components/load-form/LoadFormStop';
+import { SimpleLoad, SimpleLoadStop } from '../../interfaces/models';
 
 const CreateLoad: React.FC = () => {
-    const [stops, setStops] = React.useState<number>(0);
+    const [load, setLoad] = React.useState<SimpleLoad>(null);
+    const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
+
+    const addStop = () => {
+        setStops([
+            ...stops,
+            {
+                type: LoadStopType.STOP,
+                name: `${stops.length + 1}`,
+                street: '',
+                city: '',
+                state: '',
+                zip: '',
+                country: '',
+                date: new Date(),
+                time: '',
+            },
+        ]);
+    };
 
     const removeStop = (index: number) => {
-        setStops(stops - 1);
+        setStops(stops.filter((_, i) => i !== index));
     };
 
     return (
@@ -75,20 +94,20 @@ const CreateLoad: React.FC = () => {
 
                                 <LoadFormStop type={LoadStopType.SHIPPER} />
 
-                                {[...Array(stops)].map((x, i) => (
+                                {stops.map((x, i) => (
                                     <LoadFormStop
                                         key={i}
                                         type={LoadStopType.STOP}
-                                        totalStops={stops}
+                                        totalStops={stops.length}
                                         index={i}
-                                        onRemoveStop={removeStop}
+                                        onRemoveStop={() => removeStop(i)}
                                     />
                                 ))}
 
                                 <div className="col-span-6">
                                     <a
                                         onClick={() => {
-                                            setStops(stops + 1);
+                                            addStop();
                                         }}
                                     >
                                         + Add Stop
