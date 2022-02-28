@@ -1,7 +1,7 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 
-const Blog: React.FC = () => {
+const CustomersPage: React.FC = () => {
     return (
         <Layout
             smHeaderComponent={
@@ -23,4 +23,4 @@ const Blog: React.FC = () => {
     );
 };
 
-export default Blog;
+export default CustomersPage;

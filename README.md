@@ -25,10 +25,7 @@ EMAIL_SERVER_PORT=<email_server_port>
 EMAIL_FROM=<email_from>
 ```
 
-DATABASE_URL needs to be a postgres db:
-```
-DATABASE_URL="postgresql://giwuzwpdnrgtzv:d003c6a604bb400ea955c3abd8c16cc98f2d909283c322ebd8e9164b33ccdb75@ec2-54-170-123-247.eu-west-1.compute.amazonaws.com:5432/d6ajekcigbuca9"
-```
+DATABASE_URL needs to be a postgres db
 
 #### Authentication
 

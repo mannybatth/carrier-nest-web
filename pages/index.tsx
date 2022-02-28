@@ -20,7 +20,7 @@ type Props = {
     feed: PostProps[];
 };
 
-const Blog: React.FC<Props> = (props) => {
+const Dashboard: React.FC<Props> = (props) => {
     return (
         <Layout
             smHeaderComponent={
@@ -48,4 +48,4 @@ const Blog: React.FC<Props> = (props) => {
     );
 };
 
-export default Blog;
+export default Dashboard;

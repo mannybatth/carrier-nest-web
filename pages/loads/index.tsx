@@ -2,7 +2,7 @@ import Link from 'next/link';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 
-const Blog: React.FC = () => {
+const LoadsPage: React.FC = () => {
     return (
         <Layout
             smHeaderComponent={
@@ -42,4 +42,4 @@ const Blog: React.FC = () => {
     );
 };
 
-export default Blog;
+export default LoadsPage;
