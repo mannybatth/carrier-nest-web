@@ -54,7 +54,7 @@ const SideBarSearch: React.FC = () => {
                     >
                         <Combobox
                             as="div"
-                            className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-1 ring-black ring-opacity-5"
+                            className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-4 ring-black ring-opacity-5"
                             value=""
                             onChange={(person: any) => setOpen(false)}
                         >

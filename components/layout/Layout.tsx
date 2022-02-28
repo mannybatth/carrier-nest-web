@@ -7,7 +7,12 @@ import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
 import AuthGuard from '../AuthGuard';
 
-const Layout: React.FC = ({ children }: { children: JSX.Element }) => {
+export type Props = {
+    children: JSX.Element;
+    smHeaderComponent: JSX.Element;
+};
+
+const Layout: React.FC<Props> = ({ children, smHeaderComponent }: Props) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
@@ -99,7 +104,7 @@ const Layout: React.FC = ({ children }: { children: JSX.Element }) => {
             </div>
             <div className="flex flex-col flex-1 md:pl-64">
                 {/* Menu button for smaller screens */}
-                <div className="sticky top-0 z-10 pt-1 pl-1 bg-white md:hidden sm:pl-3 sm:pt-3">
+                <div className="sticky top-0 z-10 flex items-center px-1 pt-1 bg-white md:hidden sm:pl-3 sm:pt-3">
                     <button
                         type="button"
                         className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
@@ -108,6 +113,7 @@ const Layout: React.FC = ({ children }: { children: JSX.Element }) => {
                         <span className="sr-only">Open sidebar</span>
                         <MenuIcon className="w-6 h-6" aria-hidden="true" />
                     </button>
+                    <div className="flex-1 ml-1 mr-1">{smHeaderComponent}</div>
                 </div>
 
                 <main className="flex-1">{children}</main>
