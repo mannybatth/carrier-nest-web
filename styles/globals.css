@@ -3,7 +3,7 @@
 @layer base {
     html,
     body {
-        @apply h-full;
+        @apply h-full text-zinc-800;
     }
     h1 {
         @apply text-2xl;
@@ -15,7 +15,7 @@
         @apply text-lg;
     }
     a {
-        @apply text-blue-600;
+        @apply text-blue-600 cursor-pointer active:text-blue-800;
     }
     .DayPickerInput {
         @apply w-full;

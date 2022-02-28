@@ -47,9 +47,9 @@ model User {
     accounts      Account[]
     sessions      Session[]
     loads         Load[]
-    loadAddresses LoadAddress[]
     invoices      Invoice[]
     loadDocuments LoadDocument[]
+    loadStops     LoadStop[]
 }
 
 model VerificationToken {
@@ -78,8 +78,7 @@ model Load {
     pickUpTime      String
     dropOffDate     DateTime
     dropOffTime     String
-    fromAddresses   LoadAddress[]  @relation("fromAddress")
-    toAddresses     LoadAddress[]  @relation("toAddress")
+    loadStops       LoadStop[]
     rate            Decimal
     invoice         Invoice?
     distance        Int
@@ -87,19 +86,24 @@ model Load {
     loadDocuments   LoadDocument[]
 }
 
-model LoadAddress {
-    id         Int    @id @default(autoincrement())
-    user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId     Int
-    street     String
-    city       String
-    state      String
-    zip        String
-    country    String
-    fromLoad   Load?  @relation("fromAddress", fields: [fromLoadId], references: [id])
-    fromLoadId Int?
-    toLoad     Load?  @relation("toAddress", fields: [toLoadId], references: [id])
-    toLoadId   Int?
+enum LoadStopType {
+    SHIPPER
+    RECEIVER
+    STOP
+}
+
+model LoadStop {
+    id      Int          @id @default(autoincrement())
+    user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId  Int
+    type    LoadStopType
+    street  String
+    city    String
+    state   String
+    zip     String
+    country String
+    Load    Load?        @relation(fields: [loadId], references: [id])
+    loadId  Int?
 }
 
 model Customer {
