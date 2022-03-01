@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { LoadStopType, Prisma } from '@prisma/client';
+import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import LoadFormStop from '../../components/load-form/LoadFormStop';
 import { SimpleLoad, SimpleLoadStop } from '../../interfaces/models';
-import { PlusSmIcon } from '@heroicons/react/outline';
+import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
+import { debounceTime, Subject } from 'rxjs';
+import { searchCustomersByName } from '../../lib/rest/customer';
+import { Combobox } from '@headlessui/react';
+import classNames from 'classnames';
 
 const CreateLoad: React.FC = () => {
     const [load, setLoad] = React.useState<SimpleLoad>(null);
     const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
+
+    const [searchCustomers, setSearchCustomers] = React.useState<Customer[]>([]);
+    const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
+    const [customerSearchSubject] = React.useState(() => new Subject<string>());
+    const [selectedCustomer, setSelectedCustomer] = React.useState<Customer>(null);
+
+    useEffect(() => {
+        const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
+            setCustomerSearchLoading(false);
+            if (!query) {
+                setSearchCustomers([]);
+                return;
+            }
+            const customers = await searchCustomersByName(query);
+            setSearchCustomers(customers);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    const onCustomerSearchChange = (query: string) => {
+        setCustomerSearchLoading(true);
+        customerSearchSubject.next(query);
+    };
 
     const addStop = () => {
         setStops([
@@ -44,16 +74,70 @@ const CreateLoad: React.FC = () => {
                         <form action="#" method="POST">
                             <div className="grid grid-cols-6 gap-6">
                                 <div className="col-span-6">
-                                    <label htmlFor="customer" className="block text-sm font-medium text-gray-700">
-                                        Customer
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="customer"
-                                        id="customer"
-                                        autoComplete="customer-name"
-                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    />
+                                    <Combobox as="div" value={selectedCustomer} onChange={setSelectedCustomer}>
+                                        <Combobox.Label className="block text-sm font-medium text-gray-700">
+                                            Assigned to
+                                        </Combobox.Label>
+                                        <div className="relative mt-1">
+                                            <Combobox.Input
+                                                autoComplete="off"
+                                                className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                                                onChange={(e) => onCustomerSearchChange(e.target.value)}
+                                                displayValue={(customer: Customer) => customer?.name || null}
+                                            />
+                                            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
+                                                <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                            </Combobox.Button>
+
+                                            {searchCustomers.length > 0 && (
+                                                <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                    {searchCustomers.map((customer) => (
+                                                        <Combobox.Option
+                                                            key={customer.id}
+                                                            value={customer}
+                                                            className={({ active }) =>
+                                                                classNames(
+                                                                    'relative cursor-default select-none py-2 pl-3 pr-9',
+                                                                    active
+                                                                        ? 'bg-indigo-600 text-white'
+                                                                        : 'text-gray-900',
+                                                                )
+                                                            }
+                                                        >
+                                                            {({ active, selected }) => (
+                                                                <>
+                                                                    <span
+                                                                        className={classNames(
+                                                                            'block truncate',
+                                                                            selected && 'font-semibold',
+                                                                        )}
+                                                                    >
+                                                                        {customer.name}
+                                                                    </span>
+
+                                                                    {selected && (
+                                                                        <span
+                                                                            className={classNames(
+                                                                                'absolute inset-y-0 right-0 flex items-center pr-4',
+                                                                                active
+                                                                                    ? 'text-white'
+                                                                                    : 'text-indigo-600',
+                                                                            )}
+                                                                        >
+                                                                            <CheckIcon
+                                                                                className="w-5 h-5"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </Combobox.Option>
+                                                    ))}
+                                                </Combobox.Options>
+                                            )}
+                                        </div>
+                                    </Combobox>
                                 </div>
 
                                 <div className="col-span-6 sm:col-span-3">

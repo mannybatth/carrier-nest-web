@@ -1,5 +1,10 @@
 import { Prisma } from '@prisma/client';
 
+export type JSONResponse<T> = {
+    data?: T;
+    errors?: Array<{ message: string }>;
+};
+
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
     select: { customerId: true, refNum: true, rate: true },
 });

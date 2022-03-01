@@ -4,7 +4,8 @@ datasource db {
 }
 
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    previewFeatures = ["extendedIndexes"]
 }
 
 model Account {
@@ -44,12 +45,17 @@ model User {
     email         String?        @unique
     emailVerified DateTime?
     image         String?
+    carrer        Carrier        @relation(fields: [carrierId], references: [id])
+    carrierId     Int
+    isAdmin       Boolean
     accounts      Account[]
     sessions      Session[]
     loads         Load[]
     invoices      Invoice[]
     loadDocuments LoadDocument[]
     loadStops     LoadStop[]
+
+    @@index([name, email, carrierId])
 }
 
 model VerificationToken {
@@ -61,12 +67,29 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+model Carrier {
+    id           Int            @id @default(autoincrement())
+    email        String         @unique
+    name         String
+    carrierId    String         @unique
+    mcNumber     String?
+    users        User[]
+    loads        Load[]
+    customers    Customer[]
+    drivers      Driver[]
+    LoadDocument LoadDocument[]
+
+    @@index([name, email, carrierId])
+}
+
 model Load {
     id              Int            @id @default(autoincrement())
     user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId          Int
     customer        Customer       @relation(fields: [customerId], references: [id])
     customerId      Int
+    carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId       Int
     driver          Driver?        @relation(fields: [driverId], references: [id])
     driverId        Int?
     createdAt       DateTime       @default(now())
@@ -80,6 +103,8 @@ model Load {
     distance        Int
     distanceUnit    String
     loadDocuments   LoadDocument[]
+
+    @@index([refNum, carrierId, userId, customerId])
 }
 
 enum LoadStopType {
@@ -101,7 +126,7 @@ model LoadStop {
     country String
     date    DateTime
     time    String
-    Load    Load?        @relation(fields: [loadId], references: [id])
+    load    Load?        @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId  Int?
 }
 
@@ -118,7 +143,11 @@ model Customer {
     state              String?
     zip                String?
     country            String?
+    carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId          Int
     loads              Load[]
+
+    @@index([name, carrierId])
 }
 
 model Driver {
@@ -128,7 +157,11 @@ model Driver {
     name      String
     email     String?
     phone     String?
-    Load      Load[]
+    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId Int
+    loads     Load[]
+
+    @@index([name, carrierId])
 }
 
 model Invoice {
@@ -159,6 +192,8 @@ model LoadDocument {
     id        Int      @id @default(autoincrement())
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    Int
+    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId Int
     load      Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId    Int
     createdAt DateTime @default(now())

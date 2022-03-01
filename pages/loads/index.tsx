@@ -19,7 +19,7 @@ const LoadsPage: React.FC = () => {
                 </div>
             }
         >
-            <div className="max-w-4xl py-2 mx-auto">
+            <div className="py-2 mx-auto max-w-7xl">
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
                         <h1 className="flex-1 text-2xl font-semibold text-gray-900">All Loads</h1>
