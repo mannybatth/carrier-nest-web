@@ -1,7 +1,8 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
+import { ComponentWithAuth } from '../../interfaces/auth';
 
-const CustomersPage: React.FC = () => {
+const CustomersPage: ComponentWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={
@@ -22,5 +23,7 @@ const CustomersPage: React.FC = () => {
         </Layout>
     );
 };
+
+CustomersPage.authenticationEnabled = true;
 
 export default CustomersPage;

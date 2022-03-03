@@ -5,7 +5,6 @@ import Navigation from './Navigation';
 import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
-import AuthGuard from '../AuthGuard';
 
 export type Props = {
     children: JSX.Element;
@@ -16,7 +15,7 @@ const Layout: React.FC<Props> = ({ children, smHeaderComponent }: Props) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <AuthGuard>
+        <div>
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <Dialog as="div" className="fixed inset-0 z-40 flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child
@@ -118,7 +117,7 @@ const Layout: React.FC<Props> = ({ children, smHeaderComponent }: Props) => {
 
                 <main className="flex-1">{children}</main>
             </div>
-        </AuthGuard>
+        </div>
     );
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { GetStaticProps } from 'next';
 import Layout from '../components/layout/Layout';
 import Post, { PostProps } from '../components/Post';
+import { ComponentWithAuth } from '../interfaces/auth';
 
 export const getStaticProps: GetStaticProps = async () => {
     // const feed = await prisma.post.findMany({
@@ -20,7 +21,7 @@ type Props = {
     feed: PostProps[];
 };
 
-const Dashboard: React.FC<Props> = (props) => {
+const Dashboard: ComponentWithAuth<Props> = (props: Props) => {
     return (
         <Layout
             smHeaderComponent={
@@ -47,5 +48,7 @@ const Dashboard: React.FC<Props> = (props) => {
         </Layout>
     );
 };
+
+Dashboard.authenticationEnabled = true;
 
 export default Dashboard;

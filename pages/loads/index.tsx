@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
+import { ComponentWithAuth } from '../../interfaces/auth';
 
-const LoadsPage: React.FC = () => {
+const LoadsPage: ComponentWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={
@@ -41,5 +42,7 @@ const LoadsPage: React.FC = () => {
         </Layout>
     );
 };
+
+LoadsPage.authenticationEnabled = true;
 
 export default LoadsPage;

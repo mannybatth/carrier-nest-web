@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Customer, LoadStopType, Prisma } from '@prisma/client';
+import { Customer, LoadStopType } from '@prisma/client';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import LoadFormStop from '../../components/load-form/LoadFormStop';
 import { SimpleLoad, SimpleLoadStop } from '../../interfaces/models';
@@ -9,8 +9,9 @@ import { debounceTime, Subject } from 'rxjs';
 import { searchCustomersByName } from '../../lib/rest/customer';
 import { Combobox } from '@headlessui/react';
 import classNames from 'classnames';
+import { ComponentWithAuth } from '../../interfaces/auth';
 
-const CreateLoad: React.FC = () => {
+const CreateLoad: ComponentWithAuth = () => {
     const [load, setLoad] = React.useState<SimpleLoad>(null);
     const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
 
@@ -229,5 +230,7 @@ const CreateLoad: React.FC = () => {
         </Layout>
     );
 };
+
+CreateLoad.authenticationEnabled = true;
 
 export default CreateLoad;
