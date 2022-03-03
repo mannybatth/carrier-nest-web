@@ -29,15 +29,14 @@ const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }: ProtectedApp
 };
 
 const Auth: React.FC = ({ children }: { children: JSX.Element }) => {
-    const { data: session, status } = useSession();
-    const isUser = !!session?.user;
+    const { status } = useSession();
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
-        if (!isUser) signIn(); // If not authenticated, force log in
-    }, [isUser, status]);
+        if (status === 'unauthenticated') signIn(); // If not authenticated, force log in
+    }, [status]);
 
-    if (isUser) {
+    if (status === 'authenticated') {
         return children;
     }
 
