@@ -1,7 +1,6 @@
 import React from 'react';
 import { GetStaticProps } from 'next';
 import Layout from '../components/layout/Layout';
-import Post, { PostProps } from '../components/Post';
 import { ComponentWithAuth } from '../interfaces/auth';
 
 export const getStaticProps: GetStaticProps = async () => {
@@ -17,9 +16,7 @@ export const getStaticProps: GetStaticProps = async () => {
     return { props: { feed } };
 };
 
-type Props = {
-    feed: PostProps[];
-};
+type Props = {};
 
 const Dashboard: ComponentWithAuth<Props> = (props: Props) => {
     return (
@@ -36,13 +33,7 @@ const Dashboard: ComponentWithAuth<Props> = (props: Props) => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <div className="border-4 border-gray-200 border-dashed rounded-lg">
-                        {props.feed.map((post) => (
-                            <div key={post.id} className="post">
-                                <Post post={post} />
-                            </div>
-                        ))}
-                    </div>
+                    <div className="border-4 border-gray-200 border-dashed rounded-lg"></div>
                 </div>
             </div>
         </Layout>
