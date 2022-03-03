@@ -51,15 +51,19 @@ const SideBarAccount: React.FC = () => (
                         </Menu.Item>
                         <Menu.Item>
                             {({ active }) => (
-                                <button
+                                <a
+                                    href={`/api/auth/signout`}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block w-full text-left px-4 py-2 text-sm',
                                     )}
-                                    onClick={() => signOut()}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        signOut();
+                                    }}
                                 >
                                     Sign out
-                                </button>
+                                </a>
                             )}
                         </Menu.Item>
                     </div>
