@@ -1,7 +1,8 @@
 import { XCircleIcon } from '@heroicons/react/outline';
 import { NextPage } from 'next';
-import { getCsrfToken, getSession } from 'next-auth/react';
+import { getSession } from 'next-auth/react';
 import React from 'react';
+import { signIn } from 'next-auth/react';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -31,12 +32,18 @@ const errors: Record<SignInErrorTypes, string> = {
 };
 
 type Props = {
-    csrfToken: string;
+    callbackUrl: string;
     error: SignInErrorTypes;
 };
 
-const SignIn: NextPage<Props> = ({ csrfToken, error: errorType }: Props) => {
+const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const { email } = event.target as HTMLFormElement;
+        signIn('email', { email: email.value, callbackUrl });
+    };
 
     return (
         <div className="flex flex-col min-h-full py-20 sm:px-6 lg:px-8 bg-gray-50">
@@ -64,8 +71,7 @@ const SignIn: NextPage<Props> = ({ csrfToken, error: errorType }: Props) => {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="px-4 py-8 bg-white shadow sm:rounded-lg sm:px-10">
-                    <form className="space-y-6" method="POST" action="/api/auth/signin/email">
-                        <input hidden name="csrfToken" type="hidden" defaultValue={csrfToken} />
+                    <form className="space-y-6" method="POST" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                 Email address
@@ -110,7 +116,7 @@ SignIn.getInitialProps = async (context) => {
     }
 
     return {
-        csrfToken: await getCsrfToken(context),
+        callbackUrl: context.query.callbackUrl as string,
         error: context.query.error as SignInErrorTypes,
     };
 };
