@@ -33,33 +33,33 @@ const options: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
     secret: process.env.SECRET,
     events: {
-        signIn: async ({ req, user, event }) => {
-            console.log('signIn', user);
-            console.log('signIn', event);
+        signIn: async ({ user, account, profile, isNewUser }) => {
+            console.log('signIn user:', user);
+            console.log('signIn account:', account);
+            console.log('signIn profile:', profile);
+            console.log('signIn isNewUser:', isNewUser);
         },
-        signOut: async ({ req, user, event }) => {
-            console.log('signOut', user);
-            console.log('signOut', event);
+        signOut: async ({ session, token }) => {
+            console.log('signOut session:', session);
+            console.log('signOut token:', token);
         },
-        createUser: async ({ req, user, event }) => {
-            console.log('createUser', user);
-            console.log('createUser', event);
+        createUser: async ({ user }) => {
+            console.log('createUser user:', user);
         },
-        updateUser: async ({ req, user, event }) => {
-            console.log('updateUser', user);
-            console.log('updateUser', event);
+        updateUser: async ({ user }) => {
+            console.log('updateUser user:', user);
         },
-        linkAccount: async ({ req, user, event }) => {
-            console.log('linkAccount', user);
-            console.log('linkAccount', event);
+        linkAccount: async ({ user, account }) => {
+            console.log('linkAccount user:', user);
+            console.log('linkAccount account:', account);
         },
-        session: async ({ req, session, event }) => {
+        session: async ({ session, token }) => {
             console.log('session', session);
-            console.log('session', event);
+            console.log('session token:', token);
         },
     },
-    // pages: {
-    //     signIn: '/auth/signin',
-    //     verifyRequest: '/auth/verify-request',
-    // },
+    pages: {
+        signIn: '/auth/signin',
+        verifyRequest: '/auth/verify-request',
+    },
 };

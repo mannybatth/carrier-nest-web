@@ -1,5 +1,6 @@
 import { XCircleIcon } from '@heroicons/react/outline';
-import { getCsrfToken } from 'next-auth/react';
+import { NextPage } from 'next';
+import { getCsrfToken, getSession } from 'next-auth/react';
 import React from 'react';
 
 type SignInErrorTypes =
@@ -29,20 +30,12 @@ const errors: Record<SignInErrorTypes, string> = {
     default: 'Unable to sign in.',
 };
 
-export type Props = {
+type Props = {
     csrfToken: string;
     error: SignInErrorTypes;
 };
 
-export async function getServerSideProps(context) {
-    const csrfToken = await getCsrfToken(context);
-    const { error = null } = context.query;
-    return {
-        props: { csrfToken, error },
-    };
-}
-
-const SignIn: React.FC<Props> = ({ csrfToken, error: errorType }) => {
+const SignIn: NextPage<Props> = ({ csrfToken, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
 
     return (
@@ -102,6 +95,24 @@ const SignIn: React.FC<Props> = ({ csrfToken, error: errorType }) => {
             </div>
         </div>
     );
+};
+
+SignIn.getInitialProps = async (context) => {
+    const { req, res } = context;
+    const session = await getSession({ req });
+
+    if (session && res && session.user) {
+        res.writeHead(302, {
+            Location: '/',
+        });
+        res.end();
+        return;
+    }
+
+    return {
+        csrfToken: await getCsrfToken(context),
+        error: context.query.error as SignInErrorTypes,
+    };
 };
 
 export default SignIn;
