@@ -1,9 +1,11 @@
 import { NextApiHandler } from 'next';
-import NextAuth, { NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions, Session } from 'next-auth';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '../../../lib/prisma';
 import EmailProvider from 'next-auth/providers/email';
 import { sendVerificationRequest } from './verification-request';
+import { JWT } from 'next-auth/jwt';
+import { User } from '@prisma/client';
 
 const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, options);
 export default authHandler;
@@ -33,7 +35,7 @@ const options: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
     secret: process.env.SECRET,
     callbacks: {
-        async session({ session, user, token }) {
+        async session({ session, user, token }: { session: Session; user: any; token: JWT }) {
             if (user && session) {
                 session.user = user;
             }

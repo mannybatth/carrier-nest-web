@@ -27,12 +27,13 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     async function _post() {
         try {
             const session = await getSession({ req });
-            console.log('session', session);
-
             const customerData = req.body as Customer;
-            customerData.carrierId = session.user.carrierId;
+
             const customer = await prisma.customer.create({
-                data: customerData,
+                data: {
+                    ...customerData,
+                    carrierId: session.user.carrierId,
+                },
             });
             return res.status(200).json({
                 data: customer,
