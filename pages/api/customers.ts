@@ -1,4 +1,6 @@
+import { Customer } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getSession } from 'next-auth/react';
 import prisma from '../../lib/prisma';
 
 export default handler;
@@ -7,8 +9,8 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     switch (req.method) {
         case 'GET':
             return _get();
-        case 'PUT':
-            return _put();
+        case 'POST':
+            return _post();
         case 'DELETE':
             return _delete();
         default:
@@ -22,9 +24,19 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
-    function _put() {
+    async function _post() {
         try {
-            return res.status(200).json({});
+            const session = await getSession({ req });
+            console.log('session', session);
+
+            const customerData = req.body as Customer;
+            customerData.carrierId = session.user.carrierId;
+            const customer = await prisma.customer.create({
+                data: customerData,
+            });
+            return res.status(200).json({
+                data: customer,
+            });
         } catch (error) {
             return res.status(400).json({ message: error });
         }

@@ -32,6 +32,14 @@ const options: NextAuthOptions = {
     ],
     adapter: PrismaAdapter(prisma),
     secret: process.env.SECRET,
+    callbacks: {
+        async session({ session, user, token }) {
+            if (user && session) {
+                session.user = user;
+            }
+            return session;
+        },
+    },
     events: {
         signIn: async ({ user, account, profile, isNewUser }) => {
             console.log('signIn user:', user);

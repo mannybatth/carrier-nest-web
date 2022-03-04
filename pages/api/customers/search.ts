@@ -1,4 +1,4 @@
-import { Customer } from '@prisma/client';
+import { Customer, PrismaPromise } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../../lib/prisma';
 
@@ -13,12 +13,25 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function _get() {
-        console.log(req.query);
-        const customers: Customer[] =
-            await prisma.$queryRaw`SELECT id, name, similarity(name, '${req.query.name}') FROM "Customer" WHERE name % '${req.query.name}'`;
+        const q = req.query.query as string;
+        const customers: Customer[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
             data: customers,
         });
+    }
+
+    function fullTextSearch(query: string): PrismaPromise<Customer[]> {
+        return prisma.customer.findMany({
+            where: {
+                name: {
+                    search: query,
+                },
+            },
+        });
+    }
+
+    function search(query: string): PrismaPromise<Customer[]> {
+        return prisma.$queryRaw`SELECT id, name, similarity(name, '${query}') FROM "Customer" WHERE name % '${query}'`;
     }
 }

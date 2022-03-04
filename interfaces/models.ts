@@ -5,6 +5,9 @@ export type JSONResponse<T> = {
     errors?: Array<{ message: string }>;
 };
 
+/**
+ * User
+ */
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
     select: { customerId: true, refNum: true, rate: true },
 });
@@ -28,3 +31,11 @@ export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
 export type LoadWithStops = SimpleLoad & {
     loadStops: SimpleLoadStop[];
 };
+
+/**
+ * Customer
+ */
+const simpleCustomer = Prisma.validator<Prisma.CustomerArgs>()({
+    select: { name: true },
+});
+export type SimpleCustomer = Prisma.CustomerGetPayload<typeof simpleCustomer>;

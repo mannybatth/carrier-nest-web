@@ -1,7 +1,7 @@
 import React from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
-import TimeInput from '../TimeInput';
+import TimeInput from '../../TimeInput';
 import { LoadStopType } from '@prisma/client';
 
 export type LoadFormStopProps = {

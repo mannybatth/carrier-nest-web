@@ -1,6 +1,6 @@
 import { Customer } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse } from '../../interfaces/models';
+import { JSONResponse, SimpleCustomer } from '../../interfaces/models';
 
 export const getAllCustomers = async () => {
     const customers = await fetch(apiUrl + '/customers');
@@ -10,5 +10,23 @@ export const getAllCustomers = async () => {
 export const searchCustomersByName = async (value: string) => {
     const response = await fetch(apiUrl + '/customers/search?name=' + value);
     const { data, errors }: JSONResponse<Customer[]> = await response.json();
+    return data;
+};
+
+export const fullTextSearchCustomersByName = async (value: string) => {
+    const response = await fetch(apiUrl + '/customers/search/?fullText=true&name=' + value);
+    const { data, errors }: JSONResponse<Customer[]> = await response.json();
+    return data;
+};
+
+export const createCustomer = async (customer: SimpleCustomer) => {
+    const response = await fetch(apiUrl + '/customers', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customer),
+    });
+    const { data, errors }: JSONResponse<Customer> = await response.json();
     return data;
 };

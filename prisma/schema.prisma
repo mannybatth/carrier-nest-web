@@ -5,7 +5,7 @@ datasource db {
 
 generator client {
     provider        = "prisma-client-js"
-    previewFeatures = ["extendedIndexes"]
+    previewFeatures = ["extendedIndexes", "fullTextSearch"]
 }
 
 model Account {
@@ -178,6 +178,8 @@ model Invoice {
     paidAt      DateTime?
     dueNetDays  Int           @default(0)
     extraItems  InvoiceItem[]
+
+    @@index([userId])
 }
 
 model InvoiceItem {

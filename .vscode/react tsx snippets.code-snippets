@@ -1,0 +1,63 @@
+{
+    // Place your trucking-tms workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+    // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+    // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+    // used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+    // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+    // Placeholders with the same ids are connected.
+    // Example:
+    "React Function Component": {
+        "description": "React Function Component",
+        "scope": "typescriptreact",
+        "prefix": "rfc",
+        "body": [
+            " import React from 'react';",
+            "",
+            "type Props = {};",
+            "",
+            "const ${1:ComponentName}: React.FC<Props> = (props: Props) => {",
+            "    return <div>$0</div>;",
+            "};",
+            "",
+            "export default ${1:ComponentName};"
+        ],
+    },
+    "Next Authenticated Page": {
+        "description": "Next Authenticated Page",
+        "scope": "typescriptreact",
+        "prefix": "page",
+        "body": [
+            "import React from 'react';",
+            "import Layout from '../../components/layout/Layout';",
+            "import { ComponentWithAuth } from '../../interfaces/auth';",
+            "",
+            "const $1: ComponentWithAuth = () => {",
+            "    return (",
+            "        <Layout",
+            "            smHeaderComponent={",
+            "                <div className=\"flex items-center\">",
+            "                    <h1 className=\"flex-1 text-xl font-semibold text-gray-900\">$2</h1>",
+            "                </div>",
+            "            }",
+            "        >",
+            "            <div className=\"py-2 mx-auto max-w-7xl\">",
+            "                <div className=\"hidden px-5 my-4 md:block sm:px-6 md:px-8\">",
+            "                    <div className=\"flex\">",
+            "                        <h1 className=\"flex-1 text-2xl font-semibold text-gray-900\">$2</h1>",
+            "                    </div>",
+            "                    <div className=\"w-full mt-2 mb-1 border-t border-gray-300\" />",
+            "                </div>",
+            "                <div className=\"px-5 sm:px-6 md:px-8\">",
+            "                    <div className=\"border-4 border-gray-200 border-dashed rounded-lg\"></div>",
+            "                </div>",
+            "            </div>",
+            "        </Layout>",
+            "    );",
+            "};",
+            "",
+            "$1.authenticationEnabled = true;",
+            "",
+            "export default $1;"
+        ]
+    }
+}
