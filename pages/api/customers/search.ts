@@ -1,5 +1,6 @@
 import { Customer, PrismaPromise } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { SimpleCustomer } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
 export default handler;
@@ -14,7 +15,7 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
 
     async function _get() {
         const q = req.query.q as string;
-        const customers: Customer[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
+        const customers: (Customer | SimpleCustomer)[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
             data: customers,
@@ -31,7 +32,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
-    function search(query: string): PrismaPromise<Customer[]> {
-        return prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) FROM "Customer" WHERE name % ${query}`;
+    async function search(query: string): Promise<SimpleCustomer[]> {
+        const customers: SimpleCustomer[] =
+            await prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" ORDER BY sim desc LIMIT 10`;
+        return customers.filter((c: any) => c.sim > 0).sort((a: any, b: any) => b.sim - a.sim);
     }
 }
