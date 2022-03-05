@@ -8,13 +8,13 @@ export const getAllCustomers = async () => {
 };
 
 export const searchCustomersByName = async (value: string) => {
-    const response = await fetch(apiUrl + '/customers/search?name=' + value);
+    const response = await fetch(apiUrl + '/customers/search?q=' + value);
     const { data, errors }: JSONResponse<Customer[]> = await response.json();
     return data;
 };
 
 export const fullTextSearchCustomersByName = async (value: string) => {
-    const response = await fetch(apiUrl + '/customers/search/?fullText=true&name=' + value);
+    const response = await fetch(apiUrl + '/customers/search/?fullText=true&q=' + value);
     const { data, errors }: JSONResponse<Customer[]> = await response.json();
     return data;
 };

@@ -9,9 +9,9 @@ import { searchCustomersByName } from '../../../lib/rest/customer';
 import LoadFormStop from './LoadFormStop';
 import CreateCustomerModal from '../customer/CreateCustomerModal';
 
-export type LoadFormProps = {};
+// export type LoadFormProps = {};
 
-const LoadForm: React.FC<LoadFormProps> = (props: LoadFormProps) => {
+const LoadForm: React.FC = () => {
     const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
@@ -62,10 +62,14 @@ const LoadForm: React.FC<LoadFormProps> = (props: LoadFormProps) => {
         setStops(stops.filter((_, i) => i !== index));
     };
 
+    const onNewCustomerCreate = (customer: Customer) => {
+        setSelectedCustomer(customer);
+    };
+
     return (
         <>
             <CreateCustomerModal
-                onCreate={() => {}}
+                onCreate={onNewCustomerCreate}
                 show={openAddCustomer}
                 onClose={() => setOpenAddCustomer(false)}
             ></CreateCustomerModal>
@@ -100,7 +104,7 @@ const LoadForm: React.FC<LoadFormProps> = (props: LoadFormProps) => {
                                                 value={customer}
                                                 className={({ active }) =>
                                                     classNames(
-                                                        'relative cursor-default select-none py-2 pl-3 pr-9',
+                                                        'relative select-none py-2 pl-3 pr-9 cursor-pointer',
                                                         active ? 'bg-blue-600 text-white' : 'text-gray-900',
                                                     )
                                                 }

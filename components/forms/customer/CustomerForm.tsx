@@ -2,10 +2,10 @@ import React from 'react';
 import { FieldValues, UseFormReturn } from 'react-hook-form';
 
 type Props = {
-    methods: UseFormReturn<FieldValues, any>;
+    formHook: UseFormReturn<FieldValues, any>;
 };
 
-const CustomerForm: React.FC<Props> = ({ methods: { register } }: Props) => {
+const CustomerForm: React.FC<Props> = ({ formHook: { register } }: Props) => {
     return (
         <div className="relative mt-3 md:mt-0 md:col-span-2">
             <div className="grid grid-cols-6 gap-6">
@@ -14,7 +14,7 @@ const CustomerForm: React.FC<Props> = ({ methods: { register } }: Props) => {
                         Name
                     </label>
                     <input
-                        {...register('name')}
+                        {...register('name', { required: true })}
                         type="text"
                         id="name"
                         autoComplete="name"

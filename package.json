@@ -9,7 +9,8 @@
         "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix",
         "db-push": "prisma db push",
         "generate": "prisma generate",
-        "studio": "prisma studio"
+        "studio": "prisma studio",
+        "psql": "heroku pg:psql DATABASE_URL -a trucking-tms"
     },
     "keywords": [],
     "author": "",

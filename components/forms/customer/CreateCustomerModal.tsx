@@ -14,7 +14,7 @@ type Props = {
 
 const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) => {
     const [loading, setLoading] = React.useState(false);
-    const methods = useForm();
+    const formHook = useForm();
 
     const submit = async (data) => {
         setLoading(true);
@@ -25,14 +25,19 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props
 
         const newCustomer = await createCustomer(customer);
 
-        setLoading(false);
         onCreate(newCustomer);
-        onClose(true);
+        close(true);
+    };
+
+    const close = (value: boolean) => {
+        setLoading(false);
+        formHook.reset();
+        onClose(value);
     };
 
     return (
         <Transition.Root show={show} as={Fragment}>
-            <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={onClose}>
+            <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={(value) => close(value)}>
                 <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                     <Transition.Child
                         as={Fragment}
@@ -64,8 +69,8 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props
                                 <h1 className="text-xl font-semibold text-gray-900">Create New Customer</h1>
                             </div>
 
-                            <form id="customer-form" onSubmit={methods.handleSubmit(submit)}>
-                                <CustomerForm methods={methods}></CustomerForm>
+                            <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
+                                <CustomerForm formHook={formHook}></CustomerForm>
                                 <div className="mt-5 sm:mt-6">
                                     <button
                                         type="submit"

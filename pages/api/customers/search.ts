@@ -13,7 +13,7 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function _get() {
-        const q = req.query.query as string;
+        const q = req.query.q as string;
         const customers: Customer[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
@@ -32,6 +32,6 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     function search(query: string): PrismaPromise<Customer[]> {
-        return prisma.$queryRaw`SELECT id, name, similarity(name, '${query}') FROM "Customer" WHERE name % '${query}'`;
+        return prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) FROM "Customer" WHERE name % ${query}`;
     }
 }
