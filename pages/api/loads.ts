@@ -1,4 +1,4 @@
-import { Customer } from '@prisma/client';
+import { Load } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import prisma from '../../lib/prisma';
@@ -18,28 +18,32 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function _get() {
-        const customers = await prisma.customer.findMany({});
+        const loads = await prisma.load.findMany({});
         return res.status(200).json({
-            data: customers,
+            data: loads,
         });
     }
 
     async function _post() {
         try {
             const session = await getSession({ req });
-            const customerData = req.body as Customer;
+            const loadData = req.body as Load;
 
-            const customer = await prisma.customer.create({
+            const load = await prisma.load.create({
                 data: {
-                    ...customerData,
+                    ...loadData,
+                    userId: session.user.id,
                     carrierId: session.user.carrierId,
+                    status: 'pending',
+                    distance: 0,
+                    distanceUnit: 'miles',
                 },
             });
             return res.status(200).json({
-                data: customer,
+                data: load,
             });
         } catch (error) {
-            console.log('customer post error', error);
+            console.log('load post error', error);
             return res.status(400).json({ message: error });
         }
     }
