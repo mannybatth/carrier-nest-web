@@ -4,7 +4,8 @@ import React, { Fragment } from 'react';
 import { useForm } from 'react-hook-form';
 import { SimpleCustomer } from '../../../interfaces/models';
 import { createCustomer } from '../../../lib/rest/customer';
-import CustomerForm from './CustomerForm';
+import Spinner from '../../Spinner';
+import CustomerForm, { CustomerFormData } from './CustomerForm';
 
 type Props = {
     show: boolean;
@@ -14,9 +15,9 @@ type Props = {
 
 const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) => {
     const [loading, setLoading] = React.useState(false);
-    const formHook = useForm();
+    const formHook = useForm<CustomerFormData>();
 
-    const submit = async (data) => {
+    const submit = async (data: CustomerFormData) => {
         setLoading(true);
 
         const customer: SimpleCustomer = {
@@ -65,7 +66,7 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props
                         leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     >
                         <div className="relative inline-block w-full px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                            <div className="block mb-4">
+                            <div className="block mb-4 mr-8">
                                 <h1 className="text-xl font-semibold text-gray-900">Create New Customer</h1>
                             </div>
 
@@ -75,35 +76,30 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        onClick={() => onClose(true)}
                                         className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm disabled:pointer-events-none"
                                     >
-                                        {loading && (
-                                            <svg
-                                                className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                ></circle>
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                ></path>
-                                            </svg>
-                                        )}
+                                        {loading && <Spinner className="text-white"></Spinner>}
                                         {loading ? 'Loading...' : 'Create Customer'}
                                     </button>
                                 </div>
                             </form>
+
+                            <div className="absolute top-0 right-0 mt-4 mr-4">
+                                <button
+                                    type="button"
+                                    className="p-2 text-gray-400 rounded-md hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500"
+                                    onClick={() => close(false)}
+                                >
+                                    <svg className="w-6 h-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </Transition.Child>
                 </div>

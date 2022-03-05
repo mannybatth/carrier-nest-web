@@ -8,6 +8,7 @@ import { SimpleLoadStop } from '../../../interfaces/models';
 import { searchCustomersByName } from '../../../lib/rest/customer';
 import LoadFormStop from './LoadFormStop';
 import CreateCustomerModal from '../customer/CreateCustomerModal';
+import Spinner from '../../Spinner';
 
 // export type LoadFormProps = {};
 
@@ -22,12 +23,13 @@ const LoadForm: React.FC = () => {
 
     useEffect(() => {
         const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
-            setCustomerSearchLoading(false);
             if (!query) {
+                setCustomerSearchLoading(false);
                 setSearchCustomers([]);
                 return;
             }
             const customers = await searchCustomersByName(query);
+            setCustomerSearchLoading(false);
             setSearchCustomers(customers);
         });
 
@@ -37,6 +39,7 @@ const LoadForm: React.FC = () => {
     }, []);
 
     const onCustomerSearchChange = (query: string) => {
+        setSearchCustomers([]);
         setCustomerSearchLoading(true);
         customerSearchSubject.next(query);
     };
@@ -96,9 +99,19 @@ const LoadForm: React.FC = () => {
                                     <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                 </Combobox.Button>
 
-                                {searchCustomers.length > 0 && (
-                                    <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                        {searchCustomers.map((customer) => (
+                                <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                    {searchCustomers.length === 0 ? (
+                                        customerSearchLoading ? (
+                                            <div className="relative px-4 py-2">
+                                                <Spinner className="text-gray-700"></Spinner>
+                                            </div>
+                                        ) : (
+                                            <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
+                                                Nothing found.
+                                            </div>
+                                        )
+                                    ) : (
+                                        searchCustomers.map((customer) => (
                                             <Combobox.Option
                                                 key={customer.id}
                                                 value={customer}
@@ -133,9 +146,9 @@ const LoadForm: React.FC = () => {
                                                     </>
                                                 )}
                                             </Combobox.Option>
-                                        ))}
-                                    </Combobox.Options>
-                                )}
+                                        ))
+                                    )}
+                                </Combobox.Options>
                             </div>
                         </Combobox>
                     </div>
