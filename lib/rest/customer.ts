@@ -3,8 +3,9 @@ import { apiUrl } from '../../constants';
 import { JSONResponse, SimpleCustomer } from '../../interfaces/models';
 
 export const getAllCustomers = async () => {
-    const customers = await fetch(apiUrl + '/customers');
-    return customers;
+    const response = await fetch(apiUrl + '/customers');
+    const { data, errors }: JSONResponse<Customer[]> = await response.json();
+    return data;
 };
 
 export const searchCustomersByName = async (value: string) => {

@@ -1,4 +1,9 @@
-import { Prisma } from '@prisma/client';
+import { Customer, Prisma } from '@prisma/client';
+
+export type Sort = {
+    key: string;
+    order: 'asc' | 'desc' | null;
+};
 
 export type JSONResponse<T> = {
     data?: T;
@@ -9,7 +14,7 @@ export type JSONResponse<T> = {
  * User
  */
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
-    select: { customerId: true, refNum: true, rate: true },
+    select: { customerId: true, refNum: true, rate: true, status: true },
 });
 export type SimpleLoad = Prisma.LoadGetPayload<typeof simpleLoad>;
 
@@ -28,7 +33,9 @@ const simpleLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
 });
 export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
 
-export type LoadWithStops = SimpleLoad & {
+export type ExpandedLoad = SimpleLoad & {
+    id?: string;
+    customer: Customer;
     loadStops: SimpleLoadStop[];
 };
 

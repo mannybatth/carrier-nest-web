@@ -1,9 +1,29 @@
+import { NextPageContext } from 'next';
 import Link from 'next/link';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
+import LoadsTable from '../../components/loads/LoadsTable';
 import { ComponentWithAuth } from '../../interfaces/auth';
+import { ExpandedLoad, Sort } from '../../interfaces/models';
+import { getAllLoadsWithCustomer } from '../../lib/rest/load';
 
-const LoadsPage: ComponentWithAuth = () => {
+export async function getServerSideProps(context: NextPageContext) {
+    const loads = await getAllLoadsWithCustomer();
+    return { props: { loads } };
+}
+
+type Props = {
+    loads: ExpandedLoad[];
+};
+
+const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
+    const [loadsList, setLoadsList] = React.useState(loads);
+
+    const reloadLoads = async (sort: Sort) => {
+        const loads = await getAllLoadsWithCustomer(sort);
+        setLoadsList(loads);
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -36,7 +56,7 @@ const LoadsPage: ComponentWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <div className="border-4 border-gray-200 border-dashed rounded-lg"></div>
+                    <LoadsTable loads={loadsList} onSortChange={reloadLoads} />
                 </div>
             </div>
         </Layout>

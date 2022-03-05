@@ -5,6 +5,21 @@ import prisma from '../../lib/prisma';
 
 export default handler;
 
+const buildOrderBy = (sortBy: string, sortDir: string) => {
+    if (sortBy && sortDir) {
+        if (sortBy.includes('.')) {
+            const split = sortBy.split('.');
+            return {
+                [split[0]]: {
+                    [split[1]]: sortDir,
+                },
+            };
+        }
+        return { [sortBy]: sortDir };
+    }
+    return undefined;
+};
+
 function handler(req: NextApiRequest, res: NextApiResponse) {
     switch (req.method) {
         case 'GET':
@@ -18,7 +33,16 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function _get() {
-        const loads = await prisma.load.findMany({});
+        const expand = req.query.expand as string;
+        const expandCustomer = expand?.includes('customer');
+
+        const sortBy = req.query.sortBy as string;
+        const sortDir = (req.query.sortDir as string) || 'asc';
+
+        const loads = await prisma.load.findMany({
+            orderBy: buildOrderBy(sortBy, sortDir),
+            include: expandCustomer ? { customer: { select: { name: true } } } : undefined,
+        });
         return res.status(200).json({
             data: loads,
         });
