@@ -205,13 +205,12 @@ const LoadForm: React.FC<Props> = ({
                             control={control}
                             rules={{ required: 'Rate is required' }}
                             name="rate"
-                            defaultValue={0}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                                 <>
                                     <MoneyInput
                                         id="rate"
-                                        value={value}
-                                        onChange={(e) => onChange(e.target.value)}
+                                        value={value || ''}
+                                        onChange={(e) => onChange(Number(e.target.value))}
                                     ></MoneyInput>
                                     {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
                                 </>
