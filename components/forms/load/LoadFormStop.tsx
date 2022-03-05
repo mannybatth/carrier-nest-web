@@ -1,8 +1,8 @@
 import React from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
-import TimeInput from '../../TimeInput';
 import { LoadStopType } from '@prisma/client';
+import TimeInput from '../TimeInput';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -149,7 +149,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
                     <div className="relative mt-1">
                         <TimeInput
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            initialTime="13:37"
+                            initialValue="13:37"
                             name={`pick-up-time-${suffix()}`}
                             id={`pick-up-time-${suffix()}`}
                             onChange={(event) => console.log(event)}

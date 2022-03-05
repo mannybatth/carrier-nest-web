@@ -1,25 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { Customer, LoadStopType } from '@prisma/client';
-import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
 import { Combobox } from '@headlessui/react';
+import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
+import { Customer, LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
+import React, { useEffect, useState } from 'react';
+import { Controller, UseFormReturn } from 'react-hook-form';
 import { debounceTime, Subject } from 'rxjs';
 import { SimpleLoadStop } from '../../../interfaces/models';
 import { searchCustomersByName } from '../../../lib/rest/customer';
-import LoadFormStop from './LoadFormStop';
-import CreateCustomerModal from '../customer/CreateCustomerModal';
 import Spinner from '../../Spinner';
+import CreateCustomerModal from '../customer/CreateCustomerModal';
+import MoneyInput from '../MoneyInput';
+import LoadFormStop from './LoadFormStop';
 
-// export type LoadFormProps = {};
+export interface LoadFormData {
+    customer: Customer;
+    refNum: string;
+    rate: number;
+}
 
-const LoadForm: React.FC = () => {
+type Props = {
+    formHook: UseFormReturn<LoadFormData>;
+};
+
+const LoadForm: React.FC<Props> = ({
+    formHook: {
+        register,
+        setValue,
+        control,
+        formState: { errors },
+    },
+}: Props) => {
     const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
     const [searchCustomers, setSearchCustomers] = React.useState<Customer[]>([]);
     const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
     const [customerSearchSubject] = React.useState(() => new Subject<string>());
-    const [selectedCustomer, setSelectedCustomer] = React.useState<Customer>(null);
 
     useEffect(() => {
         const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
@@ -66,7 +82,7 @@ const LoadForm: React.FC = () => {
     };
 
     const onNewCustomerCreate = (customer: Customer) => {
-        setSelectedCustomer(customer);
+        setValue('customer', customer, { shouldValidate: true });
     };
 
     return (
@@ -79,78 +95,92 @@ const LoadForm: React.FC = () => {
             <div className="relative mt-3 md:mt-0 md:col-span-2">
                 <div className="grid grid-cols-6 gap-6">
                     <div className="col-span-6">
-                        <Combobox as="div" value={selectedCustomer} onChange={setSelectedCustomer}>
-                            <div className="flex items-center space-x-3">
-                                <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
-                                    Customer
-                                </Combobox.Label>
-                                <a className="text-sm" onClick={() => setOpenAddCustomer(true)}>
-                                    Add Customer
-                                </a>
-                            </div>
-                            <div className="relative mt-1">
-                                <Combobox.Input
-                                    autoComplete="off"
-                                    className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                                    onChange={(e) => onCustomerSearchChange(e.target.value)}
-                                    displayValue={(customer: Customer) => customer?.name || null}
-                                />
-                                <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
-                                    <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                </Combobox.Button>
+                        <Controller
+                            control={control}
+                            rules={{ required: 'Customer is required' }}
+                            name="customer"
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                <Combobox as="div" value={value} onChange={onChange}>
+                                    <div className="flex items-center space-x-3">
+                                        <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
+                                            Customer
+                                        </Combobox.Label>
+                                        <a className="text-sm" onClick={() => setOpenAddCustomer(true)}>
+                                            Add Customer
+                                        </a>
+                                    </div>
+                                    <div className="relative mt-1">
+                                        <Combobox.Input
+                                            autoComplete="off"
+                                            className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                            onChange={(e) => {
+                                                onCustomerSearchChange(e.target.value);
+                                            }}
+                                            displayValue={(customer: Customer) => customer?.name || null}
+                                        />
+                                        <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
+                                            <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        </Combobox.Button>
 
-                                <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                    {searchCustomers.length === 0 ? (
-                                        customerSearchLoading ? (
-                                            <div className="relative px-4 py-2">
-                                                <Spinner className="text-gray-700"></Spinner>
-                                            </div>
-                                        ) : (
-                                            <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
-                                                Nothing found.
-                                            </div>
-                                        )
-                                    ) : (
-                                        searchCustomers.map((customer) => (
-                                            <Combobox.Option
-                                                key={customer.id}
-                                                value={customer}
-                                                className={({ active }) =>
-                                                    classNames(
-                                                        'relative select-none py-2 pl-3 pr-9 cursor-pointer',
-                                                        active ? 'bg-blue-600 text-white' : 'text-gray-900',
-                                                    )
-                                                }
-                                            >
-                                                {({ active, selected }) => (
-                                                    <>
-                                                        <span
-                                                            className={classNames(
-                                                                'block truncate',
-                                                                selected && 'font-semibold',
-                                                            )}
-                                                        >
-                                                            {customer.name}
-                                                        </span>
+                                        <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                            {searchCustomers.length === 0 ? (
+                                                customerSearchLoading ? (
+                                                    <div className="relative px-4 py-2">
+                                                        <Spinner className="text-gray-700"></Spinner>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
+                                                        Nothing found.
+                                                    </div>
+                                                )
+                                            ) : (
+                                                searchCustomers.map((customer) => (
+                                                    <Combobox.Option
+                                                        key={customer.id}
+                                                        value={customer}
+                                                        className={({ active }) =>
+                                                            classNames(
+                                                                'relative select-none py-2 pl-3 pr-9 cursor-pointer',
+                                                                active ? 'bg-blue-600 text-white' : 'text-gray-900',
+                                                            )
+                                                        }
+                                                    >
+                                                        {({ active, selected }) => (
+                                                            <>
+                                                                <span
+                                                                    className={classNames(
+                                                                        'block truncate',
+                                                                        selected && 'font-semibold',
+                                                                    )}
+                                                                >
+                                                                    {customer.name}
+                                                                </span>
 
-                                                        {selected && (
-                                                            <span
-                                                                className={classNames(
-                                                                    'absolute inset-y-0 right-0 flex items-center pr-4',
-                                                                    active ? 'text-white' : 'text-blue-600',
+                                                                {selected && (
+                                                                    <span
+                                                                        className={classNames(
+                                                                            'absolute inset-y-0 right-0 flex items-center pr-4',
+                                                                            active ? 'text-white' : 'text-blue-600',
+                                                                        )}
+                                                                    >
+                                                                        <CheckIcon
+                                                                            className="w-5 h-5"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    </span>
                                                                 )}
-                                                            >
-                                                                <CheckIcon className="w-5 h-5" aria-hidden="true" />
-                                                            </span>
+                                                            </>
                                                         )}
-                                                    </>
-                                                )}
-                                            </Combobox.Option>
-                                        ))
-                                    )}
-                                </Combobox.Options>
-                            </div>
-                        </Combobox>
+                                                    </Combobox.Option>
+                                                ))
+                                            )}
+                                        </Combobox.Options>
+                                    </div>
+
+                                    {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                </Combobox>
+                            )}
+                        />
                     </div>
 
                     <div className="col-span-6 sm:col-span-3">
@@ -158,36 +188,35 @@ const LoadForm: React.FC = () => {
                             Reference #
                         </label>
                         <input
+                            {...register('refNum', { required: 'Reference # is required' })}
                             type="text"
-                            name="reference-num"
                             id="reference-num"
                             autoComplete="reference-num"
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
+                        {errors.refNum && <p className="mt-2 text-sm text-red-600">{errors.refNum?.message}</p>}
                     </div>
 
                     <div className="col-span-6 sm:col-span-3">
-                        <label htmlFor="price" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="rate" className="block text-sm font-medium text-gray-700">
                             Rate
                         </label>
-                        <div className="relative mt-1 rounded-md shadow-sm">
-                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <span className="text-gray-500 sm:text-sm">$</span>
-                            </div>
-                            <input
-                                type="text"
-                                name="price"
-                                id="price"
-                                className="block w-full pr-12 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 pl-7 sm:text-sm"
-                                placeholder="0.00"
-                                aria-describedby="price-currency"
-                            />
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <span className="text-gray-500 sm:text-sm" id="price-currency">
-                                    USD
-                                </span>
-                            </div>
-                        </div>
+                        <Controller
+                            control={control}
+                            rules={{ required: 'Rate is required' }}
+                            name="rate"
+                            defaultValue={0}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                <>
+                                    <MoneyInput
+                                        id="rate"
+                                        value={value}
+                                        onChange={(e) => onChange(e.target.value)}
+                                    ></MoneyInput>
+                                    {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                </>
+                            )}
+                        />
                     </div>
 
                     <LoadFormStop type={LoadStopType.SHIPPER} />

@@ -1,12 +1,19 @@
 import React from 'react';
-import LoadForm from '../../components/forms/load/LoadForm';
+import { useForm } from 'react-hook-form';
+import LoadForm, { LoadFormData } from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { SimpleLoad } from '../../interfaces/models';
 
 const CreateLoad: ComponentWithAuth = () => {
+    const formHook = useForm<LoadFormData>();
+
     const [load, setLoad] = React.useState<SimpleLoad>(null);
+
+    const submit = (data: LoadFormData) => {
+        console.log(data);
+    };
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
@@ -17,8 +24,8 @@ const CreateLoad: ComponentWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <form action="#" method="POST">
-                        <LoadForm></LoadForm>
+                    <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
+                        <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>
                             <button

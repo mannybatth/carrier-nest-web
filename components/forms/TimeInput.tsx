@@ -1,5 +1,4 @@
 import React, { ChangeEvent, ComponentPropsWithoutRef, ReactElement, useState } from 'react';
-import PropTypes from 'prop-types';
 
 const isValid = (val) => {
     const regexp = /^\d{0,2}?\:?\d{0,2}$/;
@@ -39,14 +38,14 @@ const isValid = (val) => {
     return true;
 };
 
-export interface Props extends ComponentPropsWithoutRef<'input'> {
-    initialTime: string;
+type Props = {
+    initialValue: string;
     input?: ReactElement;
     onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
-}
+} & ComponentPropsWithoutRef<'input'>;
 
-const TimeInput = ({ initialTime, input, onChange, ...props }: Props) => {
-    const [value, setValue] = useState(initialTime || '');
+const TimeInput: React.FC<Props> = ({ initialValue, input, onChange, ...props }: Props) => {
+    const [value, setValue] = useState(initialValue || '');
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         let newValue = event.target.value;
@@ -84,12 +83,6 @@ const TimeInput = ({ initialTime, input, onChange, ...props }: Props) => {
     }
 
     return <input {...props} onChange={handleChange} type="text" value={value} />;
-};
-
-TimeInput.propTypes = {
-    initialTime: PropTypes.string.isRequired,
-    input: PropTypes.node,
-    onChange: PropTypes.func,
 };
 
 export default TimeInput;
