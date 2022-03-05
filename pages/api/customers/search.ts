@@ -33,8 +33,11 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function search(query: string): Promise<SimpleCustomer[]> {
-        const customers: SimpleCustomer[] =
+        type SearchResult = {
+            sim: number;
+        } & SimpleCustomer;
+        const customers: SearchResult[] =
             await prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" ORDER BY sim desc LIMIT 10`;
-        return customers.filter((c: any) => c.sim > 0).sort((a: any, b: any) => b.sim - a.sim);
+        return customers.filter((c) => c.sim > 0);
     }
 }
