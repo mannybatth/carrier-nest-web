@@ -6,7 +6,7 @@ import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { ComponentWithAuth } from '../../../interfaces/auth';
-import { ExpandedLoad } from '../../../interfaces/models';
+import { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
 import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
 type Props = {
@@ -43,28 +43,38 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
             return;
         }
 
+        load.receiver.date = new Date(load.receiver.date);
+        load.shipper.date = new Date(load.shipper.date);
+        load.stops.forEach((stop: SimpleLoadStop) => {
+            stop.date = new Date(stop.date);
+        });
+
         formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);
         formHook.setValue('rate', load.rate);
+        formHook.setValue('shipper', load.shipper);
+        formHook.setValue('receiver', load.receiver);
         formHook.setValue('stops', load.stops);
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {
-        setLoading(true);
+        console.log('data to save', data);
 
-        const loadData: ExpandedLoad = {
-            customerId: data.customer.id,
-            refNum: data.refNum,
-            rate: new Prisma.Decimal(data.rate),
-            status: 'pending',
-            distance: 0,
-            distanceUnit: 'miles',
-        };
+        // setLoading(true);
 
-        const newLoad = await updateLoad(load.id, loadData);
-        console.log('updated load', newLoad);
+        // const loadData: ExpandedLoad = {
+        //     customerId: data.customer.id,
+        //     refNum: data.refNum,
+        //     rate: new Prisma.Decimal(data.rate),
+        //     status: 'pending',
+        //     distance: 0,
+        //     distanceUnit: 'miles',
+        // };
 
-        setLoading(false);
+        // const newLoad = await updateLoad(load.id, loadData);
+        // console.log('updated load', newLoad);
+
+        // setLoading(false);
     };
 
     return (

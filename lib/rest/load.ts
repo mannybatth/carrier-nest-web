@@ -1,6 +1,6 @@
 import { Load } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, ExpandedLoad, SimpleLoad, Sort } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse, SimpleLoad, Sort } from '../../interfaces/models';
 
 export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad[]> => {
     const params = new URLSearchParams({

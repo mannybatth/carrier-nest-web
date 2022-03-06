@@ -1,4 +1,3 @@
-import { Load, LoadStopType } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ExpandedLoad } from '../../interfaces/models';

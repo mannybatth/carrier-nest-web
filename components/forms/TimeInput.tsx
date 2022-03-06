@@ -1,4 +1,4 @@
-import React, { ChangeEvent, ComponentPropsWithoutRef, ReactElement, useState } from 'react';
+import React, { ChangeEvent, ComponentPropsWithoutRef, ReactElement, useEffect, useState } from 'react';
 
 const isValid = (val) => {
     const regexp = /^\d{0,2}?\:?\d{0,2}$/;
@@ -45,6 +45,10 @@ type Props = {
 
 const TimeInput: React.FC<Props> = ({ value: initialValue, input, onChange, ...props }: Props) => {
     const [value, setValue] = useState<string>(initialValue?.toString() || '');
+
+    useEffect(() => {
+        setValue(initialValue?.toString() || '');
+    }, [initialValue]);
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         let newValue = event.target.value;
