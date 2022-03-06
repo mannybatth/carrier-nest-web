@@ -2,9 +2,9 @@ import React from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
-import TimeInput from '../TimeInput';
 import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
 import { ExpandedLoad } from '../../../interfaces/models';
+import TimeField from '../TimeField';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -213,11 +213,16 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
                                 <div className="relative mt-1">
-                                    <TimeInput
-                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        id={fieldId('time')}
+                                    <TimeField
                                         value={value}
                                         onChange={onChange}
+                                        input={
+                                            <input
+                                                type="text"
+                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                id={fieldId('time')}
+                                            />
+                                        }
                                     />
                                     <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
                                         <ClockIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
