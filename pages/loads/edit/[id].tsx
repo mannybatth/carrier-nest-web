@@ -6,7 +6,7 @@ import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { ComponentWithAuth } from '../../../interfaces/auth';
-import { ExpandedLoad, SimpleLoad } from '../../../interfaces/models';
+import { ExpandedLoad } from '../../../interfaces/models';
 import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
 type Props = {
@@ -15,6 +15,15 @@ type Props = {
 
 export async function getServerSideProps(context: NextPageContext) {
     const load = await getLoadById(Number(context.query.id));
+    if (!load) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/loads',
+            },
+        };
+    }
+
     return {
         props: {
             load,
@@ -22,7 +31,7 @@ export async function getServerSideProps(context: NextPageContext) {
     };
 }
 
-const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
+const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
     const formHook = useForm<ExpandedLoad>();
 
     const [loading, setLoading] = React.useState(false);
@@ -30,24 +39,27 @@ const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
 
     useEffect(() => {
         if (!load) {
+            formHook.reset();
             return;
         }
 
         formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);
         formHook.setValue('rate', load.rate);
+        formHook.setValue('loadStops', load.loadStops);
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {
         setLoading(true);
 
-        const loadData: SimpleLoad = {
+        const loadData: ExpandedLoad = {
             customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
             status: 'pending',
             distance: 0,
             distanceUnit: 'miles',
+            loadStops: data.loadStops,
         };
 
         const newLoad = await updateLoad(load.id, loadData);
@@ -94,6 +106,6 @@ const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
     );
 };
 
-CreateLoad.authenticationEnabled = true;
+EditLoad.authenticationEnabled = true;
 
-export default CreateLoad;
+export default EditLoad;

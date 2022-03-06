@@ -35,8 +35,10 @@ export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
 
 export type ExpandedLoad = SimpleLoad & {
     id?: number;
-    customer: Customer;
-    loadStops: SimpleLoadStop[];
+    customer?: Customer;
+    shipper?: SimpleLoadStop;
+    receiver?: SimpleLoadStop;
+    stops?: SimpleLoadStop[];
 };
 
 /**

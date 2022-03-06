@@ -30,11 +30,7 @@ const LoadForm: React.FC<Props> = ({
     const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
     const [customerSearchSubject] = React.useState(() => new Subject<string>());
 
-    const {
-        fields: stopFields,
-        append: appendStop,
-        remove: removeStop,
-    } = useFieldArray({ name: 'loadStops', control });
+    const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });
 
     useEffect(() => {
         const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
@@ -196,7 +192,7 @@ const LoadForm: React.FC<Props> = ({
                         />
                     </div>
 
-                    {/* <LoadFormStop {...{ register, errors, control }} type={LoadStopType.SHIPPER} /> */}
+                    <LoadFormStop {...{ register, errors, control }} type={LoadStopType.SHIPPER} />
 
                     {stopFields.map((field, i) => (
                         <LoadFormStop
@@ -238,7 +234,8 @@ const LoadForm: React.FC<Props> = ({
                             </div>
                         </div>
                     </div>
-                    {/* <LoadFormStop formHook={formHook} type={LoadStopType.RECEIVER} /> */}
+
+                    <LoadFormStop {...{ register, errors, control }} type={LoadStopType.RECEIVER} />
                 </div>
             </div>
         </>

@@ -44,13 +44,20 @@ type Props = {
 } & ComponentPropsWithoutRef<'input'>;
 
 const TimeInput: React.FC<Props> = ({ value: initialValue, input, onChange, ...props }: Props) => {
-    const [value, setValue] = useState<string>(initialValue.toString() || '');
+    const [value, setValue] = useState<string>(initialValue?.toString() || '');
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         let newValue = event.target.value;
         if (newValue == value) {
             return;
         }
+
+        if (!newValue) {
+            setValue(newValue);
+            onChange(event);
+            return;
+        }
+
         if (isValid(newValue)) {
             if (newValue.length === 2 && value.length !== 3 && newValue.indexOf(':') === -1) {
                 newValue = newValue + ':';
@@ -65,12 +72,11 @@ const TimeInput: React.FC<Props> = ({ value: initialValue, input, onChange, ...p
             }
 
             setValue(newValue);
-
-            if (newValue.length === 5) {
-                event.target.value = newValue;
-                onChange(event);
-            }
+        } else {
+            event.target.value = value;
         }
+
+        onChange(event);
     };
 
     if (input) {

@@ -21,13 +21,34 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const expand = req.query.expand as string;
         const expandCustomer = expand?.includes('customer');
+        const expandLoadStops = expand?.includes('loadStops');
 
         const load = await prisma.load.findFirst({
             where: {
                 id: Number(req.query.id),
                 userId: session?.user?.id,
             },
-            include: expandCustomer ? { customer: { select: { name: true } } } : undefined,
+            include: {
+                ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
+                ...(expandLoadStops
+                    ? {
+                          loadStops: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+            },
         });
         return res.status(200).json({
             data: load,

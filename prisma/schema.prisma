@@ -99,7 +99,11 @@ model Load {
     refNum          String
     status          String
     statusUpdatedAt DateTime?
-    loadStops       LoadStop[]
+    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+    shipperId       Int            @unique
+    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
+    receiverId      Int            @unique
+    stops           LoadStop[]
     rate            Decimal
     invoice         Invoice?
     distance        Int
@@ -116,20 +120,22 @@ enum LoadStopType {
 }
 
 model LoadStop {
-    id      Int          @id @default(autoincrement())
-    user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId  Int
-    type    LoadStopType
-    name    String
-    street  String
-    city    String
-    state   String
-    zip     String
-    country String
-    date    DateTime
-    time    String
-    load    Load?        @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    loadId  Int?
+    id              Int          @id @default(autoincrement())
+    user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId          Int
+    type            LoadStopType
+    name            String
+    street          String
+    city            String
+    state           String
+    zip             String
+    country         String
+    date            DateTime
+    time            String
+    loadsAsShipper  Load[]       @relation("shipper")
+    loadsAsReceiver Load[]       @relation("receiver")
+    loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])
+    loadIdAsStop    Int?
 }
 
 model Customer {

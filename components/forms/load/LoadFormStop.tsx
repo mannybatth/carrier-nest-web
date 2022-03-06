@@ -45,17 +45,48 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
         }
     };
 
-    const errorMessage = (errors: FieldErrors<ExpandedLoad>, name: string) =>
-        errors?.loadStops &&
-        errors?.loadStops[index] &&
-        errors?.loadStops[index][name] && (
-            <p className="mt-2 text-sm text-red-600">{errors?.loadStops[index][name]?.message}</p>
-        );
+    const errorMessage = (errors: FieldErrors<ExpandedLoad>, name: string) => {
+        if (props.type === LoadStopType.SHIPPER) {
+            return (
+                errors.shipper &&
+                errors.shipper[name] &&
+                errors.shipper[name].message && (
+                    <p className="mt-2 text-sm text-red-600">{errors.shipper[name].message}</p>
+                )
+            );
+        } else if (props.type === LoadStopType.RECEIVER) {
+            return (
+                errors.receiver &&
+                errors.receiver[name] &&
+                errors.receiver[name].message && (
+                    <p className="mt-2 text-sm text-red-600">{errors.receiver[name].message}</p>
+                )
+            );
+        } else {
+            return (
+                errors?.stops &&
+                errors?.stops[index] &&
+                errors?.stops[index][name] && (
+                    <p className="mt-2 text-sm text-red-600">{errors?.stops[index][name]?.message}</p>
+                )
+            );
+        }
+    };
+
+    const fieldId = (name: string): any => {
+        if (props.type === LoadStopType.SHIPPER) {
+            return `shipper.${name}`;
+        } else if (props.type === LoadStopType.RECEIVER) {
+            return `receiver.${name}`;
+        } else {
+            return `stops.${index}.${name}`;
+        }
+    };
 
     return (
         <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
             <div className="flex flex-row">
-                <div className="flex-1 mb-3 font-medium leading-6 text-gray-900 uppercase ">{title()}</div>
+                <div className="flex-1 mb-3 font-medium leading-6 text-gray-900 uppercase">{title()}</div>
                 {props.type === LoadStopType.STOP && (
                     <div>
                         <a
@@ -72,13 +103,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
             <div className="grid grid-cols-6 gap-6">
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`loadStops.${index}.name`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('name')} className="block text-sm font-medium text-gray-700">
                         Business Name
                     </label>
                     <input
-                        {...register(`loadStops.${index}.name`, { required: 'Business Name is required' })}
+                        {...register(fieldId('name'), { required: 'Business Name is required' })}
                         type="text"
-                        id={`loadStops.${index}.name`}
+                        id={fieldId('name')}
                         autoComplete="business-name"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -86,13 +117,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`loadStops.${index}.street`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('street')} className="block text-sm font-medium text-gray-700">
                         Street Address
                     </label>
                     <input
-                        {...register(`loadStops.${index}.street`, { required: 'Street Address is required' })}
+                        {...register(fieldId('street'), { required: 'Street Address is required' })}
                         type="text"
-                        id={`loadStops.${index}.street`}
+                        id={fieldId('street')}
                         autoComplete="street-address"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -100,13 +131,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-6 lg:col-span-2">
-                    <label htmlFor={`loadStops.${index}.city`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('city')} className="block text-sm font-medium text-gray-700">
                         City
                     </label>
                     <input
-                        {...register(`loadStops.${index}.city`, { required: 'City is required' })}
+                        {...register(fieldId('city'), { required: 'City is required' })}
                         type="text"
-                        id={`loadStops.${index}.city`}
+                        id={fieldId('city')}
                         autoComplete="city"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -114,13 +145,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={`loadStops.${index}.state`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('state')} className="block text-sm font-medium text-gray-700">
                         State / Province
                     </label>
                     <input
-                        {...register(`loadStops.${index}.state`, { required: 'State is required' })}
+                        {...register(fieldId('state'), { required: 'State is required' })}
                         type="text"
-                        id={`loadStops.${index}.state`}
+                        id={fieldId('state')}
                         autoComplete="state"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -128,13 +159,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={`loadStops.${index}.zip`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('zip')} className="block text-sm font-medium text-gray-700">
                         ZIP / Postal Code
                     </label>
                     <input
-                        {...register(`loadStops.${index}.zip`, { required: 'State is required' })}
+                        {...register(fieldId('zip'), { required: 'State is required' })}
                         type="text"
-                        id={`loadStops.${index}.zip`}
+                        id={fieldId('zip')}
                         autoComplete="postal-code"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -142,20 +173,21 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`loadStops.${index}.date`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('date')} className="block text-sm font-medium text-gray-700">
                         Pick Up Date
                     </label>
                     <Controller
                         control={control}
                         rules={{ required: 'Pick Up Date is required' }}
-                        name={`loadStops.${index}.date`}
+                        name={fieldId('date')}
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
+                                {console.log('RERENDERING')}
                                 <div className="relative mt-1">
                                     <DayPickerInput
-                                        onChange={onChange}
+                                        onDayChange={onChange}
                                         value={value}
-                                        inputProps={{ type: 'text', id: `loadStops.${index}.date` }}
+                                        inputProps={{ type: 'text', id: fieldId('date') }}
                                     />
                                     <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
                                         <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
@@ -168,20 +200,23 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`loadStops.${index}.time`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId('time')} className="block text-sm font-medium text-gray-700">
                         Pick Up Time
                     </label>
 
                     <Controller
                         control={control}
-                        rules={{ required: 'Pick Up Time is required' }}
-                        name={`loadStops.${index}.time`}
+                        rules={{
+                            required: 'Pick Up Time is required',
+                            minLength: { value: 5, message: 'Time is invalid' },
+                        }}
+                        name={fieldId('time')}
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
                                 <div className="relative mt-1">
                                     <TimeInput
                                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        id={`loadStops.${index}.time`}
+                                        id={fieldId('time')}
                                         value={value}
                                         onChange={onChange}
                                     />

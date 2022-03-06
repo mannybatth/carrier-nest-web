@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -12,6 +12,10 @@ const CreateLoad: ComponentWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
 
     const [loading, setLoading] = React.useState(false);
+
+    useEffect(() => {
+        console.log('USE EFFECT CALLED');
+    }, [formHook]);
 
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
