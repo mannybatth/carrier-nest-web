@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import LoadForm, { LoadFormData } from '../../../components/forms/load/LoadForm';
+import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { ComponentWithAuth } from '../../../interfaces/auth';
@@ -23,7 +23,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
-    const formHook = useForm<LoadFormData>();
+    const formHook = useForm<ExpandedLoad>();
 
     const [loading, setLoading] = React.useState(false);
     const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
@@ -35,10 +35,10 @@ const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
 
         formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);
-        formHook.setValue('rate', new Prisma.Decimal(load.rate).toNumber());
+        formHook.setValue('rate', load.rate);
     }, [load]);
 
-    const submit = async (data: LoadFormData) => {
+    const submit = async (data: ExpandedLoad) => {
         setLoading(true);
 
         const loadData: SimpleLoad = {

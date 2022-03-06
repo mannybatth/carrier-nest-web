@@ -3,15 +3,26 @@ import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
 import TimeInput from '../TimeInput';
+import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
+import { ExpandedLoad } from '../../../interfaces/models';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
     totalStops?: number;
     index?: number;
     onRemoveStop?: () => void;
+    register: UseFormRegister<ExpandedLoad>;
+    errors: FieldErrors<ExpandedLoad>;
+    control: Control<ExpandedLoad, any>;
 };
 
-const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
+const LoadFormStop: React.FC<LoadFormStopProps> = ({
+    register,
+    errors,
+    control,
+    index,
+    ...props
+}: LoadFormStopProps) => {
     const borderColor = () => {
         switch (props.type) {
             case LoadStopType.SHIPPER:
@@ -30,20 +41,16 @@ const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
             case LoadStopType.RECEIVER:
                 return 'Receiver';
             default:
-                return props.totalStops > 1 ? `Stop #${props.index + 1}` : 'Stop';
+                return props.totalStops > 1 ? `Stop #${index + 1}` : 'Stop';
         }
     };
 
-    const suffix = () => {
-        switch (props.type) {
-            case LoadStopType.SHIPPER:
-                return 'shipper';
-            case LoadStopType.RECEIVER:
-                return 'receiver';
-            default:
-                return `stop-${props.index}`;
-        }
-    };
+    const errorMessage = (errors: FieldErrors<ExpandedLoad>, name: string) =>
+        errors?.loadStops &&
+        errors?.loadStops[index] &&
+        errors?.loadStops[index][name] && (
+            <p className="mt-2 text-sm text-red-600">{errors?.loadStops[index][name]?.message}</p>
+        );
 
     return (
         <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
@@ -65,99 +72,127 @@ const LoadFormStop: React.FC<LoadFormStopProps> = (props) => {
 
             <div className="grid grid-cols-6 gap-6">
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`business-name-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.name`} className="block text-sm font-medium text-gray-700">
                         Business Name
                     </label>
                     <input
+                        {...register(`loadStops.${index}.name`, { required: 'Business Name is required' })}
                         type="text"
-                        name={`business-name-${suffix()}`}
-                        id={`business-name-${suffix()}`}
+                        id={`loadStops.${index}.name`}
                         autoComplete="business-name"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
+                    {errorMessage(errors, 'name')}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`street-address-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.street`} className="block text-sm font-medium text-gray-700">
                         Street Address
                     </label>
                     <input
+                        {...register(`loadStops.${index}.street`, { required: 'Street Address is required' })}
                         type="text"
-                        name={`street-address-${suffix()}`}
-                        id={`street-address-${suffix()}`}
+                        id={`loadStops.${index}.street`}
                         autoComplete="street-address"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
+                    {errorMessage(errors, 'street')}
                 </div>
 
                 <div className="col-span-6 sm:col-span-6 lg:col-span-2">
-                    <label htmlFor={`city-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.city`} className="block text-sm font-medium text-gray-700">
                         City
                     </label>
                     <input
+                        {...register(`loadStops.${index}.city`, { required: 'City is required' })}
                         type="text"
-                        name={`city-${suffix()}`}
-                        id={`city-${suffix()}`}
+                        id={`loadStops.${index}.city`}
                         autoComplete="city"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
+                    {errorMessage(errors, 'city')}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={`region-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.state`} className="block text-sm font-medium text-gray-700">
                         State / Province
                     </label>
                     <input
+                        {...register(`loadStops.${index}.state`, { required: 'State is required' })}
                         type="text"
-                        name={`region-${suffix()}`}
-                        id={`region-${suffix()}`}
+                        id={`loadStops.${index}.state`}
                         autoComplete="state"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
+                    {errorMessage(errors, 'state')}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={`postal-code-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.zip`} className="block text-sm font-medium text-gray-700">
                         ZIP / Postal Code
                     </label>
                     <input
+                        {...register(`loadStops.${index}.zip`, { required: 'State is required' })}
                         type="text"
-                        name={`postal-code-${suffix()}`}
-                        id={`postal-code-${suffix()}`}
+                        id={`loadStops.${index}.zip`}
                         autoComplete="postal-code"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'zip')}
+                </div>
+
+                <div className="col-span-6 sm:col-span-3">
+                    <label htmlFor={`loadStops.${index}.date`} className="block text-sm font-medium text-gray-700">
+                        Pick Up Date
+                    </label>
+                    <Controller
+                        control={control}
+                        rules={{ required: 'Pick Up Date is required' }}
+                        name={`loadStops.${index}.date`}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                            <>
+                                <div className="relative mt-1">
+                                    <DayPickerInput
+                                        onChange={onChange}
+                                        value={value}
+                                        inputProps={{ type: 'text', id: `loadStops.${index}.date` }}
+                                    />
+                                    <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
+                                        <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                    </div>
+                                </div>
+                                {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                            </>
+                        )}
                     />
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`pick-up-date-${suffix()}`} className="block text-sm font-medium text-gray-700">
-                        Pick Up Date
-                    </label>
-                    <div className="relative mt-1">
-                        <DayPickerInput inputProps={{ type: 'text', id: `pick-up-date-${suffix()}` }} />
-                        <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
-                            <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={`pick-up-time-${suffix()}`} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={`loadStops.${index}.time`} className="block text-sm font-medium text-gray-700">
                         Pick Up Time
                     </label>
 
-                    <div className="relative mt-1">
-                        <TimeInput
-                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            initialValue="13:37"
-                            name={`pick-up-time-${suffix()}`}
-                            id={`pick-up-time-${suffix()}`}
-                            onChange={(event) => console.log(event)}
-                        />
-                        <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
-                            <ClockIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                        </div>
-                    </div>
+                    <Controller
+                        control={control}
+                        rules={{ required: 'Pick Up Time is required' }}
+                        name={`loadStops.${index}.time`}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                            <>
+                                <div className="relative mt-1">
+                                    <TimeInput
+                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        id={`loadStops.${index}.time`}
+                                        value={value}
+                                        onChange={onChange}
+                                    />
+                                    <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
+                                        <ClockIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                    </div>
+                                </div>
+                                {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                            </>
+                        )}
+                    />
                 </div>
             </div>
         </div>

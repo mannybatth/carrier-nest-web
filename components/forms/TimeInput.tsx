@@ -39,13 +39,12 @@ const isValid = (val) => {
 };
 
 type Props = {
-    initialValue: string;
     input?: ReactElement;
     onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
 } & ComponentPropsWithoutRef<'input'>;
 
-const TimeInput: React.FC<Props> = ({ initialValue, input, onChange, ...props }: Props) => {
-    const [value, setValue] = useState(initialValue || '');
+const TimeInput: React.FC<Props> = ({ value: initialValue, input, onChange, ...props }: Props) => {
+    const [value, setValue] = useState<string>(initialValue.toString() || '');
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         let newValue = event.target.value;

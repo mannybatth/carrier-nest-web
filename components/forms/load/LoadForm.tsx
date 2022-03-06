@@ -1,25 +1,19 @@
 import { Combobox } from '@headlessui/react';
 import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
-import { Customer, LoadStopType } from '@prisma/client';
+import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import { Controller, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { debounceTime, Subject } from 'rxjs';
-import { SimpleLoadStop } from '../../../interfaces/models';
+import { ExpandedLoad } from '../../../interfaces/models';
 import { searchCustomersByName } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
 import CreateCustomerModal from '../customer/CreateCustomerModal';
 import MoneyInput from '../MoneyInput';
 import LoadFormStop from './LoadFormStop';
 
-export interface LoadFormData {
-    customer: Customer;
-    refNum: string;
-    rate: number;
-}
-
 type Props = {
-    formHook: UseFormReturn<LoadFormData>;
+    formHook: UseFormReturn<ExpandedLoad>;
 };
 
 const LoadForm: React.FC<Props> = ({
@@ -30,12 +24,17 @@ const LoadForm: React.FC<Props> = ({
         formState: { errors },
     },
 }: Props) => {
-    const [stops, setStops] = React.useState<SimpleLoadStop[]>([]);
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
     const [searchCustomers, setSearchCustomers] = React.useState<Customer[]>([]);
     const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
     const [customerSearchSubject] = React.useState(() => new Subject<string>());
+
+    const {
+        fields: stopFields,
+        append: appendStop,
+        remove: removeStop,
+    } = useFieldArray({ name: 'loadStops', control });
 
     useEffect(() => {
         const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
@@ -58,27 +57,6 @@ const LoadForm: React.FC<Props> = ({
         setSearchCustomers([]);
         setCustomerSearchLoading(true);
         customerSearchSubject.next(query);
-    };
-
-    const addStop = () => {
-        setStops([
-            ...stops,
-            {
-                type: LoadStopType.STOP,
-                name: `${stops.length + 1}`,
-                street: '',
-                city: '',
-                state: '',
-                zip: '',
-                country: '',
-                date: new Date(),
-                time: '',
-            },
-        ]);
-    };
-
-    const removeStop = (index: number) => {
-        setStops(stops.filter((_, i) => i !== index));
     };
 
     const onNewCustomerCreate = (customer: Customer) => {
@@ -209,8 +187,8 @@ const LoadForm: React.FC<Props> = ({
                                 <>
                                     <MoneyInput
                                         id="rate"
-                                        value={value || ''}
-                                        onChange={(e) => onChange(Number(e.target.value))}
+                                        value={(value as Prisma.Decimal)?.toString() || ''}
+                                        onChange={(e) => onChange(new Prisma.Decimal(e.target.value))}
                                     ></MoneyInput>
                                     {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
                                 </>
@@ -218,13 +196,14 @@ const LoadForm: React.FC<Props> = ({
                         />
                     </div>
 
-                    <LoadFormStop type={LoadStopType.SHIPPER} />
+                    {/* <LoadFormStop {...{ register, errors, control }} type={LoadStopType.SHIPPER} /> */}
 
-                    {stops.map((x, i) => (
+                    {stopFields.map((field, i) => (
                         <LoadFormStop
                             key={i}
+                            {...{ register, errors, control }}
                             type={LoadStopType.STOP}
-                            totalStops={stops.length}
+                            totalStops={stopFields.length}
                             index={i}
                             onRemoveStop={() => removeStop(i)}
                         />
@@ -240,7 +219,17 @@ const LoadForm: React.FC<Props> = ({
                                     type="button"
                                     className="inline-flex items-center px-4 py-0.5 text-xs font-medium leading-5 text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     onClick={() => {
-                                        addStop();
+                                        appendStop({
+                                            type: LoadStopType.STOP,
+                                            name: ``,
+                                            street: '',
+                                            city: '',
+                                            state: '',
+                                            zip: '',
+                                            country: '',
+                                            date: new Date(),
+                                            time: '',
+                                        });
                                     }}
                                 >
                                     <PlusSmIcon className="-ml-1.5 mr-1 h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -249,7 +238,7 @@ const LoadForm: React.FC<Props> = ({
                             </div>
                         </div>
                     </div>
-                    <LoadFormStop type={LoadStopType.RECEIVER} />
+                    {/* <LoadFormStop formHook={formHook} type={LoadStopType.RECEIVER} /> */}
                 </div>
             </div>
         </>

@@ -1,36 +1,36 @@
 import { Prisma } from '@prisma/client';
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import LoadForm, { LoadFormData } from '../../components/forms/load/LoadForm';
+import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { SimpleLoad } from '../../interfaces/models';
+import { ExpandedLoad, SimpleLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 
 const CreateLoad: ComponentWithAuth = () => {
-    const formHook = useForm<LoadFormData>();
+    const formHook = useForm<ExpandedLoad>();
 
     const [loading, setLoading] = React.useState(false);
 
-    const submit = async (data: LoadFormData) => {
+    const submit = async (data: ExpandedLoad) => {
         console.log(data);
 
-        setLoading(true);
+        // setLoading(true);
 
-        const loadData: SimpleLoad = {
-            customerId: data.customer.id,
-            refNum: data.refNum,
-            rate: new Prisma.Decimal(data.rate),
-            status: 'pending',
-            distance: 0,
-            distanceUnit: 'miles',
-        };
+        // const loadData: SimpleLoad = {
+        //     customerId: data.customer.id,
+        //     refNum: data.refNum,
+        //     rate: new Prisma.Decimal(data.rate),
+        //     status: 'pending',
+        //     distance: 0,
+        //     distanceUnit: 'miles',
+        // };
 
-        const newLoad = await createLoad(loadData);
-        console.log('new load', newLoad);
+        // const newLoad = await createLoad(loadData);
+        // console.log('new load', newLoad);
 
-        setLoading(false);
+        // setLoading(false);
     };
 
     return (

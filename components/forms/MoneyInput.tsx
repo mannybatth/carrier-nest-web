@@ -6,7 +6,7 @@ const isValidMoney = (value: string): boolean => {
 };
 
 type Props = {
-    value: number | string;
+    value: string;
 } & ComponentPropsWithoutRef<'input'>;
 
 const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }: Props) => {
