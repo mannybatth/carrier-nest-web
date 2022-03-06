@@ -10,6 +10,14 @@ type Props = {
     onSortChange: (sort: Sort) => void;
 };
 
+const MenuLink: React.FC<any> = ({ href, children, ...rest }) => {
+    return (
+        <Link href={href}>
+            <a {...rest}>{children}</a>
+        </Link>
+    );
+};
+
 const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
     const [sort, setSort] = React.useState<Sort>(null);
 
@@ -155,18 +163,17 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                                         <div className="py-1">
                                                             <Menu.Item>
                                                                 {({ active }) => (
-                                                                    <Link href={`/loads/edit/${load.id}`}>
-                                                                        <a
-                                                                            className={classNames(
-                                                                                active
-                                                                                    ? 'bg-gray-100 text-gray-900'
-                                                                                    : 'text-gray-700',
-                                                                                'block px-4 py-2 text-sm',
-                                                                            )}
-                                                                        >
-                                                                            Edit
-                                                                        </a>
-                                                                    </Link>
+                                                                    <MenuLink
+                                                                        href={`/loads/edit/${load.id}`}
+                                                                        className={classNames(
+                                                                            active
+                                                                                ? 'bg-gray-100 text-gray-900'
+                                                                                : 'text-gray-700',
+                                                                            'block px-4 py-2 text-sm',
+                                                                        )}
+                                                                    >
+                                                                        Edit
+                                                                    </MenuLink>
                                                                 )}
                                                             </Menu.Item>
                                                             <Menu.Item>
