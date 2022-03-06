@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { LoadStopType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
@@ -16,21 +16,28 @@ const CreateLoad: ComponentWithAuth = () => {
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
 
-        // setLoading(true);
+        setLoading(true);
 
-        // const loadData: SimpleLoad = {
-        //     customerId: data.customer.id,
-        //     refNum: data.refNum,
-        //     rate: new Prisma.Decimal(data.rate),
-        //     status: 'pending',
-        //     distance: 0,
-        //     distanceUnit: 'miles',
-        // };
+        data.shipper.type = LoadStopType.SHIPPER;
+        data.receiver.type = LoadStopType.RECEIVER;
 
-        // const newLoad = await createLoad(loadData);
-        // console.log('new load', newLoad);
+        const loadData: ExpandedLoad = {
+            customerId: data.customer.id,
+            refNum: data.refNum,
+            rate: new Prisma.Decimal(data.rate),
+            status: 'pending',
+            distance: 0,
+            distanceUnit: 'miles',
+            customer: data.customer,
+            shipper: data.shipper,
+            receiver: data.receiver,
+            stops: data.stops,
+        };
 
-        // setLoading(false);
+        const newLoad = await createLoad(loadData);
+        console.log('new load', newLoad);
+
+        setLoading(false);
     };
 
     return (

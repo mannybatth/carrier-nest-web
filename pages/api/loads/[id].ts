@@ -21,7 +21,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const expand = req.query.expand as string;
         const expandCustomer = expand?.includes('customer');
-        const expandLoadStops = expand?.includes('loadStops');
+        const expandShipper = expand?.includes('shipper');
+        const expandReceiver = expand?.includes('receiver');
+        const expandStops = expand?.includes('stops');
 
         const load = await prisma.load.findFirst({
             where: {
@@ -30,9 +32,45 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
             },
             include: {
                 ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
-                ...(expandLoadStops
+                ...(expandShipper
                     ? {
-                          loadStops: {
+                          shipper: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandReceiver
+                    ? {
+                          receiver: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandStops
+                    ? {
+                          stops: {
                               select: {
                                   id: true,
                                   type: true,

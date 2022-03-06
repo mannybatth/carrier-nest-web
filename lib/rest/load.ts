@@ -19,14 +19,14 @@ export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad
 
 export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
     const params = new URLSearchParams({
-        expand: 'customer,loadStops',
+        expand: 'customer,shipper,receiver,stops',
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
     return data;
 };
 
-export const createLoad = async (load: SimpleLoad) => {
+export const createLoad = async (load: ExpandedLoad) => {
     const response = await fetch(apiUrl + '/loads', {
         method: 'POST',
         headers: {

@@ -46,7 +46,7 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
         formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);
         formHook.setValue('rate', load.rate);
-        formHook.setValue('loadStops', load.loadStops);
+        formHook.setValue('stops', load.stops);
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {

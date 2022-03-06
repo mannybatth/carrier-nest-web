@@ -31,8 +31,20 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const customer = await prisma.customer.create({
                 data: {
-                    ...customerData,
-                    carrierId: session.user.carrierId,
+                    name: customerData.name,
+                    contactEmail: customerData.contactEmail || '',
+                    billingEmail: customerData.billingEmail || '',
+                    paymentStatusEmail: customerData.paymentStatusEmail || '',
+                    street: customerData.street || '',
+                    city: customerData.city || '',
+                    state: customerData.state || '',
+                    zip: customerData.zip || '',
+                    country: customerData.country || '',
+                    carrier: {
+                        connect: {
+                            id: session.user.carrierId,
+                        },
+                    },
                 },
             });
             return res.status(200).json({

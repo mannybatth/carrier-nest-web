@@ -53,7 +53,7 @@ model User {
     loads         Load[]
     invoices      Invoice[]
     loadDocuments LoadDocument[]
-    loadStops     LoadStop[]
+    stops         LoadStop[]
 
     @@index([name, email, carrierId])
 }
@@ -100,9 +100,9 @@ model Load {
     status          String
     statusUpdatedAt DateTime?
     shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
-    shipperId       Int            @unique
+    shipperId       Int
     receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    receiverId      Int            @unique
+    receiverId      Int
     stops           LoadStop[]
     rate            Decimal
     invoice         Invoice?
@@ -136,6 +136,7 @@ model LoadStop {
     loadsAsReceiver Load[]       @relation("receiver")
     loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])
     loadIdAsStop    Int?
+    stopIndex       Int          @default(0)
 }
 
 model Customer {

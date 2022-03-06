@@ -1,6 +1,7 @@
-import { Load } from '@prisma/client';
+import { Load, LoadStopType } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
+import { ExpandedLoad } from '../../interfaces/models';
 import prisma from '../../lib/prisma';
 
 export default handler;
@@ -37,6 +38,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const expand = req.query.expand as string;
         const expandCustomer = expand?.includes('customer');
+        const expandShipper = expand?.includes('shipper');
+        const expandReceiver = expand?.includes('receiver');
+        const expandStops = expand?.includes('stops');
 
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as string) || 'asc';
@@ -48,7 +52,63 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
-            include: expandCustomer ? { customer: { select: { name: true } } } : undefined,
+            include: {
+                ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
+                ...(expandShipper
+                    ? {
+                          shipper: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandReceiver
+                    ? {
+                          receiver: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandStops
+                    ? {
+                          stops: {
+                              select: {
+                                  id: true,
+                                  type: true,
+                                  name: true,
+                                  street: true,
+                                  city: true,
+                                  state: true,
+                                  zip: true,
+                                  country: true,
+                                  date: true,
+                                  time: true,
+                              },
+                          },
+                      }
+                    : {}),
+            },
         });
         return res.status(200).json({
             data: loads,
@@ -58,13 +118,63 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     async function _post() {
         try {
             const session = await getSession({ req });
-            const loadData = req.body as Load;
+            const loadData = req.body as ExpandedLoad;
 
             const load = await prisma.load.create({
                 data: {
-                    ...loadData,
-                    userId: session.user.id,
-                    carrierId: session.user.carrierId,
+                    refNum: loadData.refNum || '',
+                    status: loadData.status || '',
+                    rate: loadData.rate || 0,
+                    distance: loadData.distance || 0,
+                    distanceUnit: loadData.distanceUnit || '',
+                    user: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                    customer: {
+                        connect: {
+                            id: loadData.customer.id,
+                        },
+                    },
+                    carrier: {
+                        connect: {
+                            id: session.user.carrierId,
+                        },
+                    },
+                    shipper: {
+                        create: {
+                            ...loadData.shipper,
+                            country: 'USA',
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        },
+                    },
+                    receiver: {
+                        create: {
+                            ...loadData.receiver,
+                            country: 'USA',
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        },
+                    },
+                    stops: {
+                        create: loadData.stops.map((stop) => ({
+                            ...stop,
+                            country: 'USA',
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        })),
+                    },
                 },
             });
             return res.status(200).json({
