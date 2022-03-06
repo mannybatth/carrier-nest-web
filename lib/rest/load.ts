@@ -4,7 +4,7 @@ import { ExpandedLoad, JSONResponse, SimpleLoad, Sort } from '../../interfaces/m
 
 export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad[]> => {
     const params = new URLSearchParams({
-        expand: 'customer',
+        expand: 'customer,shipper,receiver',
     });
     if (sort && sort.key) {
         params.append('sortBy', sort.key);

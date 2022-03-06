@@ -5,17 +5,17 @@ import Link from 'next/link';
 import React, { Fragment } from 'react';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
 
-type Props = {
-    loads: ExpandedLoad[];
-    onSortChange: (sort: Sort) => void;
-};
-
 const MenuLink: React.FC<any> = ({ href, children, ...rest }) => {
     return (
         <Link href={href}>
             <a {...rest}>{children}</a>
         </Link>
     );
+};
+
+type Props = {
+    loads: ExpandedLoad[];
+    onSortChange: (sort: Sort) => void;
 };
 
 const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
@@ -84,29 +84,36 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer"
+                                        onClick={() => changeSort('shipper.date')}
                                     >
-                                        Pickup
+                                        <div className="inline-flex">Pickup{renderSortIcon('shipper.date')}</div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer"
+                                        onClick={() => changeSort('receiver.date')}
                                     >
                                         <div className="inline-flex">
-                                            <span className="flex-shrink-0">Drop Off</span>
+                                            <div className="inline-flex">
+                                                <span className="flex-shrink-0">Drop Off</span>
+                                                {renderSortIcon('receiver.date')}
+                                            </div>
                                         </div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer"
+                                        onClick={() => changeSort('shipper.city')}
                                     >
-                                        From
+                                        <div className="inline-flex">From{renderSortIcon('shipper.city')}</div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer"
+                                        onClick={() => changeSort('receiver.city')}
                                     >
-                                        To
+                                        <div className="inline-flex">To{renderSortIcon('receiver.city')}</div>
                                     </th>
                                     <th scope="col" className="relative px-6 py-3">
                                         <span className="sr-only">More</span>
@@ -130,16 +137,38 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-xs leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900">
+                                                <div>
+                                                    {new Intl.DateTimeFormat('en-US', {
+                                                        year: '2-digit',
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                    }).format(new Date(load.shipper.date))}
+                                                </div>
+                                                <div>{load.shipper.time}</div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-xs leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900">
+                                                <div>
+                                                    {new Intl.DateTimeFormat('en-US', {
+                                                        year: '2-digit',
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                    }).format(new Date(load.receiver.date))}
+                                                </div>
+                                                <div>{load.receiver.time}</div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-xs leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900">
+                                                {load.shipper.city}, {load.shipper.state}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-xs leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900">
+                                                {load.receiver.city}, {load.receiver.state}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-no-wrap">
                                             <Menu as="div" className="relative inline-block text-left">
