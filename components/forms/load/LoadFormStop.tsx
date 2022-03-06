@@ -182,7 +182,6 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         name={fieldId('date')}
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                                {console.log('RERENDERING')}
                                 <div className="relative mt-1">
                                     <DayPickerInput
                                         onDayChange={onChange}

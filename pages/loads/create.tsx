@@ -13,10 +13,6 @@ const CreateLoad: ComponentWithAuth = () => {
 
     const [loading, setLoading] = React.useState(false);
 
-    useEffect(() => {
-        console.log('USE EFFECT CALLED');
-    }, [formHook]);
-
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
 

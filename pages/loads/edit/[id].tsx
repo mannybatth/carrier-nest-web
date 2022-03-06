@@ -59,7 +59,6 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
             status: 'pending',
             distance: 0,
             distanceUnit: 'miles',
-            loadStops: data.loadStops,
         };
 
         const newLoad = await updateLoad(load.id, loadData);

@@ -23,7 +23,6 @@ export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
-    console.log(data);
     return data;
 };
 
