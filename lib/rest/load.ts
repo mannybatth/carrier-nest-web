@@ -17,6 +17,15 @@ export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad
     return data;
 };
 
+export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
+    const params = new URLSearchParams({
+        expand: 'customer',
+    });
+    const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
+    const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
+    return data;
+};
+
 export const createLoad = async (load: SimpleLoad) => {
     const response = await fetch(apiUrl + '/loads', {
         method: 'POST',
@@ -26,5 +35,17 @@ export const createLoad = async (load: SimpleLoad) => {
         body: JSON.stringify(load),
     });
     const { data, errors }: JSONResponse<Load> = await response.json();
+    return data;
+};
+
+export const updateLoad = async (id: number, load: SimpleLoad) => {
+    const response = await fetch(apiUrl + '/loads/' + id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(load),
+    });
+    const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
     return data;
 };

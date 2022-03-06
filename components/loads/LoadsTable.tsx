@@ -1,6 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ArrowSmUpIcon, ArrowSmDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
+import Link from 'next/link';
 import React, { Fragment } from 'react';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
 
@@ -54,7 +55,10 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                         className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer "
                                         onClick={() => changeSort('refNum')}
                                     >
-                                        <div className="inline-flex">Reference #{renderSortIcon('refNum')}</div>
+                                        <div className="inline-flex">
+                                            <span className="flex-shrink-0">Reference #</span>
+                                            {renderSortIcon('refNum')}
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
@@ -80,7 +84,9 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                         scope="col"
                                         className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                                     >
-                                        Drop Off
+                                        <div className="inline-flex">
+                                            <span className="flex-shrink-0">Drop Off</span>
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
@@ -103,25 +109,29 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                 {loads.map((load) => (
                                     <tr key={load.id}>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900">{load.refNum}</div>
+                                            <div className="text-xs leading-5 text-gray-900">{load.refNum}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900">{load.customer.name}</div>
+                                            <div className="text-xs leading-5 text-gray-900">{load.customer.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900">{load.status}</div>
+                                            <div className="text-xs leading-5 text-gray-900">
+                                                <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
+                                                    {load.status}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900"></div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900"></div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900"></div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-no-wrap">
-                                            <div className="text-sm leading-5 text-gray-900"></div>
+                                            <div className="text-xs leading-5 text-gray-900"></div>
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-no-wrap">
                                             <Menu as="div" className="relative inline-block text-left">
@@ -145,17 +155,18 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                                         <div className="py-1">
                                                             <Menu.Item>
                                                                 {({ active }) => (
-                                                                    <a
-                                                                        href="#"
-                                                                        className={classNames(
-                                                                            active
-                                                                                ? 'bg-gray-100 text-gray-900'
-                                                                                : 'text-gray-700',
-                                                                            'block px-4 py-2 text-sm',
-                                                                        )}
-                                                                    >
-                                                                        Edit
-                                                                    </a>
+                                                                    <Link href={`/loads/edit/${load.id}`}>
+                                                                        <a
+                                                                            className={classNames(
+                                                                                active
+                                                                                    ? 'bg-gray-100 text-gray-900'
+                                                                                    : 'text-gray-700',
+                                                                                'block px-4 py-2 text-sm',
+                                                                            )}
+                                                                        >
+                                                                            Edit
+                                                                        </a>
+                                                                    </Link>
                                                                 )}
                                                             </Menu.Item>
                                                             <Menu.Item>

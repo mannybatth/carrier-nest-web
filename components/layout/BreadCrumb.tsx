@@ -2,20 +2,33 @@ import { ChevronRightIcon } from '@heroicons/react/outline';
 import Link from 'next/link';
 import React from 'react';
 
-export type Props = {
-    className?: string;
+export type BreadCrumbPath = {
+    label: string;
+    href?: string;
 };
 
-const BreadCrumb: React.FC<Props> = ({ ...props }: Props) => {
+export type Props = {
+    className?: string;
+    paths: BreadCrumbPath[];
+};
+
+const BreadCrumb: React.FC<Props> = ({ paths, ...props }: Props) => {
     return (
         <div {...props}>
             <div className="hidden text-sm md:block text-inherit">
                 <div className="flex items-center">
-                    <Link href={'/loads'}>
-                        <span className="cursor-pointer text-inherit">Loads</span>
-                    </Link>
-                    <ChevronRightIcon className="inline-block w-4 h-4 mx-1 text-zinc-500"></ChevronRightIcon>
-                    <span>Create New Load</span>
+                    {paths.map((path, index) => (
+                        <span key={index}>
+                            {(path.href && (
+                                <Link href={path.href}>
+                                    <a className="text-inherit">{path.label}</a>
+                                </Link>
+                            )) || <span className="text-inherit">{path.label}</span>}
+                            {index !== paths.length - 1 && (
+                                <ChevronRightIcon className="inline-block w-4 h-4 mx-1 text-zinc-500" />
+                            )}
+                        </span>
+                    ))}
                 </div>
             </div>
         </div>

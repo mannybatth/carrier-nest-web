@@ -1,21 +1,44 @@
 import { Prisma } from '@prisma/client';
-import React from 'react';
+import { NextPageContext } from 'next';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import LoadForm, { LoadFormData } from '../../components/forms/load/LoadForm';
-import BreadCrumb from '../../components/layout/BreadCrumb';
-import Layout from '../../components/layout/Layout';
-import { ComponentWithAuth } from '../../interfaces/auth';
-import { SimpleLoad } from '../../interfaces/models';
-import { createLoad } from '../../lib/rest/load';
+import LoadForm, { LoadFormData } from '../../../components/forms/load/LoadForm';
+import BreadCrumb from '../../../components/layout/BreadCrumb';
+import Layout from '../../../components/layout/Layout';
+import { ComponentWithAuth } from '../../../interfaces/auth';
+import { ExpandedLoad, SimpleLoad } from '../../../interfaces/models';
+import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
-const CreateLoad: ComponentWithAuth = () => {
+type Props = {
+    load: ExpandedLoad;
+};
+
+export async function getServerSideProps(context: NextPageContext) {
+    const load = await getLoadById(Number(context.query.id));
+    return {
+        props: {
+            load,
+        },
+    };
+}
+
+const CreateLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
     const formHook = useForm<LoadFormData>();
 
     const [loading, setLoading] = React.useState(false);
+    const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
+
+    useEffect(() => {
+        if (!load) {
+            return;
+        }
+
+        formHook.setValue('customer', load.customer);
+        formHook.setValue('refNum', load.refNum);
+        formHook.setValue('rate', new Prisma.Decimal(load.rate).toNumber());
+    }, [load]);
 
     const submit = async (data: LoadFormData) => {
-        console.log(data);
-
         setLoading(true);
 
         const loadData: SimpleLoad = {
@@ -27,14 +50,14 @@ const CreateLoad: ComponentWithAuth = () => {
             distanceUnit: 'miles',
         };
 
-        const newLoad = await createLoad(loadData);
-        console.log('new load', newLoad);
+        const newLoad = await updateLoad(load.id, loadData);
+        console.log('updated load', newLoad);
 
         setLoading(false);
     };
 
     return (
-        <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
+        <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Load</h1>}>
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
@@ -44,12 +67,12 @@ const CreateLoad: ComponentWithAuth = () => {
                             href: '/loads',
                         },
                         {
-                            label: 'Create New Load',
+                            label: 'Edit Load',
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
+                    <h1 className="text-2xl font-semibold text-gray-900">Edit Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
@@ -61,7 +84,7 @@ const CreateLoad: ComponentWithAuth = () => {
                                 type="submit"
                                 className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
-                                Create Load
+                                Save Load
                             </button>
                         </div>
                     </form>

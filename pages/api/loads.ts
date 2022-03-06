@@ -33,6 +33,8 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     async function _get() {
+        const session = await getSession({ req });
+
         const expand = req.query.expand as string;
         const expandCustomer = expand?.includes('customer');
 
@@ -40,7 +42,12 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         const sortDir = (req.query.sortDir as string) || 'asc';
 
         const loads = await prisma.load.findMany({
-            orderBy: buildOrderBy(sortBy, sortDir),
+            where: {
+                userId: session?.user?.id,
+            },
+            orderBy: buildOrderBy(sortBy, sortDir) || {
+                createdAt: 'desc',
+            },
             include: expandCustomer ? { customer: { select: { name: true } } } : undefined,
         });
         return res.status(200).json({
@@ -58,9 +65,6 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
                     ...loadData,
                     userId: session.user.id,
                     carrierId: session.user.carrierId,
-                    status: 'pending',
-                    distance: 0,
-                    distanceUnit: 'miles',
                 },
             });
             return res.status(200).json({
