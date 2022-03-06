@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
+import { ExpandedLoad } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
 export default handler;
@@ -107,12 +108,64 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(404).end('Load not found');
         }
 
+        const loadData = req.body as ExpandedLoad;
+
+        console.log('load to update', loadData);
+
         const updatedLoad = await prisma.load.update({
             where: {
                 id: Number(req.query.id),
             },
             data: {
-                ...req.body,
+                refNum: loadData.refNum || '',
+                status: loadData.status || '',
+                rate: loadData.rate || 0,
+                distance: loadData.distance || 0,
+                distanceUnit: loadData.distanceUnit || '',
+                carrier: {
+                    connect: {
+                        id: session.user.carrierId,
+                    },
+                },
+                customer: {
+                    connect: {
+                        id: loadData.customer.id,
+                    },
+                },
+                shipper: {
+                    update: {
+                        ...loadData.shipper,
+                        country: 'USA',
+                        user: {
+                            connect: {
+                                id: session.user.id,
+                            },
+                        },
+                    },
+                },
+                receiver: {
+                    update: {
+                        ...loadData.receiver,
+                        country: 'USA',
+                        user: {
+                            connect: {
+                                id: session.user.id,
+                            },
+                        },
+                    },
+                },
+                stops: {
+                    deleteMany: {},
+                    create: loadData.stops.map((stop) => ({
+                        ...stop,
+                        country: 'USA',
+                        user: {
+                            connect: {
+                                id: session.user.id,
+                            },
+                        },
+                    })),
+                },
             },
         });
 

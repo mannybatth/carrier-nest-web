@@ -131,14 +131,14 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
                             id: session.user.id,
                         },
                     },
-                    customer: {
-                        connect: {
-                            id: loadData.customer.id,
-                        },
-                    },
                     carrier: {
                         connect: {
                             id: session.user.carrierId,
+                        },
+                    },
+                    customer: {
+                        connect: {
+                            id: loadData.customer.id,
                         },
                     },
                     shipper: {

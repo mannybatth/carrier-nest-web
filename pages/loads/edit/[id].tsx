@@ -60,21 +60,40 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
     const submit = async (data: ExpandedLoad) => {
         console.log('data to save', data);
 
-        // setLoading(true);
+        setLoading(true);
 
-        // const loadData: ExpandedLoad = {
-        //     customerId: data.customer.id,
-        //     refNum: data.refNum,
-        //     rate: new Prisma.Decimal(data.rate),
-        //     status: 'pending',
-        //     distance: 0,
-        //     distanceUnit: 'miles',
-        // };
+        const loadData: ExpandedLoad = {
+            customerId: data.customer.id,
+            refNum: data.refNum,
+            rate: new Prisma.Decimal(data.rate),
+            status: 'pending',
+            distance: 0,
+            distanceUnit: 'miles',
+            customer: data.customer,
+            shipper: data.shipper,
+            receiver: data.receiver,
+            stops: data.stops,
+        };
 
-        // const newLoad = await updateLoad(load.id, loadData);
-        // console.log('updated load', newLoad);
+        // Remove ids from loadData
+        if ((loadData.shipper as any)?.id) {
+            delete (loadData.shipper as any)?.id;
+        }
+        if ((loadData.receiver as any)?.id) {
+            delete (loadData.receiver as any)?.id;
+        }
+        if (loadData.stops && loadData.stops.length) {
+            loadData.stops.forEach((stop: SimpleLoadStop) => {
+                if ((stop as any)?.id) {
+                    delete (stop as any)?.id;
+                }
+            });
+        }
 
-        // setLoading(false);
+        const newLoad = await updateLoad(load.id, loadData);
+        console.log('updated load', newLoad);
+
+        setLoading(false);
     };
 
     return (
