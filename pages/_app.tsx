@@ -6,6 +6,7 @@ import '../styles/globals.css';
 import 'react-day-picker/lib/style.css';
 import { NextComponentType, NextPageContext } from 'next';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
+import { Toaster } from 'react-hot-toast';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
@@ -24,6 +25,7 @@ const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }: ProtectedApp
             ) : (
                 <Component {...pageProps} />
             )}
+            <Toaster />
         </SessionProvider>
     );
 };

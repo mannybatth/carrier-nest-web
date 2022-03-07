@@ -1,10 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
+import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
+import { notify } from '../../../components/Notification';
 import { ComponentWithAuth } from '../../../interfaces/auth';
 import { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
 import { getLoadById, updateLoad } from '../../../lib/rest/load';
@@ -33,6 +35,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
 const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
     const formHook = useForm<ExpandedLoad>();
+    const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
     const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
@@ -94,6 +97,11 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
         console.log('updated load', newLoad);
 
         setLoading(false);
+
+        notify({ title: 'Load updated', message: 'Load updated successfully' });
+
+        // Redirect to load page
+        router.push('/loads/[id]', `/loads/${newLoad.id}`);
     };
 
     return (
