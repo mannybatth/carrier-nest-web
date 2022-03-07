@@ -1,17 +1,9 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ArrowSmUpIcon, ArrowSmDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 import React, { Fragment } from 'react';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
-
-const MenuLink: React.FC<any> = ({ href, children, ...rest }) => {
-    return (
-        <Link href={href}>
-            <a {...rest}>{children}</a>
-        </Link>
-    );
-};
 
 type Props = {
     loads: ExpandedLoad[];
@@ -20,6 +12,7 @@ type Props = {
 
 const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
     const [sort, setSort] = React.useState<Sort>(null);
+    const router = useRouter();
 
     const changeSort = (key: string) => {
         if (key === sort?.key && sort?.order === 'desc') {
@@ -122,7 +115,13 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {loads.map((load) => (
-                                    <tr key={load.id}>
+                                    <tr
+                                        className="cursor-pointer hover:bg-gray-50"
+                                        key={load.id}
+                                        onClick={() => {
+                                            router.push(`/loads/${load.id}`);
+                                        }}
+                                    >
                                         <td className="px-6 py-4 whitespace-no-wrap">
                                             <div className="text-xs leading-5 text-gray-900">{load.refNum}</div>
                                         </td>
@@ -192,8 +191,11 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                                         <div className="py-1">
                                                             <Menu.Item>
                                                                 {({ active }) => (
-                                                                    <MenuLink
-                                                                        href={`/loads/edit/${load.id}`}
+                                                                    <a
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            router.push(`/loads/edit/${load.id}`);
+                                                                        }}
                                                                         className={classNames(
                                                                             active
                                                                                 ? 'bg-gray-100 text-gray-900'
@@ -202,7 +204,7 @@ const LoadsTable: React.FC<Props> = ({ loads, onSortChange }: Props) => {
                                                                         )}
                                                                     >
                                                                         Edit
-                                                                    </MenuLink>
+                                                                    </a>
                                                                 )}
                                                             </Menu.Item>
                                                             <Menu.Item>

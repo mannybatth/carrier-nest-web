@@ -101,7 +101,7 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
         notify({ title: 'Load updated', message: 'Load updated successfully' });
 
         // Redirect to load page
-        router.push('/loads/[id]', `/loads/${newLoad.id}`);
+        router.push(`/loads/${newLoad.id}`);
     };
 
     return (
