@@ -115,6 +115,10 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
                             href: '/loads',
                         },
                         {
+                            label: `# ${load.refNum}`,
+                            href: `/loads/${load.id}`,
+                        },
+                        {
                             label: 'Edit Load',
                         },
                     ]}

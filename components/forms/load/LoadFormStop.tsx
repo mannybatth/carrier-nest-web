@@ -160,7 +160,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
                 <div className="col-span-6 sm:col-span-3 lg:col-span-2">
                     <label htmlFor={fieldId('zip')} className="block text-sm font-medium text-gray-700">
-                        ZIP / Postal Code
+                        Zip / Postal Code
                     </label>
                     <input
                         {...register(fieldId('zip'), { required: 'State is required' })}
