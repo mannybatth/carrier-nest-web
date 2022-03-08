@@ -88,8 +88,8 @@ model Load {
     id              Int            @id @default(autoincrement())
     user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId          Int
-    customer        Customer       @relation(fields: [customerId], references: [id])
-    customerId      Int
+    customer        Customer?      @relation(fields: [customerId], references: [id])
+    customerId      Int?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId       Int
     driver          Driver?        @relation(fields: [driverId], references: [id])

@@ -141,7 +141,7 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                         </div>
                         <div className="col-span-4 sm:col-span-2 md:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Customer</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{load.customer.name}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">{load.customer?.name}</dd>
                         </div>
                         <div className="col-span-4 sm:col-span-2 md:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Status</dt>

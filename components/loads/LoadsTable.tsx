@@ -27,7 +27,7 @@ const LoadsTable: React.FC<Props> = ({ loads, changeSort, deleteLoad }: Props) =
                 id: load.id,
                 items: [
                     { value: load.refNum },
-                    { value: load.customer.name },
+                    { value: load.customer?.name },
                     {
                         node: (
                             <div className="text-xs leading-5 text-gray-900">
