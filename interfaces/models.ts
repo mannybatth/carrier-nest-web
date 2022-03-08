@@ -13,6 +13,12 @@ export type JSONResponse<T> = {
 /**
  * Load
  */
+export enum LoadStatus {
+    PENDING = 'pending',
+    COMPLETED = 'completed',
+    INVOICED = 'invoiced',
+}
+
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
     select: { customerId: true, refNum: true, rate: true, status: true, distance: true, distanceUnit: true },
 });

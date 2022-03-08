@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from '@heroicons/react/outline';
+import { ChatAltIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
@@ -202,6 +202,80 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                             </dd>
                         </div>
                     </dl>
+
+                    <div className="mt-4">
+                        <div className="flow-root">
+                            <ul role="list" className="-mb-8">
+                                <li>
+                                    <div className="relative pb-8">
+                                        <span
+                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                                            aria-hidden="true"
+                                        />
+                                        <div className="relative flex items-start space-x-3">
+                                            <>
+                                                <div className="relative">
+                                                    <img
+                                                        className="flex items-center justify-center w-10 h-10 bg-gray-400 rounded-full ring-8 ring-white"
+                                                        src="https://images.unsplash.com/photo-1520785643438-5bf77931f493?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',"
+                                                        alt=""
+                                                    />
+
+                                                    <span className="absolute -bottom-0.5 -right-1 bg-white rounded-tl px-0.5 py-px">
+                                                        <ChatAltIcon
+                                                            className="w-5 h-5 text-gray-400"
+                                                            aria-hidden="true"
+                                                        />
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div>
+                                                        <div className="text-sm">
+                                                            <a className="font-medium text-gray-900">Eduardo Benz</a>
+                                                        </div>
+                                                        <p className="mt-0.5 text-sm text-gray-500">Commented 6d ago</p>
+                                                    </div>
+                                                    <div className="mt-2 text-sm text-gray-700">
+                                                        <p>
+                                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                                            Tincidunt nunc ipsum tempor purus vitae id. Morbi in
+                                                            vestibulum nec varius. Et diam cursus quis sed purus nam.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div className="relative pb-8">
+                                        <div className="relative flex items-start space-x-3">
+                                            <>
+                                                <div>
+                                                    <div className="relative px-1">
+                                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
+                                                            <UserCircleIcon
+                                                                className="w-5 h-5 text-gray-500"
+                                                                aria-hidden="true"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1 py-1.5">
+                                                    <div className="text-sm text-gray-500">
+                                                        <a className="font-medium text-gray-900">Hilary Mahy</a>{' '}
+                                                        assigned{' '}
+                                                        <a className="font-medium text-gray-900">Kristin Watson</a>{' '}
+                                                        <span className="whitespace-nowrap">2d ago</span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </Layout>
