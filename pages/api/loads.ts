@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ExpandedLoad } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import prisma from '../../lib/prisma';
-
-export default handler;
 
 const buildOrderBy = (sortBy: string, sortDir: string) => {
     if (sortBy && sortDir) {
@@ -20,16 +18,18 @@ const buildOrderBy = (sortBy: string, sortDir: string) => {
     return undefined;
 };
 
-function handler(req: NextApiRequest, res: NextApiResponse) {
+export default handler;
+
+function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
         case 'GET':
             return _get();
         case 'POST':
             return _post();
-        case 'DELETE':
-            return _delete();
         default:
-            return res.status(405).end(`Method ${req.method} Not Allowed`);
+            return res.status(405).send({
+                errors: [{ message: `Method ${req.method} Not Allowed` }],
+            });
     }
 
     async function _get() {
@@ -181,11 +181,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
             });
         } catch (error) {
             console.log('load post error', error);
-            return res.status(400).json({ message: error });
+            return res.status(400).json({
+                errors: [{ message: error }],
+            });
         }
-    }
-
-    function _delete() {
-        return res.status(200).json({});
     }
 }

@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ExpandedLoad } from '../../../interfaces/models';
+import { ExpandedLoad, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
 export default handler;
 
-function handler(req: NextApiRequest, res: NextApiResponse) {
+function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
         case 'GET':
             return _get();
@@ -14,7 +14,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         case 'DELETE':
             return _delete();
         default:
-            return res.status(405).end(`Method ${req.method} Not Allowed`);
+            return res.status(405).send({
+                errors: [{ message: `Method ${req.method} Not Allowed` }],
+            });
     }
 
     async function _get() {
@@ -105,7 +107,9 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         if (!load) {
-            return res.status(404).end('Load not found');
+            return res.status(404).send({
+                errors: [{ message: 'Load not found' }],
+            });
         }
 
         const loadData = req.body as ExpandedLoad;
@@ -174,7 +178,30 @@ function handler(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
-    function _delete() {
-        return res.status(200).json({});
+    async function _delete() {
+        const session = await getSession({ req });
+
+        const load = await prisma.load.findFirst({
+            where: {
+                id: Number(req.query.id),
+                userId: session?.user?.id,
+            },
+        });
+
+        if (!load) {
+            return res.status(404).send({
+                errors: [{ message: 'Load not found' }],
+            });
+        }
+
+        await prisma.load.delete({
+            where: {
+                id: Number(req.query.id),
+            },
+        });
+
+        return res.status(200).send({
+            data: 'Load deleted',
+        });
     }
 }

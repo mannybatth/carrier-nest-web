@@ -49,3 +49,11 @@ export const updateLoad = async (id: number, load: SimpleLoad) => {
     const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
     return data;
 };
+
+export const deleteLoadById = async (id: number) => {
+    const response = await fetch(apiUrl + '/loads/' + id, {
+        method: 'DELETE',
+    });
+    const { data, errors }: JSONResponse<string> = await response.json();
+    return data;
+};

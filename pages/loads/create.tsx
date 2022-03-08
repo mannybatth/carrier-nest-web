@@ -1,15 +1,18 @@
 import { LoadStopType, Prisma } from '@prisma/client';
-import React, { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, SimpleLoad } from '../../interfaces/models';
+import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 
 const CreateLoad: ComponentWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
+    const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
 
@@ -38,6 +41,11 @@ const CreateLoad: ComponentWithAuth = () => {
         console.log('new load', newLoad);
 
         setLoading(false);
+
+        notify({ title: 'New load created', message: 'New load created successfully' });
+
+        // Redirect to load page
+        router.push(`/loads/${newLoad.id}`);
     };
 
     return (

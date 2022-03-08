@@ -1,16 +1,18 @@
 import { Customer, PrismaPromise } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { SimpleCustomer } from '../../../interfaces/models';
+import { JSONResponse, SimpleCustomer } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
 export default handler;
 
-function handler(req: NextApiRequest, res: NextApiResponse) {
+function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
         case 'GET':
             return _get();
         default:
-            return res.status(405).end(`Method ${req.method} Not Allowed`);
+            return res.status(405).send({
+                errors: [{ message: `Method ${req.method} Not Allowed` }],
+            });
     }
 
     async function _get() {

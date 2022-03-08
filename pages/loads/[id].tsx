@@ -6,15 +6,17 @@ import { useRouter } from 'next/router';
 import React, { Fragment } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
-import { getLoadById } from '../../lib/rest/load';
+import { deleteLoadById, getLoadById } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
+    deleteLoad: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: ActionsDropdownProps) => {
     const router = useRouter();
 
     return (
@@ -53,81 +55,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load }: ActionsDropdo
                                 </a>
                             )}
                         </Menu.Item>
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Duplicate
-                                </a>
-                            )}
-                        </Menu.Item>
                     </div>
                     <div className="py-1">
                         <Menu.Item>
                             {({ active }) => (
                                 <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Archive
-                                </a>
-                            )}
-                        </Menu.Item>
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Move
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div>
-                    <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Share
-                                </a>
-                            )}
-                        </Menu.Item>
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Add to favorites
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div>
-                    <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteLoad(load.id);
+                                    }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
@@ -158,12 +94,22 @@ type Props = {
 };
 
 const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
+    const router = useRouter();
+
+    const deleteLoad = async (id: number) => {
+        await deleteLoadById(id);
+
+        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+
+        router.push('/loads');
+    };
+
     return (
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
-                    <ActionsDropdown load={load}></ActionsDropdown>
+                    <ActionsDropdown load={load} deleteLoad={deleteLoad}></ActionsDropdown>
                 </div>
             }
         >
@@ -183,7 +129,7 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
                         <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
-                        <ActionsDropdown load={load}></ActionsDropdown>
+                        <ActionsDropdown load={load} deleteLoad={deleteLoad}></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>

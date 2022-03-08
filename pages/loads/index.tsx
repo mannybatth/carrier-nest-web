@@ -3,9 +3,10 @@ import Link from 'next/link';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
+import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
-import { getAllLoadsWithCustomer } from '../../lib/rest/load';
+import { deleteLoadById, getAllLoadsWithCustomer } from '../../lib/rest/load';
 
 export async function getServerSideProps(context: NextPageContext) {
     const loads = await getAllLoadsWithCustomer();
@@ -21,6 +22,15 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
 
     const reloadLoads = async (sort: Sort) => {
         const loads = await getAllLoadsWithCustomer(sort);
+        setLoadsList(loads);
+    };
+
+    const deleteLoad = async (id: number) => {
+        await deleteLoadById(id);
+
+        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+
+        const loads = await getAllLoadsWithCustomer();
         setLoadsList(loads);
     };
 
@@ -56,7 +66,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <LoadsTable loads={loadsList} onSortChange={reloadLoads} />
+                    <LoadsTable loads={loadsList} changeSort={reloadLoads} deleteLoad={deleteLoad} />
                 </div>
             </div>
         </Layout>

@@ -11,7 +11,7 @@ export type JSONResponse<T> = {
 };
 
 /**
- * User
+ * Load
  */
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
     select: { customerId: true, refNum: true, rate: true, status: true, distance: true, distanceUnit: true },
@@ -45,6 +45,21 @@ export type ExpandedLoad = SimpleLoad & {
  * Customer
  */
 const simpleCustomer = Prisma.validator<Prisma.CustomerArgs>()({
-    select: { name: true },
+    select: {
+        name: true,
+        contactEmail: true,
+        billingEmail: true,
+        paymentStatusEmail: true,
+        street: true,
+        city: true,
+        state: true,
+        zip: true,
+        country: true,
+    },
 });
 export type SimpleCustomer = Prisma.CustomerGetPayload<typeof simpleCustomer>;
+
+export type ExpandedCustomer = SimpleCustomer & {
+    id?: number;
+    loads?: ExpandedLoad[];
+};
