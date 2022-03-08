@@ -7,6 +7,7 @@ import { Sort } from '../interfaces/models';
 export type TableHeader = {
     key: string;
     title: string;
+    disableSort?: boolean;
 };
 
 export type TableDataRow = {
@@ -72,12 +73,14 @@ const Table: React.FC<Props> = ({ headers, rows, onRowClick, changeSort }: Props
                                         <th
                                             key={item.key}
                                             scope="col"
-                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase cursor-pointer "
-                                            onClick={() => onChangeSort(item.key)}
+                                            className={`px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase ${
+                                                !item.disableSort && 'cursor-pointer'
+                                            }`}
+                                            onClick={() => !item.disableSort && onChangeSort(item.key)}
                                         >
                                             <div className="inline-flex">
                                                 <span className="flex-shrink-0">{item.title}</span>
-                                                {renderSortIcon(item.key)}
+                                                {!item.disableSort && renderSortIcon(item.key)}
                                             </div>
                                         </th>
                                     ))}
