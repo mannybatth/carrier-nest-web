@@ -1,15 +1,16 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChatAltIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/outline';
+import { ChevronDownIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer } from '../../interfaces/models';
-import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
+import { deleteCustomerById, getCustomerByIdWithLoads } from '../../lib/rest/customer';
 
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
@@ -81,7 +82,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customer = await getCustomerById(Number(context.query.id));
+    const customer = await getCustomerByIdWithLoads(Number(context.query.id));
     return {
         props: {
             customer,
@@ -135,19 +136,19 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
                     <dl className="grid grid-cols-4 gap-x-4 gap-y-8">
-                        <div className="col-span-4 sm:col-span-2 md:col-span-1">
+                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Contact Email</dt>
                             <dd className="mt-1 text-sm text-gray-900">{customer.contactEmail}</dd>
                         </div>
-                        <div className="col-span-4 sm:col-span-2 md:col-span-1">
+                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Billing Email</dt>
                             <dd className="mt-1 text-sm text-gray-900">{customer.billingEmail}</dd>
                         </div>
-                        <div className="col-span-4 sm:col-span-2 md:col-span-1">
+                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Payment Status Email</dt>
                             <dd className="mt-1 text-sm text-gray-900">{customer.paymentStatusEmail}</dd>
                         </div>
-                        <div className="col-span-4 sm:col-span-2 md:col-span-1">
+                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
                             <dt className="text-sm font-medium text-gray-500">Address</dt>
                             <dd className="mt-1 text-sm text-gray-900">
                                 <div>{customer.street}</div>
@@ -158,6 +159,9 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                                     {customer.zip}
                                 </div>
                             </dd>
+                        </div>
+                        <div className="col-span-4">
+                            <LoadsTable loads={customer.loads} changeSort={() => {}} deleteLoad={() => {}}></LoadsTable>
                         </div>
                     </dl>
                 </div>

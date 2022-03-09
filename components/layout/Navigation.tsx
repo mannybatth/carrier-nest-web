@@ -29,7 +29,12 @@ const Navigation: React.FC = () => {
     const router = useRouter();
 
     const isActive = (href: string) => {
-        return router.pathname === href;
+        const splits = href.split('/');
+        const current = router.pathname.split('/');
+        if (splits.length > 0 && current.length > 0) {
+            return splits[1] === current[1];
+        }
+        return false;
     };
 
     return (

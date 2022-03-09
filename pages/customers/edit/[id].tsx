@@ -1,17 +1,15 @@
-import { Customer, Prisma } from '@prisma/client';
+import { Customer } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import CustomerForm from '../../../components/forms/customer/CustomerForm';
-import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { ComponentWithAuth } from '../../../interfaces/auth';
-import { ExpandedCustomer, ExpandedLoad, SimpleCustomer, SimpleLoadStop } from '../../../interfaces/models';
+import { ExpandedCustomer, SimpleCustomer } from '../../../interfaces/models';
 import { getCustomerById, updateCustomer } from '../../../lib/rest/customer';
-import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
 type Props = {
     customer: Customer;

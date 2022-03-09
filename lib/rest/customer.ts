@@ -1,6 +1,6 @@
 import { Customer } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, SimpleCustomer, Sort } from '../../interfaces/models';
+import { ExpandedCustomer, JSONResponse, SimpleCustomer, Sort } from '../../interfaces/models';
 
 export const getAllCustomers = async (sort?: Sort) => {
     const params = new URLSearchParams();
@@ -18,6 +18,12 @@ export const getAllCustomers = async (sort?: Sort) => {
 export const getCustomerById = async (id: number) => {
     const response = await fetch(apiUrl + '/customers/' + id);
     const { data, errors }: JSONResponse<Customer> = await response.json();
+    return data;
+};
+
+export const getCustomerByIdWithLoads = async (id: number) => {
+    const response = await fetch(apiUrl + '/customers/' + id + '?expand=loads');
+    const { data, errors }: JSONResponse<ExpandedCustomer> = await response.json();
     return data;
 };
 
