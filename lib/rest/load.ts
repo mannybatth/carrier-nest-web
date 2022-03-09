@@ -2,7 +2,13 @@ import { Load } from '@prisma/client';
 import { apiUrl } from '../../constants';
 import { ExpandedLoad, JSONResponse, SimpleLoad, Sort } from '../../interfaces/models';
 
-export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad[]> => {
+export const getAllLoadsWithCustomer = async ({
+    sort,
+    customerId,
+}: {
+    sort?: Sort;
+    customerId?: number;
+} = {}): Promise<ExpandedLoad[]> => {
     const params = new URLSearchParams({
         expand: 'customer,shipper,receiver',
     });
@@ -11,6 +17,9 @@ export const getAllLoadsWithCustomer = async (sort?: Sort): Promise<ExpandedLoad
     }
     if (sort && sort.order) {
         params.append('sortDir', sort.order);
+    }
+    if (customerId) {
+        params.append('customerId', customerId.toString());
     }
     const response = await fetch(apiUrl + '/loads?' + params.toString());
     const { data, errors }: JSONResponse<ExpandedLoad[]> = await response.json();

@@ -44,9 +44,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as string) || 'asc';
 
+        const customerId = Number(req.query.customerId);
+
         const loads = await prisma.load.findMany({
             where: {
                 userId: session?.user?.id,
+                ...(customerId ? { customerId } : null),
             },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',

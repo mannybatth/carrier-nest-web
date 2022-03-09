@@ -9,8 +9,9 @@ import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer } from '../../interfaces/models';
+import { ExpandedCustomer, ExpandedLoad, Sort } from '../../interfaces/models';
 import { deleteCustomerById, getCustomerByIdWithLoads } from '../../lib/rest/customer';
+import { deleteLoadById, getAllLoadsWithCustomer } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
@@ -95,6 +96,7 @@ type Props = {
 };
 
 const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
+    const [loads, setLoads] = React.useState<ExpandedLoad[]>(customer.loads);
     const router = useRouter();
 
     const deleteCustomer = async (id: number) => {
@@ -103,6 +105,20 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
 
         router.push('/customers');
+    };
+
+    const reloadLoads = async (sort: Sort) => {
+        const loads = await getAllLoadsWithCustomer({ sort, customerId: customer.id });
+        setLoads(loads);
+    };
+
+    const deleteLoad = async (id: number) => {
+        await deleteLoadById(id);
+
+        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+
+        const loads = await getAllLoadsWithCustomer({ customerId: customer.id });
+        setLoads(loads);
     };
 
     return (
@@ -161,7 +177,20 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                             </dd>
                         </div>
                         <div className="col-span-4">
-                            <LoadsTable loads={customer.loads} changeSort={() => {}} deleteLoad={() => {}}></LoadsTable>
+                            <LoadsTable
+                                loads={loads}
+                                headers={[
+                                    'refNum',
+                                    'status',
+                                    'shipper.date',
+                                    'receiver.date',
+                                    'shipper.city',
+                                    'receiver.city',
+                                    'rate',
+                                ]}
+                                changeSort={reloadLoads}
+                                deleteLoad={deleteLoad}
+                            ></LoadsTable>
                         </div>
                     </dl>
                 </div>

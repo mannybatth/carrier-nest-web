@@ -21,7 +21,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
     const [loadsList, setLoadsList] = React.useState(loads);
 
     const reloadLoads = async (sort: Sort) => {
-        const loads = await getAllLoadsWithCustomer(sort);
+        const loads = await getAllLoadsWithCustomer({ sort });
         setLoadsList(loads);
     };
 
