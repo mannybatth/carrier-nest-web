@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { SimpleCustomer } from '../../../interfaces/models';
 import { createCustomer } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
-import CustomerForm, { CustomerFormData } from './CustomerForm';
+import CustomerForm from './CustomerForm';
 
 type Props = {
     show: boolean;
@@ -15,13 +15,21 @@ type Props = {
 
 const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) => {
     const [loading, setLoading] = React.useState(false);
-    const formHook = useForm<CustomerFormData>();
+    const formHook = useForm<SimpleCustomer>();
 
-    const submit = async (data: CustomerFormData) => {
+    const submit = async (data: SimpleCustomer) => {
         setLoading(true);
 
         const customer: SimpleCustomer = {
             name: data.name,
+            contactEmail: '',
+            billingEmail: '',
+            paymentStatusEmail: '',
+            street: '',
+            city: '',
+            state: '',
+            zip: '',
+            country: '',
         };
 
         const newCustomer = await createCustomer(customer);
@@ -71,7 +79,7 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props
                             </div>
 
                             <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
-                                <CustomerForm formHook={formHook}></CustomerForm>
+                                <CustomerForm formHook={formHook} condensed></CustomerForm>
                                 <div className="mt-5 sm:mt-6">
                                     <button
                                         type="submit"

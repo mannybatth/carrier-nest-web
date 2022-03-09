@@ -39,7 +39,7 @@ const CustomersPage: ComponentWithAuth<Props> = ({ customers }: Props) => {
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Customers</h1>
-                    <Link href="/customer/create">
+                    <Link href="/customers/create">
                         <button
                             type="button"
                             className="inline-flex items-center px-3.5 py-2 border border-transparent text-xs leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -54,7 +54,7 @@ const CustomersPage: ComponentWithAuth<Props> = ({ customers }: Props) => {
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
                         <h1 className="flex-1 text-2xl font-semibold text-gray-900">Customers</h1>
-                        <Link href="/customer/create">
+                        <Link href="/customers/create">
                             <button
                                 type="button"
                                 className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
