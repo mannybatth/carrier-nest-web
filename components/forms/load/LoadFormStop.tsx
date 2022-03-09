@@ -186,7 +186,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     <DayPickerInput
                                         onDayChange={onChange}
                                         value={value}
-                                        inputProps={{ type: 'text', id: fieldId('date') }}
+                                        inputProps={{ type: 'text', id: fieldId('date'), autoComplete: 'date' }}
                                     />
                                     <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
                                         <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />

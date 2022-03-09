@@ -23,14 +23,14 @@ const CustomerForm: React.FC<Props> = ({
             <div className="grid grid-cols-6 gap-6">
                 {condensed ? (
                     <div className="col-span-6">
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="customer-name" className="block text-sm font-medium text-gray-700">
                             Name
                         </label>
                         <input
                             {...register('name', { required: 'Customer name is required' })}
                             type="text"
-                            id="name"
-                            autoComplete="name"
+                            id="customer-name"
+                            autoComplete="customer-name"
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                         {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
@@ -38,14 +38,14 @@ const CustomerForm: React.FC<Props> = ({
                 ) : (
                     <>
                         <div className="col-span-6">
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="customer-name" className="block text-sm font-medium text-gray-700">
                                 Name
                             </label>
                             <input
                                 {...register('name', { required: 'Customer name is required' })}
                                 type="text"
-                                id="name"
-                                autoComplete="off"
+                                id="customer-name"
+                                autoComplete="customer-name"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
@@ -58,7 +58,6 @@ const CustomerForm: React.FC<Props> = ({
                                 {...register('contactEmail')}
                                 type="text"
                                 id="contactEmail"
-                                autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.contactEmail && (
@@ -73,7 +72,6 @@ const CustomerForm: React.FC<Props> = ({
                                 {...register('billingEmail')}
                                 type="text"
                                 id="billingEmail"
-                                autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.billingEmail && (
@@ -88,7 +86,6 @@ const CustomerForm: React.FC<Props> = ({
                                 {...register('paymentStatusEmail')}
                                 type="text"
                                 id="paymentStatusEmail"
-                                autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.paymentStatusEmail && (
