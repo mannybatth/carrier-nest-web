@@ -85,6 +85,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
     return (
         <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
+            <input
+                {...register(fieldId('stopIndex'), {
+                    valueAsNumber: true,
+                })}
+                type="hidden"
+                value={index}
+            ></input>
             <div className="flex flex-row">
                 <div className="flex-1 mb-3 font-medium leading-6 text-gray-900 uppercase">{title()}</div>
                 {props.type === LoadStopType.STOP && (

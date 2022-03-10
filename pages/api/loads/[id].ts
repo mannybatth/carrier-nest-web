@@ -86,6 +86,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                   date: true,
                                   time: true,
                               },
+                              orderBy: {
+                                  stopIndex: 'asc',
+                              },
                           },
                       }
                     : {}),
