@@ -1,5 +1,13 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from '@heroicons/react/outline';
+import {
+    ChevronDownIcon,
+    CogIcon,
+    CurrencyDollarIcon,
+    InformationCircleIcon,
+    LocationMarkerIcon,
+    MailIcon,
+    TruckIcon,
+} from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
@@ -151,32 +159,65 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <dl className="grid grid-cols-4 gap-x-4 gap-y-8">
-                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
-                            <dt className="text-sm font-medium text-gray-500">Contact Email</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{customer.contactEmail}</dd>
-                        </div>
-                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
-                            <dt className="text-sm font-medium text-gray-500">Billing Email</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{customer.billingEmail}</dd>
-                        </div>
-                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
-                            <dt className="text-sm font-medium text-gray-500">Payment Status Email</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{customer.paymentStatusEmail}</dd>
-                        </div>
-                        <div className="col-span-4 sm:col-span-2 lg:col-span-1">
-                            <dt className="text-sm font-medium text-gray-500">Address</dt>
-                            <dd className="mt-1 text-sm text-gray-900">
-                                <div>{customer.street}</div>
-                                <div>
-                                    {customer.city && customer.state
-                                        ? `${customer.city}, ${customer.state}`
-                                        : `${customer.city} ${customer.state}`}
-                                    {customer.zip}
+                    <div className="grid grid-cols-12 gap-5">
+                        <div className="col-span-12">
+                            <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                <div className="flex p-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                        <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">Total Loads</p>
+                                        <p className="text-sm text-gray-500">100</p>
+                                    </div>
                                 </div>
-                            </dd>
+                                <div className="flex p-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                        <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">Contact Email</p>
+                                        <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                    </div>
+                                </div>
+                                <div className="flex p-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                        <CurrencyDollarIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">Billing Email</p>
+                                        <p className="text-sm text-gray-500">{customer.billingEmail}</p>
+                                    </div>
+                                </div>
+                                <div className="flex p-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                        <InformationCircleIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">Payment Status Email</p>
+                                        <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
+                                    </div>
+                                </div>
+                                <div className="flex p-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                        <LocationMarkerIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">Address</p>
+                                        <p className="text-sm text-gray-500">
+                                            <div>
+                                                {customer.city && customer.state
+                                                    ? `${customer.city}, ${customer.state}`
+                                                    : `${customer.city} ${customer.state}`}
+                                                {customer.zip}
+                                            </div>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="col-span-4">
+
+                        <div className="col-span-12">
                             <h3>Loads for Customer</h3>
                             <LoadsTable
                                 loads={loads}
@@ -193,7 +234,7 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                                 deleteLoad={deleteLoad}
                             ></LoadsTable>
                         </div>
-                    </dl>
+                    </div>
                 </div>
             </div>
         </Layout>

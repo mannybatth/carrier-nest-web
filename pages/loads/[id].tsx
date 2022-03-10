@@ -1,11 +1,11 @@
 import { Menu, Transition } from '@headlessui/react';
 import {
-    ChatAltIcon,
     ChevronDownIcon,
+    DocumentDownloadIcon,
     LocationMarkerIcon,
+    PaperClipIcon,
     StopIcon,
     TruckIcon,
-    UserCircleIcon,
 } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
@@ -140,47 +140,91 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="grid grid-cols-8 gap-6 px-5 sm:px-6 md:px-8">
-                    <div className="col-span-3">
+                <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
+                    <div className="col-span-8 sm:col-span-3 md:col-span-8 lg:col-span-3">
                         <aside className="overflow-y-auto bg-white border-gray-200">
-                            <div className="pb-16 space-y-6">
-                                <div>
-                                    <dl className="border-b border-gray-200 divide-y divide-gray-200">
+                            <div className="pb-0 space-y-6 lg:pb-10">
+                                <dl className="border-gray-200 divide-y divide-gray-200">
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Reference #</dt>
+                                        <dd className="text-gray-900">{load.refNum}</dd>
+                                    </div>
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Status</dt>
+                                        <dd className="text-gray-900">
+                                            <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
+                                                {load.status}
+                                            </span>
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Customer</dt>
+                                        <dd className="text-gray-900">{load.customer?.name}</dd>
+                                    </div>
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Driver</dt>
+                                        <dd className="text-gray-900">
+                                            <a>Add Driver</a>
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Rate</dt>
+                                        <dd className="text-gray-900">${load.rate}</dd>
+                                    </div>
+                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                        <dt className="text-gray-500">Invoice</dt>
+                                        <dd className="text-gray-900">
+                                            <a>Create Invoice</a>
+                                        </dd>
+                                    </div>
+                                    <div>
                                         <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Reference #</dt>
-                                            <dd className="text-gray-900">{load.refNum}</dd>
-                                        </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Status</dt>
+                                            <dt className="text-gray-500">Documents</dt>
                                             <dd className="text-gray-900">
-                                                <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                                    {load.status}
-                                                </span>
+                                                <a>Download All</a>
                                             </dd>
                                         </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Customer</dt>
-                                            <dd className="text-gray-900">{load.customer?.name}</dd>
-                                        </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Driver</dt>
-                                            <dd className="text-gray-900"></dd>
-                                        </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Rate</dt>
-                                            <dd className="text-gray-900">${load.rate}</dd>
-                                        </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Invoice</dt>
-                                            <dd className="text-gray-900"></dd>
-                                        </div>
-                                    </dl>
-                                </div>
+                                        <ul
+                                            role="list"
+                                            className="border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                        >
+                                            {[
+                                                {
+                                                    name: 'invoice.pdf',
+                                                    href: '',
+                                                },
+                                                {
+                                                    name: 'bol.pdf',
+                                                    href: '',
+                                                },
+                                            ].map((attachment) => (
+                                                <li
+                                                    key={attachment.name}
+                                                    className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                    onClick={(e) => {}}
+                                                >
+                                                    <div className="flex items-center flex-1 w-0">
+                                                        <PaperClipIcon
+                                                            className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span className="flex-1 w-0 ml-2 truncate">
+                                                            {attachment.name}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-shrink-0 ml-4">
+                                                        <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </dl>
                             </div>
                         </aside>
                     </div>
 
-                    <div className="col-span-5">
+                    <div className="col-span-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
                         <div className="mt-4">
                             <div className="flow-root">
                                 <ul role="list" className="-mb-8">
@@ -192,14 +236,12 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                             />
                                             <div className="relative flex items-start space-x-3">
                                                 <>
-                                                    <div>
-                                                        <div className="relative px-1">
-                                                            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                <TruckIcon
-                                                                    className="w-5 h-5 text-green-800"
-                                                                    aria-hidden="true"
-                                                                />
-                                                            </div>
+                                                    <div className="relative px-1">
+                                                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
+                                                            <TruckIcon
+                                                                className="w-5 h-5 text-green-800"
+                                                                aria-hidden="true"
+                                                            />
                                                         </div>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
@@ -233,14 +275,12 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                                 />
                                                 <div className="relative flex items-start space-x-3">
                                                     <>
-                                                        <div>
-                                                            <div className="relative px-1">
-                                                                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
-                                                                    <StopIcon
-                                                                        className="w-5 h-5 text-gray-500"
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                </div>
+                                                        <div className="relative px-1">
+                                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
+                                                                <StopIcon
+                                                                    className="w-5 h-5 text-gray-500"
+                                                                    aria-hidden="true"
+                                                                />
                                                             </div>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
