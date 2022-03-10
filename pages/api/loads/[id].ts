@@ -125,7 +125,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
             data: {
                 refNum: loadData.refNum || '',
-                status: loadData.status || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
                 distanceUnit: loadData.distanceUnit || '',

@@ -16,6 +16,7 @@ import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
+import { loadStatus } from '../../lib/load/load-utils';
 import { deleteLoadById, getLoadById } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
@@ -153,7 +154,7 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                         <dt className="text-gray-500">Status</dt>
                                         <dd className="text-gray-900">
                                             <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                                {load.status}
+                                                {loadStatus(load)}
                                             </span>
                                         </dd>
                                     </div>
@@ -201,7 +202,6 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                                 <li
                                                     key={attachment.name}
                                                     className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                    onClick={(e) => {}}
                                                 >
                                                     <div className="flex items-center flex-1 w-0">
                                                         <PaperClipIcon

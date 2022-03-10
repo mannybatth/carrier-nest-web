@@ -68,47 +68,44 @@ model VerificationToken {
 }
 
 model Carrier {
-    id           Int            @id @default(autoincrement())
-    createdAt    DateTime       @default(now())
-    updatedAt    DateTime       @updatedAt
-    email        String         @unique
-    name         String
-    carrierId    String         @unique
-    mcNumber     String?
-    users        User[]
-    loads        Load[]
-    customers    Customer[]
-    drivers      Driver[]
-    LoadDocument LoadDocument[]
+    id        Int        @id @default(autoincrement())
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+    email     String     @unique
+    name      String
+    carrierId String     @unique
+    mcNumber  String?
+    users     User[]
+    loads     Load[]
+    customers Customer[]
+    drivers   Driver[]
 
     @@index([name, email, carrierId])
 }
 
 model Load {
-    id              Int            @id @default(autoincrement())
-    user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId          Int
-    customer        Customer?      @relation(fields: [customerId], references: [id])
-    customerId      Int?
-    carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    carrierId       Int
-    driver          Driver?        @relation(fields: [driverId], references: [id])
-    driverId        Int?
-    createdAt       DateTime       @default(now())
-    updatedAt       DateTime       @updatedAt
-    refNum          String
-    status          String
-    statusUpdatedAt DateTime?
-    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
-    shipperId       Int
-    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    receiverId      Int
-    stops           LoadStop[]
-    rate            Decimal
-    invoice         Invoice?
-    distance        Int
-    distanceUnit    String
-    loadDocuments   LoadDocument[]
+    id            Int            @id @default(autoincrement())
+    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId        Int
+    customer      Customer?      @relation(fields: [customerId], references: [id])
+    customerId    Int?
+    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId     Int
+    driver        Driver?        @relation(fields: [driverId], references: [id])
+    driverId      Int?
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    refNum        String
+    shipper       LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+    shipperId     Int
+    receiver      LoadStop       @relation("receiver", fields: [receiverId], references: [id])
+    receiverId    Int
+    stops         LoadStop[]
+    rate          Decimal
+    invoice       Invoice?
+    distance      Int
+    distanceUnit  String
+    loadDocuments LoadDocument[]
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -181,9 +178,8 @@ model Invoice {
     loadId      Int           @unique
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
-    status      String
     totalAmount Decimal
-    paidAmount  Decimal
+    paidAmount  Decimal?
     paidAt      DateTime?
     dueNetDays  Int           @default(0)
     extraItems  InvoiceItem[]
@@ -203,12 +199,10 @@ model LoadDocument {
     id        Int      @id @default(autoincrement())
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    Int
-    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    carrierId Int
     load      Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId    Int
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    title     String
+    type      String
     filename  String
 }

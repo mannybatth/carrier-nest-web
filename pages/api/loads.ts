@@ -1,9 +1,27 @@
+import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import prisma from '../../lib/prisma';
 
-const buildOrderBy = (sortBy: string, sortDir: string) => {
+const buildOrderBy = (
+    sortBy: string,
+    sortDir: 'asc' | 'desc',
+): Prisma.Enumerable<Prisma.LoadOrderByWithRelationAndSearchRelevanceInput> => {
+    if (sortBy === 'status') {
+        return [
+            {
+                invoice: {
+                    id: sortDir,
+                },
+            },
+            {
+                receiver: {
+                    date: sortDir,
+                },
+            },
+        ];
+    }
     if (sortBy && sortDir) {
         if (sortBy.includes('.')) {
             const split = sortBy.split('.');
@@ -39,10 +57,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const expandCustomer = expand?.includes('customer');
         const expandShipper = expand?.includes('shipper');
         const expandReceiver = expand?.includes('receiver');
-        const expandStops = expand?.includes('stops');
 
         const sortBy = req.query.sortBy as string;
-        const sortDir = (req.query.sortDir as string) || 'asc';
+        const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
 
         const customerId = Number(req.query.customerId);
 
@@ -92,24 +109,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                           },
                       }
                     : {}),
-                ...(expandStops
-                    ? {
-                          stops: {
-                              select: {
-                                  id: true,
-                                  type: true,
-                                  name: true,
-                                  street: true,
-                                  city: true,
-                                  state: true,
-                                  zip: true,
-                                  country: true,
-                                  date: true,
-                                  time: true,
-                              },
-                          },
-                      }
-                    : {}),
             },
         });
         return res.status(200).json({
@@ -125,7 +124,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const load = await prisma.load.create({
                 data: {
                     refNum: loadData.refNum || '',
-                    status: loadData.status || '',
                     rate: loadData.rate || 0,
                     distance: loadData.distance || 0,
                     distanceUnit: loadData.distanceUnit || '',

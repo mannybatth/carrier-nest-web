@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import React from 'react';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
+import { loadStatus } from '../../lib/load/load-utils';
 import Table from '../Table';
 
 type Props = {
@@ -46,7 +47,7 @@ const LoadsTable: React.FC<Props> = ({ loads, changeSort, headers = defaultHeade
                                   node: (
                                       <div className="text-xs leading-5 text-gray-900">
                                           <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                              {load.status}
+                                              {loadStatus(load)}
                                           </span>
                                       </div>
                                   ),
