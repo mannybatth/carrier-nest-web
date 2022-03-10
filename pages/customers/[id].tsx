@@ -177,6 +177,7 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                             </dd>
                         </div>
                         <div className="col-span-4">
+                            <h3>Loads for Customer</h3>
                             <LoadsTable
                                 loads={loads}
                                 headers={[

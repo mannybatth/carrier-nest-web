@@ -127,7 +127,7 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
                     <h1 className="text-2xl font-semibold text-gray-900">Edit Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+                <div className="px-5 mb-64 sm:px-6 md:px-8">
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
