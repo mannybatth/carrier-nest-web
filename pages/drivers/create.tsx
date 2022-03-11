@@ -57,7 +57,7 @@ const CreateDriver: ComponentWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
+                    <form id="driver-form" onSubmit={formHook.handleSubmit(submit)}>
                         <DriverForm formHook={formHook}></DriverForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>

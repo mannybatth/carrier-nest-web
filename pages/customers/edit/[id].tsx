@@ -21,7 +21,7 @@ export async function getServerSideProps(context: NextPageContext) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/loads',
+                destination: '/customers',
             },
         };
     }
@@ -108,7 +108,7 @@ const EditCustomer: ComponentWithAuth<Props> = ({ customer: customerProp }: Prop
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
+                    <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
                         <CustomerForm formHook={formHook}></CustomerForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>
