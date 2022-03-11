@@ -8,7 +8,7 @@ import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { ComponentWithAuth } from '../../../interfaces/auth';
-import { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
+import type { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
 import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
 type Props = {
@@ -69,7 +69,6 @@ const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
             customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
-            status: 'pending',
             distance: 0,
             distanceUnit: 'miles',
             customer: data.customer,

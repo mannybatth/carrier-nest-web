@@ -41,7 +41,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                             customer: true,
                                             refNum: true,
                                             rate: true,
-                                            status: true,
                                             distance: true,
                                             distanceUnit: true,
                                             shipper: true,

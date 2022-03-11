@@ -102,7 +102,7 @@ export type ExpandedInvoice = SimpleInvoice & {
     id?: number;
     createdAt?: Date;
     updatedAt?: Date;
-    load?: ExpandedLoad;
+    load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];
 };
 
@@ -120,7 +120,7 @@ export type SimpleDriver = Prisma.DriverGetPayload<typeof simpleDriver>;
 
 export type ExpandedDriver = SimpleDriver & {
     id?: number;
-    loads?: ExpandedLoad[];
+    loads?: (ExpandedLoad & Record<string, unknown>)[];
 };
 
 /**
@@ -138,5 +138,5 @@ export type ExpandedLoadDocument = SimpleLoadDocument & {
     id?: number;
     createdAt?: Date;
     updatedAt?: Date;
-    load?: ExpandedLoad;
+    load?: ExpandedLoad & Record<string, unknown>;
 };

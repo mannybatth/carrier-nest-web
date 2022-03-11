@@ -28,7 +28,6 @@ const CreateLoad: ComponentWithAuth = () => {
             customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
-            status: 'pending',
             distance: 0,
             distanceUnit: 'miles',
             customer: data.customer,
