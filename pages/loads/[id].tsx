@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { Fragment } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -160,12 +161,14 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                     </div>
                                     <div className="flex justify-between py-3 text-sm font-medium">
                                         <dt className="text-gray-500">Customer</dt>
-                                        <dd className="text-gray-900">{load.customer?.name}</dd>
+                                        <dd className="text-gray-900">
+                                            <Link href={`/customers/${load.customer.id}`}>{load.customer?.name}</Link>
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between py-3 text-sm font-medium">
                                         <dt className="text-gray-500">Driver</dt>
                                         <dd className="text-gray-900">
-                                            <a>Add Driver</a>
+                                            <a>Assign Driver</a>
                                         </dd>
                                     </div>
                                     <div className="flex justify-between py-3 text-sm font-medium">
