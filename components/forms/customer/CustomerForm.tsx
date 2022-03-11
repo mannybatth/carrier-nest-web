@@ -2,10 +2,6 @@ import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { SimpleCustomer } from '../../../interfaces/models';
 
-export interface CustomerFormData {
-    name: string;
-}
-
 type Props = {
     formHook: UseFormReturn<SimpleCustomer>;
     condensed?: boolean;
