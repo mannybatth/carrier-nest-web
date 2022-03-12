@@ -21,7 +21,7 @@ export const getCustomerById = async (id: number) => {
     return data;
 };
 
-export const getCustomerByIdWithLoads = async (id: number) => {
+export const getCustomerByIdExpandedLoads = async (id: number) => {
     const response = await fetch(apiUrl + '/customers/' + id + '?expand=loads');
     const { data, errors }: JSONResponse<ExpandedCustomer> = await response.json();
     return data;

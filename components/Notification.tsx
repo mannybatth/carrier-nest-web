@@ -38,5 +38,5 @@ export const notify = ({ title, message, type = 'success' }: Props) =>
                 </div>
             </div>
         ),
-        { duration: 3500, position: 'top-right' },
+        { duration: 4000, position: 'bottom-right' },
     );

@@ -1,12 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import {
-    ChevronDownIcon,
-    CurrencyDollarIcon,
-    InformationCircleIcon,
-    LocationMarkerIcon,
-    MailIcon,
-    TruckIcon,
-} from '@heroicons/react/outline';
+import { ChevronDownIcon, MailIcon, PhoneIcon, TruckIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
@@ -16,16 +9,16 @@ import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer, ExpandedLoad, Sort } from '../../interfaces/models';
-import { deleteCustomerById, getCustomerByIdExpandedLoads } from '../../lib/rest/customer';
-import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
+import { ExpandedDriver, ExpandedLoad, Sort } from '../../interfaces/models';
+import { deleteDriverById, getDriverByIdWithLoads } from '../../lib/rest/driver';
+import { getLoadsExpanded } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
-    customer: ExpandedCustomer;
-    deleteCustomer: (id: number) => void;
+    driver: ExpandedDriver;
+    deleteDriver: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCustomer }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver }: ActionsDropdownProps) => {
     const router = useRouter();
 
     return (
@@ -53,7 +46,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/customers/edit/${customer.id}`);
+                                        router.push(`/drivers/edit/${driver.id}`);
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -71,7 +64,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        deleteCustomer(customer.id);
+                                        deleteDriver(driver.id);
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -90,41 +83,41 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customer = await getCustomerByIdExpandedLoads(Number(context.query.id));
+    const driver = await getDriverByIdWithLoads(Number(context.query.id));
     return {
         props: {
-            customer,
+            driver,
         },
     };
 }
 
 type Props = {
-    customer: ExpandedCustomer;
+    driver: ExpandedDriver;
 };
 
-const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>(customer.loads);
+const DriverDetailsPage: ComponentWithAuth<Props> = ({ driver }: Props) => {
+    const [loads, setLoads] = React.useState<ExpandedLoad[]>(driver.loads);
     const router = useRouter();
 
-    const deleteCustomer = async (id: number) => {
-        await deleteCustomerById(id);
+    const deleteDriver = async (id: number) => {
+        await deleteDriverById(id);
 
-        notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
+        notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
 
-        router.push('/customers');
+        router.push('/drivers');
     };
 
     const reloadLoads = async (sort: Sort) => {
-        const loads = await getLoadsExpanded({ sort, customerId: customer.id });
+        const loads = await getLoadsExpanded({ sort, driverId: driver.id });
         setLoads(loads);
     };
 
     const deleteLoad = async (id: number) => {
-        await deleteLoadById(id);
+        await deleteDriverById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
-        const loads = await getLoadsExpanded({ customerId: customer.id });
+        const loads = await getLoadsExpanded({ driverId: driver.id });
         setLoads(loads);
     };
 
@@ -132,8 +125,8 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{customer.name}</h1>
-                    <ActionsDropdown customer={customer} deleteCustomer={deleteCustomer}></ActionsDropdown>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{driver.name}</h1>
+                    <ActionsDropdown driver={driver} deleteDriver={deleteDriver}></ActionsDropdown>
                 </div>
             }
         >
@@ -142,18 +135,18 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                     className="sm:px-6 md:px-8"
                     paths={[
                         {
-                            label: 'Customers',
-                            href: '/customers',
+                            label: 'Driver',
+                            href: '/drivers',
                         },
                         {
-                            label: `${customer.name}`,
+                            label: `${driver.name}`,
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{customer.name}</h1>
-                        <ActionsDropdown customer={customer} deleteCustomer={deleteCustomer}></ActionsDropdown>
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{driver.name}</h1>
+                        <ActionsDropdown driver={driver} deleteDriver={deleteDriver}></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
@@ -175,49 +168,24 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                                         <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                     </div>
                                     <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Contact Email</p>
-                                        <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                        <p className="text-sm font-medium text-gray-900">Email</p>
+                                        <p className="text-sm text-gray-500">{driver.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex p-3">
                                     <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <CurrencyDollarIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                     </div>
                                     <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Billing Email</p>
-                                        <p className="text-sm text-gray-500">{customer.billingEmail}</p>
-                                    </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <InformationCircleIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Payment Status Email</p>
-                                        <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
-                                    </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <LocationMarkerIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Address</p>
-                                        <p className="text-sm text-gray-500">
-                                            <div>
-                                                {customer.city && customer.state
-                                                    ? `${customer.city}, ${customer.state}`
-                                                    : `${customer.city} ${customer.state}`}
-                                                {customer.zip}
-                                            </div>
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-900">Phone</p>
+                                        <p className="text-sm text-gray-500">{driver.phone}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="col-span-12">
-                            <h3>Loads for Customer</h3>
+                            <h3>Loads Assigned to Driver</h3>
                             <LoadsTable
                                 loads={loads}
                                 headers={[
@@ -240,6 +208,6 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
     );
 };
 
-CustomerDetailsPage.authenticationEnabled = true;
+DriverDetailsPage.authenticationEnabled = true;
 
-export default CustomerDetailsPage;
+export default DriverDetailsPage;

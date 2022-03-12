@@ -6,10 +6,10 @@ import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, Sort } from '../../interfaces/models';
-import { deleteLoadById, getAllLoadsWithCustomer } from '../../lib/rest/load';
+import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const loads = await getAllLoadsWithCustomer();
+    const loads = await getLoadsExpanded();
     return { props: { loads } };
 }
 
@@ -21,7 +21,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
     const [loadsList, setLoadsList] = React.useState(loads);
 
     const reloadLoads = async (sort: Sort) => {
-        const loads = await getAllLoadsWithCustomer({ sort });
+        const loads = await getLoadsExpanded({ sort });
         setLoadsList(loads);
     };
 
@@ -30,7 +30,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads }: Props) => {
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
-        const loads = await getAllLoadsWithCustomer();
+        const loads = await getLoadsExpanded();
         setLoadsList(loads);
     };
 
