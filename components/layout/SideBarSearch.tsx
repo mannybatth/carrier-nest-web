@@ -44,8 +44,6 @@ const SideBarSearch: React.FC = () => {
                 ([, a], [, b]) => ((b[0] && b[0].sim) || 0) - ((a[0] && a[0].sim) || 0),
             );
             setSearchResults(entries);
-
-            console.log('search results', entries);
         }
 
         searchFetch();
@@ -97,7 +95,6 @@ const SideBarSearch: React.FC = () => {
                             className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-4 ring-black ring-opacity-5"
                             value=""
                             onChange={({ group, item }: any) => {
-                                console.log('onClick', group, item);
                                 if (group === 'loads') {
                                     router.push(`/loads/${item.id}`);
                                 } else if (group === 'customers') {
