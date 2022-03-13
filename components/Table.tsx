@@ -98,7 +98,7 @@ const Table: React.FC<Props> = ({ headers, rows, onRowClick, changeSort }: Props
                                     }}
                                 >
                                     {row.items.map((item, index) => (
-                                        <td key={`item-${rowIndex}-${index}`} className="px-6 py-4 whitespace-no-wrap">
+                                        <td key={`item-${rowIndex}-${index}`} className="px-6 py-2 whitespace-no-wrap">
                                             {item.value ? (
                                                 <div className="text-sm leading-5 text-gray-900">{item.value}</div>
                                             ) : (
@@ -107,7 +107,7 @@ const Table: React.FC<Props> = ({ headers, rows, onRowClick, changeSort }: Props
                                         </td>
                                     ))}
 
-                                    <td className="px-6 py-4 text-right whitespace-no-wrap">
+                                    <td className="px-6 py-2 text-right whitespace-no-wrap">
                                         <Menu as="div" className="inline-block text-left">
                                             <div>
                                                 <Menu.Button className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
