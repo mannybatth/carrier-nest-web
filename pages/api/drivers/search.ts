@@ -29,7 +29,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const drivers: Driver[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
-            data: drivers,
+            data: { drivers },
         });
     }
 

@@ -27,8 +27,8 @@ export const getLoadsExpanded = async ({
         params.append('driverId', driverId.toString());
     }
     const response = await fetch(apiUrl + '/loads?' + params.toString());
-    const { data, errors }: JSONResponse<ExpandedLoad[]> = await response.json();
-    return data;
+    const { data, errors }: JSONResponse<{ loads: ExpandedLoad[] }> = await response.json();
+    return data.loads;
 };
 
 export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
@@ -36,8 +36,8 @@ export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
         expand: 'customer,shipper,receiver,stops',
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
-    const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
-    return data;
+    const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
+    return data.load;
 };
 
 export const createLoad = async (load: ExpandedLoad) => {
@@ -48,8 +48,8 @@ export const createLoad = async (load: ExpandedLoad) => {
         },
         body: JSON.stringify(load),
     });
-    const { data, errors }: JSONResponse<Load> = await response.json();
-    return data;
+    const { data, errors }: JSONResponse<{ load: Load }> = await response.json();
+    return data.load;
 };
 
 export const updateLoad = async (id: number, load: SimpleLoad) => {
@@ -60,14 +60,14 @@ export const updateLoad = async (id: number, load: SimpleLoad) => {
         },
         body: JSON.stringify(load),
     });
-    const { data, errors }: JSONResponse<ExpandedLoad> = await response.json();
-    return data;
+    const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
+    return data.load;
 };
 
 export const deleteLoadById = async (id: number) => {
     const response = await fetch(apiUrl + '/loads/' + id, {
         method: 'DELETE',
     });
-    const { data, errors }: JSONResponse<string> = await response.json();
-    return data;
+    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+    return data.result;
 };

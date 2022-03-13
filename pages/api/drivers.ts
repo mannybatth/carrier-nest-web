@@ -48,7 +48,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
         return res.status(200).json({
-            data: drivers,
+            data: { drivers },
         });
     }
 
@@ -70,7 +70,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             });
             return res.status(200).json({
-                data: driver,
+                data: { driver },
             });
         } catch (error) {
             console.log('driver post error', error);

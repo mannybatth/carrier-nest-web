@@ -17,7 +17,7 @@ import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad, Sort } from '../../interfaces/models';
-import { deleteCustomerById, getCustomerByIdExpandedLoads } from '../../lib/rest/customer';
+import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
@@ -90,20 +90,29 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customer = await getCustomerByIdExpandedLoads(Number(context.query.id));
+    const customerId = Number(context.query.id);
+
+    const [data, loads] = await Promise.all([
+        getCustomerById({ id: customerId, loadCount: true }),
+        getLoadsExpanded({ customerId: customerId }),
+    ]);
     return {
         props: {
-            customer,
+            customer: data.customer || null,
+            loadCount: data.loadCount || 0,
+            loads,
         },
     };
 }
 
 type Props = {
     customer: ExpandedCustomer;
+    loadCount: number;
+    loads: ExpandedLoad[];
 };
 
-const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>(customer.loads);
+const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsProp, loadCount }: Props) => {
+    const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
     const router = useRouter();
 
     const deleteCustomer = async (id: number) => {
@@ -167,7 +176,7 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                                     </div>
                                     <div className="ml-3">
                                         <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                        <p className="text-sm text-gray-500">100</p>
+                                        <p className="text-sm text-gray-500">{loadCount}</p>
                                     </div>
                                 </div>
                                 <div className="flex p-3">

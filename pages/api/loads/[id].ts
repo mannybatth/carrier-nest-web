@@ -95,7 +95,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
         return res.status(200).json({
-            data: load,
+            data: { load },
         });
     }
 
@@ -176,7 +176,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).json({
-            data: updatedLoad,
+            data: { updatedLoad },
         });
     }
 
@@ -203,7 +203,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).send({
-            data: 'Load deleted',
+            data: { result: 'Load deleted' },
         });
     }
 }

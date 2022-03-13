@@ -55,7 +55,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 : {}),
         });
         return res.status(200).json({
-            data: driver,
+            data: { driver },
         });
     }
 
@@ -91,7 +91,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).json({
-            data: updatedDriver,
+            data: { updatedDriver },
         });
     }
 
@@ -118,7 +118,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).send({
-            data: 'Driver deleted',
+            data: { result: 'Driver deleted' },
         });
     }
 }

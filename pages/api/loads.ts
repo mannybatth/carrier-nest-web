@@ -112,7 +112,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
         return res.status(200).json({
-            data: loads,
+            data: { loads },
         });
     }
 
@@ -178,7 +178,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             });
             return res.status(200).json({
-                data: load,
+                data: { load },
             });
         } catch (error) {
             console.log('load post error', error);

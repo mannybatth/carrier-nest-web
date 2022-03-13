@@ -22,41 +22,35 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _get() {
         const session = await getSession({ req });
 
-        const expand = req.query.expand as string;
-        const expandLoads = expand?.includes('loads');
+        const loadCount = req.query.loadCount as string;
 
         const customer = await prisma.customer.findFirst({
             where: {
                 id: Number(req.query.id),
                 carrierId: session?.user?.carrierId,
             },
-            ...(expand
-                ? {
-                      include: {
-                          ...(expandLoads
-                              ? {
-                                    loads: {
-                                        select: {
-                                            id: true,
-                                            customer: true,
-                                            refNum: true,
-                                            rate: true,
-                                            distance: true,
-                                            distanceUnit: true,
-                                            shipper: true,
-                                            receiver: true,
-                                            stops: true,
-                                        },
-                                    },
-                                }
-                              : {}),
-                      },
-                  }
-                : {}),
         });
-        return res.status(200).json({
-            data: customer,
-        });
+
+        if (loadCount === '1') {
+            const numOfLoads = await prisma.load.count({
+                where: {
+                    customerId: customer.id,
+                    carrierId: session?.user?.carrierId,
+                },
+            });
+            return res.status(200).json({
+                data: {
+                    customer,
+                    loadCount: numOfLoads,
+                },
+            });
+        } else {
+            return res.status(200).json({
+                data: {
+                    customer,
+                },
+            });
+        }
     }
 
     async function _put() {
@@ -97,7 +91,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).json({
-            data: updatedCustomer,
+            data: { updatedCustomer },
         });
     }
 
@@ -124,7 +118,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).send({
-            data: 'Customer deleted',
+            data: { result: 'Customer deleted' },
         });
     }
 }

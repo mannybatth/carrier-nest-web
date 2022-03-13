@@ -48,7 +48,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
         return res.status(200).json({
-            data: customers,
+            data: { customers },
         });
     }
 
@@ -76,7 +76,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             });
             return res.status(200).json({
-                data: customer,
+                data: { customer },
             });
         } catch (error) {
             console.log('customer post error', error);

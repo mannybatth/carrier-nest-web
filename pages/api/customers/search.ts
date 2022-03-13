@@ -28,7 +28,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const customers: Customer[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
-            data: customers,
+            data: { customers },
         });
     }
 
