@@ -10,6 +10,10 @@ export type JSONResponse<T> = {
     errors?: Array<{ message: string }>;
 };
 
+export type SearchResult<T> = {
+    sim: number;
+} & T;
+
 /**
  * Load
  */

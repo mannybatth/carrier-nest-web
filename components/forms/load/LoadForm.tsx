@@ -26,7 +26,7 @@ const LoadForm: React.FC<Props> = ({
 }: Props) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
-    const [searchCustomers, setSearchCustomers] = React.useState<Customer[]>([]);
+    const [searchResults, setSearchResults] = React.useState<Customer[]>([]);
     const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
     const [customerSearchSubject] = React.useState(() => new Subject<string>());
 
@@ -36,12 +36,12 @@ const LoadForm: React.FC<Props> = ({
         const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
             if (!query) {
                 setCustomerSearchLoading(false);
-                setSearchCustomers([]);
+                setSearchResults([]);
                 return;
             }
             const customers = await searchCustomersByName(query);
             setCustomerSearchLoading(false);
-            setSearchCustomers(customers);
+            setSearchResults(customers);
         });
 
         return () => {
@@ -50,7 +50,7 @@ const LoadForm: React.FC<Props> = ({
     }, []);
 
     const onCustomerSearchChange = (query: string) => {
-        setSearchCustomers([]);
+        setSearchResults([]);
         setCustomerSearchLoading(true);
         customerSearchSubject.next(query);
     };
@@ -97,7 +97,7 @@ const LoadForm: React.FC<Props> = ({
                                         </Combobox.Button>
 
                                         <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                            {searchCustomers.length === 0 ? (
+                                            {searchResults.length === 0 ? (
                                                 customerSearchLoading ? (
                                                     <div className="relative px-4 py-2">
                                                         <Spinner className="text-gray-700"></Spinner>
@@ -108,7 +108,7 @@ const LoadForm: React.FC<Props> = ({
                                                     </div>
                                                 )
                                             ) : (
-                                                searchCustomers.map((customer) => (
+                                                searchResults.map((customer) => (
                                                     <Combobox.Option
                                                         key={customer.id}
                                                         value={customer}
