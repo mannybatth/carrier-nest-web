@@ -16,8 +16,8 @@ type Props = {
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customer = await getCustomerById(Number(context.query.id));
-    if (!customer) {
+    const data = await getCustomerById({ id: Number(context.query.id) });
+    if (!data?.customer) {
         return {
             redirect: {
                 permanent: false,
@@ -28,7 +28,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            customer,
+            customer: data.customer,
         },
     };
 }

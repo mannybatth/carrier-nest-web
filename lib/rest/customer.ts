@@ -15,7 +15,7 @@ export const getAllCustomers = async (sort?: Sort) => {
     return data.customers;
 };
 
-export const getCustomerById = async ({ id, loadCount }: { id: number; loadCount: boolean }) => {
+export const getCustomerById = async ({ id, loadCount }: { id: number; loadCount?: boolean }) => {
     const params = new URLSearchParams();
     if (loadCount) {
         params.append('loadCount', '1');
