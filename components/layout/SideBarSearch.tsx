@@ -1,13 +1,12 @@
-import React, { Fragment, useEffect, useState } from 'react';
-import { EmojiSadIcon, SearchIcon } from '@heroicons/react/outline';
 import { Combobox, Dialog, Transition } from '@headlessui/react';
-import { debounceTime, Subject } from 'rxjs';
-import { BatchSearchResult, search } from '../../lib/rest/search';
-import { useDebounce } from '../../lib/debounce';
-import { SearchResult } from '../../interfaces/models';
+import { EmojiSadIcon, SearchIcon } from '@heroicons/react/outline';
 import { Customer, Driver, Load } from '@prisma/client';
-import Spinner from '../Spinner';
 import { useRouter } from 'next/router';
+import React, { Fragment, useEffect, useState } from 'react';
+import { SearchResult } from '../../interfaces/models';
+import { useDebounce } from '../../lib/debounce';
+import { search } from '../../lib/rest/search';
+import Spinner from '../Spinner';
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ');

@@ -4,8 +4,8 @@ import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
-import { debounceTime, Subject } from 'rxjs';
 import { ExpandedLoad } from '../../../interfaces/models';
+import { useDebounce } from '../../../lib/debounce';
 import { searchCustomersByName } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
 import CreateCustomerModal from '../customer/CreateCustomerModal';
@@ -26,34 +26,35 @@ const LoadForm: React.FC<Props> = ({
 }: Props) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
-    const [searchResults, setSearchResults] = React.useState<Customer[]>([]);
-    const [customerSearchLoading, setCustomerSearchLoading] = React.useState<boolean>(false);
-    const [customerSearchSubject] = React.useState(() => new Subject<string>());
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+    const [customerSearchResults, setCustomerSearchResults] = React.useState<Customer[]>(null);
+    const debouncedCustomerSearchTerm = useDebounce(customerSearchTerm, 500);
 
     const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });
 
     useEffect(() => {
-        const subscription = customerSearchSubject.pipe(debounceTime(1000)).subscribe(async (query: string) => {
-            if (!query) {
-                setCustomerSearchLoading(false);
-                setSearchResults([]);
+        if (!debouncedCustomerSearchTerm) {
+            setIsSearchingCustomer(false);
+            setCustomerSearchResults(null);
+            return;
+        }
+
+        async function searchFetch() {
+            const customers = await searchCustomersByName(debouncedCustomerSearchTerm);
+            setIsSearchingCustomer(false);
+
+            const noResults = customers.length === 0;
+            if (noResults) {
+                setCustomerSearchResults([]);
                 return;
             }
-            const customers = await searchCustomersByName(query);
-            setCustomerSearchLoading(false);
-            setSearchResults(customers);
-        });
 
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, []);
+            setCustomerSearchResults(customers);
+        }
 
-    const onCustomerSearchChange = (query: string) => {
-        setSearchResults([]);
-        setCustomerSearchLoading(true);
-        customerSearchSubject.next(query);
-    };
+        searchFetch();
+    }, [debouncedCustomerSearchTerm]);
 
     const onNewCustomerCreate = (customer: Customer) => {
         setValue('customer', customer, { shouldValidate: true });
@@ -88,7 +89,10 @@ const LoadForm: React.FC<Props> = ({
                                             autoComplete="off"
                                             className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                             onChange={(e) => {
-                                                onCustomerSearchChange(e.target.value);
+                                                if (e.target.value.length > 0) {
+                                                    setIsSearchingCustomer(true);
+                                                }
+                                                setCustomerSearchTerm(e.target.value);
                                             }}
                                             displayValue={(customer: Customer) => customer?.name || null}
                                         />
@@ -96,59 +100,68 @@ const LoadForm: React.FC<Props> = ({
                                             <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                         </Combobox.Button>
 
-                                        <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                            {searchResults.length === 0 ? (
-                                                customerSearchLoading ? (
+                                        {customerSearchTerm.length > 0 && (
+                                            <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                {isSearchingCustomer ? (
                                                     <div className="relative px-4 py-2">
                                                         <Spinner className="text-gray-700"></Spinner>
                                                     </div>
                                                 ) : (
-                                                    <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
-                                                        Nothing found.
-                                                    </div>
-                                                )
-                                            ) : (
-                                                searchResults.map((customer) => (
-                                                    <Combobox.Option
-                                                        key={customer.id}
-                                                        value={customer}
-                                                        className={({ active }) =>
-                                                            classNames(
-                                                                'relative select-none py-2 pl-3 pr-9 cursor-pointer',
-                                                                active ? 'bg-blue-600 text-white' : 'text-gray-900',
-                                                            )
-                                                        }
-                                                    >
-                                                        {({ active, selected }) => (
-                                                            <>
-                                                                <span
-                                                                    className={classNames(
-                                                                        'block truncate',
-                                                                        selected && 'font-semibold',
-                                                                    )}
+                                                    <>
+                                                        {customerSearchResults?.length > 0 &&
+                                                            customerSearchResults.map((customer) => (
+                                                                <Combobox.Option
+                                                                    key={customer.id}
+                                                                    value={customer}
+                                                                    className={({ active }) =>
+                                                                        classNames(
+                                                                            'relative select-none py-2 pl-3 pr-9 cursor-pointer',
+                                                                            active
+                                                                                ? 'bg-blue-600 text-white'
+                                                                                : 'text-gray-900',
+                                                                        )
+                                                                    }
                                                                 >
-                                                                    {customer.name}
-                                                                </span>
+                                                                    {({ active, selected }) => (
+                                                                        <>
+                                                                            <span
+                                                                                className={classNames(
+                                                                                    'block truncate',
+                                                                                    selected && 'font-semibold',
+                                                                                )}
+                                                                            >
+                                                                                {customer.name}
+                                                                            </span>
 
-                                                                {selected && (
-                                                                    <span
-                                                                        className={classNames(
-                                                                            'absolute inset-y-0 right-0 flex items-center pr-4',
-                                                                            active ? 'text-white' : 'text-blue-600',
-                                                                        )}
-                                                                    >
-                                                                        <CheckIcon
-                                                                            className="w-5 h-5"
-                                                                            aria-hidden="true"
-                                                                        />
-                                                                    </span>
-                                                                )}
-                                                            </>
+                                                                            {selected && (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4',
+                                                                                        active
+                                                                                            ? 'text-white'
+                                                                                            : 'text-blue-600',
+                                                                                    )}
+                                                                                >
+                                                                                    <CheckIcon
+                                                                                        className="w-5 h-5"
+                                                                                        aria-hidden="true"
+                                                                                    />
+                                                                                </span>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </Combobox.Option>
+                                                            ))}
+
+                                                        {customerSearchResults?.length === 0 && (
+                                                            <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
+                                                                Nothing found.
+                                                            </div>
                                                         )}
-                                                    </Combobox.Option>
-                                                ))
-                                            )}
-                                        </Combobox.Options>
+                                                    </>
+                                                )}
+                                            </Combobox.Options>
+                                        )}
                                     </div>
 
                                     {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
