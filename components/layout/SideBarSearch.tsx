@@ -6,6 +6,8 @@ import { BatchSearchResult, search } from '../../lib/rest/search';
 import { useDebounce } from '../../lib/debounce';
 import { SearchResult } from '../../interfaces/models';
 import { Customer, Driver, Load } from '@prisma/client';
+import Spinner from '../Spinner';
+import { useRouter } from 'next/router';
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ');
@@ -13,6 +15,7 @@ function classNames(...classes) {
 
 const SideBarSearch: React.FC = () => {
     const [open, setOpen] = useState(false);
+    const router = useRouter();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -31,8 +34,6 @@ const SideBarSearch: React.FC = () => {
             const results = await search(debouncedSearchTerm);
             setIsSearching(false);
 
-            console.log('results', results);
-
             const noResults = Object.values(results).every((result) => result.length === 0);
             if (noResults) {
                 setSearchResults([]);
@@ -50,6 +51,13 @@ const SideBarSearch: React.FC = () => {
         searchFetch();
     }, [debouncedSearchTerm]);
 
+    const afterLeave = () => {
+        setIsSearching(false);
+        setSearchTerm('');
+        setSearchResults(null);
+        setOpen(false);
+    };
+
     return (
         <>
             <div className="mt-5 space-y-1">
@@ -61,7 +69,7 @@ const SideBarSearch: React.FC = () => {
                     Quick Find
                 </a>
             </div>
-            <Transition.Root show={open} as={Fragment} afterLeave={() => setSearchResults(null)}>
+            <Transition.Root show={open} as={Fragment} afterLeave={afterLeave}>
                 <Dialog as="div" className="fixed inset-0 z-10 p-4 overflow-y-auto sm:p-6 md:p-20" onClose={setOpen}>
                     <Transition.Child
                         as={Fragment}
@@ -88,7 +96,17 @@ const SideBarSearch: React.FC = () => {
                             as="div"
                             className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-4 ring-black ring-opacity-5"
                             value=""
-                            onChange={({ group, item }: any) => console.log('clicked option', group, item)}
+                            onChange={({ group, item }: any) => {
+                                console.log('onClick', group, item);
+                                if (group === 'loads') {
+                                    router.push(`/loads/${item.id}`);
+                                } else if (group === 'customers') {
+                                    router.push(`/customers/${item.id}`);
+                                } else if (group === 'drivers') {
+                                    router.push(`/drivers/${item.id}`);
+                                }
+                                afterLeave();
+                            }}
                         >
                             <div className="relative">
                                 <SearchIcon
@@ -100,59 +118,73 @@ const SideBarSearch: React.FC = () => {
                                     placeholder="Search for a load, customer, or driver"
                                     autoComplete="off"
                                     onChange={(e) => {
+                                        if (e.target.value.length > 0) {
+                                            setIsSearching(true);
+                                        }
                                         setSearchTerm(e.target.value);
                                     }}
                                 />
                             </div>
 
-                            {searchResults?.length > 0 && (
-                                <Combobox.Options
-                                    static
-                                    className="py-2 overflow-y-auto text-sm text-gray-800 max-h-72 scroll-py-2"
-                                >
-                                    {searchResults.map(
-                                        ([group, items]) =>
-                                            items.length > 0 && (
-                                                <li key={group}>
-                                                    <h2 className="bg-gray-100 py-2.5 px-4 text-xs font-semibold text-gray-900">
-                                                        {group}
-                                                    </h2>
-                                                    <ul className="mt-2 text-sm text-gray-800">
-                                                        {items.map((item) => (
-                                                            <Combobox.Option
-                                                                key={item.id}
-                                                                value={{
-                                                                    group,
-                                                                    item,
-                                                                }}
-                                                                className={({ active }) =>
-                                                                    classNames(
-                                                                        'cursor-default select-none px-4 py-2',
-                                                                        active &&
-                                                                            'bg-blue-500 text-white cursor-pointer',
-                                                                    )
-                                                                }
-                                                            >
-                                                                {group === 'loads' && item.refNum}
-                                                                {group === 'drivers' && item.name}
-                                                                {group === 'customers' && item.name}
-                                                            </Combobox.Option>
-                                                        ))}
-                                                    </ul>
-                                                </li>
-                                            ),
-                                    )}
-                                </Combobox.Options>
-                            )}
-
-                            {searchResults?.length === 0 && (
+                            {isSearching ? (
                                 <div className="px-6 py-6 text-sm text-center border-t border-gray-100 sm:px-14">
-                                    <EmojiSadIcon className="w-6 h-6 mx-auto text-gray-400" aria-hidden="true" />
-                                    <p className="mt-4 font-semibold text-gray-900">No results found</p>
-                                    <p className="mt-2 text-gray-500">
-                                        We couldn’t find anything with that term. Please try again.
-                                    </p>
+                                    <Spinner className="inline-block text-gray-700"></Spinner>
                                 </div>
+                            ) : (
+                                <>
+                                    {searchResults?.length > 0 && (
+                                        <Combobox.Options
+                                            static
+                                            className="py-2 space-y-2 overflow-y-auto text-sm text-gray-800 max-h-72 scroll-py-2"
+                                        >
+                                            {searchResults.map(
+                                                ([group, items]) =>
+                                                    items.length > 0 && (
+                                                        <li key={group}>
+                                                            <h2 className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase bg-gray-100">
+                                                                {group}
+                                                            </h2>
+                                                            <ul className="mt-2 text-sm text-gray-800">
+                                                                {items.map((item) => (
+                                                                    <Combobox.Option
+                                                                        key={item.id}
+                                                                        value={{
+                                                                            group,
+                                                                            item,
+                                                                        }}
+                                                                        className={({ active }) =>
+                                                                            classNames(
+                                                                                'cursor-default select-none px-4 py-2',
+                                                                                active &&
+                                                                                    'bg-blue-500 text-white cursor-pointer',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        {group === 'loads' && item.refNum}
+                                                                        {group === 'drivers' && item.name}
+                                                                        {group === 'customers' && item.name}
+                                                                    </Combobox.Option>
+                                                                ))}
+                                                            </ul>
+                                                        </li>
+                                                    ),
+                                            )}
+                                        </Combobox.Options>
+                                    )}
+
+                                    {searchResults?.length === 0 && (
+                                        <div className="px-6 py-6 text-sm text-center border-t border-gray-100 sm:px-14">
+                                            <EmojiSadIcon
+                                                className="w-6 h-6 mx-auto text-gray-400"
+                                                aria-hidden="true"
+                                            />
+                                            <p className="mt-4 font-semibold text-gray-900">No results found</p>
+                                            <p className="mt-2 text-gray-500">
+                                                We couldn&apos;t find anything with that term. Please try again.
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </Combobox>
                     </Transition.Child>

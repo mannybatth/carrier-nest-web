@@ -204,12 +204,15 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer }: Props) => {
                                     <div className="ml-3">
                                         <p className="text-sm font-medium text-gray-900">Address</p>
                                         <p className="text-sm text-gray-500">
-                                            <div>
-                                                {customer.city && customer.state
-                                                    ? `${customer.city}, ${customer.state}`
-                                                    : `${customer.city} ${customer.state}`}
-                                                {customer.zip}
-                                            </div>
+                                            {customer.street && (
+                                                <>
+                                                    {customer.street} <br />
+                                                </>
+                                            )}
+                                            {customer.city && customer.state
+                                                ? `${customer.city}, ${customer.state}`
+                                                : `${customer.city} ${customer.state}`}{' '}
+                                            {customer.zip}
                                         </p>
                                     </div>
                                 </div>
