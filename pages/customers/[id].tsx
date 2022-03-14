@@ -16,7 +16,7 @@ import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer, ExpandedLoad, Sort } from '../../interfaces/models';
+import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
@@ -92,15 +92,16 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 export async function getServerSideProps(context: NextPageContext) {
     const customerId = Number(context.query.id);
 
-    const [data, loads] = await Promise.all([
-        getCustomerById({ id: customerId, loadCount: true }),
+    const [customer, loadsData] = await Promise.all([
+        getCustomerById(customerId),
         getLoadsExpanded({ customerId: customerId }),
     ]);
     return {
         props: {
-            customer: data.customer || null,
-            loadCount: data.loadCount || 0,
-            loads,
+            customer: customer || null,
+            loadCount: loadsData?.metadata?.total || 0,
+            loads: loadsData.loads,
+            metadata: loadsData.metadata,
         },
     };
 }
@@ -109,9 +110,10 @@ type Props = {
     customer: ExpandedCustomer;
     loadCount: number;
     loads: ExpandedLoad[];
+    metadata: PaginationMetadata;
 };
 
-const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsProp, loadCount }: Props) => {
+const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsProp, loadCount, metadata }: Props) => {
     const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
     const router = useRouter();
 
@@ -124,7 +126,7 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsP
     };
 
     const reloadLoads = async (sort: Sort) => {
-        const loads = await getLoadsExpanded({ sort, customerId: customer.id });
+        const { loads, metadata } = await getLoadsExpanded({ sort, customerId: customer.id });
         setLoads(loads);
     };
 
@@ -133,7 +135,7 @@ const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsP
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
-        const loads = await getLoadsExpanded({ customerId: customer.id });
+        const { loads, metadata } = await getLoadsExpanded({ customerId: customer.id });
         setLoads(loads);
     };
 

@@ -14,6 +14,18 @@ export type SearchResult<T> = {
     sim: number;
 } & T;
 
+export type PaginationMetadata = {
+    total: number;
+    prev?: {
+        offset: number;
+        limit: number;
+    };
+    next?: {
+        offset: number;
+        limit: number;
+    };
+};
+
 /**
  * Load
  */

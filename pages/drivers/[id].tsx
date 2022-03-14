@@ -108,7 +108,7 @@ const DriverDetailsPage: ComponentWithAuth<Props> = ({ driver }: Props) => {
     };
 
     const reloadLoads = async (sort: Sort) => {
-        const loads = await getLoadsExpanded({ sort, driverId: driver.id });
+        const { loads, metadata } = await getLoadsExpanded({ sort, driverId: driver.id });
         setLoads(loads);
     };
 
@@ -117,7 +117,7 @@ const DriverDetailsPage: ComponentWithAuth<Props> = ({ driver }: Props) => {
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
-        const loads = await getLoadsExpanded({ driverId: driver.id });
+        const { loads, metadata } = await getLoadsExpanded({ driverId: driver.id });
         setLoads(loads);
     };
 

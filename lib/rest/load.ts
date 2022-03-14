@@ -1,16 +1,20 @@
 import { Load } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedLoad, JSONResponse, SimpleLoad, Sort } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse, PaginationMetadata, SimpleLoad, Sort } from '../../interfaces/models';
 
 export const getLoadsExpanded = async ({
     sort,
     customerId,
     driverId,
+    limit,
+    offset,
 }: {
     sort?: Sort;
     customerId?: number;
     driverId?: number;
-} = {}): Promise<ExpandedLoad[]> => {
+    limit?: number;
+    offset?: number;
+} = {}): Promise<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams({
         expand: 'customer,shipper,receiver',
     });
@@ -26,9 +30,21 @@ export const getLoadsExpanded = async ({
     if (driverId) {
         params.append('driverId', driverId.toString());
     }
+    if (limit !== undefined) {
+        params.append('limit', limit.toString());
+    }
+    if (offset !== undefined) {
+        params.append('offset', offset.toString());
+    }
+    console.log(`${apiUrl}/loads?${params.toString()}`);
     const response = await fetch(apiUrl + '/loads?' + params.toString());
-    const { data, errors }: JSONResponse<{ loads: ExpandedLoad[] }> = await response.json();
-    return data.loads;
+    const { data, errors }: JSONResponse<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> =
+        await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data;
 };
 
 export const getLoadById = async (id: number): Promise<ExpandedLoad> => {

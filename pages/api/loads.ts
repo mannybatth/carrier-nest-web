@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
+import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
 const buildOrderBy = (
@@ -61,7 +62,32 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
 
-        const customerId = Number(req.query.customerId);
+        const customerId = req.query.customerId !== undefined ? Number(req.query.customerId) : undefined;
+        const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+        const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
+
+        if (limit != null || offset != null) {
+            if (limit == null || offset == null) {
+                return res.status(400).send({
+                    errors: [{ message: 'Limit and Offset must be set together' }],
+                });
+            }
+
+            if (isNaN(limit) || isNaN(offset)) {
+                return res.status(400).send({
+                    errors: [{ message: 'Invalid limit or offset' }],
+                });
+            }
+        }
+
+        const total = await prisma.load.count({
+            where: {
+                userId: session?.user?.id,
+                ...(customerId ? { customerId } : null),
+            },
+        });
+
+        const metadata = calcPaginationMetadata({ total, limit, offset });
 
         const loads = await prisma.load.findMany({
             where: {
@@ -71,6 +97,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
                 ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
                 ...(expandShipper
@@ -112,7 +140,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
         return res.status(200).json({
-            data: { loads },
+            data: { metadata, loads },
         });
     }
 

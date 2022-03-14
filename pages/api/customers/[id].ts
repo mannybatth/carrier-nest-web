@@ -22,8 +22,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _get() {
         const session = await getSession({ req });
 
-        const loadCount = req.query.loadCount as string;
-
         const customer = await prisma.customer.findFirst({
             where: {
                 id: Number(req.query.id),
@@ -31,26 +29,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
 
-        if (loadCount === '1') {
-            const numOfLoads = await prisma.load.count({
-                where: {
-                    customerId: customer.id,
-                    carrierId: session?.user?.carrierId,
-                },
-            });
-            return res.status(200).json({
-                data: {
-                    customer,
-                    loadCount: numOfLoads,
-                },
-            });
-        } else {
-            return res.status(200).json({
-                data: {
-                    customer,
-                },
-            });
-        }
+        return res.status(200).json({
+            data: { customer },
+        });
     }
 
     async function _put() {

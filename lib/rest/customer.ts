@@ -15,14 +15,10 @@ export const getAllCustomers = async (sort?: Sort) => {
     return data.customers;
 };
 
-export const getCustomerById = async ({ id, loadCount }: { id: number; loadCount?: boolean }) => {
-    const params = new URLSearchParams();
-    if (loadCount) {
-        params.append('loadCount', '1');
-    }
-    const response = await fetch(apiUrl + '/customers/' + id + '?' + params.toString());
-    const { data, errors }: JSONResponse<{ customer: Customer; loadCount: number }> = await response.json();
-    return data;
+export const getCustomerById = async (id: number) => {
+    const response = await fetch(apiUrl + '/customers/' + id);
+    const { data, errors }: JSONResponse<{ customer: Customer }> = await response.json();
+    return data.customer;
 };
 
 export const searchCustomersByName = async (value: string) => {
