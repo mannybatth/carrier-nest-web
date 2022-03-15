@@ -16,6 +16,8 @@ export type SearchResult<T> = {
 
 export type PaginationMetadata = {
     total: number;
+    currentOffset: number;
+    currentLimit: number;
     prev?: {
         offset: number;
         limit: number;

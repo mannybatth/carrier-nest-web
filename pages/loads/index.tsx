@@ -4,12 +4,13 @@ import React from 'react';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
+import Pagination from '../../components/Pagination';
 import { ComponentWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const data = await getLoadsExpanded();
+    const data = await getLoadsExpanded({ limit: 2, offset: 0 });
     return { props: { loads: data.loads, metadata: data.metadata } };
 }
 
@@ -18,12 +19,36 @@ type Props = {
     metadata: PaginationMetadata;
 };
 
-const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata }: Props) => {
+const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: Props) => {
     const [loadsList, setLoadsList] = React.useState(loads);
+    const [sort, setSort] = React.useState<Sort>(null);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
 
-    const reloadLoads = async (sort: Sort) => {
-        const { loads, metadata } = await getLoadsExpanded({ sort });
+    const reloadLoads = async (sortData: Sort) => {
+        setSort(sortData);
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({ sort: sortData });
         setLoadsList(loads);
+        setMetadata(metadataResponse);
+    };
+
+    const previousPage = async () => {
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
+            limit: metadata.prev.limit,
+            offset: metadata.prev.offset,
+            sort,
+        });
+        setLoadsList(loads);
+        setMetadata(metadataResponse);
+    };
+
+    const nextPage = async () => {
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
+            limit: metadata.next.limit,
+            offset: metadata.next.offset,
+            sort,
+        });
+        setLoadsList(loads);
+        setMetadata(metadataResponse);
     };
 
     const deleteLoad = async (id: number) => {
@@ -31,7 +56,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata }: Props) => {
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
-        const { loads, metadata } = await getLoadsExpanded();
+        const { loads, metadata } = await getLoadsExpanded({ sort });
         setLoadsList(loads);
     };
 
@@ -68,6 +93,11 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata }: Props) => {
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
                     <LoadsTable loads={loadsList} changeSort={reloadLoads} deleteLoad={deleteLoad} />
+                    <Pagination
+                        metadata={metadata}
+                        onPrevious={() => previousPage()}
+                        onNext={() => nextPage()}
+                    ></Pagination>
                 </div>
             </div>
         </Layout>
