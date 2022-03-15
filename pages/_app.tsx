@@ -16,6 +16,7 @@ const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }: ProtectedApp
     return (
         <SessionProvider session={pageProps.session}>
             <Head>
+                <meta name="viewport" content="initial-scale=1.0, width=device-width" />
                 <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
             </Head>
             {Component.authenticationEnabled ? (

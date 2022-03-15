@@ -37,6 +37,10 @@ export const getAllCustomers = async ({
 export const getCustomerById = async (id: number) => {
     const response = await fetch(apiUrl + '/customers/' + id);
     const { data, errors }: JSONResponse<{ customer: Customer }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.customer;
 };
 
