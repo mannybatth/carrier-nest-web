@@ -156,7 +156,7 @@ const SideBarSearch: React.FC = () => {
                                                                             )
                                                                         }
                                                                     >
-                                                                        {group === 'loads' && item.refNum}
+                                                                        {group === 'loads' && `# ${item.refNum}`}
                                                                         {group === 'drivers' && item.name}
                                                                         {group === 'customers' && item.name}
                                                                     </Combobox.Option>
