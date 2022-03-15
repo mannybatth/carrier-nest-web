@@ -4,34 +4,62 @@ import React from 'react';
 import CustomersTable from '../../components/customers/CustomersTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
+import Pagination from '../../components/Pagination';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer, Sort } from '../../interfaces/models';
+import { ExpandedCustomer, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteCustomerById, getAllCustomers } from '../../lib/rest/customer';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customers = await getAllCustomers();
-    return { props: { customers } };
+    const data = await getAllCustomers({ limit: 1, offset: 0 });
+    return { props: { customers: data.customers, metadata: data.metadata } };
 }
 
 type Props = {
     customers: ExpandedCustomer[];
+    metadata: PaginationMetadata;
 };
 
-const CustomersPage: ComponentWithAuth<Props> = ({ customers }: Props) => {
+const CustomersPage: ComponentWithAuth<Props> = ({ customers, metadata: metadataProp }: Props) => {
     const [customersList, setCustomersList] = React.useState(customers);
+    const [sort, setSort] = React.useState<Sort>(null);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
 
-    const reloadCustomers = async (sort: Sort) => {
-        const customers = await getAllCustomers(sort);
+    const reloadCustomers = async (sortData: Sort) => {
+        setSort(sortData);
+        const { customers, metadata: metadataResponse } = await getAllCustomers({
+            limit: metadata.currentLimit,
+            offset: metadata.currentOffset,
+            sort: sortData,
+        });
         setCustomersList(customers);
+        setMetadata(metadataResponse);
+    };
+
+    const previousPage = async () => {
+        const { customers, metadata: metadataResponse } = await getAllCustomers({
+            limit: metadata.prev.limit,
+            offset: metadata.prev.offset,
+            sort,
+        });
+        setCustomersList(customers);
+        setMetadata(metadataResponse);
+    };
+
+    const nextPage = async () => {
+        const { customers, metadata: metadataResponse } = await getAllCustomers({
+            limit: metadata.next.limit,
+            offset: metadata.next.offset,
+            sort,
+        });
+        setCustomersList(customers);
+        setMetadata(metadataResponse);
     };
 
     const deleteCustomer = async (id: number) => {
         await deleteCustomerById(id);
 
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
-
-        const customers = await getAllCustomers();
-        setCustomersList(customers);
+        reloadCustomers(sort);
     };
 
     return (
@@ -71,6 +99,11 @@ const CustomersPage: ComponentWithAuth<Props> = ({ customers }: Props) => {
                         changeSort={reloadCustomers}
                         deleteCustomer={deleteCustomer}
                     />
+                    <Pagination
+                        metadata={metadata}
+                        onPrevious={() => previousPage()}
+                        onNext={() => nextPage()}
+                    ></Pagination>
                 </div>
             </div>
         </Layout>

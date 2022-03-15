@@ -1,8 +1,16 @@
 import { Customer } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, SimpleCustomer, Sort } from '../../interfaces/models';
+import { JSONResponse, PaginationMetadata, SimpleCustomer, Sort } from '../../interfaces/models';
 
-export const getAllCustomers = async (sort?: Sort) => {
+export const getAllCustomers = async ({
+    sort,
+    limit,
+    offset,
+}: {
+    sort?: Sort;
+    limit?: number;
+    offset?: number;
+}): Promise<{ customers: Customer[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams();
     if (sort && sort.key) {
         params.append('sortBy', sort.key);
@@ -10,9 +18,20 @@ export const getAllCustomers = async (sort?: Sort) => {
     if (sort && sort.order) {
         params.append('sortDir', sort.order);
     }
+    if (limit !== undefined) {
+        params.append('limit', limit.toString());
+    }
+    if (offset !== undefined) {
+        params.append('offset', offset.toString());
+    }
     const response = await fetch(apiUrl + '/customers?' + params.toString());
-    const { data, errors }: JSONResponse<{ customers: Customer[] }> = await response.json();
-    return data.customers;
+    const { data, errors }: JSONResponse<{ customers: Customer[]; metadata: PaginationMetadata }> =
+        await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data;
 };
 
 export const getCustomerById = async (id: number) => {

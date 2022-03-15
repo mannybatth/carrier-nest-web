@@ -2,6 +2,7 @@ import { Customer } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { JSONResponse } from '../../interfaces/models';
+import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
 const buildOrderBy = (sortBy: string, sortDir: string) => {
@@ -39,16 +40,43 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as string) || 'asc';
 
+        const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+        const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
+
+        if (limit != null || offset != null) {
+            if (limit == null || offset == null) {
+                return res.status(400).send({
+                    errors: [{ message: 'Limit and Offset must be set together' }],
+                });
+            }
+
+            if (isNaN(limit) || isNaN(offset)) {
+                return res.status(400).send({
+                    errors: [{ message: 'Invalid limit or offset' }],
+                });
+            }
+        }
+
+        const total = await prisma.customer.count({
+            where: {
+                carrierId: session?.user?.carrierId,
+            },
+        });
+
+        const metadata = calcPaginationMetadata({ total, limit, offset });
+
         const customers = await prisma.customer.findMany({
             where: {
                 carrierId: session?.user?.carrierId,
             },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
         });
         return res.status(200).json({
-            data: { customers },
+            data: { metadata, customers },
         });
     }
 

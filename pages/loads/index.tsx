@@ -26,7 +26,11 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: 
 
     const reloadLoads = async (sortData: Sort) => {
         setSort(sortData);
-        const { loads, metadata: metadataResponse } = await getLoadsExpanded({ sort: sortData });
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
+            limit: metadata.currentLimit,
+            offset: metadata.currentOffset,
+            sort: sortData,
+        });
         setLoadsList(loads);
         setMetadata(metadataResponse);
     };
@@ -55,9 +59,7 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: 
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-
-        const { loads, metadata } = await getLoadsExpanded({ sort });
-        setLoadsList(loads);
+        reloadLoads(sort);
     };
 
     return (
