@@ -204,5 +204,6 @@ model LoadDocument {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     type      String
+    location  String
     filename  String
 }

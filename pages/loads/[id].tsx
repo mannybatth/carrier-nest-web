@@ -178,7 +178,13 @@ const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
                                     <div className="flex justify-between py-3 text-sm font-medium">
                                         <dt className="text-gray-500">Invoice</dt>
                                         <dd className="text-gray-900">
-                                            <a>Create Invoice</a>
+                                            {load.invoice ? (
+                                                <Link href={`/invoices/${load.invoice.id}`}># {load.invoice.id}</Link>
+                                            ) : (
+                                                <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                    Create Invoice
+                                                </Link>
+                                            )}
                                         </dd>
                                     </div>
                                     <div>
