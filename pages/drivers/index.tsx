@@ -4,34 +4,62 @@ import React from 'react';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
+import Pagination from '../../components/Pagination';
 import { ComponentWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, Sort } from '../../interfaces/models';
+import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const drivers = await getAllDrivers();
-    return { props: { drivers } };
+    const data = await getAllDrivers({ limit: 1, offset: 0 });
+    return { props: { drivers: data.drivers, metadata: data.metadata } };
 }
 
 type Props = {
     drivers: ExpandedDriver[];
+    metadata: PaginationMetadata;
 };
 
-const DriversPage: ComponentWithAuth<Props> = ({ drivers }: Props) => {
+const DriversPage: ComponentWithAuth<Props> = ({ drivers, metadata: metadataProp }: Props) => {
     const [driversList, setDriversList] = React.useState(drivers);
+    const [sort, setSort] = React.useState<Sort>(null);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
 
-    const reloadDrivers = async (sort: Sort) => {
-        const drivers = await getAllDrivers(sort);
+    const reloadDrivers = async (sortData: Sort) => {
+        setSort(sortData);
+        const { drivers, metadata: metadataResponse } = await getAllDrivers({
+            limit: metadata.currentLimit,
+            offset: metadata.currentOffset,
+            sort: sortData,
+        });
         setDriversList(drivers);
+        setMetadata(metadataResponse);
+    };
+
+    const previousPage = async () => {
+        const { drivers, metadata: metadataResponse } = await getAllDrivers({
+            limit: metadata.prev.limit,
+            offset: metadata.prev.offset,
+            sort,
+        });
+        setDriversList(drivers);
+        setMetadata(metadataResponse);
+    };
+
+    const nextPage = async () => {
+        const { drivers, metadata: metadataResponse } = await getAllDrivers({
+            limit: metadata.next.limit,
+            offset: metadata.next.offset,
+            sort,
+        });
+        setDriversList(drivers);
+        setMetadata(metadataResponse);
     };
 
     const deleteDriver = async (id: number) => {
         await deleteDriverById(id);
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
-
-        const drivers = await getAllDrivers();
-        setDriversList(drivers);
+        reloadDrivers(sort);
     };
 
     return (
@@ -67,6 +95,11 @@ const DriversPage: ComponentWithAuth<Props> = ({ drivers }: Props) => {
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
                     <DriversTable drivers={driversList} changeSort={reloadDrivers} deleteDriver={deleteDriver} />
+                    <Pagination
+                        metadata={metadata}
+                        onPrevious={() => previousPage()}
+                        onNext={() => nextPage()}
+                    ></Pagination>
                 </div>
             </div>
         </Layout>

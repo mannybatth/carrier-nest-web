@@ -1,8 +1,16 @@
 import { Driver } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedDriver, JSONResponse, SimpleDriver, Sort } from '../../interfaces/models';
+import { ExpandedDriver, JSONResponse, PaginationMetadata, SimpleDriver, Sort } from '../../interfaces/models';
 
-export const getAllDrivers = async (sort?: Sort) => {
+export const getAllDrivers = async ({
+    sort,
+    limit,
+    offset,
+}: {
+    sort?: Sort;
+    limit?: number;
+    offset?: number;
+}): Promise<{ drivers: Driver[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams();
     if (sort && sort.key) {
         params.append('sortBy', sort.key);
@@ -10,14 +18,28 @@ export const getAllDrivers = async (sort?: Sort) => {
     if (sort && sort.order) {
         params.append('sortDir', sort.order);
     }
+    if (limit !== undefined) {
+        params.append('limit', limit.toString());
+    }
+    if (offset !== undefined) {
+        params.append('offset', offset.toString());
+    }
     const response = await fetch(apiUrl + '/drivers?' + params.toString());
-    const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
-    return data.drivers;
+    const { data, errors }: JSONResponse<{ drivers: Driver[]; metadata: PaginationMetadata }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data;
 };
 
 export const getDriverById = async (id: number) => {
     const response = await fetch(apiUrl + '/drivers/' + id);
     const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.driver;
 };
 
