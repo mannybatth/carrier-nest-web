@@ -7,7 +7,7 @@ import DriverForm from '../../../components/forms/driver/DriverForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
-import { ComponentWithAuth } from '../../../interfaces/auth';
+import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedDriver, SimpleDriver } from '../../../interfaces/models';
 import { getDriverById, updateDriver } from '../../../lib/rest/driver';
 
@@ -33,7 +33,7 @@ export async function getServerSideProps(context: NextPageContext) {
     };
 }
 
-const EditDriver: ComponentWithAuth<Props> = ({ driver: driverProp }: Props) => {
+const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
     const formHook = useForm<SimpleDriver>();
     const router = useRouter();
 

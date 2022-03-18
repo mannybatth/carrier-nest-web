@@ -6,7 +6,7 @@ import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
@@ -21,7 +21,7 @@ type Props = {
     metadata: PaginationMetadata;
 };
 
-const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: Props) => {
+const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp }: Props) => {
     const [loadsList, setLoadsList] = React.useState(loads);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);

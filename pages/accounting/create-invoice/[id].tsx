@@ -5,7 +5,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import Layout from '../../../components/layout/Layout';
-import { ComponentWithAuth } from '../../../interfaces/auth';
+import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { getLoadById } from '../../../lib/rest/load';
 
@@ -41,7 +41,7 @@ type Props = {
     load: ExpandedLoad;
 };
 
-const CreateInvoice: ComponentWithAuth = ({ load }: Props) => {
+const CreateInvoice: PageWithAuth = ({ load }: Props) => {
     const formHook = useForm<ExpandedInvoice>();
     const router = useRouter();
 

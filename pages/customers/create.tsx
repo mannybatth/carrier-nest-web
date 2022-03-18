@@ -5,11 +5,11 @@ import CustomerForm from '../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { SimpleCustomer } from '../../interfaces/models';
 import { createCustomer } from '../../lib/rest/customer';
 
-const CreateCustomer: ComponentWithAuth = () => {
+const CreateCustomer: PageWithAuth = () => {
     const formHook = useForm<SimpleCustomer>();
     const router = useRouter();
 

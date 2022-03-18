@@ -15,7 +15,7 @@ import React, { Fragment } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { loadStatus } from '../../lib/load/load-utils';
 import { deleteLoadById, getLoadById } from '../../lib/rest/load';
@@ -102,7 +102,7 @@ type Props = {
     load: ExpandedLoad;
 };
 
-const LoadDetailsPage: ComponentWithAuth<Props> = ({ load }: Props) => {
+const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
     const router = useRouter();
 
     const deleteLoad = async (id: number) => {

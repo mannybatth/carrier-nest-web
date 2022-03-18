@@ -6,7 +6,7 @@ import CustomersTable from '../../components/customers/CustomersTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteCustomerById, getAllCustomers } from '../../lib/rest/customer';
 
@@ -21,7 +21,7 @@ type Props = {
     metadata: PaginationMetadata;
 };
 
-const CustomersPage: ComponentWithAuth<Props> = ({ customers, metadata: metadataProp }: Props) => {
+const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp }: Props) => {
     const [customersList, setCustomersList] = React.useState(customers);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);

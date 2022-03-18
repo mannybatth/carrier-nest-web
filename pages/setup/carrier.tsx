@@ -1,8 +1,8 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 
-const CarrierSetup: ComponentWithAuth = () => {
+const CarrierSetup: PageWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={

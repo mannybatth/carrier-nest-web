@@ -8,7 +8,7 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, ExpandedLoad, Sort } from '../../interfaces/models';
 import { deleteDriverById, getDriverByIdWithLoads } from '../../lib/rest/driver';
 import { getLoadsExpanded } from '../../lib/rest/load';
@@ -95,7 +95,7 @@ type Props = {
     driver: ExpandedDriver;
 };
 
-const DriverDetailsPage: ComponentWithAuth<Props> = ({ driver }: Props) => {
+const DriverDetailsPage: PageWithAuth<Props> = ({ driver }: Props) => {
     const [loads, setLoads] = React.useState<ExpandedLoad[]>(driver.loads);
     const router = useRouter();
 

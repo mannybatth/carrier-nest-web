@@ -2,7 +2,7 @@ import { Listbox, Transition } from '@headlessui/react';
 import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import React, { Fragment } from 'react';
-import { Controller, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedInvoice } from '../../../interfaces/models';
 
 type Props = {
@@ -36,6 +36,12 @@ const InvoiceForm: React.FC<Props> = ({
         formState: { errors },
     },
 }: Props) => {
+    const {
+        fields: itemFields,
+        append: appendItem,
+        remove: removeItem,
+    } = useFieldArray({ name: 'extraItems', control });
+
     return (
         <>
             <div className="col-span-6">

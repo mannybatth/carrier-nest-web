@@ -5,11 +5,11 @@ import DriverForm from '../../components/forms/driver/DriverForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { SimpleDriver } from '../../interfaces/models';
 import { createDriver } from '../../lib/rest/driver';
 
-const CreateDriver: ComponentWithAuth = () => {
+const CreateDriver: PageWithAuth = () => {
     const formHook = useForm<SimpleDriver>();
     const router = useRouter();
 

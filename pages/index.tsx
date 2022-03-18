@@ -1,7 +1,7 @@
 import React from 'react';
 import { GetStaticProps } from 'next';
 import Layout from '../components/layout/Layout';
-import { ComponentWithAuth } from '../interfaces/auth';
+import { PageWithAuth } from '../interfaces/auth';
 
 export const getStaticProps: GetStaticProps = async () => {
     // const feed = await prisma.post.findMany({
@@ -18,7 +18,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
 type Props = {};
 
-const Dashboard: ComponentWithAuth<Props> = (props: Props) => {
+const Dashboard: PageWithAuth<Props> = (props: Props) => {
     return (
         <Layout
             smHeaderComponent={

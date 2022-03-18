@@ -15,7 +15,7 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
@@ -113,7 +113,7 @@ type Props = {
     metadata: PaginationMetadata;
 };
 
-const CustomerDetailsPage: ComponentWithAuth<Props> = ({ customer, loads: loadsProp, loadCount, metadata }: Props) => {
+const CustomerDetailsPage: PageWithAuth<Props> = ({ customer, loads: loadsProp, loadCount, metadata }: Props) => {
     const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
     const router = useRouter();
 

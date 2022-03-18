@@ -6,7 +6,7 @@ import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
-import { ComponentWithAuth } from '../../interfaces/auth';
+import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/models';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 
@@ -21,7 +21,7 @@ type Props = {
     metadata: PaginationMetadata;
 };
 
-const DriversPage: ComponentWithAuth<Props> = ({ drivers, metadata: metadataProp }: Props) => {
+const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: Props) => {
     const [driversList, setDriversList] = React.useState(drivers);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);

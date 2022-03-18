@@ -7,7 +7,7 @@ import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
-import { ComponentWithAuth } from '../../../interfaces/auth';
+import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
 import { getLoadById, updateLoad } from '../../../lib/rest/load';
 
@@ -33,7 +33,7 @@ export async function getServerSideProps(context: NextPageContext) {
     };
 }
 
-const EditLoad: ComponentWithAuth<Props> = ({ load: loadProp }: Props) => {
+const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
 

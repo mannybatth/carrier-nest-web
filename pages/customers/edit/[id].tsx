@@ -7,7 +7,7 @@ import CustomerForm from '../../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
-import { ComponentWithAuth } from '../../../interfaces/auth';
+import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedCustomer, SimpleCustomer } from '../../../interfaces/models';
 import { getCustomerById, updateCustomer } from '../../../lib/rest/customer';
 
@@ -33,7 +33,7 @@ export async function getServerSideProps(context: NextPageContext) {
     };
 }
 
-const EditCustomer: ComponentWithAuth<Props> = ({ customer: customerProp }: Props) => {
+const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) => {
     const formHook = useForm<SimpleCustomer>();
     const router = useRouter();
 
