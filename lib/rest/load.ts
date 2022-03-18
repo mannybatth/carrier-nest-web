@@ -76,8 +76,8 @@ export const updateLoad = async (id: number, load: SimpleLoad) => {
         },
         body: JSON.stringify(load),
     });
-    const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
-    return data.load;
+    const { data, errors }: JSONResponse<{ updatedLoad: ExpandedLoad }> = await response.json();
+    return data.updatedLoad;
 };
 
 export const deleteLoadById = async (id: number) => {

@@ -1,6 +1,7 @@
 import { NextPageContext } from 'next';
 import Link from 'next/link';
-import React from 'react';
+import { useRouter } from 'next/router';
+import React, { useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
@@ -10,7 +11,8 @@ import { ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models'
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const data = await getLoadsExpanded({ limit: 2, offset: 0 });
+    const { query } = context;
+    const data = await getLoadsExpanded({ limit: Number(query.limit) || 1, offset: Number(query.offset) || 0 });
     return { props: { loads: data.loads, metadata: data.metadata } };
 }
 
@@ -23,6 +25,12 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: 
     const [loadsList, setLoadsList] = React.useState(loads);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const router = useRouter();
+
+    useEffect(() => {
+        setLoadsList(loads);
+        setMetadata(metadataProp);
+    }, [loads, metadataProp]);
 
     const reloadLoads = async (sortData: Sort) => {
         setSort(sortData);
@@ -36,23 +44,25 @@ const LoadsPage: ComponentWithAuth<Props> = ({ loads, metadata: metadataProp }: 
     };
 
     const previousPage = async () => {
-        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            limit: metadata.prev.limit,
-            offset: metadata.prev.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.prev.offset,
+                limit: metadata.prev.limit,
+            },
         });
-        setLoadsList(loads);
-        setMetadata(metadataResponse);
     };
 
     const nextPage = async () => {
-        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            limit: metadata.next.limit,
-            offset: metadata.next.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.next.offset,
+                limit: metadata.next.limit,
+            },
         });
-        setLoadsList(loads);
-        setMetadata(metadataResponse);
     };
 
     const deleteLoad = async (id: number) => {

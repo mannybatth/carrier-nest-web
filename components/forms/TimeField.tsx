@@ -11,7 +11,7 @@ export function isNumber<T>(value: T): boolean {
 }
 
 export function formatTimeItem(value?: string | number): string {
-    return `${value || ''}00`.substr(0, 2);
+    return `${value || ''}00`.substring(0, 2);
 }
 
 export function validateTimeAndCursor(
@@ -67,7 +67,7 @@ interface Props {
     input: ReactElement | null;
     inputRef?: () => HTMLInputElement | null;
     colon?: string;
-    style?: CSSProperties | {};
+    style?: CSSProperties | Record<string, unknown>;
 }
 
 interface State {
@@ -138,15 +138,15 @@ export default class TimeField extends React.Component<Props, State> {
             if (position > this.state._maxLength) {
                 newPosition = this.state._maxLength;
             } else if ((position === 3 || position === 6) && addedCharacter === colon) {
-                newValue = `${inputValue.substr(0, position - 1)}${colon}${inputValue.substr(position + 1)}`;
+                newValue = `${inputValue.substring(0, position - 1)}${colon}${inputValue.substring(position + 1)}`;
             } else if ((position === 3 || position === 6) && isNumber(addedCharacter)) {
-                newValue = `${inputValue.substr(0, position - 1)}${colon}${addedCharacter}${inputValue.substr(
+                newValue = `${inputValue.substring(0, position - 1)}${colon}${addedCharacter}${inputValue.substring(
                     position + 2,
                 )}`;
                 newPosition = position + 1;
             } else if (isNumber(addedCharacter)) {
                 // user typed a number
-                newValue = inputValue.substr(0, position - 1) + addedCharacter + inputValue.substr(position + 1);
+                newValue = inputValue.substring(0, position - 1) + addedCharacter + inputValue.substring(position + 1);
                 if (position === 2 || position === 5) {
                     newPosition = position + 1;
                 }
@@ -158,7 +158,7 @@ export default class TimeField extends React.Component<Props, State> {
             // user replaced only a single character
             if (isNumber(cursorCharacter)) {
                 if (position - 1 === 2 || position - 1 === 5) {
-                    newValue = `${inputValue.substr(0, position - 1)}${colon}${inputValue.substr(position)}`;
+                    newValue = `${inputValue.substring(0, position - 1)}${colon}${inputValue.substring(position)}`;
                 } else {
                     newValue = inputValue;
                 }
@@ -173,11 +173,11 @@ export default class TimeField extends React.Component<Props, State> {
             newPosition = position - 1;
         } else if (removedCharacter !== null) {
             if ((position === 2 || position === 5) && removedCharacter === colon) {
-                newValue = `${inputValue.substr(0, position - 1)}0${colon}${inputValue.substr(position)}`;
+                newValue = `${inputValue.substring(0, position - 1)}0${colon}${inputValue.substring(position)}`;
                 newPosition = position - 1;
             } else {
                 // user removed a number
-                newValue = `${inputValue.substr(0, position)}0${inputValue.substr(position)}`;
+                newValue = `${inputValue.substring(0, position)}0${inputValue.substring(position)}`;
             }
         }
 

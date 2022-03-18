@@ -1,6 +1,7 @@
 import { NextPageContext } from 'next';
 import Link from 'next/link';
-import React from 'react';
+import { useRouter } from 'next/router';
+import React, { useEffect } from 'react';
 import CustomersTable from '../../components/customers/CustomersTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -10,7 +11,8 @@ import { ExpandedCustomer, PaginationMetadata, Sort } from '../../interfaces/mod
 import { deleteCustomerById, getAllCustomers } from '../../lib/rest/customer';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const data = await getAllCustomers({ limit: 1, offset: 0 });
+    const { query } = context;
+    const data = await getAllCustomers({ limit: Number(query.limit) || 1, offset: Number(query.offset) || 0 });
     return { props: { customers: data.customers, metadata: data.metadata } };
 }
 
@@ -23,6 +25,12 @@ const CustomersPage: ComponentWithAuth<Props> = ({ customers, metadata: metadata
     const [customersList, setCustomersList] = React.useState(customers);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const router = useRouter();
+
+    useEffect(() => {
+        setCustomersList(customers);
+        setMetadata(metadataProp);
+    }, [customers, metadataProp]);
 
     const reloadCustomers = async (sortData: Sort) => {
         setSort(sortData);
@@ -36,23 +44,25 @@ const CustomersPage: ComponentWithAuth<Props> = ({ customers, metadata: metadata
     };
 
     const previousPage = async () => {
-        const { customers, metadata: metadataResponse } = await getAllCustomers({
-            limit: metadata.prev.limit,
-            offset: metadata.prev.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.prev.offset,
+                limit: metadata.prev.limit,
+            },
         });
-        setCustomersList(customers);
-        setMetadata(metadataResponse);
     };
 
     const nextPage = async () => {
-        const { customers, metadata: metadataResponse } = await getAllCustomers({
-            limit: metadata.next.limit,
-            offset: metadata.next.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.next.offset,
+                limit: metadata.next.limit,
+            },
         });
-        setCustomersList(customers);
-        setMetadata(metadataResponse);
     };
 
     const deleteCustomer = async (id: number) => {

@@ -1,6 +1,7 @@
 import { NextPageContext } from 'next';
 import Link from 'next/link';
-import React from 'react';
+import { useRouter } from 'next/router';
+import React, { useEffect } from 'react';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -10,7 +11,8 @@ import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/model
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const data = await getAllDrivers({ limit: 1, offset: 0 });
+    const { query } = context;
+    const data = await getAllDrivers({ limit: Number(query.limit) || 1, offset: Number(query.offset) || 0 });
     return { props: { drivers: data.drivers, metadata: data.metadata } };
 }
 
@@ -23,6 +25,12 @@ const DriversPage: ComponentWithAuth<Props> = ({ drivers, metadata: metadataProp
     const [driversList, setDriversList] = React.useState(drivers);
     const [sort, setSort] = React.useState<Sort>(null);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const router = useRouter();
+
+    useEffect(() => {
+        setDriversList(drivers);
+        setMetadata(metadataProp);
+    }, [drivers, metadataProp]);
 
     const reloadDrivers = async (sortData: Sort) => {
         setSort(sortData);
@@ -36,23 +44,25 @@ const DriversPage: ComponentWithAuth<Props> = ({ drivers, metadata: metadataProp
     };
 
     const previousPage = async () => {
-        const { drivers, metadata: metadataResponse } = await getAllDrivers({
-            limit: metadata.prev.limit,
-            offset: metadata.prev.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.prev.offset,
+                limit: metadata.prev.limit,
+            },
         });
-        setDriversList(drivers);
-        setMetadata(metadataResponse);
     };
 
     const nextPage = async () => {
-        const { drivers, metadata: metadataResponse } = await getAllDrivers({
-            limit: metadata.next.limit,
-            offset: metadata.next.offset,
-            sort,
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                offset: metadata.next.offset,
+                limit: metadata.next.limit,
+            },
         });
-        setDriversList(drivers);
-        setMetadata(metadataResponse);
     };
 
     const deleteDriver = async (id: number) => {

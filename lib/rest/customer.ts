@@ -76,8 +76,8 @@ export const updateCustomer = async (id: number, customer: SimpleCustomer) => {
         },
         body: JSON.stringify(customer),
     });
-    const { data, errors }: JSONResponse<{ customer: Customer }> = await response.json();
-    return data.customer;
+    const { data, errors }: JSONResponse<{ updatedCustomer: Customer }> = await response.json();
+    return data.updatedCustomer;
 };
 
 export const deleteCustomerById = async (id: number) => {

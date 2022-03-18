@@ -81,8 +81,8 @@ export const updateDriver = async (id: number, driver: SimpleDriver) => {
         },
         body: JSON.stringify(driver),
     });
-    const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
-    return data.driver;
+    const { data, errors }: JSONResponse<{ updatedDriver: Driver }> = await response.json();
+    return data.updatedDriver;
 };
 
 export const deleteDriverById = async (id: number) => {
