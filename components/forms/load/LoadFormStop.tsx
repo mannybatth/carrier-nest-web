@@ -21,6 +21,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     errors,
     control,
     index,
+    onRemoveStop,
     ...props
 }: LoadFormStopProps) => {
     const borderColor = () => {
@@ -101,7 +102,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         <a
                             className="text-sm"
                             onClick={() => {
-                                props.onRemoveStop();
+                                onRemoveStop();
                             }}
                         >
                             Remove Stop

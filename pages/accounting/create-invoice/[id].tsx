@@ -1,8 +1,9 @@
 import { TruckIcon } from '@heroicons/react/outline';
+import { Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
-import React from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useEffect } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import Layout from '../../../components/layout/Layout';
 import { PageWithAuth } from '../../../interfaces/auth';
@@ -46,6 +47,19 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
+    const [total, setTotal] = React.useState(0);
+
+    const watchFields = useWatch({ control: formHook.control, name: 'extraItems' });
+
+    useEffect(() => {
+        const data = formHook.getValues() as ExpandedInvoice;
+        const extraItems = data.extraItems;
+        const totalExtraItems =
+            extraItems?.reduce((acc, item) => acc + new Prisma.Decimal(item.amount).toNumber(), 0) || 0;
+
+        const total = totalExtraItems + new Prisma.Decimal(load.rate).toNumber();
+        setTotal(total);
+    }, [watchFields]);
 
     const submit = async (data: ExpandedInvoice) => {
         console.log('submit', data);
@@ -71,6 +85,14 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
 
                     <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
                         <InvoiceForm formHook={formHook}></InvoiceForm>
+
+                        <div className="w-full mt-5 ml-auto sm:w-1/2 lg:w-1/3">
+                            <div className="flex justify-between mb-4">
+                                <div className="font-medium">TOTAL</div>
+                                <div>${total}</div>
+                            </div>
+                        </div>
+
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>
                             <button
