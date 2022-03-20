@@ -100,6 +100,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             ...(limit ? { take: limit } : { take: 10 }),
             ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
+                invoice: { select: { id: true } },
                 ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
                 ...(expandShipper
                     ? {
