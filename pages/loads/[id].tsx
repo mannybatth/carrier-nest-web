@@ -179,7 +179,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                         <dt className="text-gray-500">Invoice</dt>
                                         <dd className="text-gray-900">
                                             {load.invoice ? (
-                                                <Link href={`/invoices/${load.invoice.id}`}># {load.invoice.id}</Link>
+                                                <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
+                                                    <a># {load.invoice.id}</a>
+                                                </Link>
                                             ) : (
                                                 <Link href={`/accounting/create-invoice/${load.id}`}>
                                                     Create Invoice

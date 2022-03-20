@@ -49,7 +49,7 @@ export const getLoadsExpanded = async ({
 
 export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
     const params = new URLSearchParams({
-        expand: 'customer,shipper,receiver,stops',
+        expand: 'customer,shipper,receiver,stops,invoice',
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();

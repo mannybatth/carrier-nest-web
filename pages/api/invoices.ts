@@ -1,7 +1,6 @@
-import { Driver } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { JSONResponse } from '../../interfaces/models';
+import { ExpandedInvoice, JSONResponse } from '../../interfaces/models';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
@@ -37,8 +36,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _get() {
         const session = await getSession({ req });
 
+        const expand = req.query.expand as string;
+        const expandLoad = expand?.includes('load');
+
         const sortBy = req.query.sortBy as string;
-        const sortDir = (req.query.sortDir as string) || 'asc';
+        const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
 
         const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
         const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
@@ -57,51 +59,79 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             }
         }
 
-        const total = await prisma.driver.count({
+        const total = await prisma.invoice.count({
             where: {
-                carrierId: session?.user?.carrierId,
+                userId: session?.user?.id,
             },
         });
 
         const metadata = calcPaginationMetadata({ total, limit, offset });
 
-        const drivers = await prisma.driver.findMany({
+        const invoices = await prisma.invoice.findMany({
             where: {
-                carrierId: session?.user?.carrierId,
+                userId: session?.user?.id,
             },
-            ...(limit ? { take: limit } : { take: 10 }),
-            ...(offset ? { skip: offset } : { skip: 0 }),
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
+            include: {
+                ...(expandLoad
+                    ? {
+                          load: {
+                              select: { id: true, refNum: true, rate: true, distance: true, distanceUnit: true },
+                              include: {
+                                  customer: {
+                                      select: { id: true, name: true },
+                                  },
+                              },
+                          },
+                      }
+                    : {}),
+            },
         });
         return res.status(200).json({
-            data: { metadata, drivers },
+            data: { metadata, invoices },
         });
     }
 
     async function _post() {
         try {
             const session = await getSession({ req });
-            const driverData = req.body as Driver;
+            const invoiceData = req.body as ExpandedInvoice;
 
-            const driver = await prisma.driver.create({
+            const invoice = await prisma.invoice.create({
                 data: {
-                    name: driverData.name,
-                    email: driverData.email || '',
-                    phone: driverData.phone || '',
+                    totalAmount: invoiceData.totalAmount || '',
+                    dueNetDays: invoiceData.dueNetDays || 0,
+                    user: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
                     carrier: {
                         connect: {
                             id: session.user.carrierId,
                         },
                     },
+                    load: {
+                        connect: {
+                            id: invoiceData.load.id,
+                        },
+                    },
+                    extraItems: {
+                        create: invoiceData.extraItems.map((extraItem) => ({
+                            ...extraItem,
+                        })),
+                    },
                 },
             });
             return res.status(200).json({
-                data: { driver },
+                data: { invoice },
             });
         } catch (error) {
-            console.log('driver post error', error);
+            console.log('invoice post error', error);
             return res.status(400).json({
                 errors: [{ message: error.message || JSON.stringify(error) }],
             });

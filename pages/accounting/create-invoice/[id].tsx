@@ -6,8 +6,10 @@ import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import Layout from '../../../components/layout/Layout';
+import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
+import { createInvoice } from '../../../lib/rest/invoice';
 import { getLoadById } from '../../../lib/rest/load';
 
 export async function getServerSideProps(context: NextPageContext) {
@@ -26,7 +28,7 @@ export async function getServerSideProps(context: NextPageContext) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/accounting/invoice/${load.invoice.id}`,
+                destination: `/accounting/invoices/${load.invoice.id}`,
             },
         };
     }
@@ -63,6 +65,25 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
 
     const submit = async (data: ExpandedInvoice) => {
         console.log('submit', data);
+
+        setLoading(true);
+
+        const invoiceData: ExpandedInvoice = {
+            totalAmount: new Prisma.Decimal(total),
+            dueNetDays: data.dueNetDays,
+            load,
+            extraItems: data.extraItems,
+        };
+
+        const newInvoice = await createInvoice(invoiceData);
+        console.log('new invoice', newInvoice);
+
+        setLoading(false);
+
+        notify({ title: 'New invoice created', message: 'New invoice created successfully' });
+
+        // Redirect to invoice page
+        router.push(`/accounting/invoices/${newInvoice.id}`);
     };
 
     return (
@@ -97,7 +118,7 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
                             <div className="flex-1"></div>
                             <button
                                 type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                             >
                                 Create Invoice
                             </button>

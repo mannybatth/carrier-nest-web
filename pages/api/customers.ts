@@ -109,7 +109,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         } catch (error) {
             console.log('customer post error', error);
             return res.status(400).json({
-                errors: [{ message: error }],
+                errors: [{ message: error.message || JSON.stringify(error) }],
             });
         }
     }

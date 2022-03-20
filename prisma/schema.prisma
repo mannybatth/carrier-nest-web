@@ -79,6 +79,7 @@ model Carrier {
     loads     Load[]
     customers Customer[]
     drivers   Driver[]
+    invoices  Invoice[]
 
     @@index([name, email, carrierId])
 }
@@ -174,6 +175,8 @@ model Invoice {
     id          Int           @id @default(autoincrement())
     user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId      Int
+    carrier     Carrier       @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId   Int
     load        Load          @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId      Int           @unique
     createdAt   DateTime      @default(now())

@@ -53,7 +53,13 @@ const simpleLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
 export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
 
 const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
-    select: { customerId: true, refNum: true, rate: true, distance: true, distanceUnit: true },
+    select: {
+        customerId: true,
+        refNum: true,
+        rate: true,
+        distance: true,
+        distanceUnit: true,
+    },
 });
 export type SimpleLoad = Prisma.LoadGetPayload<typeof simpleLoad>;
 
@@ -109,8 +115,6 @@ export type ExpandedInvoiceItem = SimpleInvoiceItem & {
 const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     select: {
         totalAmount: true,
-        paidAmount: true,
-        paidAt: true,
         dueNetDays: true,
     },
 });
@@ -120,6 +124,8 @@ export type ExpandedInvoice = SimpleInvoice & {
     id?: number;
     createdAt?: Date;
     updatedAt?: Date;
+    paidAmount?: number;
+    paidAt?: Date;
     load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];
 };
