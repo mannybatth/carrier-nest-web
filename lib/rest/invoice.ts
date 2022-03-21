@@ -39,7 +39,7 @@ export const getInvoicesExpanded = async ({
 
 export const getInvoiceById = async (id: number): Promise<ExpandedInvoice> => {
     const params = new URLSearchParams({
-        expand: 'load',
+        expand: 'load,extraItems',
     });
     const response = await fetch(apiUrl + '/invoices/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<{ invoice: ExpandedInvoice }> = await response.json();

@@ -24,6 +24,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const expand = req.query.expand as string;
         const expandLoad = expand?.includes('load');
+        const expandExtraItems = expand?.includes('extraItems');
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -34,11 +35,26 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 ...(expandLoad
                     ? {
                           load: {
-                              select: { id: true, refNum: true, rate: true, distance: true, distanceUnit: true },
-                              include: {
-                                  customer: {
-                                      select: { id: true, name: true },
-                                  },
+                              select: {
+                                  id: true,
+                                  refNum: true,
+                                  rate: true,
+                                  distance: true,
+                                  distanceUnit: true,
+                                  customer: true,
+                                  shipper: true,
+                                  receiver: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandExtraItems
+                    ? {
+                          extraItems: {
+                              select: {
+                                  id: true,
+                                  title: true,
+                                  amount: true,
                               },
                           },
                       }
