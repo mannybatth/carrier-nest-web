@@ -1,4 +1,4 @@
-import React, { ChangeEvent, ComponentPropsWithoutRef } from 'react';
+import React, { ChangeEvent, ComponentProps } from 'react';
 
 const isValidMoney = (value: string): boolean => {
     const regex = /^\d+(\.\d{1,2})?$/;
@@ -7,7 +7,7 @@ const isValidMoney = (value: string): boolean => {
 
 type Props = {
     value: string;
-} & ComponentPropsWithoutRef<'input'>;
+} & ComponentProps<'input'>;
 
 const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }: Props) => {
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

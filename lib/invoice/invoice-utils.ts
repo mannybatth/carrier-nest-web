@@ -1,3 +1,5 @@
+import { ExpandedInvoice, InvoiceStatus } from '../../interfaces/models';
+
 export const invoiceTermOptions = [
     {
         value: 0,
@@ -16,3 +18,23 @@ export const invoiceTermOptions = [
         label: 'Net 45 days',
     },
 ];
+
+export const invoiceStatus = (invoice: ExpandedInvoice): InvoiceStatus => {
+    if (invoice.lastPaymentAt) {
+        if (invoice.paidAmount >= invoice.totalAmount) {
+            return InvoiceStatus.PAID;
+        }
+        return InvoiceStatus.PARTIALLY_PAID;
+    }
+
+    if (invoice.dueNetDays > 0) {
+        const dueDate = new Date(invoice.invoicedAt);
+        dueDate.setDate(dueDate.getDate() + invoice.dueNetDays);
+        const now = new Date();
+
+        if (now > dueDate) {
+            return InvoiceStatus.OVERDUE;
+        }
+    }
+    return InvoiceStatus.NOT_PAID;
+};

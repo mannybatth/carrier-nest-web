@@ -1,16 +1,17 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from '@heroicons/react/outline';
+import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
+import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
-import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
+import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, getInvoiceById } from '../../../lib/rest/invoice';
 
 type ActionsDropdownProps = {
@@ -122,7 +123,16 @@ type Props = {
 };
 
 const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
+    const [openAddPayment, setOpenAddPayment] = useState(false);
     const router = useRouter();
+
+    const addPayment = () => {
+        setOpenAddPayment(true);
+    };
+
+    const onNewPaymentCreate = () => {
+        //
+    };
 
     const deleteInvoice = async (id: number) => {
         console.log('delete invoice', id);
@@ -134,16 +144,34 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
         router.push('/accounting');
     };
 
+    const deletePayment = async (id: number) => {
+        console.log('delete payment', id);
+    };
+
     return (
         <Layout
             smHeaderComponent={
-                <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Invoice # {invoice.id}</h1>
-                    <ActionsDropdown invoice={invoice} deleteInvoice={deleteInvoice}></ActionsDropdown>
+                <div className="flex flex-col">
+                    <div className="flex items-center space-x-2">
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Invoice # {invoice.id}</h1>
+                        <button
+                            type="button"
+                            onClick={addPayment}
+                            className="hidden sm:inline-flex items-center px-3.5 py-2 border border-transparent text-xs leading-4 font-medium rounded-full shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        >
+                            + Add Payment
+                        </button>
+                        <ActionsDropdown invoice={invoice} deleteInvoice={deleteInvoice}></ActionsDropdown>
+                    </div>
                 </div>
             }
         >
             <div className="max-w-4xl py-2 mx-auto">
+                <AddPaymentModal
+                    onCreate={onNewPaymentCreate}
+                    show={openAddPayment}
+                    onClose={() => setOpenAddPayment(false)}
+                ></AddPaymentModal>
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
                     paths={[
@@ -157,13 +185,31 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
+                    <div className="flex space-x-3">
                         <h1 className="flex-1 text-2xl font-semibold text-gray-900">Invoice # {invoice.id}</h1>
+                        <button
+                            type="button"
+                            onClick={addPayment}
+                            className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        >
+                            + Add Payment
+                        </button>
                         <ActionsDropdown invoice={invoice} deleteInvoice={deleteInvoice}></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+
+                <div className="fixed bottom-0 left-0 right-0 flex px-5 py-3 bg-white sm:hidden">
+                    <button
+                        type="button"
+                        onClick={addPayment}
+                        className="flex-1 inline-flex justify-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                    >
+                        + Add Payment
+                    </button>
+                </div>
+
+                <div className="px-5 mb-20 sm:px-6 md:px-8">
                     <LoadCard load={invoice.load}></LoadCard>
 
                     <div className="grid grid-cols-2 gap-2 mt-4 md:gap-6">
@@ -205,6 +251,14 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                                             invoiceTermOptions.find((option) => option.value === invoice.dueNetDays)
                                                 ?.label
                                         }
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between py-2.5 text-sm font-medium">
+                                    <dt className="text-gray-500">Status</dt>
+                                    <dd className="text-gray-900">
+                                        <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
+                                            {invoiceStatus(invoice)}
+                                        </span>
                                     </dd>
                                 </div>
                             </dl>
@@ -263,6 +317,99 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                             <div>${invoice.totalAmount}</div>
                         </div>
                     </div>
+
+                    {invoice.payments?.length > 0 && (
+                        <>
+                            <h3 className="pt-2">Payments</h3>
+                            <div className="grid grid-cols-6 mt-1">
+                                <div className="col-span-6 lg:col-span-4">
+                                    <table className="relative min-w-full mt-1 divide-y divide-gray-300">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                <th
+                                                    scope="col"
+                                                    className="py-2 pl-4 pr-3 text-sm font-semibold text-left text-gray-900 sm:pl-6"
+                                                >
+                                                    Date
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    className="px-3 py-2 text-sm font-semibold text-right text-gray-900"
+                                                >
+                                                    Amount
+                                                </th>
+                                                <th scope="col" className="relative px-6 py-3">
+                                                    <span className="sr-only">More</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {invoice.payments?.map((payment, index) => (
+                                                <tr key={index}>
+                                                    <td className="w-full py-4 pl-4 pr-3 text-sm text-gray-900 whitespace-nowrap sm:pl-6">
+                                                        {new Intl.DateTimeFormat('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: '2-digit',
+                                                        }).format(new Date(payment.paidAt))}
+                                                    </td>
+                                                    <td className="px-3 py-4 text-sm text-right whitespace-nowrap">
+                                                        ${payment.amount}
+                                                    </td>
+                                                    <td className="px-6 py-2 text-right whitespace-no-wrap">
+                                                        <Menu as="div" className="z-10 inline-block text-left">
+                                                            <div>
+                                                                <Menu.Button className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                                    <span className="sr-only">Open options</span>
+                                                                    <DotsVerticalIcon
+                                                                        className="w-6 h-6"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </Menu.Button>
+                                                            </div>
+
+                                                            <Transition
+                                                                as={Fragment}
+                                                                enter="transition ease-out duration-100"
+                                                                enterFrom="transform opacity-0 scale-95"
+                                                                enterTo="transform opacity-100 scale-100"
+                                                                leave="transition ease-in duration-75"
+                                                                leaveFrom="transform opacity-100 scale-100"
+                                                                leaveTo="transform opacity-0 scale-95"
+                                                            >
+                                                                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                    <div className="py-1">
+                                                                        <Menu.Item>
+                                                                            {({ active }) => (
+                                                                                <a
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        deletePayment(payment.id);
+                                                                                    }}
+                                                                                    className={classNames(
+                                                                                        active
+                                                                                            ? 'bg-gray-100 text-gray-900'
+                                                                                            : 'text-gray-700',
+                                                                                        'block px-4 py-2 text-sm',
+                                                                                    )}
+                                                                                >
+                                                                                    Delete Payment
+                                                                                </a>
+                                                                            )}
+                                                                        </Menu.Item>
+                                                                    </div>
+                                                                </Menu.Items>
+                                                            </Transition>
+                                                        </Menu>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </Layout>

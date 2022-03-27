@@ -100,6 +100,13 @@ export type ExpandedCustomer = SimpleCustomer & {
 /**
  * Invoice
  */
+export enum InvoiceStatus {
+    NOT_PAID = 'not paid',
+    PARTIALLY_PAID = 'partially paid',
+    OVERDUE = 'overdue',
+    PAID = 'paid',
+}
+
 const simpleInvoiceItem = Prisma.validator<Prisma.InvoiceItemArgs>()({
     select: {
         title: true,
@@ -118,7 +125,7 @@ const simpleInvoicePayment = Prisma.validator<Prisma.InvoicePaymentArgs>()({
         paidAt: true,
     },
 });
-export type SimpleInvoicePayment = Prisma.InvoiceItemGetPayload<typeof simpleInvoicePayment>;
+export type SimpleInvoicePayment = Prisma.InvoicePaymentGetPayload<typeof simpleInvoicePayment>;
 
 export type ExpandedInvoicePayment = SimpleInvoicePayment & {
     id?: number;
@@ -129,6 +136,8 @@ const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
         totalAmount: true,
         dueNetDays: true,
         invoicedAt: true,
+        paidAmount: true,
+        lastPaymentAt: true,
     },
 });
 export type SimpleInvoice = Prisma.InvoiceGetPayload<typeof simpleInvoice>;

@@ -35,7 +35,7 @@ const InvoiceForm: React.FC<Props> = ({
                 </label>
                 <Controller
                     control={control}
-                    rules={{ required: 'Pick Up Date is required' }}
+                    rules={{ required: 'Invoice date is required' }}
                     name="invoicedAt"
                     defaultValue={new Date()}
                     render={({ field: { onChange, value }, fieldState: { error } }) => (
