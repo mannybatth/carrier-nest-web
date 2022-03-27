@@ -31,7 +31,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
     const router = useRouter();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative z-10 inline-block text-left">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
                     Actions

@@ -15,11 +15,15 @@ const Pagination: React.FC<Props> = ({ metadata, onPrevious, onNext }: Props) =>
         >
             <div className="hidden sm:block">
                 <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{metadata.currentOffset + 1}</span> to{' '}
-                    <span className="font-medium">
-                        {Math.min(metadata.total, metadata.currentOffset + metadata.currentLimit)}
-                    </span>{' '}
-                    of <span className="font-medium">{metadata.total}</span> results
+                    {metadata.total > 0 && (
+                        <>
+                            Showing <span className="font-medium">{metadata.currentOffset + 1}</span> to{' '}
+                            <span className="font-medium">
+                                {Math.min(metadata.total, metadata.currentOffset + metadata.currentLimit)}
+                            </span>{' '}
+                            of <span className="font-medium">{metadata.total}</span> results
+                        </>
+                    )}
                 </p>
             </div>
             <div className="flex justify-between flex-1 space-x-3 sm:justify-end">

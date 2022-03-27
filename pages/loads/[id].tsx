@@ -29,7 +29,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
     const router = useRouter();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative z-10 inline-block text-left">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
                     Actions
@@ -61,6 +61,22 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
                                     )}
                                 >
                                     Edit
+                                </a>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/accounting/invoices/${load.invoice.id}`);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    View Invoice
                                 </a>
                             )}
                         </Menu.Item>
@@ -240,7 +256,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                             <div className="flow-root">
                                 <ul role="list" className="-mb-8">
                                     <li>
-                                        <div className="relative pb-8">
+                                        <div className="relative z-auto pb-8">
                                             <span
                                                 className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
                                                 aria-hidden="true"

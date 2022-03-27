@@ -63,6 +63,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
 
         const customerId = req.query.customerId !== undefined ? Number(req.query.customerId) : undefined;
+        const driverId = req.query.driverId !== undefined ? Number(req.query.driverId) : undefined;
         const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
         const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
 
@@ -84,6 +85,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             where: {
                 userId: session?.user?.id,
                 ...(customerId ? { customerId } : null),
+                ...(driverId ? { driverId } : null),
             },
         });
 
@@ -93,6 +95,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             where: {
                 userId: session?.user?.id,
                 ...(customerId ? { customerId } : null),
+                ...(driverId ? { driverId } : null),
             },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',

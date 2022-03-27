@@ -10,7 +10,7 @@ function classNames(...classes) {
 
 const SideBarAccount: React.FC = () => (
     <div className="flex">
-        <Menu as="div" className="relative inline-block w-full">
+        <Menu as="div" className="relative z-10 inline-block w-full">
             <Menu.Button className="flex flex-row items-center w-full px-4 py-3 space-x-2 text-left hover:bg-gray-200 hover:cursor-pointer active:bg-gray-300">
                 <div className="flex items-center justify-center flex-shrink-0 w-4 h-4 text-xs font-medium text-white rounded-sm bg-neutral-400">
                     P

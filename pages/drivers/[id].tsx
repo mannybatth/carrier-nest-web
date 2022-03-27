@@ -3,15 +3,17 @@ import { ChevronDownIcon, MailIcon, PhoneIcon, TruckIcon } from '@heroicons/reac
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
+import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, ExpandedLoad, Sort } from '../../interfaces/models';
-import { deleteDriverById, getDriverByIdWithLoads } from '../../lib/rest/driver';
-import { getLoadsExpanded } from '../../lib/rest/load';
+import { ExpandedDriver, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
+import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
+import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -22,7 +24,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver 
     const router = useRouter();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative z-10 inline-block text-left">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
                     Actions
@@ -83,21 +85,97 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver 
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const driver = await getDriverByIdWithLoads(Number(context.query.id));
+    const { query } = context;
+    const driverId = Number(query.id);
+    const sort: Sort = sortFromQuery(query);
+
+    const [driver, loadsData] = await Promise.all([
+        getDriverById(driverId),
+        getLoadsExpanded({
+            driverId: driverId,
+            limit: Number(query.limit) || 1,
+            offset: Number(query.offset) || 0,
+            sort,
+        }),
+    ]);
     return {
         props: {
-            driver,
+            driver: driver || null,
+            loadCount: loadsData?.metadata?.total || 0,
+            loads: loadsData.loads,
+            metadata: loadsData.metadata,
+            sort,
         },
     };
 }
 
 type Props = {
     driver: ExpandedDriver;
+    loadCount: number;
+    loads: ExpandedLoad[];
+    metadata: PaginationMetadata;
+    sort: Sort;
 };
 
-const DriverDetailsPage: PageWithAuth<Props> = ({ driver }: Props) => {
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>(driver.loads);
+const DriverDetailsPage: PageWithAuth<Props> = ({
+    driver,
+    loads: loadsProp,
+    loadCount,
+    metadata: metadataProp,
+    sort: sortProps,
+}: Props) => {
+    const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
+    const [sort, setSort] = React.useState<Sort>(sortProps);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
     const router = useRouter();
+
+    useEffect(() => {
+        setLoads(loadsProp);
+        setMetadata(metadataProp);
+    }, [loadsProp, metadataProp]);
+
+    useEffect(() => {
+        setSort(sortProps);
+    }, [sortProps]);
+
+    const changeSort = (sort: Sort) => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromSort(sort, router.query),
+        });
+    };
+
+    const reloadLoads = async () => {
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
+            driverId: driver.id,
+            limit: metadata.currentLimit,
+            offset: metadata.currentOffset,
+            sort,
+        });
+        setLoads(loads);
+        setMetadata(metadataResponse);
+    };
+
+    const previousPage = async () => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromPagination(metadata.prev, router.query),
+        });
+    };
+
+    const nextPage = async () => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromPagination(metadata.next, router.query),
+        });
+    };
+
+    const deleteLoad = async (id: number) => {
+        await deleteLoadById(id);
+
+        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+        reloadLoads();
+    };
 
     const deleteDriver = async (id: number) => {
         await deleteDriverById(id);
@@ -105,20 +183,6 @@ const DriverDetailsPage: PageWithAuth<Props> = ({ driver }: Props) => {
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
 
         router.push('/drivers');
-    };
-
-    const reloadLoads = async (sort: Sort) => {
-        const { loads, metadata } = await getLoadsExpanded({ sort, driverId: driver.id });
-        setLoads(loads);
-    };
-
-    const deleteLoad = async (id: number) => {
-        await deleteDriverById(id);
-
-        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-
-        const { loads, metadata } = await getLoadsExpanded({ driverId: driver.id });
-        setLoads(loads);
     };
 
     return (
@@ -160,7 +224,7 @@ const DriverDetailsPage: PageWithAuth<Props> = ({ driver }: Props) => {
                                     </div>
                                     <div className="ml-3">
                                         <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                        <p className="text-sm text-gray-500">100</p>
+                                        <p className="text-sm text-gray-500">{loadCount}</p>
                                     </div>
                                 </div>
                                 <div className="flex p-3">
@@ -197,9 +261,15 @@ const DriverDetailsPage: PageWithAuth<Props> = ({ driver }: Props) => {
                                     'receiver.city',
                                     'rate',
                                 ]}
-                                changeSort={reloadLoads}
+                                sort={sort}
+                                changeSort={changeSort}
                                 deleteLoad={deleteLoad}
                             ></LoadsTable>
+                            <Pagination
+                                metadata={metadata}
+                                onPrevious={() => previousPage()}
+                                onNext={() => nextPage()}
+                            ></Pagination>
                         </div>
                     </div>
                 </div>
