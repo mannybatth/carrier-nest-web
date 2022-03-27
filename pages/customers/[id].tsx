@@ -10,13 +10,15 @@ import {
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
+import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 
@@ -90,11 +92,18 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customerId = Number(context.query.id);
+    const { query } = context;
+    const customerId = Number(query.id);
+    const sort: Sort = sortFromQuery(query);
 
     const [customer, loadsData] = await Promise.all([
         getCustomerById(customerId),
-        getLoadsExpanded({ customerId: customerId }),
+        getLoadsExpanded({
+            customerId: customerId,
+            limit: Number(query.limit) || 1,
+            offset: Number(query.offset) || 0,
+            sort,
+        }),
     ]);
     return {
         props: {
@@ -102,6 +111,7 @@ export async function getServerSideProps(context: NextPageContext) {
             loadCount: loadsData?.metadata?.total || 0,
             loads: loadsData.loads,
             metadata: loadsData.metadata,
+            sort,
         },
     };
 }
@@ -111,11 +121,68 @@ type Props = {
     loadCount: number;
     loads: ExpandedLoad[];
     metadata: PaginationMetadata;
+    sort: Sort;
 };
 
-const CustomerDetailsPage: PageWithAuth<Props> = ({ customer, loads: loadsProp, loadCount, metadata }: Props) => {
+const CustomerDetailsPage: PageWithAuth<Props> = ({
+    customer,
+    loads: loadsProp,
+    loadCount,
+    metadata: metadataProp,
+    sort: sortProps,
+}: Props) => {
     const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
+    const [sort, setSort] = React.useState<Sort>(sortProps);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
     const router = useRouter();
+
+    useEffect(() => {
+        setLoads(loadsProp);
+        setMetadata(metadataProp);
+    }, [loadsProp, metadataProp]);
+
+    useEffect(() => {
+        setSort(sortProps);
+    }, [sortProps]);
+
+    const changeSort = (sort: Sort) => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromSort(sort, router.query),
+        });
+    };
+
+    const reloadLoads = async () => {
+        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
+            customerId: customer.id,
+            limit: metadata.currentLimit,
+            offset: metadata.currentOffset,
+            sort,
+        });
+        setLoads(loads);
+        setMetadata(metadataResponse);
+    };
+
+    const previousPage = async () => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromPagination(metadata.prev, router.query),
+        });
+    };
+
+    const nextPage = async () => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromPagination(metadata.next, router.query),
+        });
+    };
+
+    const deleteLoad = async (id: number) => {
+        await deleteLoadById(id);
+
+        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+        reloadLoads();
+    };
 
     const deleteCustomer = async (id: number) => {
         await deleteCustomerById(id);
@@ -123,20 +190,6 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({ customer, loads: loadsProp, 
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
 
         router.push('/customers');
-    };
-
-    const reloadLoads = async (sort: Sort) => {
-        const { loads, metadata } = await getLoadsExpanded({ sort, customerId: customer.id });
-        setLoads(loads);
-    };
-
-    const deleteLoad = async (id: number) => {
-        await deleteLoadById(id);
-
-        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-
-        const { loads, metadata } = await getLoadsExpanded({ customerId: customer.id });
-        setLoads(loads);
     };
 
     return (
@@ -243,9 +296,15 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({ customer, loads: loadsProp, 
                                     'receiver.city',
                                     'rate',
                                 ]}
-                                changeSort={reloadLoads}
+                                sort={sort}
+                                changeSort={changeSort}
                                 deleteLoad={deleteLoad}
                             ></LoadsTable>
+                            <Pagination
+                                metadata={metadata}
+                                onPrevious={() => previousPage()}
+                                onNext={() => nextPage()}
+                            ></Pagination>
                         </div>
                     </div>
                 </div>

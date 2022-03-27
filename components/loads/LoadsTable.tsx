@@ -7,6 +7,7 @@ import Table from '../Table';
 type Props = {
     loads: ExpandedLoad[];
     headers?: string[];
+    sort: Sort;
     changeSort: (sort: Sort) => void;
     deleteLoad: (id: number) => void;
 };
@@ -21,7 +22,7 @@ const defaultHeaders = [
     'receiver.city',
 ];
 
-const LoadsTable: React.FC<Props> = ({ loads, changeSort, headers = defaultHeaders, deleteLoad }: Props) => {
+const LoadsTable: React.FC<Props> = ({ loads, changeSort, sort, headers = defaultHeaders, deleteLoad }: Props) => {
     const router = useRouter();
 
     return (
@@ -130,6 +131,7 @@ const LoadsTable: React.FC<Props> = ({ loads, changeSort, headers = defaultHeade
             onRowClick={(id, index) => {
                 router.push(`/loads/${id}`);
             }}
+            sort={sort}
             changeSort={changeSort}
         />
     );

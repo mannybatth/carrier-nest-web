@@ -8,22 +8,30 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, PaginationMetadata, Sort } from '../../interfaces/models';
+import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteCustomerById, getAllCustomers } from '../../lib/rest/customer';
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
-    const data = await getAllCustomers({ limit: Number(query.limit) || 1, offset: Number(query.offset) || 0 });
-    return { props: { customers: data.customers, metadata: data.metadata } };
+    const sort: Sort = sortFromQuery(query);
+
+    const data = await getAllCustomers({
+        limit: Number(query.limit) || 1,
+        offset: Number(query.offset) || 0,
+        sort,
+    });
+    return { props: { customers: data.customers, metadata: data.metadata, sort } };
 }
 
 type Props = {
     customers: ExpandedCustomer[];
     metadata: PaginationMetadata;
+    sort: Sort;
 };
 
-const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp }: Props) => {
+const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp, sort: sortProps }: Props) => {
     const [customersList, setCustomersList] = React.useState(customers);
-    const [sort, setSort] = React.useState<Sort>(null);
+    const [sort, setSort] = React.useState<Sort>(sortProps);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
     const router = useRouter();
 
@@ -32,12 +40,22 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp 
         setMetadata(metadataProp);
     }, [customers, metadataProp]);
 
-    const reloadCustomers = async (sortData: Sort) => {
-        setSort(sortData);
+    useEffect(() => {
+        setSort(sortProps);
+    }, [sortProps]);
+
+    const changeSort = (sort: Sort) => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromSort(sort, router.query),
+        });
+    };
+
+    const reloadCustomers = async () => {
         const { customers, metadata: metadataResponse } = await getAllCustomers({
             limit: metadata.currentLimit,
             offset: metadata.currentOffset,
-            sort: sortData,
+            sort,
         });
         setCustomersList(customers);
         setMetadata(metadataResponse);
@@ -46,22 +64,14 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp 
     const previousPage = async () => {
         router.push({
             pathname: router.pathname,
-            query: {
-                ...router.query,
-                offset: metadata.prev.offset,
-                limit: metadata.prev.limit,
-            },
+            query: queryFromPagination(metadata.prev, router.query),
         });
     };
 
     const nextPage = async () => {
         router.push({
             pathname: router.pathname,
-            query: {
-                ...router.query,
-                offset: metadata.next.offset,
-                limit: metadata.next.limit,
-            },
+            query: queryFromPagination(metadata.next, router.query),
         });
     };
 
@@ -69,7 +79,7 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp 
         await deleteCustomerById(id);
 
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
-        reloadCustomers(sort);
+        reloadCustomers();
     };
 
     return (
@@ -106,7 +116,8 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp 
                 <div className="px-5 sm:px-6 md:px-8">
                     <CustomersTable
                         customers={customersList}
-                        changeSort={reloadCustomers}
+                        sort={sort}
+                        changeSort={changeSort}
                         deleteCustomer={deleteCustomer}
                     />
                     <Pagination

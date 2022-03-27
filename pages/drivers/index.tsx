@@ -8,22 +8,30 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/models';
+import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
-    const data = await getAllDrivers({ limit: Number(query.limit) || 1, offset: Number(query.offset) || 0 });
-    return { props: { drivers: data.drivers, metadata: data.metadata } };
+    const sort: Sort = sortFromQuery(query);
+
+    const data = await getAllDrivers({
+        limit: Number(query.limit) || 1,
+        offset: Number(query.offset) || 0,
+        sort,
+    });
+    return { props: { drivers: data.drivers, metadata: data.metadata, sort } };
 }
 
 type Props = {
     drivers: ExpandedDriver[];
     metadata: PaginationMetadata;
+    sort: Sort;
 };
 
-const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: Props) => {
+const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp, sort: sortProps }: Props) => {
     const [driversList, setDriversList] = React.useState(drivers);
-    const [sort, setSort] = React.useState<Sort>(null);
+    const [sort, setSort] = React.useState<Sort>(sortProps);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
     const router = useRouter();
 
@@ -32,12 +40,22 @@ const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: P
         setMetadata(metadataProp);
     }, [drivers, metadataProp]);
 
-    const reloadDrivers = async (sortData: Sort) => {
-        setSort(sortData);
+    useEffect(() => {
+        setSort(sortProps);
+    }, [sortProps]);
+
+    const changeSort = (sort: Sort) => {
+        router.push({
+            pathname: router.pathname,
+            query: queryFromSort(sort, router.query),
+        });
+    };
+
+    const reloadDrivers = async () => {
         const { drivers, metadata: metadataResponse } = await getAllDrivers({
             limit: metadata.currentLimit,
             offset: metadata.currentOffset,
-            sort: sortData,
+            sort,
         });
         setDriversList(drivers);
         setMetadata(metadataResponse);
@@ -46,22 +64,14 @@ const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: P
     const previousPage = async () => {
         router.push({
             pathname: router.pathname,
-            query: {
-                ...router.query,
-                offset: metadata.prev.offset,
-                limit: metadata.prev.limit,
-            },
+            query: queryFromPagination(metadata.prev, router.query),
         });
     };
 
     const nextPage = async () => {
         router.push({
             pathname: router.pathname,
-            query: {
-                ...router.query,
-                offset: metadata.next.offset,
-                limit: metadata.next.limit,
-            },
+            query: queryFromPagination(metadata.next, router.query),
         });
     };
 
@@ -69,7 +79,7 @@ const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: P
         await deleteDriverById(id);
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
-        reloadDrivers(sort);
+        reloadDrivers();
     };
 
     return (
@@ -104,7 +114,12 @@ const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp }: P
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <DriversTable drivers={driversList} changeSort={reloadDrivers} deleteDriver={deleteDriver} />
+                    <DriversTable
+                        drivers={driversList}
+                        sort={sort}
+                        changeSort={changeSort}
+                        deleteDriver={deleteDriver}
+                    />
                     <Pagination
                         metadata={metadata}
                         onPrevious={() => previousPage()}

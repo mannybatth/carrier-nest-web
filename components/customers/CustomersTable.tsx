@@ -5,11 +5,12 @@ import Table from '../Table';
 
 type Props = {
     customers: ExpandedCustomer[];
+    sort: Sort;
     changeSort: (sort: Sort) => void;
     deleteCustomer: (id: number) => void;
 };
 
-const CustomersTable: React.FC<Props> = ({ customers, changeSort, deleteCustomer }: Props) => {
+const CustomersTable: React.FC<Props> = ({ customers, sort, changeSort, deleteCustomer }: Props) => {
     const router = useRouter();
 
     return (
@@ -44,6 +45,7 @@ const CustomersTable: React.FC<Props> = ({ customers, changeSort, deleteCustomer
             onRowClick={(id, index) => {
                 router.push(`/customers/${id}`);
             }}
+            sort={sort}
             changeSort={changeSort}
         />
     );

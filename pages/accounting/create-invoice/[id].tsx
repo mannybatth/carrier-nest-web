@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
+import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
@@ -95,6 +96,18 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
             }
         >
             <div className="max-w-4xl py-2 mx-auto">
+                <BreadCrumb
+                    className="sm:px-6 md:px-8"
+                    paths={[
+                        {
+                            label: 'Accounting',
+                            href: '/accounting',
+                        },
+                        {
+                            label: 'Create New Invoice',
+                        },
+                    ]}
+                ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
                         <h1 className="flex-1 text-2xl font-semibold text-gray-900">Create Invoice</h1>

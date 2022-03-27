@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ArrowSmDownIcon, ArrowSmUpIcon, DotsVerticalIcon } from '@heroicons/react/outline';
 import classNames from 'classnames';
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { Sort } from '../interfaces/models';
 
 export type TableHeader = {
@@ -25,12 +25,17 @@ export type TableDataRow = {
 type Props = {
     headers: TableHeader[];
     rows: TableDataRow[];
+    sort: Sort;
     onRowClick: (id: number, index: number) => void;
     changeSort: (sort: Sort) => void;
 };
 
-const Table: React.FC<Props> = ({ headers, rows, onRowClick, changeSort }: Props) => {
-    const [sort, setSort] = React.useState<Sort>(null);
+const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, changeSort }: Props) => {
+    const [sort, setSort] = React.useState<Sort>(sortProps);
+
+    useEffect(() => {
+        setSort(sortProps);
+    }, [sortProps]);
 
     const onChangeSort = (key: string) => {
         if (key === sort?.key && sort?.order === 'desc') {

@@ -5,11 +5,12 @@ import Table from '../Table';
 
 type Props = {
     drivers: ExpandedDriver[];
+    sort: Sort;
     changeSort: (sort: Sort) => void;
     deleteDriver: (id: number) => void;
 };
 
-const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver }: Props) => {
+const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver, sort }: Props) => {
     const router = useRouter();
 
     return (
@@ -38,6 +39,7 @@ const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver }: Pr
             onRowClick={(id, index) => {
                 router.push(`/drivers/${id}`);
             }}
+            sort={sort}
             changeSort={changeSort}
         />
     );
