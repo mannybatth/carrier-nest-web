@@ -6,30 +6,12 @@ import React, { Fragment } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedInvoice } from '../../../interfaces/models';
+import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import InvoiceFormItem from './InvoiceFormItem';
 
 type Props = {
     formHook: UseFormReturn<ExpandedInvoice>;
 };
-
-const invoiceTermOptions = [
-    {
-        value: 0,
-        label: 'Due on Receipt',
-    },
-    {
-        value: 15,
-        label: 'Net 15 days',
-    },
-    {
-        value: 30,
-        label: 'Net 30 days',
-    },
-    {
-        value: 45,
-        label: 'Net 45 days',
-    },
-];
 
 const InvoiceForm: React.FC<Props> = ({
     formHook: {

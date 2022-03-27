@@ -10,6 +10,7 @@ import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
+import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, getInvoiceById } from '../../../lib/rest/invoice';
 
 type ActionsDropdownProps = {
@@ -183,7 +184,12 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                                 </div>
                                 <div className="flex justify-between py-2.5 text-sm font-medium">
                                     <dt className="text-gray-500">Term</dt>
-                                    <dd className="text-gray-900">{invoice.dueNetDays}</dd>
+                                    <dd className="text-gray-900">
+                                        {
+                                            invoiceTermOptions.find((option) => option.value === invoice.dueNetDays)
+                                                ?.label
+                                        }
+                                    </dd>
                                 </div>
                             </dl>
                         </aside>

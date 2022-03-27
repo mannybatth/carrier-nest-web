@@ -9,8 +9,8 @@ import Layout from '../../../../components/layout/Layout';
 import { LoadCard } from '../../../../components/loads/LoadCard';
 import { notify } from '../../../../components/Notification';
 import { PageWithAuth } from '../../../../interfaces/auth';
-import { ExpandedInvoice, ExpandedInvoiceItem } from '../../../../interfaces/models';
-import { createInvoice, getInvoiceById, updateInvoice } from '../../../../lib/rest/invoice';
+import { ExpandedInvoice } from '../../../../interfaces/models';
+import { getInvoiceById, updateInvoice } from '../../../../lib/rest/invoice';
 
 export async function getServerSideProps(context: NextPageContext) {
     const invoice = await getInvoiceById(Number(context.query.id));
