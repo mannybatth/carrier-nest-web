@@ -112,6 +112,18 @@ export type ExpandedInvoiceItem = SimpleInvoiceItem & {
     id?: number;
 };
 
+const simpleInvoicePayment = Prisma.validator<Prisma.InvoicePaymentArgs>()({
+    select: {
+        amount: true,
+        paidAt: true,
+    },
+});
+export type SimpleInvoicePayment = Prisma.InvoiceItemGetPayload<typeof simpleInvoicePayment>;
+
+export type ExpandedInvoicePayment = SimpleInvoicePayment & {
+    id?: number;
+};
+
 const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     select: {
         totalAmount: true,
@@ -127,6 +139,7 @@ export type ExpandedInvoice = SimpleInvoice & {
     updatedAt?: Date;
     load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];
+    payments?: ExpandedInvoicePayment[];
 };
 
 /**
