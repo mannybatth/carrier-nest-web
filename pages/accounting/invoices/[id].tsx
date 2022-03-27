@@ -83,6 +83,16 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, deleteInvoic
 
 export async function getServerSideProps(context: NextPageContext) {
     const invoice = await getInvoiceById(Number(context.query.id));
+
+    if (!invoice) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/accounting',
+            },
+        };
+    }
+
     return {
         props: {
             invoice,

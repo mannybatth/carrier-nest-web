@@ -47,7 +47,7 @@ const InvoiceForm: React.FC<Props> = ({
 
     return (
         <div className="grid grid-cols-6 gap-6">
-            <div className="col-span-3">
+            <div className="col-span-6 md:col-span-3">
                 <label htmlFor="invoicedAt" className="block text-sm font-medium text-gray-700">
                     Invoiced Date
                 </label>
@@ -74,7 +74,7 @@ const InvoiceForm: React.FC<Props> = ({
                 />
             </div>
 
-            <div className="col-span-3">
+            <div className="col-span-6 md:col-span-3">
                 <Controller
                     control={control}
                     rules={{ required: 'Invoice Terms is required' }}

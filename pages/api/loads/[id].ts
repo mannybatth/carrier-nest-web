@@ -39,7 +39,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 ...(expandInvoice
                     ? {
                           invoice: {
-                              select: { id: true, totalAmount: true, dueNetDays: true, paidAmount: true, paidAt: true },
+                              select: { id: true, totalAmount: true, dueNetDays: true },
                           },
                       }
                     : {}),

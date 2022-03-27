@@ -172,21 +172,20 @@ model Driver {
 }
 
 model Invoice {
-    id          Int           @id @default(autoincrement())
-    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id          Int              @id @default(autoincrement())
+    user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId      Int
-    carrier     Carrier       @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrier     Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId   Int
-    load        Load          @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    loadId      Int           @unique
-    createdAt   DateTime      @default(now())
-    updatedAt   DateTime      @updatedAt
-    invoicedAt  DateTime      @default(now())
+    load        Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    loadId      Int              @unique
+    createdAt   DateTime         @default(now())
+    updatedAt   DateTime         @updatedAt
+    invoicedAt  DateTime
     totalAmount Decimal
-    paidAmount  Decimal?
-    paidAt      DateTime?
-    dueNetDays  Int           @default(0)
+    dueNetDays  Int              @default(0)
     extraItems  InvoiceItem[]
+    payments    InvoicePayment[]
 
     @@index([userId])
 }
@@ -197,6 +196,14 @@ model InvoiceItem {
     invoiceId Int
     title     String
     amount    Decimal
+}
+
+model InvoicePayment {
+    id        Int      @id @default(autoincrement())
+    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    invoiceId Int
+    amount    Decimal
+    paidAt    DateTime
 }
 
 model LoadDocument {

@@ -125,8 +125,6 @@ export type ExpandedInvoice = SimpleInvoice & {
     id?: number;
     createdAt?: Date;
     updatedAt?: Date;
-    paidAmount?: number;
-    paidAt?: Date;
     load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];
 };
