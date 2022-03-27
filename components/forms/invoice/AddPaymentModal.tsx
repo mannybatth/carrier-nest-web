@@ -1,7 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { CalendarIcon } from '@heroicons/react/outline';
 import { InvoicePayment, Prisma } from '@prisma/client';
-import React, { Fragment, useEffect, useRef } from 'react';
+import React, { Fragment, useRef } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useForm } from 'react-hook-form';
 import { SimpleInvoicePayment } from '../../../interfaces/models';
@@ -10,11 +10,12 @@ import MoneyInput from '../MoneyInput';
 
 type Props = {
     show: boolean;
+    totalAmount: Prisma.Decimal;
     onCreate: (payment: InvoicePayment) => void;
     onClose: (value: boolean) => void;
 };
 
-const AddPaymentModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) => {
+const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose }: Props) => {
     const [loading, setLoading] = React.useState(false);
     const amountFieldRef = useRef(null);
 
@@ -23,6 +24,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) =>
         handleSubmit,
         reset,
         control,
+        setValue,
         formState: { errors },
     } = useForm<SimpleInvoicePayment>();
 
@@ -53,6 +55,11 @@ const AddPaymentModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) =>
         onClose(value);
     };
 
+    const setToFullDue = () => {
+        setValue('amount', totalAmount);
+        amountFieldRef?.current?.focus();
+    };
+
     return (
         <Transition.Root show={show} as={Fragment}>
             <Dialog
@@ -61,7 +68,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) =>
                 className="fixed inset-0 z-10 overflow-y-auto"
                 onClose={(value) => close(value)}
             >
-                <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-32 text-center sm:block sm:p-0">
                     <Transition.Child
                         as={Fragment}
                         enter="ease-out duration-300"
@@ -138,23 +145,39 @@ const AddPaymentModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) =>
                                         >
                                             Amount
                                         </label>
-                                        <Controller
-                                            control={control}
-                                            rules={{ required: 'Amount is required' }}
-                                            name="amount"
-                                            render={({ field: { onChange, value }, fieldState: { error } }) => (
-                                                <>
-                                                    <MoneyInput
-                                                        id="amount"
-                                                        value={(value as Prisma.Decimal)?.toString() || ''}
-                                                        onChange={(e) => onChange(new Prisma.Decimal(e.target.value))}
-                                                    ></MoneyInput>
-                                                    {error && (
-                                                        <p className="mt-2 text-sm text-red-600">{error?.message}</p>
+                                        <div className="flex mt-1 rounded-md shadow-sm">
+                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                <Controller
+                                                    control={control}
+                                                    rules={{ required: 'Amount is required' }}
+                                                    name="amount"
+                                                    render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                                        <>
+                                                            <MoneyInput
+                                                                id="amount"
+                                                                className="block w-full border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500 rounded-l-md sm:text-sm"
+                                                                value={(value as Prisma.Decimal)?.toString() || ''}
+                                                                onChange={(e) =>
+                                                                    onChange(new Prisma.Decimal(e.target.value))
+                                                                }
+                                                            ></MoneyInput>
+                                                            {error && (
+                                                                <p className="mt-2 text-sm text-red-600">
+                                                                    {error?.message}
+                                                                </p>
+                                                            )}
+                                                        </>
                                                     )}
-                                                </>
-                                            )}
-                                        />
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={setToFullDue}
+                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                            >
+                                                <span>Full Due</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -170,6 +170,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                 <AddPaymentModal
                     onCreate={onNewPaymentCreate}
                     show={openAddPayment}
+                    totalAmount={invoice.totalAmount}
                     onClose={() => setOpenAddPayment(false)}
                 ></AddPaymentModal>
                 <BreadCrumb

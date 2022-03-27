@@ -48,7 +48,7 @@ const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, on
                 <label htmlFor={fieldId('amount')} className="block text-sm font-medium text-gray-700">
                     Amount
                 </label>
-                <div className="flex flex-row items-center space-x-2">
+                <div className="flex flex-row items-center mt-1 space-x-2">
                     <div className="flex-1">
                         <Controller
                             control={control}

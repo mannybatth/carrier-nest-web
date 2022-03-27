@@ -188,21 +188,23 @@ const LoadForm: React.FC<Props> = ({
                         <label htmlFor="rate" className="block text-sm font-medium text-gray-700">
                             Rate
                         </label>
-                        <Controller
-                            control={control}
-                            rules={{ required: 'Rate is required' }}
-                            name="rate"
-                            render={({ field: { onChange, value }, fieldState: { error } }) => (
-                                <>
-                                    <MoneyInput
-                                        id="rate"
-                                        value={(value as Prisma.Decimal)?.toString() || ''}
-                                        onChange={(e) => onChange(new Prisma.Decimal(e.target.value))}
-                                    ></MoneyInput>
-                                    {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
-                                </>
-                            )}
-                        />
+                        <div className="mt-1">
+                            <Controller
+                                control={control}
+                                rules={{ required: 'Rate is required' }}
+                                name="rate"
+                                render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                    <>
+                                        <MoneyInput
+                                            id="rate"
+                                            value={(value as Prisma.Decimal)?.toString() || ''}
+                                            onChange={(e) => onChange(new Prisma.Decimal(e.target.value))}
+                                        ></MoneyInput>
+                                        {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                    </>
+                                )}
+                            />
+                        </div>
                     </div>
 
                     <LoadFormStop {...{ register, errors, control }} type={LoadStopType.SHIPPER} />
