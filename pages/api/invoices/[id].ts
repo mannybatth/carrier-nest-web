@@ -91,6 +91,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: Number(req.query.id),
             },
             data: {
+                invoicedAt: invoiceData.invoicedAt,
                 totalAmount: invoiceData.totalAmount || 0,
                 dueNetDays: invoiceData.dueNetDays || 0,
                 carrier: {

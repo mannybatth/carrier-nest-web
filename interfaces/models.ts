@@ -116,6 +116,7 @@ const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     select: {
         totalAmount: true,
         dueNetDays: true,
+        invoicedAt: true,
     },
 });
 export type SimpleInvoice = Prisma.InvoiceGetPayload<typeof simpleInvoice>;

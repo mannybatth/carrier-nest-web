@@ -181,6 +181,7 @@ model Invoice {
     loadId      Int           @unique
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
+    invoicedAt  DateTime      @default(now())
     totalAmount Decimal
     paidAmount  Decimal?
     paidAt      DateTime?

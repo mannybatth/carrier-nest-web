@@ -164,7 +164,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                                             year: 'numeric',
                                             month: 'short',
                                             day: '2-digit',
-                                        }).format(new Date(invoice.createdAt))}
+                                        }).format(new Date(invoice.invoicedAt))}
                                     </dd>
                                 </div>
                                 <div className="flex justify-between py-2.5 text-sm font-medium">
@@ -224,7 +224,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                         </tbody>
                     </table>
 
-                    <div className="w-full mt-5 mb-1 border-t border-gray-300" />
+                    <div className="w-full mt-1 mb-1 border-t border-gray-300" />
                     <div className="w-full px-3 mt-3 ml-auto sm:w-1/2 lg:w-1/3">
                         <div className="flex justify-between mb-4">
                             <div className="font-medium">Total Amount</div>
