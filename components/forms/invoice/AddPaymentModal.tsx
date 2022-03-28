@@ -97,7 +97,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }: 
                                 <div className="grid grid-cols-1 gap-6">
                                     <div className="col-span-1">
                                         <label htmlFor="paidAt" className="block text-sm font-medium text-gray-700">
-                                            Invoiced Date
+                                            Payment Date
                                         </label>
                                         <Controller
                                             control={control}
@@ -139,39 +139,37 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }: 
                                         >
                                             Amount
                                         </label>
-                                        <div className="flex mt-1 rounded-md shadow-sm">
-                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                                                <Controller
-                                                    control={control}
-                                                    rules={{ required: 'Amount is required' }}
-                                                    name="amount"
-                                                    render={({ field: { onChange, value }, fieldState: { error } }) => (
-                                                        <>
+                                        <Controller
+                                            control={control}
+                                            rules={{ required: 'Amount is required' }}
+                                            name="amount"
+                                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                                <>
+                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                        <div className="relative flex items-stretch flex-grow focus-within:z-10">
                                                             <MoneyInput
                                                                 id="amount"
-                                                                className="block w-full border-gray-300 rounded-none focus:ring-blue-500 focus:border-blue-500 rounded-l-md sm:text-sm"
+                                                                className="rounded-none rounded-l-md"
                                                                 value={(value as Prisma.Decimal)?.toString() || ''}
                                                                 onChange={(e) =>
                                                                     onChange(new Prisma.Decimal(e.target.value))
                                                                 }
                                                             ></MoneyInput>
-                                                            {error && (
-                                                                <p className="mt-2 text-sm text-red-600">
-                                                                    {error?.message}
-                                                                </p>
-                                                            )}
-                                                        </>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={setToFullDue}
+                                                            className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                        >
+                                                            <span>Full Due</span>
+                                                        </button>
+                                                    </div>
+                                                    {error && (
+                                                        <p className="mt-2 text-sm text-red-600">{error?.message}</p>
                                                     )}
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={setToFullDue}
-                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                            >
-                                                <span>Full Due</span>
-                                            </button>
-                                        </div>
+                                                </>
+                                            )}
+                                        />
                                     </div>
                                 </div>
 
