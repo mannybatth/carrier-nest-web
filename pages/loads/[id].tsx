@@ -69,14 +69,18 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/accounting/invoices/${load.invoice.id}`);
+                                        if (load.invoice) {
+                                            router.push(`/accounting/invoices/${load.invoice.id}`);
+                                        } else {
+                                            router.push(`/accounting/create-invoice/${load.id}`);
+                                        }
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    View Invoice
+                                    {load.invoice ? 'View Invoice' : 'Create Invoice'}
                                 </a>
                             )}
                         </Menu.Item>
