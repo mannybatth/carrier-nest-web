@@ -13,6 +13,11 @@ const buildOrderBy = (
         return [
             {
                 invoice: {
+                    lastPaymentAt: sortDir,
+                },
+            },
+            {
+                invoice: {
                     id: sortDir,
                 },
             },
@@ -67,6 +72,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
         const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
 
+        const currentOnly = req.query.currentOnly === '1';
+
         if (limit != null || offset != null) {
             if (limit == null || offset == null) {
                 return res.status(400).send({
@@ -86,6 +93,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 userId: session?.user?.id,
                 ...(customerId ? { customerId } : null),
                 ...(driverId ? { driverId } : null),
+                ...(currentOnly ? { invoice: null } : {}),
             },
         });
 
@@ -96,6 +104,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 userId: session?.user?.id,
                 ...(customerId ? { customerId } : null),
                 ...(driverId ? { driverId } : null),
+                ...(currentOnly ? { invoice: null } : {}),
             },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
@@ -103,7 +112,15 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             ...(limit ? { take: limit } : { take: 10 }),
             ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
-                invoice: { select: { id: true } },
+                invoice: {
+                    select: {
+                        id: true,
+                        totalAmount: true,
+                        dueNetDays: true,
+                        paidAmount: true,
+                        lastPaymentAt: true,
+                    },
+                },
                 ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
                 ...(expandShipper
                     ? {

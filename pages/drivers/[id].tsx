@@ -93,7 +93,7 @@ export async function getServerSideProps(context: NextPageContext) {
         getDriverById(driverId),
         getLoadsExpanded({
             driverId: driverId,
-            limit: Number(query.limit) || 1,
+            limit: Number(query.limit) || 10,
             offset: Number(query.offset) || 0,
             sort,
         }),

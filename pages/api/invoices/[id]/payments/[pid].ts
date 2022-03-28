@@ -1,6 +1,7 @@
+import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ExpandedInvoice, JSONResponse } from '../../../../../interfaces/models';
+import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
 
 export default handler;
@@ -37,6 +38,38 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         await prisma.invoicePayment.delete({
             where: {
                 id: Number(req.query.pid),
+            },
+        });
+
+        const invoice = await prisma.invoice.findFirst({
+            where: {
+                id: Number(req.query.id),
+                userId: session?.user?.id,
+            },
+            include: {
+                payments: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        paidAt: true,
+                    },
+                    orderBy: {
+                        paidAt: 'desc',
+                    },
+                },
+            },
+        });
+
+        const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
+        const lastPaidDate = invoice.payments.length > 0 ? invoice.payments[0].paidAt : null;
+
+        await prisma.invoice.update({
+            where: {
+                id: Number(req.query.id),
+            },
+            data: {
+                paidAmount,
+                lastPaymentAt: lastPaidDate,
             },
         });
 

@@ -8,12 +8,14 @@ export const getLoadsExpanded = async ({
     driverId,
     limit,
     offset,
+    currentOnly,
 }: {
     sort?: Sort;
     customerId?: number;
     driverId?: number;
     limit?: number;
     offset?: number;
+    currentOnly?: boolean;
 } = {}): Promise<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams({
         expand: 'customer,shipper,receiver',
@@ -35,6 +37,9 @@ export const getLoadsExpanded = async ({
     }
     if (offset !== undefined) {
         params.append('offset', offset.toString());
+    }
+    if (currentOnly) {
+        params.append('currentOnly', '1');
     }
     console.log(`${apiUrl}/loads?${params.toString()}`);
     const response = await fetch(apiUrl + '/loads?' + params.toString());

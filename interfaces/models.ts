@@ -35,6 +35,8 @@ export enum LoadStatus {
     PENDING = 'pending',
     COMPLETED = 'completed',
     INVOICED = 'invoiced',
+    PAID = 'paid',
+    OVERDUE = 'overdue',
 }
 
 const simpleLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({

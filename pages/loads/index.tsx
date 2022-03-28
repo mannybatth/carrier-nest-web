@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -14,22 +15,25 @@ import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
+    const isBrowsing = query.browse === 'true';
 
     const data = await getLoadsExpanded({
-        limit: Number(query.limit) || 1,
+        limit: Number(query.limit) || 10,
         offset: Number(query.offset) || 0,
         sort,
+        currentOnly: !isBrowsing,
     });
-    return { props: { loads: data.loads, metadata: data.metadata, sort } };
+    return { props: { loads: data.loads, metadata: data.metadata, sort, isBrowsing } };
 }
 
 type Props = {
     loads: ExpandedLoad[];
     metadata: PaginationMetadata;
     sort: Sort;
+    isBrowsing: boolean;
 };
 
-const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: sortProps }: Props) => {
+const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: sortProps, isBrowsing }: Props) => {
     const [loadsList, setLoadsList] = React.useState(loads);
     const [sort, setSort] = React.useState<Sort>(sortProps);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
@@ -114,6 +118,45 @@ const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: s
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
+                    <div className="block">
+                        <div className="border-b border-gray-200">
+                            <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                        });
+                                    }}
+                                    className={classNames(
+                                        !isBrowsing
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={!isBrowsing ? 'page' : undefined}
+                                >
+                                    Current Loads
+                                </a>
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                            query: { browse: 'true' },
+                                        });
+                                    }}
+                                    className={classNames(
+                                        isBrowsing
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={isBrowsing ? 'page' : undefined}
+                                >
+                                    Browse All Loads
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
                     <LoadsTable loads={loadsList} sort={sort} changeSort={changeSort} deleteLoad={deleteLoad} />
                     <Pagination
                         metadata={metadata}
