@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ExpandedInvoice, JSONResponse } from '../../../interfaces/models';
-import prisma from '../../../lib/prisma';
+import { ExpandedInvoice, JSONResponse } from '../../../../interfaces/models';
+import prisma from '../../../../lib/prisma';
 
 export default handler;
 
@@ -25,6 +25,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const expand = req.query.expand as string;
         const expandLoad = expand?.includes('load');
         const expandExtraItems = expand?.includes('extraItems');
+        const expandPayments = expand?.includes('payments');
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -55,6 +56,17 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                   id: true,
                                   title: true,
                                   amount: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandPayments
+                    ? {
+                          payments: {
+                              select: {
+                                  id: true,
+                                  amount: true,
+                                  paidAt: true,
                               },
                           },
                       }

@@ -1,5 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
+import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
@@ -12,7 +13,7 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
-import { deleteInvoiceById, getInvoiceById } from '../../../lib/rest/invoice';
+import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
@@ -126,26 +127,37 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
     const [openAddPayment, setOpenAddPayment] = useState(false);
     const router = useRouter();
 
+    const reloadInvoice = async () => {
+        router.replace(`/accounting/invoices/${invoice.id}`);
+    };
+
     const addPayment = () => {
         setOpenAddPayment(true);
     };
 
-    const onNewPaymentCreate = () => {
-        //
+    const onNewPaymentCreate = (invoice: Invoice) => {
+        console.log('new payment created', invoice);
+        reloadInvoice();
     };
 
-    const deleteInvoice = async (id: number) => {
-        console.log('delete invoice', id);
+    const deleteInvoice = async (invoiceId: number) => {
+        console.log('delete invoice', invoiceId);
 
-        await deleteInvoiceById(id);
+        await deleteInvoiceById(invoiceId);
 
         notify({ title: 'Invoice deleted', message: 'Invoice deleted successfully' });
 
         router.push('/accounting');
     };
 
-    const deletePayment = async (id: number) => {
-        console.log('delete payment', id);
+    const deletePayment = async (paymentId: number) => {
+        console.log('delete payment', paymentId);
+
+        await deleteInvoicePayment(invoice.id, paymentId);
+
+        notify({ title: 'Payment deleted', message: 'Invoice payment deleted successfully' });
+
+        reloadInvoice();
     };
 
     return (
@@ -170,7 +182,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
                 <AddPaymentModal
                     onCreate={onNewPaymentCreate}
                     show={openAddPayment}
-                    totalAmount={invoice.totalAmount}
+                    invoice={invoice}
                     onClose={() => setOpenAddPayment(false)}
                 ></AddPaymentModal>
                 <BreadCrumb

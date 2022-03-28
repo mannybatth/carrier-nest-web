@@ -1,21 +1,22 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { CalendarIcon } from '@heroicons/react/outline';
-import { InvoicePayment, Prisma } from '@prisma/client';
+import { Invoice, InvoicePayment, Prisma } from '@prisma/client';
 import React, { Fragment, useRef } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useForm } from 'react-hook-form';
-import { SimpleInvoicePayment } from '../../../interfaces/models';
+import { ExpandedInvoice, SimpleInvoicePayment } from '../../../interfaces/models';
+import { createInvoicePayment } from '../../../lib/rest/invoice';
 import Spinner from '../../Spinner';
 import MoneyInput from '../MoneyInput';
 
 type Props = {
     show: boolean;
-    totalAmount: Prisma.Decimal;
-    onCreate: (payment: InvoicePayment) => void;
+    invoice: ExpandedInvoice;
+    onCreate: (invoice: Invoice) => void;
     onClose: (value: boolean) => void;
 };
 
-const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose }: Props) => {
+const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }: Props) => {
     const [loading, setLoading] = React.useState(false);
     const amountFieldRef = useRef(null);
 
@@ -31,21 +32,14 @@ const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose
     const submit = async (data: SimpleInvoicePayment) => {
         setLoading(true);
 
-        // const payment: SimpleInvoicePayment = {
-        //     name: data.name,
-        //     contactEmail: '',
-        //     billingEmail: '',
-        //     paymentStatusEmail: '',
-        //     street: '',
-        //     city: '',
-        //     state: '',
-        //     zip: '',
-        //     country: '',
-        // };
+        const payment: SimpleInvoicePayment = {
+            paidAt: data.paidAt,
+            amount: data.amount,
+        };
 
-        // const newCustomer = await createCustomer(customer);
+        const newInvoice = await createInvoicePayment(invoice.id, payment);
 
-        // onCreate(newCustomer);
+        onCreate(newInvoice);
         close(true);
     };
 
@@ -56,7 +50,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose
     };
 
     const setToFullDue = () => {
-        setValue('amount', totalAmount);
+        setValue('amount', invoice.totalAmount);
         amountFieldRef?.current?.focus();
     };
 
@@ -155,7 +149,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose
                                                         <>
                                                             <MoneyInput
                                                                 id="amount"
-                                                                className="block w-full border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500 rounded-l-md sm:text-sm"
+                                                                className="block w-full border-gray-300 rounded-none focus:ring-blue-500 focus:border-blue-500 rounded-l-md sm:text-sm"
                                                                 value={(value as Prisma.Decimal)?.toString() || ''}
                                                                 onChange={(e) =>
                                                                     onChange(new Prisma.Decimal(e.target.value))
@@ -173,7 +167,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, totalAmount, onCreate, onClose
                                             <button
                                                 type="button"
                                                 onClick={setToFullDue}
-                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             >
                                                 <span>Full Due</span>
                                             </button>

@@ -1,6 +1,13 @@
 import { Invoice } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedInvoice, JSONResponse, PaginationMetadata, SimpleInvoice, Sort } from '../../interfaces/models';
+import {
+    ExpandedInvoice,
+    JSONResponse,
+    PaginationMetadata,
+    SimpleInvoice,
+    SimpleInvoicePayment,
+    Sort,
+} from '../../interfaces/models';
 
 export const getInvoicesExpanded = async ({
     sort,
@@ -39,7 +46,7 @@ export const getInvoicesExpanded = async ({
 
 export const getInvoiceById = async (id: number): Promise<ExpandedInvoice> => {
     const params = new URLSearchParams({
-        expand: 'load,extraItems',
+        expand: 'load,extraItems,payments',
     });
     const response = await fetch(apiUrl + '/invoices/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<{ invoice: ExpandedInvoice }> = await response.json();
@@ -84,6 +91,34 @@ export const updateInvoice = async (id: number, invoice: SimpleInvoice) => {
 
 export const deleteInvoiceById = async (id: number) => {
     const response = await fetch(apiUrl + '/invoices/' + id, {
+        method: 'DELETE',
+    });
+    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.result;
+};
+
+export const createInvoicePayment = async (invoiceId: number, payment: SimpleInvoicePayment) => {
+    const response = await fetch(apiUrl + '/invoices/' + invoiceId + '/payments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payment),
+    });
+    const { data, errors }: JSONResponse<{ updatedInvoice: Invoice }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.updatedInvoice;
+};
+
+export const deleteInvoicePayment = async (invoiceId: number, paymentId: number) => {
+    const response = await fetch(apiUrl + '/invoices/' + invoiceId + '/payments/' + paymentId, {
         method: 'DELETE',
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();
