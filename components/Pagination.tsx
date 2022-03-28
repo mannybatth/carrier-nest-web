@@ -30,7 +30,7 @@ const Pagination: React.FC<Props> = ({ metadata, onPrevious, onNext }: Props) =>
                 <button
                     onClick={() => onPrevious(metadata)}
                     type="button"
-                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60"
+                    className="w-1/2 sm:w-auto items-center px-5 py-2.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60"
                     disabled={!metadata.prev}
                 >
                     Previous
@@ -38,7 +38,7 @@ const Pagination: React.FC<Props> = ({ metadata, onPrevious, onNext }: Props) =>
                 <button
                     onClick={() => onNext(metadata)}
                     type="button"
-                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60"
+                    className="w-1/2 sm:w-auto items-center px-5 py-2.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60"
                     disabled={!metadata.next}
                 >
                     Next
