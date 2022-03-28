@@ -67,7 +67,7 @@ const SideBarSearch: React.FC = () => {
                 </a>
             </div>
             <Transition.Root show={open} as={Fragment} afterLeave={afterLeave}>
-                <Dialog as="div" className="fixed inset-0 z-10 p-4 overflow-y-auto sm:p-6 md:p-20" onClose={setOpen}>
+                <Dialog as="div" className="fixed inset-0 p-4 overflow-y-auto sm:p-6 md:p-20" onClose={setOpen}>
                     <Transition.Child
                         as={Fragment}
                         enter="ease-out duration-300"
@@ -91,7 +91,7 @@ const SideBarSearch: React.FC = () => {
                     >
                         <Combobox
                             as="div"
-                            className="max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-4 ring-black ring-opacity-5"
+                            className="z-10 max-w-xl mx-auto overflow-hidden transition-all transform bg-white divide-y divide-gray-100 shadow-2xl rounded-xl ring-4 ring-black ring-opacity-5"
                             value=""
                             onChange={({ group, item }: any) => {
                                 if (group === 'loads') {
@@ -131,7 +131,7 @@ const SideBarSearch: React.FC = () => {
                                     {searchResults?.length > 0 && (
                                         <Combobox.Options
                                             static
-                                            className="py-2 space-y-2 overflow-y-auto text-sm text-gray-800 max-h-72 scroll-py-2"
+                                            className="z-10 py-2 space-y-2 overflow-y-auto text-sm text-gray-800 max-h-72 scroll-py-2"
                                         >
                                             {searchResults.map(
                                                 ([group, items]) =>

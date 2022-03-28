@@ -29,7 +29,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
     const router = useRouter();
 
     return (
-        <Menu as="div" className="relative z-10 inline-block text-left">
+        <Menu as="div" className="relative inline-block text-left">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
                     Actions
@@ -46,7 +46,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute right-0 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
                         <Menu.Item>
                             {({ active }) => (
