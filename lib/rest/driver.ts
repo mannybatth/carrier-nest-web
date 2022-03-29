@@ -1,6 +1,6 @@
 import { Driver } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedDriver, JSONResponse, PaginationMetadata, SimpleDriver, Sort } from '../../interfaces/models';
+import { JSONResponse, PaginationMetadata, SimpleDriver, Sort } from '../../interfaces/models';
 
 export const getAllDrivers = async ({
     sort,
@@ -46,12 +46,20 @@ export const getDriverById = async (id: number) => {
 export const searchDriversByName = async (value: string) => {
     const response = await fetch(apiUrl + '/drivers/search?q=' + value);
     const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.drivers;
 };
 
 export const fullTextSearchDriversByName = async (value: string) => {
     const response = await fetch(apiUrl + '/drivers/search/?fullText=true&q=' + value);
     const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.drivers;
 };
 
@@ -64,6 +72,10 @@ export const createDriver = async (driver: SimpleDriver) => {
         body: JSON.stringify(driver),
     });
     const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.driver;
 };
 
@@ -76,6 +88,10 @@ export const updateDriver = async (id: number, driver: SimpleDriver) => {
         body: JSON.stringify(driver),
     });
     const { data, errors }: JSONResponse<{ updatedDriver: Driver }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.updatedDriver;
 };
 
@@ -84,5 +100,21 @@ export const deleteDriverById = async (id: number) => {
         method: 'DELETE',
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.result;
+};
+
+export const assignDriverToLoad = async (loadId: number, driverId: number) => {
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver/' + driverId, {
+        method: 'PATCH',
+    });
+    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.result;
 };

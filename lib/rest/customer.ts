@@ -47,12 +47,20 @@ export const getCustomerById = async (id: number) => {
 export const searchCustomersByName = async (value: string) => {
     const response = await fetch(apiUrl + '/customers/search?q=' + value);
     const { data, errors }: JSONResponse<{ customers: Customer[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.customers;
 };
 
 export const fullTextSearchCustomersByName = async (value: string) => {
     const response = await fetch(apiUrl + '/customers/search/?fullText=true&q=' + value);
     const { data, errors }: JSONResponse<{ customers: Customer[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.customers;
 };
 
@@ -65,6 +73,10 @@ export const createCustomer = async (customer: SimpleCustomer) => {
         body: JSON.stringify(customer),
     });
     const { data, errors }: JSONResponse<{ customer: Customer }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.customer;
 };
 
@@ -77,6 +89,10 @@ export const updateCustomer = async (id: number, customer: SimpleCustomer) => {
         body: JSON.stringify(customer),
     });
     const { data, errors }: JSONResponse<{ updatedCustomer: Customer }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.updatedCustomer;
 };
 
@@ -85,5 +101,9 @@ export const deleteCustomerById = async (id: number) => {
         method: 'DELETE',
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
     return data.result;
 };

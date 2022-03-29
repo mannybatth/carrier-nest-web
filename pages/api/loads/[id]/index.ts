@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ExpandedLoad, JSONResponse } from '../../../interfaces/models';
-import prisma from '../../../lib/prisma';
+import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
+import prisma from '../../../../lib/prisma';
 
 export default handler;
 
@@ -28,6 +28,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const expandReceiver = expand?.includes('receiver');
         const expandStops = expand?.includes('stops');
         const expandInvoice = expand?.includes('invoice');
+        const expandDriver = expand?.includes('driver');
 
         const load = await prisma.load.findFirst({
             where: {
@@ -102,6 +103,18 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                               },
                               orderBy: {
                                   stopIndex: 'asc',
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandDriver
+                    ? {
+                          driver: {
+                              select: {
+                                  id: true,
+                                  name: true,
+                                  phone: true,
+                                  email: true,
                               },
                           },
                       }

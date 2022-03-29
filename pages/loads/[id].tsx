@@ -7,25 +7,29 @@ import {
     StopIcon,
     TruckIcon,
 } from '@heroicons/react/outline';
+import { Driver } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
+import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { loadStatus } from '../../lib/load/load-utils';
+import { assignDriverToLoad } from '../../lib/rest/driver';
 import { deleteLoadById, getLoadById } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
     deleteLoad: (id: number) => void;
+    assignDriver: (remove?: boolean) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, assignDriver }: ActionsDropdownProps) => {
     const router = useRouter();
 
     return (
@@ -84,6 +88,26 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad }: A
                                 </a>
                             )}
                         </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (load.driver) {
+                                            assignDriver(true);
+                                        } else {
+                                            assignDriver();
+                                        }
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    {load.driver ? 'Remove Driver From Load' : 'Assign Driver'}
+                                </a>
+                            )}
+                        </Menu.Item>
                     </div>
                     <div className="py-1">
                         <Menu.Item>
@@ -123,7 +147,34 @@ type Props = {
 };
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
+    const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const router = useRouter();
+
+    const onDriverSelect = async (driver: Driver) => {
+        setOpenSelectDriver(false);
+
+        try {
+            await assignDriverToLoad(load.id, driver.id);
+            notify({ title: 'Driver assigned', message: 'Driver assigned to load successfully' });
+            router.replace(`/loads/${load.id}`);
+        } catch (e) {
+            notify({ title: 'Error Assigning Driver', message: e.message });
+        }
+    };
+
+    const assignDriverAction = async (remove?: boolean) => {
+        if (remove) {
+            try {
+                await assignDriverToLoad(load.id, 0);
+                notify({ title: 'Driver removed', message: 'Driver removed from load successfully' });
+                router.replace(`/loads/${load.id}`);
+            } catch (e) {
+                notify({ title: 'Error removing driver', message: e.message });
+            }
+        } else {
+            setOpenSelectDriver(true);
+        }
+    };
 
     const deleteLoad = async (id: number) => {
         await deleteLoadById(id);
@@ -138,168 +189,151 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
-                    <ActionsDropdown load={load} deleteLoad={deleteLoad}></ActionsDropdown>
+                    <ActionsDropdown
+                        load={load}
+                        deleteLoad={deleteLoad}
+                        assignDriver={assignDriverAction}
+                    ></ActionsDropdown>
                 </div>
             }
         >
-            <div className="max-w-4xl py-2 mx-auto">
-                <BreadCrumb
-                    className="sm:px-6 md:px-8"
-                    paths={[
-                        {
-                            label: 'Loads',
-                            href: '/loads',
-                        },
-                        {
-                            label: `# ${load.refNum}`,
-                        },
-                    ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
-                        <ActionsDropdown load={load} deleteLoad={deleteLoad}></ActionsDropdown>
+            <>
+                <DriverSelectionModal
+                    onSelect={onDriverSelect}
+                    show={openSelectDriver}
+                    onClose={() => setOpenSelectDriver(false)}
+                ></DriverSelectionModal>
+                <div className="max-w-4xl py-2 mx-auto">
+                    <BreadCrumb
+                        className="sm:px-6 md:px-8"
+                        paths={[
+                            {
+                                label: 'Loads',
+                                href: '/loads',
+                            },
+                            {
+                                label: `# ${load.refNum}`,
+                            },
+                        ]}
+                    ></BreadCrumb>
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
+                            <ActionsDropdown
+                                load={load}
+                                deleteLoad={deleteLoad}
+                                assignDriver={assignDriverAction}
+                            ></ActionsDropdown>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
-                    <div className="col-span-8 sm:col-span-3 md:col-span-8 lg:col-span-3">
-                        <aside className="overflow-y-auto bg-white border-gray-200">
-                            <div className="pb-0 space-y-6 lg:pb-10">
-                                <dl className="border-gray-200 divide-y divide-gray-200">
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Reference #</dt>
-                                        <dd className="text-gray-900">{load.refNum}</dd>
-                                    </div>
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Status</dt>
-                                        <dd className="text-gray-900">
-                                            <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                                {loadStatus(load)}
-                                            </span>
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Customer</dt>
-                                        <dd className="text-gray-900">
-                                            <Link href={`/customers/${load.customer.id}`}>{load.customer?.name}</Link>
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Driver</dt>
-                                        <dd className="text-gray-900">
-                                            <a>Assign Driver</a>
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Rate</dt>
-                                        <dd className="text-gray-900">${load.rate}</dd>
-                                    </div>
-                                    <div className="flex justify-between py-3 text-sm font-medium">
-                                        <dt className="text-gray-500">Invoice</dt>
-                                        <dd className="text-gray-900">
-                                            {load.invoice ? (
-                                                <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
-                                                    <a># {load.invoice.id}</a>
-                                                </Link>
-                                            ) : (
-                                                <Link href={`/accounting/create-invoice/${load.id}`}>
-                                                    Create Invoice
-                                                </Link>
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div>
+                    <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
+                        <div className="col-span-8 sm:col-span-3 md:col-span-8 lg:col-span-3">
+                            <aside className="overflow-y-auto bg-white border-gray-200">
+                                <div className="pb-0 space-y-6 lg:pb-10">
+                                    <dl className="border-gray-200 divide-y divide-gray-200">
                                         <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Documents</dt>
+                                            <dt className="text-gray-500">Reference #</dt>
+                                            <dd className="text-gray-900">{load.refNum}</dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 text-sm font-medium">
+                                            <dt className="text-gray-500">Status</dt>
                                             <dd className="text-gray-900">
-                                                <a>Download All</a>
+                                                <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
+                                                    {loadStatus(load)}
+                                                </span>
                                             </dd>
                                         </div>
-                                        <ul
-                                            role="list"
-                                            className="border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                        >
-                                            {[
-                                                {
-                                                    name: 'invoice.pdf',
-                                                    href: '',
-                                                },
-                                                {
-                                                    name: 'bol.pdf',
-                                                    href: '',
-                                                },
-                                            ].map((attachment) => (
-                                                <li
-                                                    key={attachment.name}
-                                                    className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                >
-                                                    <div className="flex items-center flex-1 w-0">
-                                                        <PaperClipIcon
-                                                            className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                            aria-hidden="true"
-                                                        />
-                                                        <span className="flex-1 w-0 ml-2 truncate">
-                                                            {attachment.name}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-shrink-0 ml-4">
-                                                        <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </dl>
-                            </div>
-                        </aside>
-                    </div>
-
-                    <div className="col-span-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
-                        <div className="mt-4">
-                            <div className="flow-root">
-                                <ul role="list" className="-mb-8">
-                                    <li>
-                                        <div className="relative z-auto pb-8">
-                                            <span
-                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                aria-hidden="true"
-                                            />
-                                            <div className="relative flex items-start space-x-3">
-                                                <>
-                                                    <div className="relative px-1">
-                                                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                            <TruckIcon
-                                                                className="w-5 h-5 text-green-800"
+                                        <div className="flex justify-between py-3 text-sm font-medium">
+                                            <dt className="text-gray-500">Customer</dt>
+                                            <dd className="text-gray-900">
+                                                <Link href={`/customers/${load.customer.id}`}>
+                                                    {load.customer?.name}
+                                                </Link>
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 text-sm font-medium">
+                                            <dt className="text-gray-500">Driver</dt>
+                                            <dd className="text-gray-900">
+                                                {load.driver ? (
+                                                    <Link href={`/drivers/${load.driver.id}`} passHref>
+                                                        <a>{load.driver.name}</a>
+                                                    </Link>
+                                                ) : (
+                                                    <a onClick={() => setOpenSelectDriver(true)}>Assign Driver</a>
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 text-sm font-medium">
+                                            <dt className="text-gray-500">Rate</dt>
+                                            <dd className="text-gray-900">${load.rate}</dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 text-sm font-medium">
+                                            <dt className="text-gray-500">Invoice</dt>
+                                            <dd className="text-gray-900">
+                                                {load.invoice ? (
+                                                    <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
+                                                        <a># {load.invoice.id}</a>
+                                                    </Link>
+                                                ) : (
+                                                    <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                        Create Invoice
+                                                    </Link>
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between py-3 text-sm font-medium">
+                                                <dt className="text-gray-500">Documents</dt>
+                                                <dd className="text-gray-900">
+                                                    <a>Download All</a>
+                                                </dd>
+                                            </div>
+                                            <ul
+                                                role="list"
+                                                className="border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                            >
+                                                {[
+                                                    {
+                                                        name: 'invoice.pdf',
+                                                        href: '',
+                                                    },
+                                                    {
+                                                        name: 'bol.pdf',
+                                                        href: '',
+                                                    },
+                                                ].map((attachment) => (
+                                                    <li
+                                                        key={attachment.name}
+                                                        className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                    >
+                                                        <div className="flex items-center flex-1 w-0">
+                                                            <PaperClipIcon
+                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
                                                                 aria-hidden="true"
                                                             />
+                                                            <span className="flex-1 w-0 ml-2 truncate">
+                                                                {attachment.name}
+                                                            </span>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="text-sm text-gray-500">
-                                                            <span className="text-lg font-medium text-gray-900">
-                                                                {new Intl.DateTimeFormat('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'long',
-                                                                    day: '2-digit',
-                                                                }).format(new Date(load.shipper.date))}
-                                                            </span>{' '}
-                                                            @ {load.shipper.time}
-                                                            <div>{load.shipper.name}</div>
-                                                            <div>{load.shipper.street}</div>
-                                                            <div>
-                                                                {load.shipper.city}, {load.shipper.state}{' '}
-                                                                {load.shipper.zip}
-                                                            </div>
+                                                        <div className="flex-shrink-0 ml-4">
+                                                            <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
                                                         </div>
-                                                    </div>
-                                                </>
-                                            </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
-                                    </li>
-                                    {load.stops.map((stop, index) => (
-                                        <li key={index}>
-                                            <div className="relative pb-8">
+                                    </dl>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <div className="col-span-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
+                            <div className="mt-4">
+                                <div className="flow-root">
+                                    <ul role="list" className="-mb-8">
+                                        <li>
+                                            <div className="relative z-auto pb-8">
                                                 <span
                                                     className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
                                                     aria-hidden="true"
@@ -307,9 +341,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                 <div className="relative flex items-start space-x-3">
                                                     <>
                                                         <div className="relative px-1">
-                                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
-                                                                <StopIcon
-                                                                    className="w-5 h-5 text-gray-500"
+                                                            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
+                                                                <TruckIcon
+                                                                    className="w-5 h-5 text-green-800"
                                                                     aria-hidden="true"
                                                                 />
                                                             </div>
@@ -321,13 +355,14 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                                         year: 'numeric',
                                                                         month: 'long',
                                                                         day: '2-digit',
-                                                                    }).format(new Date(stop.date))}
+                                                                    }).format(new Date(load.shipper.date))}
                                                                 </span>{' '}
-                                                                @ {stop.time}
-                                                                <div>{stop.name}</div>
-                                                                <div>{stop.street}</div>
+                                                                @ {load.shipper.time}
+                                                                <div>{load.shipper.name}</div>
+                                                                <div>{load.shipper.street}</div>
                                                                 <div>
-                                                                    {stop.city}, {stop.state} {stop.zip}
+                                                                    {load.shipper.city}, {load.shipper.state}{' '}
+                                                                    {load.shipper.zip}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -335,49 +370,88 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                 </div>
                                             </div>
                                         </li>
-                                    ))}
-                                    <li>
-                                        <div className="relative pb-8">
-                                            <div className="relative flex items-start space-x-3">
-                                                <>
-                                                    <div>
-                                                        <div className="relative px-1">
-                                                            <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                <LocationMarkerIcon
-                                                                    className="w-5 h-5 text-red-800"
-                                                                    aria-hidden="true"
-                                                                />
+                                        {load.stops.map((stop, index) => (
+                                            <li key={index}>
+                                                <div className="relative pb-8">
+                                                    <span
+                                                        className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <div className="relative flex items-start space-x-3">
+                                                        <>
+                                                            <div className="relative px-1">
+                                                                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
+                                                                    <StopIcon
+                                                                        className="w-5 h-5 text-gray-500"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm text-gray-500">
+                                                                    <span className="text-lg font-medium text-gray-900">
+                                                                        {new Intl.DateTimeFormat('en-US', {
+                                                                            year: 'numeric',
+                                                                            month: 'long',
+                                                                            day: '2-digit',
+                                                                        }).format(new Date(stop.date))}
+                                                                    </span>{' '}
+                                                                    @ {stop.time}
+                                                                    <div>{stop.name}</div>
+                                                                    <div>{stop.street}</div>
+                                                                    <div>
+                                                                        {stop.city}, {stop.state} {stop.zip}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))}
+                                        <li>
+                                            <div className="relative pb-8">
+                                                <div className="relative flex items-start space-x-3">
+                                                    <>
+                                                        <div>
+                                                            <div className="relative px-1">
+                                                                <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
+                                                                    <LocationMarkerIcon
+                                                                        className="w-5 h-5 text-red-800"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="text-sm text-gray-500">
-                                                            <span className="text-lg font-medium text-gray-900">
-                                                                {new Intl.DateTimeFormat('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'long',
-                                                                    day: '2-digit',
-                                                                }).format(new Date(load.receiver.date))}
-                                                            </span>{' '}
-                                                            @ {load.receiver.time}
-                                                            <div>{load.receiver.name}</div>
-                                                            <div>{load.receiver.street}</div>
-                                                            <div>
-                                                                {load.receiver.city}, {load.receiver.state}{' '}
-                                                                {load.receiver.zip}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm text-gray-500">
+                                                                <span className="text-lg font-medium text-gray-900">
+                                                                    {new Intl.DateTimeFormat('en-US', {
+                                                                        year: 'numeric',
+                                                                        month: 'long',
+                                                                        day: '2-digit',
+                                                                    }).format(new Date(load.receiver.date))}
+                                                                </span>{' '}
+                                                                @ {load.receiver.time}
+                                                                <div>{load.receiver.name}</div>
+                                                                <div>{load.receiver.street}</div>
+                                                                <div>
+                                                                    {load.receiver.city}, {load.receiver.state}{' '}
+                                                                    {load.receiver.zip}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </>
+                                                    </>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </li>
-                                </ul>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };
