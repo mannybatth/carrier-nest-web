@@ -1,4 +1,5 @@
 import { Dialog, Transition } from '@headlessui/react';
+import { UserCircleIcon } from '@heroicons/react/outline';
 import { Driver } from '@prisma/client';
 import React, { Fragment, useEffect } from 'react';
 import { getAllDrivers } from '../../lib/rest/driver';
@@ -75,6 +76,12 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onSelect, onClose }: Prop
                                             onClick={() => onSelect(driver)}
                                         >
                                             <div className="flex items-center">
+                                                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                    <UserCircleIcon
+                                                        className="w-6 h-6 text-gray-500"
+                                                        aria-hidden="true"
+                                                    />
+                                                </div>
                                                 <div className="ml-4">
                                                     <div className="text-sm font-medium leading-5 text-gray-900">
                                                         {driver.name}
