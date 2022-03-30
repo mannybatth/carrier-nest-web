@@ -1,15 +1,17 @@
 import { Menu, Transition } from '@headlessui/react';
+import { Label } from '@headlessui/react/dist/components/label/label';
 import {
     ChevronDownIcon,
-    DocumentDownloadIcon,
+    DocumentAddIcon,
     LocationMarkerIcon,
-    PaperClipIcon,
     StopIcon,
     TruckIcon,
+    UploadIcon,
 } from '@heroicons/react/outline';
 import { Driver } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import { useS3Upload } from 'next-s3-upload';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { Fragment, useState } from 'react';
@@ -133,6 +135,34 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, ass
     );
 };
 
+type UploadDocsAreaProps = {
+    handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+};
+const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange }: UploadDocsAreaProps) => {
+    const { FileInput, openFileDialog } = useS3Upload();
+
+    return (
+        <div className="mt-1 sm:mt-0 sm:col-span-2">
+            <div className="flex justify-center max-w-lg px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                    <DocumentAddIcon className="w-12 h-12 mx-auto text-gray-400"></DocumentAddIcon>
+                    <div className="inline text-sm text-gray-600">
+                        <FileInput onChange={handleFileChange} />
+                        <a
+                            onClick={openFileDialog}
+                            className="relative font-medium text-indigo-600 bg-white rounded-md cursor-pointer hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                        >
+                            <span>Upload a file</span>
+                        </a>
+                        <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PDFs only up to 10MB</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export async function getServerSideProps(context: NextPageContext) {
     const load = await getLoadById(Number(context.query.id));
     return {
@@ -147,6 +177,8 @@ type Props = {
 };
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
+    const { FileInput, openFileDialog, uploadToS3, files } = useS3Upload();
+
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const router = useRouter();
 
@@ -182,6 +214,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
 
         router.push('/loads');
+    };
+
+    const handleFileChange = async (file) => {
+        const response = await uploadToS3(file);
+        console.log('response', response);
     };
 
     return (
@@ -229,7 +266,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                     </div>
                     <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
                         <div className="col-span-8 sm:col-span-3 md:col-span-8 lg:col-span-3">
-                            <aside className="overflow-y-auto bg-white border-gray-200">
+                            <aside className="bg-white border-gray-200">
                                 <div className="pb-0 space-y-6 lg:pb-10">
                                     <dl className="border-gray-200 divide-y divide-gray-200">
                                         <div className="flex justify-between py-3 text-sm font-medium">
@@ -286,6 +323,33 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                             <div className="flex justify-between py-3 text-sm font-medium">
                                                 <dt className="text-gray-500">Documents</dt>
                                                 <dd className="text-gray-900">
+                                                    <div>
+                                                        <FileInput onChange={handleFileChange} />
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            onClick={openFileDialog}
+                                                        >
+                                                            <UploadIcon className="w-4 h-4 mr-1 text-gray-500"></UploadIcon>
+                                                            <span className="block md:hidden">Upload</span>
+                                                            <span className="hidden md:block">Upload Docs</span>
+                                                        </button>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                            <div>
+                                                {files.map((file, index) => (
+                                                    <div key={index}>
+                                                        File #{index} progress: {file.progress}%
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <UploadDocsArea handleFileChange={handleFileChange}></UploadDocsArea>
+                                        </div>
+                                        {/* <div>
+                                            <div className="flex justify-between py-3 text-sm font-medium">
+                                                <dt className="text-gray-500">Documents</dt>
+                                                <dd className="text-gray-900">
                                                     <a>Download All</a>
                                                 </dd>
                                             </div>
@@ -322,7 +386,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                     </li>
                                                 ))}
                                             </ul>
-                                        </div>
+                                        </div> */}
                                     </dl>
                                 </div>
                             </aside>
