@@ -175,8 +175,11 @@ export type ExpandedDriver = SimpleDriver & {
  */
 const simpleLoadDocument = Prisma.validator<Prisma.LoadDocumentArgs>()({
     select: {
-        type: true,
-        filename: true,
+        fileKey: true,
+        fileUrl: true,
+        fileName: true,
+        fileType: true,
+        fileSize: true,
     },
 });
 export type SimpleLoadDocument = Prisma.LoadDocumentGetPayload<typeof simpleLoadDocument>;
@@ -184,6 +187,5 @@ export type SimpleLoadDocument = Prisma.LoadDocumentGetPayload<typeof simpleLoad
 export type ExpandedLoadDocument = SimpleLoadDocument & {
     id?: number;
     createdAt?: Date;
-    updatedAt?: Date;
     load?: ExpandedLoad & Record<string, unknown>;
 };

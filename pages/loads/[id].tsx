@@ -1,9 +1,10 @@
 import { Menu, Transition } from '@headlessui/react';
-import { Label } from '@headlessui/react/dist/components/label/label';
 import {
     ChevronDownIcon,
     DocumentAddIcon,
+    DocumentDownloadIcon,
     LocationMarkerIcon,
+    PaperClipIcon,
     StopIcon,
     TruckIcon,
     UploadIcon,
@@ -14,16 +15,16 @@ import { NextPageContext } from 'next';
 import { useS3Upload } from 'next-s3-upload';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { Fragment, useState } from 'react';
+import React, { ChangeEvent, Fragment, useState } from 'react';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadDocument, SimpleLoadDocument } from '../../interfaces/models';
 import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
-import { deleteLoadById, getLoadById } from '../../lib/rest/load';
+import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -136,7 +137,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, ass
 };
 
 type UploadDocsAreaProps = {
-    handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleFileChange: (file: File | undefined, event: ChangeEvent<HTMLInputElement>) => void;
 };
 const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange }: UploadDocsAreaProps) => {
     const { FileInput, openFileDialog } = useS3Upload();
@@ -180,6 +181,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
     const { FileInput, openFileDialog, uploadToS3, files } = useS3Upload();
 
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
+    const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>(load.loadDocuments);
     const router = useRouter();
 
     const onDriverSelect = async (driver: Driver) => {
@@ -216,9 +218,48 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
         router.push('/loads');
     };
 
-    const handleFileChange = async (file) => {
-        const response = await uploadToS3(file);
-        console.log('response', response);
+    const handleFileChange = async (file: File) => {
+        try {
+            const response = await uploadToS3(file);
+            if (response?.key) {
+                const simpleDoc: SimpleLoadDocument = {
+                    fileKey: response.key,
+                    fileUrl: response.url,
+                    fileName: file.name,
+                    fileType: file.type,
+                    fileSize: file.size,
+                };
+                setLoadDocuments([simpleDoc, ...loadDocuments]);
+                const newLoadDocument = await addLoadDocumentToLoad(load.id, simpleDoc);
+
+                const index = loadDocuments.findIndex((ld) => ld.fileKey === newLoadDocument.fileKey);
+                if (index !== -1) {
+                    const newLoadDocuments = [...loadDocuments];
+                    newLoadDocuments[index] = newLoadDocument;
+                    setLoadDocuments(newLoadDocuments);
+                }
+                notify({ title: 'Document uploaded', message: 'Document uploaded successfully' });
+            } else {
+                notify({ title: 'Error uploading document', message: 'Upload response invalid' });
+            }
+        } catch (e) {
+            notify({ title: 'Error uploading document', message: e.message });
+        }
+    };
+
+    const deleteLoadDocument = async (id: number) => {
+        try {
+            await deleteLoadDocumentFromLoad(load.id, id);
+            const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+            setLoadDocuments(newLoadDocuments);
+            notify({ title: 'Document deleted', message: 'Document deleted successfully' });
+        } catch (e) {
+            notify({ title: 'Error deleting document', message: e.message });
+        }
+    };
+
+    const openDocument = (document: ExpandedLoadDocument) => {
+        window.open(document.fileUrl);
     };
 
     return (
@@ -337,56 +378,61 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                     </div>
                                                 </dd>
                                             </div>
-                                            <div>
-                                                {files.map((file, index) => (
-                                                    <div key={index}>
-                                                        File #{index} progress: {file.progress}%
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <UploadDocsArea handleFileChange={handleFileChange}></UploadDocsArea>
+                                            {(files.length > 0 || loadDocuments.length > 0) && (
+                                                <ul
+                                                    role="list"
+                                                    className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                >
+                                                    {files.map((file, index) =>
+                                                        file.progress < 100 ? (
+                                                            <li
+                                                                key={`file-${index}`}
+                                                                className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                            >
+                                                                <div className="flex items-center flex-1 w-0">
+                                                                    <PaperClipIcon
+                                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <span className="flex-1 w-0 ml-2 truncate">
+                                                                        {file.file.name}{' '}
+                                                                        {file.progress < 100
+                                                                            ? `${Math.round(file.progress)}%`
+                                                                            : ''}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-shrink-0 ml-4">
+                                                                    <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
+                                                                </div>
+                                                            </li>
+                                                        ) : null,
+                                                    )}
+                                                    {loadDocuments.map((doc, index) => (
+                                                        <li
+                                                            key={`doc-${index}`}
+                                                            className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                            onClick={() => openDocument(doc)}
+                                                        >
+                                                            <div className="flex items-center flex-1 w-0">
+                                                                <PaperClipIcon
+                                                                    className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                    aria-hidden="true"
+                                                                />
+                                                                <span className="flex-1 w-0 ml-2 truncate">
+                                                                    {doc.fileName}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-shrink-0 ml-4">
+                                                                <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                            {loadDocuments.length === 0 && (
+                                                <UploadDocsArea handleFileChange={handleFileChange}></UploadDocsArea>
+                                            )}
                                         </div>
-                                        {/* <div>
-                                            <div className="flex justify-between py-3 text-sm font-medium">
-                                                <dt className="text-gray-500">Documents</dt>
-                                                <dd className="text-gray-900">
-                                                    <a>Download All</a>
-                                                </dd>
-                                            </div>
-                                            <ul
-                                                role="list"
-                                                className="border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                            >
-                                                {[
-                                                    {
-                                                        name: 'invoice.pdf',
-                                                        href: '',
-                                                    },
-                                                    {
-                                                        name: 'bol.pdf',
-                                                        href: '',
-                                                    },
-                                                ].map((attachment) => (
-                                                    <li
-                                                        key={attachment.name}
-                                                        className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                    >
-                                                        <div className="flex items-center flex-1 w-0">
-                                                            <PaperClipIcon
-                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                aria-hidden="true"
-                                                            />
-                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                {attachment.name}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-shrink-0 ml-4">
-                                                            <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div> */}
                                     </dl>
                                 </div>
                             </aside>

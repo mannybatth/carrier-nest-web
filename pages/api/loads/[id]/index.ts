@@ -29,6 +29,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const expandStops = expand?.includes('stops');
         const expandInvoice = expand?.includes('invoice');
         const expandDriver = expand?.includes('driver');
+        const expandDocuments = expand?.includes('documents');
 
         const load = await prisma.load.findFirst({
             where: {
@@ -115,6 +116,23 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                   name: true,
                                   phone: true,
                                   email: true,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(expandDocuments
+                    ? {
+                          loadDocuments: {
+                              select: {
+                                  id: true,
+                                  fileUrl: true,
+                                  fileName: true,
+                                  fileType: true,
+                                  fileSize: true,
+                                  createdAt: true,
+                              },
+                              orderBy: {
+                                  createdAt: 'desc',
                               },
                           },
                       }

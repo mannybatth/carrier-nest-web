@@ -1,6 +1,13 @@
-import { Load } from '@prisma/client';
+import { Load, LoadDocument } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedLoad, JSONResponse, PaginationMetadata, SimpleLoad, Sort } from '../../interfaces/models';
+import {
+    ExpandedLoad,
+    JSONResponse,
+    PaginationMetadata,
+    SimpleLoad,
+    SimpleLoadDocument,
+    Sort,
+} from '../../interfaces/models';
 
 export const getLoadsExpanded = async ({
     sort,
@@ -54,7 +61,7 @@ export const getLoadsExpanded = async ({
 
 export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
     const params = new URLSearchParams({
-        expand: 'customer,shipper,receiver,stops,invoice,driver',
+        expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
@@ -99,6 +106,34 @@ export const updateLoad = async (id: number, load: SimpleLoad) => {
 
 export const deleteLoadById = async (id: number) => {
     const response = await fetch(apiUrl + '/loads/' + id, {
+        method: 'DELETE',
+    });
+    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.result;
+};
+
+export const addLoadDocumentToLoad = async (loadId: number, loadDocument: SimpleLoadDocument) => {
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/documents', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loadDocument),
+    });
+    const { data, errors }: JSONResponse<{ loadDocument: LoadDocument }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.loadDocument;
+};
+
+export const deleteLoadDocumentFromLoad = async (loadId: number, loadDocumentId: number) => {
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/documents/' + loadDocumentId, {
         method: 'DELETE',
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();
