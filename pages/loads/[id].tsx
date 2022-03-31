@@ -421,7 +421,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                     </div>
                                                 </dd>
                                             </div>
-                                            {(files.length > 0 || loadDocuments.length > 0) && (
+                                            {(files.map((f) => f.progress < 100).filter((x) => x).length > 0 ||
+                                                loadDocuments.length > 0) && (
                                                 <ul
                                                     role="list"
                                                     className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
