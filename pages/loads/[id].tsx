@@ -352,19 +352,40 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                             <dt className="text-gray-500">Rate</dt>
                                             <dd className="text-gray-900">${load.rate}</dd>
                                         </div>
-                                        <div className="flex justify-between py-3 text-sm font-medium">
-                                            <dt className="text-gray-500">Invoice</dt>
-                                            <dd className="text-gray-900">
-                                                {load.invoice ? (
-                                                    <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
-                                                        <a># {load.invoice.id}</a>
-                                                    </Link>
-                                                ) : (
-                                                    <Link href={`/accounting/create-invoice/${load.id}`}>
-                                                        Create Invoice
-                                                    </Link>
-                                                )}
-                                            </dd>
+                                        <div>
+                                            <div className="flex justify-between py-3 text-sm font-medium">
+                                                <dt className="text-gray-500">Invoice</dt>
+                                                <dd className="text-gray-900">
+                                                    {load.invoice ? (
+                                                        <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
+                                                            <a># {load.invoice.id}</a>
+                                                        </Link>
+                                                    ) : (
+                                                        <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                            Create Invoice
+                                                        </Link>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            {load.invoice ? (
+                                                <ul
+                                                    role="list"
+                                                    className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                >
+                                                    <li className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                        <div className="flex items-center flex-1 w-0">
+                                                            <PaperClipIcon
+                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <span className="flex-1 w-0 ml-2 truncate">
+                                                                invoice.pdf
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-shrink-0 ml-4"></div>
+                                                    </li>
+                                                </ul>
+                                            ) : null}
                                         </div>
                                         <div>
                                             <div className="flex justify-between py-3 text-sm font-medium">
