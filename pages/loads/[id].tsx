@@ -8,6 +8,7 @@ import {
     StopIcon,
     TruckIcon,
     UploadIcon,
+    XIcon,
 } from '@heroicons/react/outline';
 import { Driver } from '@prisma/client';
 import classNames from 'classnames';
@@ -182,6 +183,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
 
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>(load.loadDocuments);
+    const [docsLoading, setDocsLoading] = useState(false);
     const router = useRouter();
 
     const onDriverSelect = async (driver: Driver) => {
@@ -219,6 +221,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
     };
 
     const handleFileChange = async (file: File) => {
+        setDocsLoading(true);
         try {
             const response = await uploadToS3(file);
             if (response?.key) {
@@ -229,10 +232,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                     fileType: file.type,
                     fileSize: file.size,
                 };
-                setLoadDocuments([simpleDoc, ...loadDocuments]);
+                const tempDocs = [simpleDoc, ...loadDocuments];
+                setLoadDocuments(tempDocs);
                 const newLoadDocument = await addLoadDocumentToLoad(load.id, simpleDoc);
 
-                const index = loadDocuments.findIndex((ld) => ld.fileKey === newLoadDocument.fileKey);
+                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
                 if (index !== -1) {
                     const newLoadDocuments = [...loadDocuments];
                     newLoadDocuments[index] = newLoadDocument;
@@ -245,9 +249,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
         } catch (e) {
             notify({ title: 'Error uploading document', message: e.message });
         }
+        setDocsLoading(false);
     };
 
     const deleteLoadDocument = async (id: number) => {
+        setDocsLoading(true);
         try {
             await deleteLoadDocumentFromLoad(load.id, id);
             const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
@@ -256,6 +262,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
         } catch (e) {
             notify({ title: 'Error deleting document', message: e.message });
         }
+        setDocsLoading(false);
     };
 
     const openDocument = (document: ExpandedLoadDocument) => {
@@ -370,6 +377,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                             type="button"
                                                             className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                             onClick={openFileDialog}
+                                                            disabled={docsLoading}
                                                         >
                                                             <UploadIcon className="w-4 h-4 mr-1 text-gray-500"></UploadIcon>
                                                             <span className="block md:hidden">Upload</span>
@@ -408,23 +416,32 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                         ) : null,
                                                     )}
                                                     {loadDocuments.map((doc, index) => (
-                                                        <li
-                                                            key={`doc-${index}`}
-                                                            className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                            onClick={() => openDocument(doc)}
-                                                        >
-                                                            <div className="flex items-center flex-1 w-0">
-                                                                <PaperClipIcon
-                                                                    className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                    aria-hidden="true"
-                                                                />
-                                                                <span className="flex-1 w-0 ml-2 truncate">
-                                                                    {doc.fileName}
-                                                                </span>
+                                                        <li key={`doc-${index}`}>
+                                                            <div
+                                                                className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                                onClick={() => openDocument(doc)}
+                                                            >
+                                                                <div className="flex items-center flex-1 w-0">
+                                                                    <PaperClipIcon
+                                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <span className="flex-1 w-0 ml-2 truncate">
+                                                                        {doc.fileName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-shrink-0 ml-4">
+                                                                    <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex-shrink-0 ml-4">
-                                                                <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
-                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                onClick={() => deleteLoadDocument(doc.id)}
+                                                                disabled={docsLoading}
+                                                            >
+                                                                <XIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></XIcon>
+                                                            </button>
                                                         </li>
                                                     ))}
                                                 </ul>

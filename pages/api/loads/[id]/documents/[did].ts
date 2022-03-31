@@ -1,7 +1,9 @@
+import { LoadDocument } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
+import aws from 'aws-sdk';
 
 export default handler;
 
@@ -47,7 +49,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        // Delete document on aws s3
+        deleteDocumentFromS3(document);
 
         await prisma.loadDocument.delete({
             where: {
@@ -60,3 +62,22 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
     }
 }
+
+const deleteDocumentFromS3 = async (document: LoadDocument): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        const s3 = new aws.S3({
+            accessKeyId: process.env.S3_UPLOAD_KEY,
+            secretAccessKey: process.env.S3_UPLOAD_SECRET,
+            region: process.env.S3_UPLOAD_REGION,
+        });
+
+        const params = {
+            Bucket: process.env.S3_UPLOAD_BUCKET,
+            Key: document.fileKey,
+        };
+
+        s3.deleteObject(params, function (err, data) {
+            resolve();
+        });
+    });
+};
