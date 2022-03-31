@@ -8,7 +8,7 @@ import {
     StopIcon,
     TruckIcon,
     UploadIcon,
-    XIcon,
+    TrashIcon,
 } from '@heroicons/react/outline';
 import { Driver } from '@prisma/client';
 import classNames from 'classnames';
@@ -417,11 +417,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                     )}
                                                     {loadDocuments.map((doc, index) => (
                                                         <li key={`doc-${index}`}>
-                                                            <div
-                                                                className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                                onClick={() => openDocument(doc)}
-                                                            >
-                                                                <div className="flex items-center flex-1 w-0">
+                                                            <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                <div
+                                                                    className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                    onClick={() => openDocument(doc)}
+                                                                >
                                                                     <PaperClipIcon
                                                                         className="flex-shrink-0 w-4 h-4 text-gray-400"
                                                                         aria-hidden="true"
@@ -430,18 +430,20 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                                         {doc.fileName}
                                                                     </span>
                                                                 </div>
-                                                                <div className="flex-shrink-0 ml-4">
-                                                                    <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
+                                                                <div className="flex-shrink-0 ml-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            deleteLoadDocument(doc.id);
+                                                                        }}
+                                                                        disabled={docsLoading}
+                                                                    >
+                                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                    </button>
                                                                 </div>
                                                             </div>
-                                                            <button
-                                                                type="button"
-                                                                className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                onClick={() => deleteLoadDocument(doc.id)}
-                                                                disabled={docsLoading}
-                                                            >
-                                                                <XIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></XIcon>
-                                                            </button>
                                                         </li>
                                                     ))}
                                                 </ul>
