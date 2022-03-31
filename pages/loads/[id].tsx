@@ -2,13 +2,12 @@ import { Menu, Transition } from '@headlessui/react';
 import {
     ChevronDownIcon,
     DocumentAddIcon,
-    DocumentDownloadIcon,
     LocationMarkerIcon,
     PaperClipIcon,
     StopIcon,
+    TrashIcon,
     TruckIcon,
     UploadIcon,
-    TrashIcon,
 } from '@heroicons/react/outline';
 import { Driver } from '@prisma/client';
 import classNames from 'classnames';
@@ -238,7 +237,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
 
                 const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
                 if (index !== -1) {
-                    const newLoadDocuments = [...loadDocuments];
+                    const newLoadDocuments = [...tempDocs];
                     newLoadDocuments[index] = newLoadDocument;
                     setLoadDocuments(newLoadDocuments);
                 }
@@ -403,14 +402,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ load }: Props) => {
                                                                         aria-hidden="true"
                                                                     />
                                                                     <span className="flex-1 w-0 ml-2 truncate">
-                                                                        {file.file.name}{' '}
+                                                                        {file.file.name}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-shrink-0 ml-4">
+                                                                    <span className="flex-1 w-0 ml-2 truncate">
                                                                         {file.progress < 100
                                                                             ? `${Math.round(file.progress)}%`
                                                                             : ''}
                                                                     </span>
-                                                                </div>
-                                                                <div className="flex-shrink-0 ml-4">
-                                                                    <DocumentDownloadIcon className="w-5 h-5 text-gray-500"></DocumentDownloadIcon>
                                                                 </div>
                                                             </li>
                                                         ) : null,
