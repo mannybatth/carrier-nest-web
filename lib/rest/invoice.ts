@@ -2,6 +2,7 @@ import { Invoice } from '@prisma/client';
 import { apiUrl } from '../../constants';
 import {
     ExpandedInvoice,
+    InvoiceStatus,
     JSONResponse,
     PaginationMetadata,
     SimpleInvoice,
@@ -13,10 +14,12 @@ export const getInvoicesExpanded = async ({
     sort,
     limit,
     offset,
+    status,
 }: {
     sort?: Sort;
     limit?: number;
     offset?: number;
+    status?: InvoiceStatus;
 } = {}): Promise<{ invoices: ExpandedInvoice[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams({
         expand: 'load',
@@ -32,6 +35,9 @@ export const getInvoicesExpanded = async ({
     }
     if (offset !== undefined) {
         params.append('offset', offset.toString());
+    }
+    if (status) {
+        params.append('status', status);
     }
     console.log(`${apiUrl}/invoices?${params.toString()}`);
     const response = await fetch(apiUrl + '/invoices?' + params.toString());

@@ -1,4 +1,5 @@
-import { ExpandedInvoice, InvoiceStatus } from '../../interfaces/models';
+import { InvoiceStatus } from '@prisma/client';
+import { ExpandedInvoice, UIInvoiceStatus } from '../../interfaces/models';
 
 export const invoiceTermOptions = [
     {
@@ -19,22 +20,21 @@ export const invoiceTermOptions = [
     },
 ];
 
-export const invoiceStatus = (invoice: ExpandedInvoice): InvoiceStatus => {
-    if (invoice.lastPaymentAt) {
-        if (invoice.paidAmount >= invoice.totalAmount) {
-            return InvoiceStatus.PAID;
-        }
-        return InvoiceStatus.PARTIALLY_PAID;
+export const invoiceStatus = (invoice: ExpandedInvoice): UIInvoiceStatus => {
+    if (invoice.status === InvoiceStatus.PAID) {
+        return UIInvoiceStatus.PAID;
     }
 
     if (invoice.dueNetDays > 0) {
-        const dueDate = new Date(invoice.invoicedAt);
-        dueDate.setDate(dueDate.getDate() + invoice.dueNetDays);
         const now = new Date();
-
-        if (now > dueDate) {
-            return InvoiceStatus.OVERDUE;
+        if (now > new Date(invoice.dueDate)) {
+            return UIInvoiceStatus.OVERDUE;
         }
     }
-    return InvoiceStatus.NOT_PAID;
+
+    if (invoice.status === InvoiceStatus.PARTIALLY_PAID) {
+        return UIInvoiceStatus.PARTIALLY_PAID;
+    }
+
+    return UIInvoiceStatus.NOT_PAID;
 };

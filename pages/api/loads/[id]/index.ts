@@ -43,7 +43,10 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                           invoice: {
                               select: {
                                   id: true,
+                                  status: true,
                                   totalAmount: true,
+                                  invoicedAt: true,
+                                  dueDate: true,
                                   dueNetDays: true,
                                   paidAmount: true,
                                   lastPaymentAt: true,

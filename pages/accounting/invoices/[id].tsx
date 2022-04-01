@@ -333,7 +333,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoice }: Props) => {
 
                     {invoice.payments?.length > 0 && (
                         <>
-                            <h3 className="pt-2">Payments</h3>
+                            <h3 className="pt-2">Payment History</h3>
                             <div className="grid grid-cols-6 mt-1">
                                 <div className="col-span-6 lg:col-span-4">
                                     <table className="relative min-w-full mt-1 divide-y divide-gray-300">

@@ -60,6 +60,7 @@ const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: s
             limit: metadata.currentLimit,
             offset: metadata.currentOffset,
             sort,
+            currentOnly: !isBrowsing,
         });
         setLoadsList(loads);
         setMetadata(metadataResponse);

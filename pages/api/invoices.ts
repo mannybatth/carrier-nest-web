@@ -1,22 +1,58 @@
+import { InvoiceStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { Session } from 'next-auth';
 import { getSession } from 'next-auth/react';
 import { ExpandedInvoice, JSONResponse } from '../../interfaces/models';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
-const buildOrderBy = (sortBy: string, sortDir: string) => {
+const buildOrderBy = (
+    sortBy: string,
+    sortDir: 'asc' | 'desc',
+): Prisma.Enumerable<Prisma.InvoiceOrderByWithRelationAndSearchRelevanceInput> => {
     if (sortBy && sortDir) {
         if (sortBy.includes('.')) {
             const split = sortBy.split('.');
-            return {
-                [split[0]]: {
-                    [split[1]]: sortDir,
-                },
-            };
+            if (split.length === 3) {
+                return {
+                    [split[0]]: {
+                        [split[1]]: {
+                            [split[2]]: sortDir,
+                        },
+                    },
+                };
+            } else {
+                return {
+                    [split[0]]: {
+                        [split[1]]: sortDir,
+                    },
+                };
+            }
         }
         return { [sortBy]: sortDir };
     }
     return undefined;
+};
+
+const buildWhere = (session: Session, status: string): Prisma.InvoiceWhereInput => {
+    const s = status || 'not_paid';
+    const conditions: Prisma.InvoiceWhereInput = {
+        userId: session?.user?.id,
+    };
+
+    // if (s === 'not_paid') {
+    //     conditions.paid = false;
+    // } else if (s === 'partially_paid') {
+    //     conditions.paid = true;
+    // } else if (s === 'overdue') {
+    //     conditions.invoiced = true;
+    // } else if (s === 'paid') {
+    //     // do nothing
+    // } else {
+    //     throw new Error(`Unknown status: ${s}`);
+    // }
+
+    return conditions;
 };
 
 export default handler;
@@ -39,6 +75,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const expand = req.query.expand as string;
         const expandLoad = expand?.includes('load');
 
+        const status = req.query.status as string;
+
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
 
@@ -60,17 +98,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         }
 
         const total = await prisma.invoice.count({
-            where: {
-                userId: session?.user?.id,
-            },
+            where: buildWhere(session, status),
         });
 
         const metadata = calcPaginationMetadata({ total, limit, offset });
 
         const invoices = await prisma.invoice.findMany({
-            where: {
-                userId: session?.user?.id,
-            },
+            where: buildWhere(session, status),
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
@@ -80,11 +114,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 ...(expandLoad
                     ? {
                           load: {
-                              select: { id: true, refNum: true, rate: true, distance: true, distanceUnit: true },
-                              include: {
-                                  customer: {
-                                      select: { id: true, name: true },
-                                  },
+                              select: {
+                                  id: true,
+                                  refNum: true,
+                                  rate: true,
+                                  distance: true,
+                                  distanceUnit: true,
+                                  customer: true,
                               },
                           },
                       }
@@ -101,10 +137,15 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const session = await getSession({ req });
             const invoiceData = req.body as ExpandedInvoice;
 
+            const dueDate = new Date(invoiceData.invoicedAt);
+            dueDate.setDate(dueDate.getDate() + invoiceData.dueNetDays);
+
             const invoice = await prisma.invoice.create({
                 data: {
-                    invoicedAt: invoiceData.invoicedAt,
+                    status: InvoiceStatus.NOT_PAID,
                     totalAmount: invoiceData.totalAmount || '',
+                    invoicedAt: invoiceData.invoicedAt,
+                    dueDate,
                     dueNetDays: invoiceData.dueNetDays || 0,
                     user: {
                         connect: {

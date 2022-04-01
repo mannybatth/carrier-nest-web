@@ -98,13 +98,17 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         console.log('invoice to update', invoiceData);
 
+        const dueDate = new Date(invoiceData.invoicedAt);
+        dueDate.setDate(dueDate.getDate() + invoiceData.dueNetDays);
+
         const updatedInvoice = await prisma.invoice.update({
             where: {
                 id: Number(req.query.id),
             },
             data: {
-                invoicedAt: invoiceData.invoicedAt,
                 totalAmount: invoiceData.totalAmount || 0,
+                invoicedAt: invoiceData.invoicedAt,
+                dueDate,
                 dueNetDays: invoiceData.dueNetDays || 0,
                 carrier: {
                     connect: {

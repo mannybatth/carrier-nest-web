@@ -102,7 +102,7 @@ export type ExpandedCustomer = SimpleCustomer & {
 /**
  * Invoice
  */
-export enum InvoiceStatus {
+export enum UIInvoiceStatus {
     NOT_PAID = 'not paid',
     PARTIALLY_PAID = 'partially paid',
     OVERDUE = 'overdue',
@@ -135,9 +135,11 @@ export type ExpandedInvoicePayment = SimpleInvoicePayment & {
 
 const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     select: {
+        status: true,
         totalAmount: true,
-        dueNetDays: true,
         invoicedAt: true,
+        dueDate: true,
+        dueNetDays: true,
         paidAmount: true,
         lastPaymentAt: true,
     },

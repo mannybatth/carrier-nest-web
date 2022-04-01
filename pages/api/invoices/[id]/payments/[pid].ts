@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { InvoiceStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -63,12 +63,25 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
         const lastPaidDate = invoice.payments.length > 0 ? invoice.payments[0].paidAt : null;
 
+        const newStatus = ((): InvoiceStatus => {
+            if (paidAmount.isZero()) {
+                return InvoiceStatus.NOT_PAID;
+            }
+
+            if (paidAmount.lessThan(invoice.totalAmount)) {
+                return InvoiceStatus.PARTIALLY_PAID;
+            }
+
+            return InvoiceStatus.PAID;
+        })();
+
         await prisma.invoice.update({
             where: {
                 id: Number(req.query.id),
             },
             data: {
                 paidAmount,
+                status: newStatus,
                 lastPaymentAt: lastPaidDate,
             },
         });

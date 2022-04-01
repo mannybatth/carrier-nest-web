@@ -1,16 +1,16 @@
-import { ExpandedLoad, InvoiceStatus, LoadStatus } from '../../interfaces/models';
+import { ExpandedLoad, UIInvoiceStatus, LoadStatus } from '../../interfaces/models';
 import { invoiceStatus } from '../invoice/invoice-utils';
 
 export const loadStatus = (load: ExpandedLoad): LoadStatus => {
     if (load.invoice) {
         const inStatus = invoiceStatus(load.invoice);
-        if (inStatus === InvoiceStatus.NOT_PAID) {
+        if (inStatus === UIInvoiceStatus.NOT_PAID) {
             return LoadStatus.INVOICED;
-        } else if (inStatus === InvoiceStatus.OVERDUE) {
+        } else if (inStatus === UIInvoiceStatus.OVERDUE) {
             return LoadStatus.OVERDUE;
-        } else if (inStatus === InvoiceStatus.PARTIALLY_PAID) {
+        } else if (inStatus === UIInvoiceStatus.PARTIALLY_PAID) {
             return LoadStatus.INVOICED;
-        } else if (inStatus === InvoiceStatus.PAID) {
+        } else if (inStatus === UIInvoiceStatus.PAID) {
             return LoadStatus.PAID;
         }
     }

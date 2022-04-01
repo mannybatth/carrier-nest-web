@@ -171,6 +171,12 @@ model Driver {
     @@index([name, carrierId])
 }
 
+enum InvoiceStatus {
+    NOT_PAID
+    PARTIALLY_PAID
+    PAID
+}
+
 model Invoice {
     id            Int              @id @default(autoincrement())
     user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -181,8 +187,10 @@ model Invoice {
     loadId        Int              @unique
     createdAt     DateTime         @default(now())
     updatedAt     DateTime         @updatedAt
-    invoicedAt    DateTime
+    status        InvoiceStatus
     totalAmount   Decimal
+    invoicedAt    DateTime
+    dueDate       DateTime
     dueNetDays    Int              @default(0)
     paidAmount    Decimal?         @default(0)
     lastPaymentAt DateTime?
