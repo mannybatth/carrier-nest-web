@@ -2,7 +2,7 @@ import { InvoiceStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session } from 'next-auth';
 import { getSession } from 'next-auth/react';
-import { ExpandedInvoice, JSONResponse } from '../../interfaces/models';
+import { ExpandedInvoice, JSONResponse, UIInvoiceStatus } from '../../interfaces/models';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
@@ -34,23 +34,27 @@ const buildOrderBy = (
     return undefined;
 };
 
-const buildWhere = (session: Session, status: string): Prisma.InvoiceWhereInput => {
-    const s = status || 'not_paid';
+const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWhereInput => {
+    const invoiceStatus = (() => {
+        switch (status) {
+            case UIInvoiceStatus.NOT_PAID:
+                return InvoiceStatus.NOT_PAID;
+            case UIInvoiceStatus.PARTIALLY_PAID:
+                return InvoiceStatus.PARTIALLY_PAID;
+            case UIInvoiceStatus.PAID:
+                return InvoiceStatus.PAID;
+            default:
+                return InvoiceStatus.NOT_PAID;
+        }
+    })();
+
     const conditions: Prisma.InvoiceWhereInput = {
         userId: session?.user?.id,
     };
 
-    // if (s === 'not_paid') {
-    //     conditions.paid = false;
-    // } else if (s === 'partially_paid') {
-    //     conditions.paid = true;
-    // } else if (s === 'overdue') {
-    //     conditions.invoiced = true;
-    // } else if (s === 'paid') {
-    //     // do nothing
-    // } else {
-    //     throw new Error(`Unknown status: ${s}`);
-    // }
+    if (status !== UIInvoiceStatus.OVERDUE) {
+        conditions.status = invoiceStatus;
+    }
 
     return conditions;
 };
@@ -98,13 +102,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         }
 
         const total = await prisma.invoice.count({
-            where: buildWhere(session, status),
+            where: buildWhere(session, status as UIInvoiceStatus),
         });
 
         const metadata = calcPaginationMetadata({ total, limit, offset });
 
         const invoices = await prisma.invoice.findMany({
-            where: buildWhere(session, status),
+            where: buildWhere(session, status as UIInvoiceStatus),
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
