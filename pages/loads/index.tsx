@@ -15,7 +15,7 @@ import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
-    const isBrowsing = query.browse === 'true';
+    const isBrowsing = query.show === 'all';
 
     const data = await getLoadsExpanded({
         limit: Number(query.limit) || 10,
@@ -142,7 +142,7 @@ const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: s
                                     onClick={() => {
                                         router.push({
                                             pathname: router.pathname,
-                                            query: { browse: 'true' },
+                                            query: { show: 'all' },
                                         });
                                     }}
                                     className={classNames(
