@@ -23,7 +23,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const load = await prisma.load.findFirst({
             where: {
                 id: Number(req.query.id),
-                userId: session?.user?.id,
+                userId: session.user.id,
             },
         });
 
@@ -39,7 +39,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             where: {
                 id: documentId,
                 loadId: load.id,
-                userId: session?.user?.id,
+                userId: session.user.id,
             },
         });
 

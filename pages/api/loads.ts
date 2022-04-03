@@ -90,7 +90,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const total = await prisma.load.count({
             where: {
-                userId: session?.user?.id,
+                userId: session.user.id,
                 ...(customerId ? { customerId } : null),
                 ...(driverId ? { driverId } : null),
                 ...(currentOnly ? { invoice: null } : {}),
@@ -101,7 +101,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const loads = await prisma.load.findMany({
             where: {
-                userId: session?.user?.id,
+                userId: session.user.id,
                 ...(customerId ? { customerId } : null),
                 ...(driverId ? { driverId } : null),
                 ...(currentOnly ? { invoice: null } : {}),

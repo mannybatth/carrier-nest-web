@@ -22,7 +22,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const invoice = await prisma.invoice.findFirst({
             where: {
                 id: Number(req.query.id),
-                userId: session?.user?.id,
+                userId: session.user.id,
             },
             include: {
                 payments: {
