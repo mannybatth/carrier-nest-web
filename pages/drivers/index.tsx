@@ -2,6 +2,7 @@ import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -10,17 +11,22 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/models';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
+import { getDrivers } from '../api/drivers';
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
 
-    const data = await getAllDrivers({
-        limit: Number(query.limit) || 10,
-        offset: Number(query.offset) || 0,
-        sort,
+    const { data } = await getDrivers({
+        req: context.req,
+        query: {
+            limit: query.limit || '10',
+            offset: query.offset || '0',
+            sortBy: sort?.key,
+            sortDir: sort?.order,
+        },
     });
-    return { props: { drivers: data.drivers, metadata: data.metadata, sort } };
+    return { props: { drivers: JSON.parse(safeJsonStringify(data.drivers)), metadata: data.metadata, sort } };
 }
 
 type Props = {

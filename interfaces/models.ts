@@ -1,4 +1,4 @@
-import { Customer, Prisma } from '@prisma/client';
+import { Customer, InvoiceStatus, Prisma } from '@prisma/client';
 
 export type Sort = {
     key: string;
@@ -6,6 +6,7 @@ export type Sort = {
 };
 
 export type JSONResponse<T> = {
+    code: number;
     data?: T;
     errors?: Array<{ message: string }>;
 };
@@ -135,13 +136,9 @@ export type ExpandedInvoicePayment = SimpleInvoicePayment & {
 
 const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     select: {
-        status: true,
         totalAmount: true,
         invoicedAt: true,
-        dueDate: true,
         dueNetDays: true,
-        paidAmount: true,
-        lastPaymentAt: true,
     },
 });
 export type SimpleInvoice = Prisma.InvoiceGetPayload<typeof simpleInvoice>;
@@ -150,6 +147,10 @@ export type ExpandedInvoice = SimpleInvoice & {
     id?: number;
     createdAt?: Date;
     updatedAt?: Date;
+    status?: InvoiceStatus;
+    dueDate?: Date;
+    lastPaymentAt?: Date;
+    paidAmount?: Prisma.Decimal;
     load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];
     payments?: ExpandedInvoicePayment[];

@@ -3,21 +3,30 @@ import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import safeJsonStringify from 'safe-json-stringify';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
-import { getLoadById, updateLoad } from '../../../lib/rest/load';
+import { updateLoad } from '../../../lib/rest/load';
+import { getLoad } from '../../api/loads/[id]';
 
 type Props = {
     load: ExpandedLoad;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const load = await getLoadById(Number(context.query.id));
-    if (!load) {
+    const { data } = await getLoad({
+        req: context.req,
+        query: {
+            id: context.query.id,
+            expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
+        },
+    });
+
+    if (!data?.load) {
         return {
             redirect: {
                 permanent: false,
@@ -28,7 +37,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            load,
+            load: JSON.parse(safeJsonStringify(data.load)),
         },
     };
 }

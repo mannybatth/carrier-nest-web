@@ -3,6 +3,7 @@ import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
@@ -11,19 +12,25 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
+import { getLoads } from '../api/loads';
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
     const isBrowsing = query.show === 'all';
 
-    const data = await getLoadsExpanded({
-        limit: Number(query.limit) || 10,
-        offset: Number(query.offset) || 0,
-        sort,
-        currentOnly: !isBrowsing,
+    const { data, errors } = await getLoads({
+        req: context.req,
+        query: {
+            expand: 'customer,shipper,receiver',
+            limit: query.limit || '10',
+            offset: query.offset || '0',
+            sortBy: sort?.key,
+            sortDir: sort?.order,
+            currentOnly: !isBrowsing ? '1' : null,
+        },
     });
-    return { props: { loads: data.loads, metadata: data.metadata, sort, isBrowsing } };
+    return { props: { loads: JSON.parse(safeJsonStringify(data.loads)), metadata: data.metadata, sort, isBrowsing } };
 }
 
 type Props = {

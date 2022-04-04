@@ -3,6 +3,7 @@ import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import safeJsonStringify from 'safe-json-stringify';
 import InvoiceForm from '../../../../components/forms/invoice/InvoiceForm';
 import BreadCrumb from '../../../../components/layout/BreadCrumb';
 import Layout from '../../../../components/layout/Layout';
@@ -10,12 +11,19 @@ import { LoadCard } from '../../../../components/loads/LoadCard';
 import { notify } from '../../../../components/Notification';
 import { PageWithAuth } from '../../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../../interfaces/models';
-import { getInvoiceById, updateInvoice } from '../../../../lib/rest/invoice';
+import { updateInvoice } from '../../../../lib/rest/invoice';
+import { getInvoice } from '../../../api/invoices/[id]';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const invoice = await getInvoiceById(Number(context.query.id));
+    const { data } = await getInvoice({
+        req: context.req,
+        query: {
+            id: context.query.id,
+            expand: 'load,extraItems,payments',
+        },
+    });
 
-    if (!invoice) {
+    if (!data?.invoice) {
         return {
             redirect: {
                 permanent: false,
@@ -26,7 +34,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            invoice,
+            invoice: JSON.parse(safeJsonStringify(data.invoice)),
         },
     };
 }

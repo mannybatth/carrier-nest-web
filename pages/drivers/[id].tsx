@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
@@ -12,8 +13,10 @@ import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
-import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
+import { deleteDriverById } from '../../lib/rest/driver';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
+import { getDriver } from '../api/drivers/[id]';
+import { getLoads } from '../api/loads';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -41,7 +44,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver 
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute z-10 right-0 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
                         <Menu.Item>
                             {({ active }) => (
@@ -86,23 +89,33 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver 
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
-    const driverId = Number(query.id);
+    const driverId = query.id;
     const sort: Sort = sortFromQuery(query);
 
-    const [driver, loadsData] = await Promise.all([
-        getDriverById(driverId),
-        getLoadsExpanded({
-            driverId: driverId,
-            limit: Number(query.limit) || 10,
-            offset: Number(query.offset) || 0,
-            sort,
+    const [{ data: driverData }, { data: loadsData }] = await Promise.all([
+        getDriver({
+            req: context.req,
+            query: {
+                id: driverId,
+            },
+        }),
+        getLoads({
+            req: context.req,
+            query: {
+                driverId: driverId,
+                expand: 'customer,shipper,receiver',
+                limit: query.limit || '10',
+                offset: query.offset || '0',
+                sortBy: sort?.key,
+                sortDir: sort?.order,
+            },
         }),
     ]);
     return {
         props: {
-            driver: driver || null,
+            driver: JSON.parse(safeJsonStringify(driverData.driver)) || null,
             loadCount: loadsData?.metadata?.total || 0,
-            loads: loadsData.loads,
+            loads: JSON.parse(safeJsonStringify(loadsData.loads)),
             metadata: loadsData.metadata,
             sort,
         },

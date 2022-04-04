@@ -3,21 +3,28 @@ import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import safeJsonStringify from 'safe-json-stringify';
 import DriverForm from '../../../components/forms/driver/DriverForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedDriver, SimpleDriver } from '../../../interfaces/models';
-import { getDriverById, updateDriver } from '../../../lib/rest/driver';
+import { updateDriver } from '../../../lib/rest/driver';
+import { getDriver } from '../../api/drivers/[id]';
 
 type Props = {
     driver: Driver;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const driver = await getDriverById(Number(context.query.id));
-    if (!driver) {
+    const { data } = await getDriver({
+        req: context.req,
+        query: {
+            id: context.query.id,
+        },
+    });
+    if (!data?.driver) {
         return {
             redirect: {
                 permanent: false,
@@ -28,7 +35,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            driver,
+            driver: JSON.parse(safeJsonStringify(data.driver)),
         },
     };
 }

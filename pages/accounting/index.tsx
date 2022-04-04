@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -10,19 +11,27 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedInvoice, UIInvoiceStatus, PaginationMetadata, Sort } from '../../interfaces/models';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteInvoiceById, getInvoicesExpanded } from '../../lib/rest/invoice';
+import { getInvoices } from '../api/invoices';
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
     const withStatus = query.status ? (query.status as UIInvoiceStatus) : UIInvoiceStatus.NOT_PAID;
 
-    const data = await getInvoicesExpanded({
-        limit: Number(query.limit) || 10,
-        offset: Number(query.offset) || 0,
-        sort,
-        status: withStatus,
+    const { data, errors } = await getInvoices({
+        req: context.req,
+        query: {
+            expand: 'load',
+            limit: query.limit || '10',
+            offset: query.offset || '0',
+            sortBy: sort?.key,
+            sortDir: sort?.order,
+            status: withStatus,
+        },
     });
-    return { props: { invoices: data.invoices, metadata: data.metadata, sort, withStatus } };
+    return {
+        props: { invoices: JSON.parse(safeJsonStringify(data.invoices)), metadata: data.metadata, sort, withStatus },
+    };
 }
 
 type Props = {

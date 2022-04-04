@@ -3,21 +3,28 @@ import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import safeJsonStringify from 'safe-json-stringify';
 import CustomerForm from '../../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedCustomer, SimpleCustomer } from '../../../interfaces/models';
-import { getCustomerById, updateCustomer } from '../../../lib/rest/customer';
+import { updateCustomer } from '../../../lib/rest/customer';
+import { getCustomer } from '../../api/customers/[id]';
 
 type Props = {
     customer: Customer;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const customer = await getCustomerById(Number(context.query.id));
-    if (!customer) {
+    const { data } = await getCustomer({
+        req: context.req,
+        query: {
+            id: context.query.id,
+        },
+    });
+    if (!data?.customer) {
         return {
             redirect: {
                 permanent: false,
@@ -28,7 +35,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            customer,
+            customer: JSON.parse(safeJsonStringify(data.customer)),
         },
     };
 }

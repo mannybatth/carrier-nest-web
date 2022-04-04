@@ -3,6 +3,7 @@ import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import safeJsonStringify from 'safe-json-stringify';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
@@ -11,12 +12,18 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { createInvoice } from '../../../lib/rest/invoice';
-import { getLoadById } from '../../../lib/rest/load';
+import { getLoad } from '../../api/loads/[id]';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const load = await getLoadById(Number(context.query.id));
+    const { data } = await getLoad({
+        req: context.req,
+        query: {
+            id: context.query.id,
+            expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
+        },
+    });
 
-    if (!load) {
+    if (!data?.load) {
         return {
             redirect: {
                 permanent: false,
@@ -25,18 +32,18 @@ export async function getServerSideProps(context: NextPageContext) {
         };
     }
 
-    if (load.invoice) {
+    if (data.load.invoice) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/accounting/invoices/${load.invoice.id}`,
+                destination: `/accounting/invoices/${data.load.invoice.id}`,
             },
         };
     }
 
     return {
         props: {
-            load,
+            load: JSON.parse(safeJsonStringify(data.load)),
         },
     };
 }

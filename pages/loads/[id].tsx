@@ -16,6 +16,7 @@ import { useS3Upload } from 'next-s3-upload';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useState } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
@@ -24,7 +25,8 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument, SimpleLoadDocument } from '../../interfaces/models';
 import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
-import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
+import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad } from '../../lib/rest/load';
+import { getLoad } from '../api/loads/[id]';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -180,10 +182,16 @@ const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange }: Upl
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const load = await getLoadById(Number(context.query.id));
+    const { data } = await getLoad({
+        req: context.req,
+        query: {
+            id: context.query.id,
+            expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
+        },
+    });
     return {
         props: {
-            load,
+            load: JSON.parse(safeJsonStringify(data.load)),
         },
     };
 }

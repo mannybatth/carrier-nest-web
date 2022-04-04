@@ -11,6 +11,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _post();
         default:
             return res.status(405).send({
+                code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
     }
@@ -27,6 +28,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         if (!load) {
             return res.status(404).send({
+                code: 404,
                 errors: [{ message: 'Load not found' }],
             });
         }
@@ -52,6 +54,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).json({
+            code: 200,
             data: { loadDocument },
         });
     }

@@ -1,5 +1,8 @@
+import { Driver } from '@prisma/client';
+import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
+import { ParsedUrlQuery } from 'querystring';
 import { ExpandedDriver, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
@@ -15,22 +18,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _delete();
         default:
             return res.status(405).send({
+                code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
     }
 
     async function _get() {
-        const session = await getSession({ req });
-
-        const driver = await prisma.driver.findFirst({
-            where: {
-                id: Number(req.query.id),
-                carrierId: session?.user?.carrierId,
-            },
-        });
-        return res.status(200).json({
-            data: { driver },
-        });
+        const response = await getDriver({ req, query: req.query });
+        return res.status(response.code).json(response);
     }
 
     async function _put() {
@@ -39,12 +34,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const driver = await prisma.driver.findFirst({
             where: {
                 id: Number(req.query.id),
-                carrierId: session?.user?.carrierId,
+                carrierId: session.user.carrierId,
             },
         });
 
         if (!driver) {
             return res.status(404).send({
+                code: 404,
                 errors: [{ message: 'Driver not found' }],
             });
         }
@@ -65,6 +61,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).json({
+            code: 200,
             data: { updatedDriver },
         });
     }
@@ -75,12 +72,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const driver = await prisma.driver.findFirst({
             where: {
                 id: Number(req.query.id),
-                carrierId: session?.user?.carrierId,
+                carrierId: session.user.carrierId,
             },
         });
 
         if (!driver) {
             return res.status(404).send({
+                code: 404,
                 errors: [{ message: 'Driver not found' }],
             });
         }
@@ -92,7 +90,29 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).send({
+            code: 200,
             data: { result: 'Driver deleted' },
         });
     }
 }
+
+export const getDriver = async ({
+    req,
+    query,
+}: {
+    req: IncomingMessage;
+    query: ParsedUrlQuery;
+}): Promise<JSONResponse<{ driver: Driver }>> => {
+    const session = await getSession({ req });
+
+    const driver = await prisma.driver.findFirst({
+        where: {
+            id: Number(query.id),
+            carrierId: session.user.carrierId,
+        },
+    });
+    return {
+        code: 200,
+        data: { driver },
+    };
+};

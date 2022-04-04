@@ -5,7 +5,6 @@ import prisma from '../../../lib/prisma';
 import EmailProvider from 'next-auth/providers/email';
 import { sendVerificationRequest } from './verification-request';
 import { JWT } from 'next-auth/jwt';
-import { User } from '@prisma/client';
 
 const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, options);
 export default authHandler;
@@ -64,8 +63,8 @@ const options: NextAuthOptions = {
             console.log('linkAccount account:', account);
         },
         session: async ({ session, token }) => {
-            console.log('session', session);
-            console.log('session token:', token);
+            // console.log('session', session);
+            // console.log('session token:', token);
         },
     },
     pages: {

@@ -1,8 +1,10 @@
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { Invoice, InvoiceStatus, Prisma } from '@prisma/client';
+import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session } from 'next-auth';
 import { getSession } from 'next-auth/react';
-import { ExpandedInvoice, JSONResponse, UIInvoiceStatus } from '../../interfaces/models';
+import { ParsedUrlQuery } from 'querystring';
+import { ExpandedInvoice, JSONResponse, PaginationMetadata, UIInvoiceStatus } from '../../interfaces/models';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 
@@ -49,7 +51,7 @@ const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWh
     })();
 
     const conditions: Prisma.InvoiceWhereInput = {
-        userId: session?.user?.id,
+        userId: session.user.id,
     };
 
     if (status !== UIInvoiceStatus.OVERDUE) {
@@ -57,6 +59,44 @@ const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWh
     }
 
     return conditions;
+};
+
+const buildOverdueRawQuery = ({
+    session,
+    limit,
+    offset,
+    expandLoad,
+}: {
+    session: Session;
+    limit: number;
+    offset: number;
+    expandLoad: boolean;
+}) => {
+    return `
+        SELECT
+            invoices.*
+        FROM invoices
+        WHERE invoices.userId = ${session.user.id}
+        AND invoices.status = ${InvoiceStatus.NOT_PAID}
+        AND invoices.dueDate < NOW()
+        GROUP BY invoices.id
+        ORDER BY invoices.dueDate ASC
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+    // return `
+    //     SELECT
+    //         invoices.*
+    //     FROM invoices
+    //     LEFT JOIN payments ON invoices.id = payments.invoiceId
+    //     WHERE invoices.userId = ${session.user.id}
+    //     AND invoices.status = ${InvoiceStatus.NOT_PAID}
+    //     AND invoices.dueDate < NOW()
+    //     GROUP BY invoices.id
+    //     ORDER BY invoices.dueDate ASC
+    //     LIMIT ${limit}
+    //     OFFSET ${offset}
+    // `;
 };
 
 export default handler;
@@ -69,71 +109,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _post();
         default:
             return res.status(405).send({
+                code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
     }
 
     async function _get() {
-        const session = await getSession({ req });
-
-        const expand = req.query.expand as string;
-        const expandLoad = expand?.includes('load');
-
-        const status = req.query.status as string;
-
-        const sortBy = req.query.sortBy as string;
-        const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
-
-        const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
-        const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
-
-        if (limit != null || offset != null) {
-            if (limit == null || offset == null) {
-                return res.status(400).send({
-                    errors: [{ message: 'Limit and Offset must be set together' }],
-                });
-            }
-
-            if (isNaN(limit) || isNaN(offset)) {
-                return res.status(400).send({
-                    errors: [{ message: 'Invalid limit or offset' }],
-                });
-            }
-        }
-
-        const total = await prisma.invoice.count({
-            where: buildWhere(session, status as UIInvoiceStatus),
-        });
-
-        const metadata = calcPaginationMetadata({ total, limit, offset });
-
-        const invoices = await prisma.invoice.findMany({
-            where: buildWhere(session, status as UIInvoiceStatus),
-            orderBy: buildOrderBy(sortBy, sortDir) || {
-                createdAt: 'desc',
-            },
-            ...(limit ? { take: limit } : { take: 10 }),
-            ...(offset ? { skip: offset } : { skip: 0 }),
-            include: {
-                ...(expandLoad
-                    ? {
-                          load: {
-                              select: {
-                                  id: true,
-                                  refNum: true,
-                                  rate: true,
-                                  distance: true,
-                                  distanceUnit: true,
-                                  customer: true,
-                              },
-                          },
-                      }
-                    : {}),
-            },
-        });
-        return res.status(200).json({
-            data: { metadata, invoices },
-        });
+        const response = await getInvoices({ req, query: req.query });
+        return res.status(response.code).json(response);
     }
 
     async function _post() {
@@ -174,13 +157,95 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             });
             return res.status(200).json({
+                code: 200,
                 data: { invoice },
             });
         } catch (error) {
             console.log('invoice post error', error);
             return res.status(400).json({
+                code: 400,
                 errors: [{ message: error.message || JSON.stringify(error) }],
             });
         }
     }
 }
+
+export const getInvoices = async ({
+    req,
+    query,
+}: {
+    req: IncomingMessage;
+    query: ParsedUrlQuery;
+}): Promise<JSONResponse<{ invoices: ExpandedInvoice[]; metadata: PaginationMetadata }>> => {
+    const session = await getSession({ req });
+
+    const expand = query.expand as string;
+    const expandLoad = expand?.includes('load');
+
+    const status = query.status as string;
+
+    const sortBy = query.sortBy as string;
+    const sortDir = (query.sortDir as 'asc' | 'desc') || 'asc';
+
+    const limit = query.limit !== undefined ? Number(query.limit) : undefined;
+    const offset = query.offset !== undefined ? Number(query.offset) : undefined;
+
+    if (limit != null || offset != null) {
+        if (limit == null || offset == null) {
+            return {
+                code: 400,
+                errors: [{ message: 'Limit and Offset must be set together' }],
+            };
+        }
+
+        if (isNaN(limit) || isNaN(offset)) {
+            return {
+                code: 400,
+                errors: [{ message: 'Invalid limit or offset' }],
+            };
+        }
+    }
+
+    const total = await prisma.invoice.count({
+        where: buildWhere(session, status as UIInvoiceStatus),
+    });
+
+    const metadata = calcPaginationMetadata({ total, limit, offset });
+
+    let invoices: Invoice[] = [];
+
+    console.log('session', session);
+
+    if (status === UIInvoiceStatus.OVERDUE) {
+        invoices = await prisma.$queryRaw`${buildOverdueRawQuery({ session, limit, offset, expandLoad })}`;
+    } else {
+        invoices = await prisma.invoice.findMany({
+            where: buildWhere(session, status as UIInvoiceStatus),
+            orderBy: buildOrderBy(sortBy, sortDir) || {
+                createdAt: 'desc',
+            },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
+            include: {
+                ...(expandLoad
+                    ? {
+                          load: {
+                              select: {
+                                  id: true,
+                                  refNum: true,
+                                  rate: true,
+                                  distance: true,
+                                  distanceUnit: true,
+                                  customer: true,
+                              },
+                          },
+                      }
+                    : {}),
+            },
+        });
+    }
+    return {
+        code: 200,
+        data: { metadata, invoices },
+    };
+};

@@ -11,6 +11,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadsTable from '../../components/loads/LoadsTable';
@@ -19,8 +20,10 @@ import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
-import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
+import { deleteCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
+import { getCustomer } from '../api/customers/[id]';
+import { getLoads } from '../api/loads';
 
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
@@ -48,7 +51,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute z-10 right-0 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
                         <Menu.Item>
                             {({ active }) => (
@@ -93,23 +96,33 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 
 export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
-    const customerId = Number(query.id);
+    const customerId = query.id;
     const sort: Sort = sortFromQuery(query);
 
-    const [customer, loadsData] = await Promise.all([
-        getCustomerById(customerId),
-        getLoadsExpanded({
-            customerId: customerId,
-            limit: Number(query.limit) || 10,
-            offset: Number(query.offset) || 0,
-            sort,
+    const [{ data: customerData }, { data: loadsData }] = await Promise.all([
+        getCustomer({
+            req: context.req,
+            query: {
+                id: customerId,
+            },
+        }),
+        getLoads({
+            req: context.req,
+            query: {
+                customerId: customerId,
+                expand: 'customer,shipper,receiver',
+                limit: query.limit || '10',
+                offset: query.offset || '0',
+                sortBy: sort?.key,
+                sortDir: sort?.order,
+            },
         }),
     ]);
     return {
         props: {
-            customer: customer || null,
+            customer: JSON.parse(safeJsonStringify(customerData.customer)) || null,
             loadCount: loadsData?.metadata?.total || 0,
-            loads: loadsData.loads,
+            loads: JSON.parse(safeJsonStringify(loadsData.loads)),
             metadata: loadsData.metadata,
             sort,
         },

@@ -12,6 +12,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _get();
         default:
             return res.status(405).send({
+                code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
     }
@@ -23,6 +24,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const drivers = await driverSearch(q);
 
         return res.status(200).json({
+            code: 200,
             data: {
                 loads,
                 customers,

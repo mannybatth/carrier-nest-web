@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useState } from 'react';
+import safeJsonStringify from 'safe-json-stringify';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
@@ -13,7 +14,8 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
-import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
+import { deleteInvoiceById, deleteInvoicePayment } from '../../../lib/rest/invoice';
+import { getInvoice } from '../../api/invoices/[id]';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
@@ -101,9 +103,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, deleteInvoic
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const invoice = await getInvoiceById(Number(context.query.id));
+    const { data } = await getInvoice({
+        req: context.req,
+        query: {
+            id: context.query.id,
+            expand: 'load,extraItems,payments',
+        },
+    });
 
-    if (!invoice) {
+    if (!data?.invoice) {
         return {
             redirect: {
                 permanent: false,
@@ -114,7 +122,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
     return {
         props: {
-            invoice,
+            invoice: JSON.parse(safeJsonStringify(data.invoice)),
         },
     };
 }

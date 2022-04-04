@@ -12,6 +12,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _delete();
         default:
             return res.status(405).send({
+                code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
     }
@@ -31,6 +32,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         if (!payment) {
             return res.status(404).send({
+                code: 404,
                 errors: [{ message: 'Invoice payment not found' }],
             });
         }
@@ -87,6 +89,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
 
         return res.status(200).send({
+            code: 200,
             data: { result: 'Invoice payment deleted' },
         });
     }
