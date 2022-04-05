@@ -56,47 +56,16 @@ const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWh
 
     if (status !== UIInvoiceStatus.OVERDUE) {
         conditions.status = invoiceStatus;
+    } else {
+        conditions.dueDate = {
+            lt: new Date(),
+        };
+        conditions.status = {
+            in: [InvoiceStatus.NOT_PAID, InvoiceStatus.PARTIALLY_PAID],
+        };
     }
 
     return conditions;
-};
-
-const buildOverdueRawQuery = ({
-    session,
-    limit,
-    offset,
-    expandLoad,
-}: {
-    session: Session;
-    limit: number;
-    offset: number;
-    expandLoad: boolean;
-}) => {
-    return `
-        SELECT
-            invoices.*
-        FROM invoices
-        WHERE invoices.userId = ${session.user.id}
-        AND invoices.status = ${InvoiceStatus.NOT_PAID}
-        AND invoices.dueDate < NOW()
-        GROUP BY invoices.id
-        ORDER BY invoices.dueDate ASC
-        LIMIT ${limit}
-        OFFSET ${offset}
-    `;
-    // return `
-    //     SELECT
-    //         invoices.*
-    //     FROM invoices
-    //     LEFT JOIN payments ON invoices.id = payments.invoiceId
-    //     WHERE invoices.userId = ${session.user.id}
-    //     AND invoices.status = ${InvoiceStatus.NOT_PAID}
-    //     AND invoices.dueDate < NOW()
-    //     GROUP BY invoices.id
-    //     ORDER BY invoices.dueDate ASC
-    //     LIMIT ${limit}
-    //     OFFSET ${offset}
-    // `;
 };
 
 export default handler;
@@ -216,34 +185,30 @@ export const getInvoices = async ({
 
     console.log('session', session);
 
-    if (status === UIInvoiceStatus.OVERDUE) {
-        invoices = await prisma.$queryRaw`${buildOverdueRawQuery({ session, limit, offset, expandLoad })}`;
-    } else {
-        invoices = await prisma.invoice.findMany({
-            where: buildWhere(session, status as UIInvoiceStatus),
-            orderBy: buildOrderBy(sortBy, sortDir) || {
-                createdAt: 'desc',
-            },
-            ...(limit ? { take: limit } : { take: 10 }),
-            ...(offset ? { skip: offset } : { skip: 0 }),
-            include: {
-                ...(expandLoad
-                    ? {
-                          load: {
-                              select: {
-                                  id: true,
-                                  refNum: true,
-                                  rate: true,
-                                  distance: true,
-                                  distanceUnit: true,
-                                  customer: true,
-                              },
+    invoices = await prisma.invoice.findMany({
+        where: buildWhere(session, status as UIInvoiceStatus),
+        orderBy: buildOrderBy(sortBy, sortDir) || {
+            createdAt: 'desc',
+        },
+        ...(limit ? { take: limit } : { take: 10 }),
+        ...(offset ? { skip: offset } : { skip: 0 }),
+        include: {
+            ...(expandLoad
+                ? {
+                      load: {
+                          select: {
+                              id: true,
+                              refNum: true,
+                              rate: true,
+                              distance: true,
+                              distanceUnit: true,
+                              customer: true,
                           },
-                      }
-                    : {}),
-            },
-        });
-    }
+                      },
+                  }
+                : {}),
+        },
+    });
     return {
         code: 200,
         data: { metadata, invoices },
