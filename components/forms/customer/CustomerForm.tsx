@@ -1,5 +1,6 @@
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { Controller, UseFormReturn } from 'react-hook-form';
+import { countryCodes } from '../../../interfaces/country-codes';
 import { SimpleCustomer } from '../../../interfaces/models';
 
 type Props = {
@@ -10,15 +11,16 @@ type Props = {
 const CustomerForm: React.FC<Props> = ({
     formHook: {
         register,
+        control,
         formState: { errors },
     },
     condensed,
 }: Props) => {
     return (
         <div className="relative mt-3 md:mt-0 md:col-span-2">
-            <div className="grid grid-cols-6 gap-6">
+            <div className="grid grid-cols-12 gap-6">
                 {condensed ? (
-                    <div className="col-span-6">
+                    <div className="col-span-12">
                         <label htmlFor="customer-name" className="block text-sm font-medium text-gray-700">
                             Name
                         </label>
@@ -33,7 +35,7 @@ const CustomerForm: React.FC<Props> = ({
                     </div>
                 ) : (
                     <>
-                        <div className="col-span-6">
+                        <div className="col-span-12">
                             <label htmlFor="customer-name" className="block text-sm font-medium text-gray-700">
                                 Name
                             </label>
@@ -46,7 +48,7 @@ const CustomerForm: React.FC<Props> = ({
                             />
                             {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
                         </div>
-                        <div className="col-span-6 lg:col-span-2">
+                        <div className="col-span-12 lg:col-span-4">
                             <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">
                                 Contact Email
                             </label>
@@ -60,7 +62,7 @@ const CustomerForm: React.FC<Props> = ({
                                 <p className="mt-2 text-sm text-red-600">{errors.contactEmail?.message}</p>
                             )}
                         </div>
-                        <div className="col-span-6 lg:col-span-2">
+                        <div className="col-span-12 lg:col-span-4">
                             <label htmlFor="billingEmail" className="block text-sm font-medium text-gray-700">
                                 Billing Email
                             </label>
@@ -74,7 +76,7 @@ const CustomerForm: React.FC<Props> = ({
                                 <p className="mt-2 text-sm text-red-600">{errors.billingEmail?.message}</p>
                             )}
                         </div>
-                        <div className="col-span-6 lg:col-span-2">
+                        <div className="col-span-12 lg:col-span-4">
                             <label htmlFor="paymentStatusEmail" className="block text-sm font-medium text-gray-700">
                                 Payment Status Email
                             </label>
@@ -88,7 +90,7 @@ const CustomerForm: React.FC<Props> = ({
                                 <p className="mt-2 text-sm text-red-600">{errors.paymentStatusEmail?.message}</p>
                             )}
                         </div>
-                        <div className="col-span-6">
+                        <div className="col-span-12 sm:col-span-6 lg:col-span-12">
                             <label htmlFor="street" className="block text-sm font-medium text-gray-700">
                                 Street Address
                             </label>
@@ -101,7 +103,7 @@ const CustomerForm: React.FC<Props> = ({
                             />
                             {errors.street && <p className="mt-2 text-sm text-red-600">{errors.street?.message}</p>}
                         </div>
-                        <div className="col-span-6 sm:col-span-2">
+                        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
                             <label htmlFor="city" className="block text-sm font-medium text-gray-700">
                                 City
                             </label>
@@ -114,7 +116,7 @@ const CustomerForm: React.FC<Props> = ({
                             />
                             {errors.city && <p className="mt-2 text-sm text-red-600">{errors.city?.message}</p>}
                         </div>
-                        <div className="col-span-6 sm:col-span-2">
+                        <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                             <label htmlFor="state" className="block text-sm font-medium text-gray-700">
                                 State / Province
                             </label>
@@ -127,7 +129,7 @@ const CustomerForm: React.FC<Props> = ({
                             />
                             {errors.state && <p className="mt-2 text-sm text-red-600">{errors.state?.message}</p>}
                         </div>
-                        <div className="col-span-6 sm:col-span-2">
+                        <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                             <label htmlFor="zip" className="block text-sm font-medium text-gray-700">
                                 Zip / Postal Code
                             </label>
@@ -139,6 +141,34 @@ const CustomerForm: React.FC<Props> = ({
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.zip && <p className="mt-2 text-sm text-red-600">{errors.zip?.message}</p>}
+                        </div>
+                        <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                            <Controller
+                                control={control}
+                                rules={{ required: 'Country is required' }}
+                                name="country"
+                                defaultValue="US"
+                                render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                    <>
+                                        <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                                            Country
+                                        </label>
+                                        <select
+                                            id="country"
+                                            className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={value}
+                                            onChange={onChange}
+                                        >
+                                            {countryCodes.map((countryCode) => (
+                                                <option key={countryCode.code} value={countryCode.code}>
+                                                    {countryCode.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                    </>
+                                )}
+                            />
                         </div>
                     </>
                 )}

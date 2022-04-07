@@ -1,9 +1,13 @@
-import React from 'react';
-import DayPickerInput from 'react-day-picker/DayPickerInput';
-import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
+import { Combobox } from '@headlessui/react';
+import { CalendarIcon, CheckIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
+import classNames from 'classnames';
+import React, { useState } from 'react';
+import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
-import { ExpandedLoad } from '../../../interfaces/models';
+import { CountryCode, countryCodes } from '../../../interfaces/country-codes';
+import { ExpandedLoad, Location } from '../../../interfaces/models';
+import { useDebounce } from '../../../lib/debounce';
 import TimeField from '../TimeField';
 
 export type LoadFormStopProps = {
@@ -24,6 +28,11 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     onRemoveStop,
     ...props
 }: LoadFormStopProps) => {
+    const [locationSearchTerm, setLocationSearchTerm] = useState('');
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+    const [locationSearchResults, setLocationSearchResults] = React.useState<Location[]>(null);
+    const debouncedLocationSearchTerm = useDebounce(locationSearchTerm, 500);
+
     const borderColor = () => {
         switch (props.type) {
             case LoadStopType.SHIPPER:
@@ -111,8 +120,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 )}
             </div>
 
-            <div className="grid grid-cols-6 gap-6">
-                <div className="col-span-6 sm:col-span-3">
+            <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12 sm:col-span-5 lg:col-span-6">
                     <label htmlFor={fieldId('name')} className="block text-sm font-medium text-gray-700">
                         Business Name
                     </label>
@@ -126,63 +135,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     {errorMessage(errors, 'name')}
                 </div>
 
-                <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor={fieldId('street')} className="block text-sm font-medium text-gray-700">
-                        Street Address
-                    </label>
-                    <input
-                        {...register(fieldId('street'), { required: 'Street Address is required' })}
-                        type="text"
-                        id={fieldId('street')}
-                        autoComplete="street-address"
-                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    {errorMessage(errors, 'street')}
-                </div>
-
-                <div className="col-span-6 sm:col-span-6 lg:col-span-2">
-                    <label htmlFor={fieldId('city')} className="block text-sm font-medium text-gray-700">
-                        City
-                    </label>
-                    <input
-                        {...register(fieldId('city'), { required: 'City is required' })}
-                        type="text"
-                        id={fieldId('city')}
-                        autoComplete="city"
-                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    {errorMessage(errors, 'city')}
-                </div>
-
-                <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={fieldId('state')} className="block text-sm font-medium text-gray-700">
-                        State / Province
-                    </label>
-                    <input
-                        {...register(fieldId('state'), { required: 'State is required' })}
-                        type="text"
-                        id={fieldId('state')}
-                        autoComplete="state"
-                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    {errorMessage(errors, 'state')}
-                </div>
-
-                <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-                    <label htmlFor={fieldId('zip')} className="block text-sm font-medium text-gray-700">
-                        Zip / Postal Code
-                    </label>
-                    <input
-                        {...register(fieldId('zip'), { required: 'State is required' })}
-                        type="text"
-                        id={fieldId('zip')}
-                        autoComplete="postal-code"
-                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    {errorMessage(errors, 'zip')}
-                </div>
-
-                <div className="col-span-6 sm:col-span-3">
+                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                     <label htmlFor={fieldId('date')} className="block text-sm font-medium text-gray-700">
                         Pick Up Date
                     </label>
@@ -208,7 +161,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     />
                 </div>
 
-                <div className="col-span-6 sm:col-span-3">
+                <div className="col-span-12 sm:col-span-3 lg:col-span-3">
                     <label htmlFor={fieldId('time')} className="block text-sm font-medium text-gray-700">
                         Pick Up Time
                     </label>
@@ -239,6 +192,94 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     </div>
                                 </div>
                                 {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                            </>
+                        )}
+                    />
+                </div>
+
+                <div className="col-span-12 sm:col-span-6 lg:col-span-12">
+                    <label htmlFor={fieldId('street')} className="block text-sm font-medium text-gray-700">
+                        Street Address
+                    </label>
+                    <input
+                        {...register(fieldId('street'), { required: 'Street Address is required' })}
+                        type="text"
+                        id={fieldId('street')}
+                        autoComplete="off"
+                        onChange={(e) => {
+                            console.log('street address change', e.target.value);
+                        }}
+                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'street')}
+                </div>
+
+                <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+                    <label htmlFor={fieldId('city')} className="block text-sm font-medium text-gray-700">
+                        City
+                    </label>
+                    <input
+                        {...register(fieldId('city'), { required: 'City is required' })}
+                        type="text"
+                        id={fieldId('city')}
+                        autoComplete="city"
+                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'city')}
+                </div>
+
+                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                    <label htmlFor={fieldId('state')} className="block text-sm font-medium text-gray-700">
+                        State / Province
+                    </label>
+                    <input
+                        {...register(fieldId('state'), { required: 'State is required' })}
+                        type="text"
+                        id={fieldId('state')}
+                        autoComplete="state"
+                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'state')}
+                </div>
+
+                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                    <label htmlFor={fieldId('zip')} className="block text-sm font-medium text-gray-700">
+                        Zip / Postal Code
+                    </label>
+                    <input
+                        {...register(fieldId('zip'), { required: 'State is required' })}
+                        type="text"
+                        id={fieldId('zip')}
+                        autoComplete="postal-code"
+                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'zip')}
+                </div>
+
+                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                    <Controller
+                        control={control}
+                        rules={{ required: 'Country is required' }}
+                        name={fieldId('country')}
+                        defaultValue="US"
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                            <>
+                                <label htmlFor={fieldId('country')} className="block text-sm font-medium text-gray-700">
+                                    Country
+                                </label>
+                                <select
+                                    id={fieldId('country')}
+                                    className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    value={value}
+                                    onChange={onChange}
+                                >
+                                    {countryCodes.map((countryCode) => (
+                                        <option key={countryCode.code} value={countryCode.code}>
+                                            {countryCode.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
                             </>
                         )}
                     />

@@ -29,7 +29,7 @@ const CreateCustomer: PageWithAuth = () => {
             city: data.city,
             state: data.state,
             zip: data.zip,
-            country: data.country || 'USA',
+            country: data.country,
         };
 
         const newCustomer = await createCustomer(customerData);

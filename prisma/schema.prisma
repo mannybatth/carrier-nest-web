@@ -73,15 +73,21 @@ model Carrier {
     updatedAt DateTime   @updatedAt
     email     String     @unique
     name      String
-    carrierId String     @unique
-    mcNumber  String?
+    dotNum    String?
+    mcNum     String?
+    street    String
+    city      String
+    state     String
+    zip       String
+    country   String
+    phone     String?
     users     User[]
     loads     Load[]
     customers Customer[]
     drivers   Driver[]
     invoices  Invoice[]
 
-    @@index([name, email, carrierId])
+    @@index([name, email])
 }
 
 model Load {
@@ -130,6 +136,8 @@ model LoadStop {
     country         String
     date            DateTime
     time            String
+    longitude       Float?
+    latitude        Float?
     loadsAsShipper  Load[]       @relation("shipper")
     loadsAsReceiver Load[]       @relation("receiver")
     loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])

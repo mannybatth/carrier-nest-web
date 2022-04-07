@@ -29,6 +29,16 @@ export type PaginationMetadata = {
     };
 };
 
+export interface Location {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    longitude: number;
+    latitude: number;
+}
+
 /**
  * Load
  */

@@ -70,7 +70,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 shipper: {
                     update: {
                         ...loadData.shipper,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -81,7 +80,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 receiver: {
                     update: {
                         ...loadData.receiver,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -93,7 +91,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     deleteMany: {},
                     create: loadData.stops.map((stop) => ({
                         ...stop,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,

@@ -61,6 +61,7 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
         formHook.setValue('city', customer.city);
         formHook.setValue('state', customer.state);
         formHook.setValue('zip', customer.zip);
+        formHook.setValue('country', customer.country);
     }, [customer]);
 
     const submit = async (data: SimpleCustomer) => {
@@ -77,7 +78,7 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
             city: data.city,
             state: data.state,
             zip: data.zip,
-            country: data.country || 'USA',
+            country: data.country,
         };
 
         const newCustomer = await updateCustomer(customer.id, customerData);

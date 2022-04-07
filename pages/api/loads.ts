@@ -221,7 +221,6 @@ export const postLoads = async ({ req }: { req: NextApiRequest }): Promise<JSONR
                 shipper: {
                     create: {
                         ...loadData.shipper,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -232,7 +231,6 @@ export const postLoads = async ({ req }: { req: NextApiRequest }): Promise<JSONR
                 receiver: {
                     create: {
                         ...loadData.receiver,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -243,7 +241,6 @@ export const postLoads = async ({ req }: { req: NextApiRequest }): Promise<JSONR
                 stops: {
                     create: loadData.stops.map((stop) => ({
                         ...stop,
-                        country: 'USA',
                         user: {
                             connect: {
                                 id: session.user.id,
