@@ -1,13 +1,12 @@
-import { Combobox } from '@headlessui/react';
-import { CalendarIcon, CheckIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
+import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
-import classNames from 'classnames';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
-import { CountryCode, countryCodes } from '../../../interfaces/country-codes';
-import { ExpandedLoad, Location } from '../../../interfaces/models';
+import { countryCodes } from '../../../interfaces/country-codes';
+import { ExpandedLoad, LocationEntry } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
+import { queryLocations } from '../../../lib/rest/maps';
 import TimeField from '../TimeField';
 
 export type LoadFormStopProps = {
@@ -30,8 +29,31 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 }: LoadFormStopProps) => {
     const [locationSearchTerm, setLocationSearchTerm] = useState('');
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-    const [locationSearchResults, setLocationSearchResults] = React.useState<Location[]>(null);
+    const [locationSearchResults, setLocationSearchResults] = React.useState<LocationEntry[]>(null);
     const debouncedLocationSearchTerm = useDebounce(locationSearchTerm, 500);
+
+    useEffect(() => {
+        if (!debouncedLocationSearchTerm) {
+            setIsSearchingLocation(false);
+            setLocationSearchResults(null);
+            return;
+        }
+
+        async function searchFetch() {
+            const locations = await queryLocations(debouncedLocationSearchTerm);
+            setIsSearchingLocation(false);
+
+            const noResults = !locations || locations?.length === 0;
+            if (noResults) {
+                setLocationSearchResults([]);
+                return;
+            }
+
+            setLocationSearchResults(locations);
+        }
+
+        searchFetch();
+    }, [debouncedLocationSearchTerm]);
 
     const borderColor = () => {
         switch (props.type) {
@@ -208,6 +230,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         autoComplete="off"
                         onChange={(e) => {
                             console.log('street address change', e.target.value);
+                            if (e.target.value.length > 0) {
+                                setIsSearchingLocation(true);
+                            }
+                            setLocationSearchTerm(e.target.value);
                         }}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />

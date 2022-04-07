@@ -29,7 +29,7 @@ export type PaginationMetadata = {
     };
 };
 
-export interface Location {
+export interface LocationEntry {
     street: string;
     city: string;
     state: string;

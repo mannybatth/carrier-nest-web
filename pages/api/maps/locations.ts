@@ -2,7 +2,7 @@ import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
-import { JSONResponse, Location } from '../../../interfaces/models';
+import { JSONResponse, LocationEntry } from '../../../interfaces/models';
 
 export default handler;
 
@@ -29,7 +29,7 @@ export const getLocation = async ({
 }: {
     req: IncomingMessage;
     query: ParsedUrlQuery;
-}): Promise<JSONResponse<{ locations: Location[] }>> => {
+}): Promise<JSONResponse<{ locations: LocationEntry[] }>> => {
     const session = await getSession({ req });
 
     if (!session || !session.user) {
@@ -60,17 +60,17 @@ export const getLocation = async ({
         return feature[keyToReturn];
     };
 
-    const locations: Location[] = json?.features?.map((feature: any) => {
+    const locations: LocationEntry[] = json?.features?.map((feature: any) => {
         const countryCode = findValueInContext('country', feature.context, 'short_code');
         return {
-            street: feature.address + ' ' + feature.text,
+            street: feature.place_name.split(',')[0],
             city: findValueInContext('place', feature.context),
             state: findValueInContext('region', feature.context),
             zip: findValueInContext('postcode', feature.context),
             country: countryCode ? (countryCode as string).toUpperCase() : '',
             longitude: feature.center[0],
             latitude: feature.center[1],
-        } as Location;
+        } as LocationEntry;
     });
 
     return {
