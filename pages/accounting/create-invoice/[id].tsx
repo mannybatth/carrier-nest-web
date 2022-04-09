@@ -79,6 +79,7 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
         const invoiceData: ExpandedInvoice = {
             invoicedAt: data.invoicedAt,
             totalAmount: new Prisma.Decimal(total),
+            remainingAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
             load,
             extraItems: data.extraItems,

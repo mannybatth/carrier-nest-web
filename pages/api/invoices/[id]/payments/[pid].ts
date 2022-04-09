@@ -62,8 +62,15 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
 
-        const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
         const lastPaidDate = invoice.payments.length > 0 ? invoice.payments[0].paidAt : null;
+
+        const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
+        let remainingAmount = invoice.totalAmount.sub(paidAmount);
+
+        // No negative value allowed
+        if (remainingAmount.isNegative()) {
+            remainingAmount = new Prisma.Decimal(0);
+        }
 
         const newStatus = ((): InvoiceStatus => {
             if (paidAmount.isZero()) {
@@ -83,6 +90,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
             data: {
                 paidAmount,
+                remainingAmount,
                 status: newStatus,
                 lastPaymentAt: lastPaidDate,
             },

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
@@ -35,6 +36,15 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: Number(req.query.id),
                 userId: session.user.id,
             },
+            include: {
+                payments: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        paidAt: true,
+                    },
+                },
+            },
         });
 
         if (!invoice) {
@@ -51,12 +61,22 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const dueDate = new Date(invoiceData.invoicedAt);
         dueDate.setDate(dueDate.getDate() + invoiceData.dueNetDays);
 
+        const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
+        let remainingAmount = invoice.totalAmount.sub(paidAmount);
+
+        // No negative value allowed
+        if (remainingAmount.isNegative()) {
+            remainingAmount = new Prisma.Decimal(0);
+        }
+
         const updatedInvoice = await prisma.invoice.update({
             where: {
                 id: Number(req.query.id),
             },
             data: {
                 totalAmount: invoiceData.totalAmount || 0,
+                remainingAmount: remainingAmount,
+                paidAmount: paidAmount,
                 invoicedAt: invoiceData.invoicedAt,
                 dueDate,
                 dueNetDays: invoiceData.dueNetDays || 0,

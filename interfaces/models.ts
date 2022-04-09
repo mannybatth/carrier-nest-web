@@ -169,6 +169,7 @@ export type ExpandedInvoice = SimpleInvoice & {
     status?: InvoiceStatus;
     dueDate?: Date;
     lastPaymentAt?: Date;
+    remainingAmount?: Prisma.Decimal;
     paidAmount?: Prisma.Decimal;
     load?: ExpandedLoad & Record<string, unknown>;
     extraItems?: ExpandedInvoiceItem[];

@@ -49,6 +49,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
         const newPaidAmount = paidAmount.add(paymentData.amount);
+        let remainingAmount = invoice.totalAmount.sub(newPaidAmount);
+
+        // No negative value allowed
+        if (remainingAmount.isNegative()) {
+            remainingAmount = new Prisma.Decimal(0);
+        }
 
         const newStatus = ((): InvoiceStatus => {
             if (newPaidAmount.isZero()) {
@@ -69,9 +75,19 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             data: {
                 status: newStatus,
                 paidAmount: newPaidAmount,
+                remainingAmount: remainingAmount,
                 lastPaymentAt: new Date(),
                 payments: {
-                    create: [paymentData],
+                    create: [
+                        {
+                            ...paymentData,
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        },
+                    ],
                 },
             },
         });

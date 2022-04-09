@@ -33,17 +33,16 @@ export const getInvoiceStats = async ({
     const session = await getSession({ req });
 
     const now = new Date();
-    const totalAmountPaidThisMonth = await prisma.invoice.groupBy({
+    const totalAmountPaidThisMonth = await prisma.invoicePayment.groupBy({
         by: ['userId'],
         where: {
             userId: session.user.id,
-            status: InvoiceStatus.PAID,
-            invoicedAt: {
+            paidAt: {
                 gte: new Date(now.getFullYear(), now.getMonth(), 1),
             },
         },
         _sum: {
-            totalAmount: true,
+            amount: true,
         },
     });
 
@@ -52,11 +51,11 @@ export const getInvoiceStats = async ({
         where: {
             userId: session.user.id,
             status: {
-                notIn: [InvoiceStatus.PAID],
+                in: [InvoiceStatus.NOT_PAID, InvoiceStatus.PARTIALLY_PAID],
             },
         },
         _sum: {
-            totalAmount: true,
+            remainingAmount: true,
         },
     });
 
@@ -72,7 +71,7 @@ export const getInvoiceStats = async ({
             },
         },
         _sum: {
-            totalAmount: true,
+            remainingAmount: true,
         },
     });
 
@@ -80,9 +79,9 @@ export const getInvoiceStats = async ({
     console.log('totalAmountUnpaid', totalAmountUnpaid);
     console.log('totalAmountOverdue', totalAmountOverdue);
 
-    const totalPaid = totalAmountPaidThisMonth.find((status) => status.userId === session.user.id)?._sum.totalAmount;
-    const totalUnpaid = totalAmountUnpaid.find((status) => status.userId === session.user.id)?._sum.totalAmount;
-    const totalOverdue = totalAmountOverdue.find((status) => status.userId === session.user.id)?._sum.totalAmount;
+    const totalPaid = totalAmountPaidThisMonth.find((status) => status.userId === session.user.id)?._sum.amount;
+    const totalUnpaid = totalAmountUnpaid.find((status) => status.userId === session.user.id)?._sum.remainingAmount;
+    const totalOverdue = totalAmountOverdue.find((status) => status.userId === session.user.id)?._sum.remainingAmount;
 
     return {
         code: 200,

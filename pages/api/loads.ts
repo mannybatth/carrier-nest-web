@@ -143,6 +143,7 @@ export const getLoads = async ({
                     dueDate: true,
                     dueNetDays: true,
                     paidAmount: true,
+                    remainingAmount: true,
                     lastPaymentAt: true,
                 },
             },
