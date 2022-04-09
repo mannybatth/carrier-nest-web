@@ -35,8 +35,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const docData = req.body as SimpleLoadDocument;
 
-        console.log('docData to add', docData);
-
         const loadDocument = await prisma.loadDocument.create({
             data: {
                 load: {

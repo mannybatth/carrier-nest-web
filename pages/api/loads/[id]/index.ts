@@ -4,6 +4,7 @@ import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
+import { deleteDocumentFromS3 } from './documents/[did]';
 
 export default handler;
 
@@ -114,6 +115,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: Number(req.query.id),
                 userId: session.user.id,
             },
+            include: {
+                loadDocuments: true,
+            },
         });
 
         if (!load) {
@@ -122,6 +126,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 errors: [{ message: 'Load not found' }],
             });
         }
+
+        const documentsToDelete = load.loadDocuments;
+        await Promise.all(documentsToDelete.map((document) => deleteDocumentFromS3(document)));
 
         await prisma.load.delete({
             where: {

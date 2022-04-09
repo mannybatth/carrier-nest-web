@@ -67,7 +67,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
-const deleteDocumentFromS3 = async (document: LoadDocument): Promise<void> => {
+export const deleteDocumentFromS3 = async (document: LoadDocument): Promise<void> => {
     return new Promise((resolve, reject) => {
         const s3 = new aws.S3({
             accessKeyId: process.env.S3_UPLOAD_KEY,
