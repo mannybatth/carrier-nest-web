@@ -22,7 +22,7 @@ type ActionsDropdownProps = {
     deleteInvoice: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, deleteInvoice }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, deleteInvoice }) => {
     const router = useRouter();
 
     return (

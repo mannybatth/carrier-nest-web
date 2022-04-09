@@ -11,7 +11,7 @@ type Props = {
     onClose: (value: boolean) => void;
 };
 
-const DriverSelectionModal: React.FC<Props> = ({ show, onSelect, onClose }: Props) => {
+const DriverSelectionModal: React.FC<Props> = ({ show, onSelect, onClose }) => {
     const [drivers, setDrivers] = React.useState<Driver[] | null>(null);
 
     useEffect(() => {

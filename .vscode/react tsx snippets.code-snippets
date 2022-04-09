@@ -15,7 +15,7 @@
             "",
             "type Props = {};",
             "",
-            "const ${1:ComponentName}: React.FC<Props> = (props: Props) => {",
+            "const ${1:ComponentName}: React.FC<Props> = ({}) => {",
             "    return <div>$0</div>;",
             "};",
             "",

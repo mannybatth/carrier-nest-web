@@ -10,7 +10,7 @@ type Props = {
     value: string;
 } & ComponentProps<'input'>;
 
-const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }: Props) => {
+const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }) => {
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const newValue = event.target.value;
         if (isValidMoney(newValue)) {

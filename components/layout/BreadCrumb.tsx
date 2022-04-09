@@ -12,7 +12,7 @@ export type Props = {
     paths: BreadCrumbPath[];
 };
 
-const BreadCrumb: React.FC<Props> = ({ paths, ...props }: Props) => {
+const BreadCrumb: React.FC<Props> = ({ paths, ...props }) => {
     return (
         <div {...props}>
             <div className="hidden text-sm md:block text-inherit">

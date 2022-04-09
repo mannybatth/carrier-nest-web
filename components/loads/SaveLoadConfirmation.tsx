@@ -8,7 +8,7 @@ type Props = {
     onClose: (value: boolean) => void;
 };
 
-const SaveLoadConfirmation: React.FC<Props> = ({ show, onSave, onClose }: Props) => {
+const SaveLoadConfirmation: React.FC<Props> = ({ show, onSave, onClose }) => {
     const close = (value: boolean) => {
         onClose(value);
     };

@@ -15,7 +15,7 @@ const CustomerForm: React.FC<Props> = ({
         formState: { errors },
     },
     condensed,
-}: Props) => {
+}) => {
     return (
         <div className="relative mt-3 md:mt-0 md:col-span-2">
             <div className="grid grid-cols-12 gap-6">

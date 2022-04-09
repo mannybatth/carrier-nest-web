@@ -1,19 +1,19 @@
-import React from 'react';
+import { NextComponentType, NextPageContext } from 'next';
+import { SessionProvider, signIn, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import { SessionProvider, signIn, useSession } from 'next-auth/react';
-import '../styles/globals.css';
-import 'react-day-picker/lib/style.css';
-import { NextComponentType, NextPageContext } from 'next';
-import { AuthEnabledComponentConfig } from '../interfaces/auth';
+import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import Spinner from '../components/Spinner';
+import { AuthEnabledComponentConfig } from '../interfaces/auth';
+import 'react-day-picker/lib/style.css';
+import '../styles/globals.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps & { Component: NextComponentWithAuth };
 
-const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }: ProtectedAppProps) => {
+const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }) => {
     return (
         <SessionProvider session={pageProps.session}>
             <Head>
@@ -32,7 +32,7 @@ const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }: ProtectedApp
     );
 };
 
-const Auth: React.FC = ({ children }: { children: JSX.Element }) => {
+const Auth: React.FC = ({ children }) => {
     const { status } = useSession();
 
     React.useEffect(() => {
@@ -41,7 +41,7 @@ const Auth: React.FC = ({ children }: { children: JSX.Element }) => {
     }, [status]);
 
     if (status === 'authenticated') {
-        return children;
+        return <>{children}</>;
     }
 
     // Session is being fetched, or no user.

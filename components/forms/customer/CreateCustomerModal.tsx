@@ -13,7 +13,7 @@ type Props = {
     onClose: (value: boolean) => void;
 };
 
-const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }: Props) => {
+const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }) => {
     const [loading, setLoading] = React.useState(false);
     const formHook = useForm<SimpleCustomer>();
 

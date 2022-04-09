@@ -1,31 +1,7 @@
 import Link from 'next/link';
 import React from 'react';
 
-interface InternalUrl {
-    /** @default "http://localhost:3000" */
-    origin: string;
-    /** @default "localhost:3000" */
-    host: string;
-    /** @default "/api/auth" */
-    path: string;
-    /** @default "http://localhost:3000/api/auth" */
-    base: string;
-    /** @default "http://localhost:3000/api/auth" */
-    toString: () => string;
-}
-
-export type Props = {
-    url: InternalUrl;
-};
-
-export async function getServerSideProps(context) {
-    const { url = null } = context.query;
-    return {
-        props: { url },
-    };
-}
-
-const VerifyRequest: React.FC<Props> = ({ url }) => {
+const VerifyRequest: React.FC = () => {
     return (
         <div className="flex flex-col min-h-full py-20 sm:px-6 lg:px-8 bg-gray-50">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">

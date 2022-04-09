@@ -34,7 +34,7 @@ type ActionsDropdownProps = {
     assignDriver: (remove?: boolean) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, assignDriver }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, assignDriver }) => {
     const router = useRouter();
 
     return (
@@ -156,7 +156,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, deleteLoad, ass
 type UploadDocsAreaProps = {
     handleFileChange: (file: File | undefined, event: ChangeEvent<HTMLInputElement>) => void;
 };
-const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange }: UploadDocsAreaProps) => {
+const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange }) => {
     const { FileInput, openFileDialog } = useS3Upload();
 
     return (

@@ -25,7 +25,7 @@ const LoadForm: React.FC<Props> = ({
         control,
         formState: { errors },
     },
-}: Props) => {
+}) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');

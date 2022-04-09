@@ -20,7 +20,7 @@ const InvoiceForm: React.FC<Props> = ({
         control,
         formState: { errors },
     },
-}: Props) => {
+}) => {
     const {
         fields: itemFields,
         append: appendItem,

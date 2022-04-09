@@ -23,7 +23,7 @@ type ActionsDropdownProps = {
     deleteDriver: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver }) => {
     const router = useRouter();
 
     return (

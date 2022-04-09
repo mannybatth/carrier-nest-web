@@ -30,7 +30,7 @@ type Props = {
     changeSort: (sort: Sort) => void;
 };
 
-const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, changeSort }: Props) => {
+const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, changeSort }) => {
     const [sort, setSort] = React.useState<Sort>(sortProps);
 
     useEffect(() => {

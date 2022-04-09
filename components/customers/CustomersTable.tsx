@@ -10,7 +10,7 @@ type Props = {
     deleteCustomer: (id: number) => void;
 };
 
-const CustomersTable: React.FC<Props> = ({ customers, sort, changeSort, deleteCustomer }: Props) => {
+const CustomersTable: React.FC<Props> = ({ customers, sort, changeSort, deleteCustomer }) => {
     const router = useRouter();
 
     return (

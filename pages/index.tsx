@@ -2,9 +2,7 @@ import React from 'react';
 import Layout from '../components/layout/Layout';
 import { PageWithAuth } from '../interfaces/auth';
 
-type Props = {};
-
-const Dashboard: PageWithAuth<Props> = (props: Props) => {
+const Dashboard: PageWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={

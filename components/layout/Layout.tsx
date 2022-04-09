@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, PropsWithChildren, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ChevronDoubleLeftIcon, MenuIcon, XIcon } from '@heroicons/react/outline';
 import Navigation from './Navigation';
@@ -7,11 +7,10 @@ import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
 
 export type Props = {
-    children: JSX.Element;
     smHeaderComponent: JSX.Element;
 };
 
-const Layout: React.FC<Props> = ({ children, smHeaderComponent }: Props) => {
+const Layout: React.FC<Props> = ({ children, smHeaderComponent }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (

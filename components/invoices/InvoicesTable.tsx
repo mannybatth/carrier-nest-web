@@ -14,13 +14,7 @@ type Props = {
 
 const defaultHeaders = ['id', 'load.customer.name', 'status', 'invoicedAt', 'totalAmount'];
 
-const InvoicesTable: React.FC<Props> = ({
-    invoices,
-    changeSort,
-    sort,
-    headers = defaultHeaders,
-    deleteInvoice,
-}: Props) => {
+const InvoicesTable: React.FC<Props> = ({ invoices, changeSort, sort, headers = defaultHeaders, deleteInvoice }) => {
     const router = useRouter();
 
     return (

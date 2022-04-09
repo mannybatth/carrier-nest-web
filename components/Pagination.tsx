@@ -7,7 +7,7 @@ type Props = {
     onNext: (metadata: PaginationMetadata) => void;
 };
 
-const Pagination: React.FC<Props> = ({ metadata, onPrevious, onNext }: Props) => {
+const Pagination: React.FC<Props> = ({ metadata, onPrevious, onNext }) => {
     return (
         <div
             className="flex items-center justify-between px-1 py-3 bg-white border-t border-gray-200 sm:px-6"

@@ -30,7 +30,7 @@ type ActionsDropdownProps = {
     deleteCustomer: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCustomer }: ActionsDropdownProps) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCustomer }) => {
     const router = useRouter();
 
     return (

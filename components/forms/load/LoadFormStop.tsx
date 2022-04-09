@@ -44,7 +44,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     index,
     onRemoveStop,
     ...props
-}: LoadFormStopProps) => {
+}) => {
     const [locationSearchTerm, setLocationSearchTerm] = useState('');
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const [locationSearchResults, setLocationSearchResults] = React.useState<LocationEntry[]>(null);

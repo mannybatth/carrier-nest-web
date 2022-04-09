@@ -3,7 +3,7 @@ import React from 'react';
 type Props = {
     className?: string;
 };
-const Spinner: React.FC<Props> = ({ className, ...props }: Props) => {
+const Spinner: React.FC<Props> = ({ className, ...props }) => {
     return (
         <div className={className}>
             <svg

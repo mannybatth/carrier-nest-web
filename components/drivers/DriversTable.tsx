@@ -10,7 +10,7 @@ type Props = {
     deleteDriver: (id: number) => void;
 };
 
-const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver, sort }: Props) => {
+const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver, sort }) => {
     const router = useRouter();
 
     return (

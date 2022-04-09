@@ -16,7 +16,7 @@ type Props = {
     onClose: (value: boolean) => void;
 };
 
-const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }: Props) => {
+const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) => {
     const [loading, setLoading] = React.useState(false);
     const amountFieldRef = useRef(null);
 

@@ -22,7 +22,7 @@ const defaultHeaders = [
     'receiver.city',
 ];
 
-const LoadsTable: React.FC<Props> = ({ loads, changeSort, sort, headers = defaultHeaders, deleteLoad }: Props) => {
+const LoadsTable: React.FC<Props> = ({ loads, changeSort, sort, headers = defaultHeaders, deleteLoad }) => {
     const router = useRouter();
 
     return (

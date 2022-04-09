@@ -6,7 +6,7 @@ type LoadCardProps = {
     load: ExpandedLoad;
 };
 
-export const LoadCard: React.FC<LoadCardProps> = ({ load }: LoadCardProps) => {
+export const LoadCard: React.FC<LoadCardProps> = ({ load }) => {
     return (
         <div className="overflow-hidden rounded-lg outline-none bg-gray-50 ring-2 ring-offset-2 ring-gray-200">
             <div className="px-5 py-3">

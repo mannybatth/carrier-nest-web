@@ -13,7 +13,7 @@ type Props = {
     control: Control<ExpandedInvoice, any>;
 };
 
-const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, onRemoveStop, ...props }: Props) => {
+const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, onRemoveStop, ...props }) => {
     const errorMessage = (errors: FieldErrors<ExpandedInvoice>, name: string) => {
         return (
             errors?.extraItems &&
