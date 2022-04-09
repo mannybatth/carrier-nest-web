@@ -56,7 +56,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
-                distanceUnit: loadData.distanceUnit || '',
                 carrier: {
                     connect: {
                         id: session.user.carrierId,
@@ -192,6 +191,8 @@ export const getLoad = async ({
                               country: true,
                               date: true,
                               time: true,
+                              longitude: true,
+                              latitude: true,
                           },
                       },
                   }
@@ -210,6 +211,8 @@ export const getLoad = async ({
                               country: true,
                               date: true,
                               time: true,
+                              longitude: true,
+                              latitude: true,
                           },
                       },
                   }
@@ -228,6 +231,8 @@ export const getLoad = async ({
                               country: true,
                               date: true,
                               time: true,
+                              longitude: true,
+                              latitude: true,
                           },
                           orderBy: {
                               stopIndex: 'asc',

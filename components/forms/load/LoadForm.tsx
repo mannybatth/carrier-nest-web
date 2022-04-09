@@ -20,6 +20,8 @@ const LoadForm: React.FC<Props> = ({
     formHook: {
         register,
         setValue,
+        getValues,
+        watch,
         control,
         formState: { errors },
     },
@@ -29,7 +31,7 @@ const LoadForm: React.FC<Props> = ({
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = React.useState<Customer[]>(null);
-    const debouncedCustomerSearchTerm = useDebounce(customerSearchTerm, 500);
+    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
 
     const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });
 
@@ -75,7 +77,15 @@ const LoadForm: React.FC<Props> = ({
                             rules={{ required: 'Customer is required' }}
                             name="customer"
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
-                                <Combobox as="div" value={value} onChange={onChange}>
+                                <Combobox
+                                    as="div"
+                                    value={value}
+                                    onChange={(selectedCustomer: Customer) => {
+                                        setCustomerSearchTerm('');
+                                        setDebouncedCustomerSearchTerm('');
+                                        onChange(selectedCustomer);
+                                    }}
+                                >
                                     <div className="flex items-center space-x-3">
                                         <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
                                             Customer
@@ -207,12 +217,15 @@ const LoadForm: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    <LoadFormStop {...{ register, errors, control }} type={LoadStopType.SHIPPER} />
+                    <LoadFormStop
+                        {...{ register, errors, control, setValue, getValues, watch }}
+                        type={LoadStopType.SHIPPER}
+                    />
 
                     {stopFields.map((field, i) => (
                         <LoadFormStop
                             key={i}
-                            {...{ register, errors, control }}
+                            {...{ register, errors, control, setValue, getValues, watch }}
                             type={LoadStopType.STOP}
                             totalStops={stopFields.length}
                             index={i}
@@ -250,7 +263,10 @@ const LoadForm: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    <LoadFormStop {...{ register, errors, control }} type={LoadStopType.RECEIVER} />
+                    <LoadFormStop
+                        {...{ register, errors, control, setValue, getValues, watch }}
+                        type={LoadStopType.RECEIVER}
+                    />
                 </div>
             </div>
         </>

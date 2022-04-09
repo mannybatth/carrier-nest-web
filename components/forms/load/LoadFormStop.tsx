@@ -1,13 +1,25 @@
-import { CalendarIcon, ClockIcon } from '@heroicons/react/outline';
+import { Combobox } from '@headlessui/react';
+import { CalendarIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
+import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
-import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
+import {
+    Control,
+    Controller,
+    FieldErrors,
+    UseFormRegister,
+    UseFormSetValue,
+    UseFormGetValues,
+    UseFormWatch,
+} from 'react-hook-form';
 import { countryCodes } from '../../../interfaces/country-codes';
 import { ExpandedLoad, LocationEntry } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
+import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
+import * as iso3166 from 'iso-3166-2';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -17,12 +29,18 @@ export type LoadFormStopProps = {
     register: UseFormRegister<ExpandedLoad>;
     errors: FieldErrors<ExpandedLoad>;
     control: Control<ExpandedLoad, any>;
+    setValue: UseFormSetValue<ExpandedLoad>;
+    getValues: UseFormGetValues<ExpandedLoad>;
+    watch: UseFormWatch<ExpandedLoad>;
 };
 
 const LoadFormStop: React.FC<LoadFormStopProps> = ({
     register,
     errors,
     control,
+    setValue,
+    getValues,
+    watch,
     index,
     onRemoveStop,
     ...props
@@ -30,7 +48,54 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     const [locationSearchTerm, setLocationSearchTerm] = useState('');
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const [locationSearchResults, setLocationSearchResults] = React.useState<LocationEntry[]>(null);
-    const debouncedLocationSearchTerm = useDebounce(locationSearchTerm, 500);
+    const [debouncedLocationSearchTerm, setDebouncedLocationSearchTerm] = useDebounce(locationSearchTerm, 500);
+
+    // Local storage of location to compare changes against
+    const [selectedLocation, setSelectedLocation] = useState<LocationEntry>(null);
+
+    const fieldId = (name: string): any => {
+        if (props.type === LoadStopType.SHIPPER) {
+            return `shipper.${name}`;
+        } else if (props.type === LoadStopType.RECEIVER) {
+            return `receiver.${name}`;
+        } else {
+            return `stops.${index}.${name}`;
+        }
+    };
+
+    const watchCity = watch(fieldId('city'));
+    const watchState = watch(fieldId('state'));
+    const watchZip = watch(fieldId('zip'));
+    const watchCountry = watch(fieldId('country'));
+
+    useEffect(() => {
+        const longitude = getValues(fieldId('longitude'));
+        const latitude = getValues(fieldId('latitude'));
+
+        if (longitude && latitude) {
+            const location: LocationEntry = {
+                longitude,
+                latitude,
+                street: getValues(fieldId('street')),
+                city: getValues(fieldId('city')),
+                region: {
+                    shortCode: '',
+                    text: getValues(fieldId('state')),
+                },
+                zip: getValues(fieldId('zip')),
+                country: {
+                    shortCode: getValues(fieldId('country')),
+                    text: '',
+                },
+            };
+
+            setSelectedLocation(location);
+        }
+    }, [register]);
+
+    useEffect(() => {
+        validateLocationCoordinatesWithForm();
+    }, [watchCity, watchState, watchZip, watchCountry]);
 
     useEffect(() => {
         if (!debouncedLocationSearchTerm) {
@@ -105,13 +170,68 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
         }
     };
 
-    const fieldId = (name: string): any => {
-        if (props.type === LoadStopType.SHIPPER) {
-            return `shipper.${name}`;
-        } else if (props.type === LoadStopType.RECEIVER) {
-            return `receiver.${name}`;
+    const validateLocationCoordinatesWithForm = () => {
+        if (!selectedLocation) {
+            setValue(fieldId('longitude'), null);
+            setValue(fieldId('latitude'), null);
+            return;
+        }
+
+        const currentFormLocation = {
+            street: getValues(fieldId('street')),
+            city: getValues(fieldId('city')),
+            state: getValues(fieldId('state')),
+            zip: getValues(fieldId('zip')),
+            country: getValues(fieldId('country')),
+        };
+
+        const isValid = () => {
+            if (currentFormLocation.street !== selectedLocation.street) {
+                return false;
+            }
+            if (currentFormLocation.city !== selectedLocation.city) {
+                return false;
+            }
+
+            let iso3166Info = selectedLocation?.region?.iso3166Info;
+            if (!iso3166Info) {
+                iso3166Info = iso3166.subdivision(selectedLocation.country.shortCode, selectedLocation.region.text);
+                selectedLocation.region.iso3166Info = iso3166Info;
+            }
+
+            if (iso3166Info) {
+                if (
+                    currentFormLocation.state !== iso3166Info.regionCode &&
+                    currentFormLocation.state !== iso3166Info.name &&
+                    currentFormLocation.state !== iso3166Info.code
+                ) {
+                    return false;
+                }
+            } else {
+                if (
+                    currentFormLocation.state !== selectedLocation.region.shortCode &&
+                    currentFormLocation.state !== selectedLocation.region.text
+                ) {
+                    return false;
+                }
+            }
+
+            if (currentFormLocation.zip !== selectedLocation.zip) {
+                return false;
+            }
+            if (currentFormLocation.country !== selectedLocation.country.shortCode) {
+                return false;
+            }
+
+            return true;
+        };
+
+        if (isValid()) {
+            setValue(fieldId('longitude'), selectedLocation.longitude);
+            setValue(fieldId('latitude'), selectedLocation.latitude);
         } else {
-            return `stops.${index}.${name}`;
+            setValue(fieldId('longitude'), null);
+            setValue(fieldId('latitude'), null);
         }
     };
 
@@ -220,24 +340,113 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div className="col-span-12 sm:col-span-6 lg:col-span-12">
-                    <label htmlFor={fieldId('street')} className="block text-sm font-medium text-gray-700">
-                        Street Address
-                    </label>
-                    <input
-                        {...register(fieldId('street'), { required: 'Street Address is required' })}
-                        type="text"
-                        id={fieldId('street')}
-                        autoComplete="off"
-                        onChange={(e) => {
-                            console.log('street address change', e.target.value);
-                            if (e.target.value.length > 0) {
-                                setIsSearchingLocation(true);
-                            }
-                            setLocationSearchTerm(e.target.value);
-                        }}
-                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    <Controller
+                        control={control}
+                        rules={{ required: 'Street Address is required' }}
+                        name={fieldId('street')}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                            <Combobox
+                                as="div"
+                                value={value}
+                                onChange={(selectedLocation: LocationEntry) => {
+                                    setSelectedLocation(selectedLocation);
+                                    setLocationSearchTerm('');
+                                    setDebouncedLocationSearchTerm('');
+
+                                    const regionCode = selectedLocation?.region?.shortCode;
+                                    if (regionCode) {
+                                        const iso3166Info = iso3166.subdivision(regionCode);
+                                        if (iso3166Info) {
+                                            selectedLocation.region.iso3166Info = iso3166Info;
+                                            setValue(fieldId('state'), iso3166Info.regionCode);
+                                        } else {
+                                            setValue(fieldId('state'), regionCode);
+                                        }
+                                    } else {
+                                        setValue(fieldId('state'), selectedLocation?.region?.text);
+                                    }
+
+                                    setValue(fieldId('city'), selectedLocation.city);
+                                    setValue(fieldId('zip'), selectedLocation.zip);
+                                    setValue(fieldId('country'), selectedLocation.country.shortCode);
+                                    setValue(fieldId('longitude'), selectedLocation.longitude);
+                                    setValue(fieldId('latitude'), selectedLocation.latitude);
+                                    onChange(selectedLocation.street);
+                                }}
+                            >
+                                <div className="flex items-center space-x-3">
+                                    <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
+                                        Street Address
+                                    </Combobox.Label>
+                                </div>
+                                <div className="relative mt-1">
+                                    <Combobox.Input
+                                        autoComplete="xyz"
+                                        className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                        onChange={(e) => {
+                                            onChange(e.target.value);
+                                            if (e.target.value.length > 0) {
+                                                setIsSearchingLocation(true);
+                                            }
+                                            setLocationSearchTerm(e.target.value);
+                                            validateLocationCoordinatesWithForm();
+                                        }}
+                                    />
+                                    <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
+                                        <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                    </Combobox.Button>
+
+                                    {locationSearchTerm.length > 0 && (
+                                        <Combobox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                            {isSearchingLocation ? (
+                                                <div className="relative px-4 py-2">
+                                                    <Spinner className="text-gray-700"></Spinner>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {locationSearchResults?.length > 0 &&
+                                                        locationSearchResults.map((location, index) => (
+                                                            <Combobox.Option
+                                                                key={index}
+                                                                value={location}
+                                                                className={({ active }) =>
+                                                                    classNames(
+                                                                        'relative select-none py-2 pl-3 pr-9 cursor-pointer',
+                                                                        active
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'text-gray-900',
+                                                                    )
+                                                                }
+                                                            >
+                                                                {({ active, selected }) => (
+                                                                    <>
+                                                                        <span className="block font-semibold truncate">
+                                                                            {location.street}
+                                                                        </span>
+                                                                        <span className="block truncate">
+                                                                            {location.city} {location.region.text}{' '}
+                                                                            {location.zip} {location.country.text}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </Combobox.Option>
+                                                        ))}
+
+                                                    {locationSearchResults?.length === 0 && (
+                                                        <div className="relative px-4 py-2 text-gray-700 cursor-default select-none">
+                                                            Nothing found.
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </Combobox.Options>
+                                    )}
+                                </div>
+
+                                {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                            </Combobox>
+                        )}
                     />
-                    {errorMessage(errors, 'street')}
                 </div>
 
                 <div className="col-span-12 sm:col-span-6 lg:col-span-3">

@@ -50,9 +50,7 @@ export const getLocation = async ({
     const response = await fetch(url);
     const json = await response.json();
 
-    console.log('json', json);
-
-    const findValueInContext = (name: string, context: any[], keyToReturn = 'text'): string | number => {
+    const findValueInContext = (name: string, context: any[], keyToReturn = 'text'): string => {
         const feature = context.find((x) => x.id.includes(`${name}.`));
         if (!feature) {
             return null;
@@ -60,18 +58,34 @@ export const getLocation = async ({
         return feature[keyToReturn];
     };
 
-    const locations: LocationEntry[] = json?.features?.map((feature: any) => {
-        const countryCode = findValueInContext('country', feature.context, 'short_code');
-        return {
-            street: feature.place_name.split(',')[0],
-            city: findValueInContext('place', feature.context),
-            state: findValueInContext('region', feature.context),
-            zip: findValueInContext('postcode', feature.context),
-            country: countryCode ? (countryCode as string).toUpperCase() : '',
-            longitude: feature.center[0],
-            latitude: feature.center[1],
-        } as LocationEntry;
-    });
+    const locations: LocationEntry[] = json?.features
+        ?.map((feature: any) => {
+            const place = findValueInContext('place', feature.context);
+            if (!place) {
+                return null;
+            }
+
+            const regionCode = findValueInContext('region', feature.context, 'short_code');
+            const regionText = findValueInContext('region', feature.context);
+            const countryCode = findValueInContext('country', feature.context, 'short_code')?.toUpperCase();
+            const countryText = findValueInContext('country', feature.context);
+            return {
+                street: feature.place_name.split(',')[0],
+                city: place,
+                region: {
+                    shortCode: regionCode,
+                    text: regionText,
+                },
+                zip: findValueInContext('postcode', feature.context),
+                country: {
+                    shortCode: countryCode,
+                    text: countryText,
+                },
+                longitude: feature.center[0],
+                latitude: feature.center[1],
+            } as LocationEntry;
+        })
+        .filter((x) => x);
 
     return {
         code: 200,

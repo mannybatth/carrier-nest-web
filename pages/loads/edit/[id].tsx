@@ -43,7 +43,9 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
-    const formHook = useForm<ExpandedLoad>();
+    const formHook = useForm<ExpandedLoad>({
+        defaultValues: loadProp,
+    });
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
@@ -70,6 +72,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {
+        console.log('prop load', loadProp);
         console.log('data to save', data);
 
         setLoading(true);
@@ -79,7 +82,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
             distance: 0,
-            distanceUnit: 'miles',
             customer: data.customer,
             shipper: data.shipper,
             receiver: data.receiver,

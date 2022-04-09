@@ -111,7 +111,6 @@ model Load {
     rate          Decimal
     invoice       Invoice?
     distance      Int
-    distanceUnit  String
     loadDocuments LoadDocument[]
 
     @@index([refNum, carrierId, userId, customerId])

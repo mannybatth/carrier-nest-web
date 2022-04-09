@@ -1,4 +1,5 @@
 import { Customer, InvoiceStatus, Prisma } from '@prisma/client';
+import { SubdivisionInfo } from 'iso-3166-2';
 
 export type Sort = {
     key: string;
@@ -32,9 +33,16 @@ export type PaginationMetadata = {
 export interface LocationEntry {
     street: string;
     city: string;
-    state: string;
+    region: {
+        shortCode: string;
+        text: string;
+        iso3166Info?: SubdivisionInfo.Full;
+    };
     zip: string;
-    country: string;
+    country: {
+        shortCode: string;
+        text: string;
+    };
     longitude: number;
     latitude: number;
 }
@@ -61,6 +69,8 @@ const simpleLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
         country: true,
         date: true,
         time: true,
+        longitude: true,
+        latitude: true,
     },
 });
 export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
@@ -71,7 +81,6 @@ const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
         refNum: true,
         rate: true,
         distance: true,
-        distanceUnit: true,
     },
 });
 export type SimpleLoad = Prisma.LoadGetPayload<typeof simpleLoad>;

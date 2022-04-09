@@ -202,7 +202,6 @@ export const postLoads = async ({ req }: { req: NextApiRequest }): Promise<JSONR
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
-                distanceUnit: loadData.distanceUnit || '',
                 user: {
                     connect: {
                         id: session.user.id,

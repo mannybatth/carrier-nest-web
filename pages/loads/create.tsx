@@ -29,7 +29,6 @@ const CreateLoad: PageWithAuth = () => {
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
             distance: 0,
-            distanceUnit: 'miles',
             customer: data.customer,
             shipper: data.shipper,
             receiver: data.receiver,

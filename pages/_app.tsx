@@ -7,6 +7,7 @@ import 'react-day-picker/lib/style.css';
 import { NextComponentType, NextPageContext } from 'next';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import { Toaster } from 'react-hot-toast';
+import Spinner from '../components/Spinner';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
@@ -45,7 +46,11 @@ const Auth: React.FC = ({ children }: { children: JSX.Element }) => {
 
     // Session is being fetched, or no user.
     // If no user, useEffect() will redirect.
-    return <div>Loading...</div>;
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Spinner />
+        </div>
+    );
 };
 
 export default App;

@@ -138,7 +138,6 @@ export const getInvoice = async ({
                               refNum: true,
                               rate: true,
                               distance: true,
-                              distanceUnit: true,
                               customer: true,
                               shipper: true,
                               receiver: true,
