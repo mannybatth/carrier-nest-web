@@ -69,6 +69,9 @@ export const getInvoiceStats = async ({
             status: {
                 in: [InvoiceStatus.NOT_PAID, InvoiceStatus.PARTIALLY_PAID],
             },
+            dueNetDays: {
+                gt: 0,
+            },
         },
         _sum: {
             remainingAmount: true,

@@ -36,7 +36,15 @@ const buildOrderBy = (
     return undefined;
 };
 
-const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWhereInput => {
+const buildWhere = (session: Session, status?: UIInvoiceStatus): Prisma.InvoiceWhereInput => {
+    const conditions: Prisma.InvoiceWhereInput = {
+        userId: session.user.id,
+    };
+
+    if (!status) {
+        return conditions;
+    }
+
     const invoiceStatus = (() => {
         switch (status) {
             case UIInvoiceStatus.NOT_PAID:
@@ -50,10 +58,6 @@ const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWh
         }
     })();
 
-    const conditions: Prisma.InvoiceWhereInput = {
-        userId: session.user.id,
-    };
-
     if (status !== UIInvoiceStatus.OVERDUE) {
         conditions.status = invoiceStatus;
     } else {
@@ -62,6 +66,9 @@ const buildWhere = (session: Session, status: UIInvoiceStatus): Prisma.InvoiceWh
         };
         conditions.status = {
             in: [InvoiceStatus.NOT_PAID, InvoiceStatus.PARTIALLY_PAID],
+        };
+        conditions.dueNetDays = {
+            gt: 0,
         };
     }
 

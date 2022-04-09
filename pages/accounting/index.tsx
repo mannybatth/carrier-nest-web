@@ -18,6 +18,7 @@ export async function getServerSideProps(context: NextPageContext) {
     const { query } = context;
     const sort: Sort = sortFromQuery(query);
     const withStatus = query.status ? (query.status as UIInvoiceStatus) : UIInvoiceStatus.NOT_PAID;
+    const isBrowsing = query.show === 'all';
 
     const [{ data: invoicesData }, { data: statsData }] = await Promise.all([
         getInvoices({
@@ -28,7 +29,7 @@ export async function getServerSideProps(context: NextPageContext) {
                 offset: query.offset || '0',
                 sortBy: sort?.key,
                 sortDir: sort?.order,
-                status: withStatus,
+                status: !isBrowsing ? withStatus : null,
             },
         }),
         getInvoiceStats({
@@ -42,6 +43,7 @@ export async function getServerSideProps(context: NextPageContext) {
             metadata: invoicesData.metadata,
             sort,
             withStatus,
+            isBrowsing,
             stats: statsData.stats,
         },
     };
@@ -52,6 +54,7 @@ type Props = {
     metadata: PaginationMetadata;
     sort: Sort;
     withStatus: UIInvoiceStatus;
+    isBrowsing: boolean;
     stats: {
         totalPaid: number;
         totalUnpaid: number;
@@ -64,6 +67,7 @@ const AccountingPage: PageWithAuth<Props> = ({
     metadata: metadataProp,
     sort: sortProps,
     withStatus,
+    isBrowsing,
     stats,
 }: Props) => {
     const [invoicesList, setInvoicesList] = React.useState(invoices);
@@ -136,15 +140,15 @@ const AccountingPage: PageWithAuth<Props> = ({
                 </div>
                 <div className="mb-6 px-7 sm:px-6 md:px-8">
                     <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-3">
-                        <div className="px-4 py-5 overflow-hidden bg-white rounded-lg shadow sm:p-6">
+                        <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                             <dt className="text-sm font-medium text-gray-500 truncate">Paid This Month</dt>
                             <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalPaid}</dd>
                         </div>
-                        <div className="px-4 py-5 overflow-hidden bg-white rounded-lg shadow sm:p-6">
+                        <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                             <dt className="text-sm font-medium text-gray-500 truncate">Total Unpaid</dt>
                             <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalUnpaid}</dd>
                         </div>
-                        <div className="px-4 py-5 overflow-hidden bg-white rounded-lg shadow sm:p-6">
+                        <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                             <dt className="text-sm font-medium text-gray-500 truncate">Total Overdue</dt>
                             <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalOverdue}</dd>
                         </div>
@@ -153,7 +157,8 @@ const AccountingPage: PageWithAuth<Props> = ({
                 <div className="px-5 sm:px-6 md:px-8">
                     <div className="items-center border-b border-gray-200 lg:space-x-4 lg:flex">
                         <h2 className="mb-3 text-lg font-medium leading-6 text-gray-900 lg:mb-0 lg:flex-1">
-                            {withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
+                            {isBrowsing ? 'All' : null}
+                            {!isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
                             {withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'Partially Paid' : null}
                             {withStatus === UIInvoiceStatus.OVERDUE ? 'Overdue' : null}
                             {withStatus === UIInvoiceStatus.PAID ? 'Completed' : null} Invoices
@@ -163,15 +168,34 @@ const AccountingPage: PageWithAuth<Props> = ({
                                 onClick={() => {
                                     router.push({
                                         pathname: router.pathname,
+                                        query: { show: 'all' },
                                     });
                                 }}
                                 className={classNames(
-                                    withStatus === UIInvoiceStatus.NOT_PAID
+                                    isBrowsing
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
                                 )}
-                                aria-current={withStatus === UIInvoiceStatus.NOT_PAID ? 'page' : undefined}
+                                aria-current={isBrowsing ? 'page' : undefined}
+                            >
+                                Browse All
+                            </a>
+                            <a
+                                onClick={() => {
+                                    router.push({
+                                        pathname: router.pathname,
+                                    });
+                                }}
+                                className={classNames(
+                                    !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                )}
+                                aria-current={
+                                    !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'page' : undefined
+                                }
                             >
                                 Pending
                             </a>
@@ -186,7 +210,7 @@ const AccountingPage: PageWithAuth<Props> = ({
                                     withStatus === UIInvoiceStatus.PARTIALLY_PAID
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
                                 )}
                                 aria-current={withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'page' : undefined}
                             >
@@ -203,7 +227,7 @@ const AccountingPage: PageWithAuth<Props> = ({
                                     withStatus === UIInvoiceStatus.OVERDUE
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
                                 )}
                                 aria-current={withStatus === UIInvoiceStatus.OVERDUE ? 'page' : undefined}
                             >
@@ -220,7 +244,7 @@ const AccountingPage: PageWithAuth<Props> = ({
                                     withStatus === UIInvoiceStatus.PAID
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
+                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
                                 )}
                                 aria-current={UIInvoiceStatus.PAID ? 'page' : undefined}
                             >
