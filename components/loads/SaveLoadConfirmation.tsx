@@ -1,13 +1,14 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationIcon, XIcon } from '@heroicons/react/outline';
-import React, { Fragment, useState } from 'react';
+import React, { Fragment } from 'react';
 
 type Props = {
     show: boolean;
+    onSave: () => void;
     onClose: (value: boolean) => void;
 };
 
-const SaveLoadConfirmation: React.FC<Props> = ({ show, onClose }: Props) => {
+const SaveLoadConfirmation: React.FC<Props> = ({ show, onSave, onClose }: Props) => {
     const close = (value: boolean) => {
         onClose(value);
     };
@@ -45,7 +46,7 @@ const SaveLoadConfirmation: React.FC<Props> = ({ show, onClose }: Props) => {
                             <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
                                 <button
                                     type="button"
-                                    className="text-gray-400 bg-white rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="text-gray-400 bg-white rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     onClick={() => close(false)}
                                 >
                                     <span className="sr-only">Close</span>
@@ -53,32 +54,49 @@ const SaveLoadConfirmation: React.FC<Props> = ({ show, onClose }: Props) => {
                                 </button>
                             </div>
                             <div className="sm:flex sm:items-start">
-                                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-red-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
-                                    <ExclamationIcon className="w-6 h-6 text-red-600" aria-hidden="true" />
+                                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full bg-orange-50 sm:mx-0 sm:h-10 sm:w-10">
+                                    <ExclamationIcon className="w-6 h-6 text-yellow-600" aria-hidden="true" />
                                 </div>
                                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                     <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                                        Deactivate account
+                                        Are you sure you want to save?
                                     </Dialog.Title>
                                     <div className="mt-2">
-                                        <p className="text-sm text-gray-500">
-                                            Are you sure you want to deactivate your account? All of your data will be
-                                            permanently removed from our servers forever. This action cannot be undone.
-                                        </p>
+                                        <div className="text-sm text-gray-500">
+                                            <div>
+                                                The form contains manually entered addresses. Try using search to find
+                                                addresses instead.
+                                            </div>
+                                            <br />
+
+                                            <div className="p-4 border-l-4 border-yellow-500 bg-yellow-50">
+                                                <div className="flex">
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-yellow-700">
+                                                            Entering addresses manually can create incomplete data in
+                                                            reporting.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                                 <button
                                     type="button"
-                                    className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                                    onClick={() => close(false)}
+                                    className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                    onClick={() => {
+                                        onSave();
+                                        close(true);
+                                    }}
                                 >
-                                    Deactivate
+                                    Save Load
                                 </button>
                                 <button
                                     type="button"
-                                    className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                                    className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
                                     onClick={() => close(false)}
                                 >
                                     Cancel

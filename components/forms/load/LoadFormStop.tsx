@@ -1,5 +1,5 @@
 import { Combobox } from '@headlessui/react';
-import { CalendarIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
+import { CalendarIcon, CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
@@ -67,6 +67,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     const watchState = watch(fieldId('state'));
     const watchZip = watch(fieldId('zip'));
     const watchCountry = watch(fieldId('country'));
+    const watchLongitude = watch(fieldId('longitude'));
+    const watchLatitude = watch(fieldId('latitude'));
 
     useEffect(() => {
         const longitude = getValues(fieldId('longitude'));
@@ -186,10 +188,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
         };
 
         const isValid = () => {
-            if (currentFormLocation.street !== selectedLocation.street) {
+            if (currentFormLocation.street.toLowerCase() !== selectedLocation.street?.toLowerCase()) {
                 return false;
             }
-            if (currentFormLocation.city !== selectedLocation.city) {
+            if (currentFormLocation.city.toLowerCase() !== selectedLocation.city?.toLowerCase()) {
                 return false;
             }
 
@@ -201,22 +203,22 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
             if (iso3166Info) {
                 if (
-                    currentFormLocation.state !== iso3166Info.regionCode &&
-                    currentFormLocation.state !== iso3166Info.name &&
-                    currentFormLocation.state !== iso3166Info.code
+                    currentFormLocation.state.toLowerCase() !== iso3166Info.regionCode?.toLowerCase() &&
+                    currentFormLocation.state.toLowerCase() !== iso3166Info.name?.toLowerCase() &&
+                    currentFormLocation.state.toLowerCase() !== iso3166Info.code?.toLowerCase()
                 ) {
                     return false;
                 }
             } else {
                 if (
-                    currentFormLocation.state !== selectedLocation.region.shortCode &&
-                    currentFormLocation.state !== selectedLocation.region.text
+                    currentFormLocation.state.toLowerCase() !== selectedLocation.region?.shortCode?.toLowerCase() &&
+                    currentFormLocation.state.toLowerCase() !== selectedLocation.region?.text?.toLowerCase()
                 ) {
                     return false;
                 }
             }
 
-            if (currentFormLocation.zip !== selectedLocation.zip) {
+            if (currentFormLocation.zip.toLowerCase() !== selectedLocation.zip?.toLowerCase()) {
                 return false;
             }
             if (currentFormLocation.country !== selectedLocation.country.shortCode) {
@@ -378,6 +380,13 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
                                         Street Address
                                     </Combobox.Label>
+
+                                    {watchLongitude && watchLatitude && (
+                                        <div className="flex items-center space-x-1 text-xs font-medium text-green-800 flex-0 ">
+                                            <CheckCircleIcon className="w-4 h-4 text-green-600" aria-hidden="true" />
+                                            <div>Verified</div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="relative mt-1">
                                     <Combobox.Input

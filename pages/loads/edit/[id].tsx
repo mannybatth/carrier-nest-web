@@ -139,7 +139,11 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Load</h1>}>
             <>
-                <SaveLoadConfirmation show={showConfirmation} onClose={() => setShowConfirmation(false)} />
+                <SaveLoadConfirmation
+                    show={showConfirmation}
+                    onSave={() => saveLoadData(dataToSave)}
+                    onClose={() => setShowConfirmation(false)}
+                />
                 <div className="max-w-4xl py-2 mx-auto">
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
