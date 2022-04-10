@@ -3,7 +3,8 @@ import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedLoad, JSONResponse, PaginationMetadata } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
+import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 

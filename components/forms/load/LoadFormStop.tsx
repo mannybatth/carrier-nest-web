@@ -14,12 +14,13 @@ import {
     UseFormWatch,
 } from 'react-hook-form';
 import { countryCodes } from '../../../interfaces/country-codes';
-import { ExpandedLoad, LocationEntry } from '../../../interfaces/models';
+import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
 import * as iso3166 from 'iso-3166-2';
+import { LocationEntry } from '../../../interfaces/location';
 
 export type LoadFormStopProps = {
     type: LoadStopType;

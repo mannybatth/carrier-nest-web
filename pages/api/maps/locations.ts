@@ -2,7 +2,8 @@ import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
-import { JSONResponse, LocationEntry } from '../../../interfaces/models';
+import { LocationEntry } from '../../../interfaces/location';
+import { JSONResponse } from '../../../interfaces/models';
 
 export default handler;
 

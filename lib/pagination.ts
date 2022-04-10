@@ -1,4 +1,4 @@
-import { PaginationMetadata } from '../interfaces/models';
+import { PaginationMetadata } from '../interfaces/table';
 
 export const calcPaginationMetadata = ({ total, limit, offset }: { total: number; limit: number; offset: number }) => {
     const metadata: PaginationMetadata = {

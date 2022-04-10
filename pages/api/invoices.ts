@@ -4,7 +4,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session } from 'next-auth';
 import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedInvoice, JSONResponse, PaginationMetadata, UIInvoiceStatus } from '../../interfaces/models';
+import { ExpandedInvoice, JSONResponse, UIInvoiceStatus } from '../../interfaces/models';
+import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 

@@ -1,5 +1,6 @@
 import { apiUrl } from '../../constants';
-import { JSONResponse, LocationEntry } from '../../interfaces/models';
+import { LocationEntry } from '../../interfaces/location';
+import { JSONResponse } from '../../interfaces/models';
 
 export const queryLocations = async (query: string) => {
     const response = await fetch(apiUrl + '/maps/locations?q=' + query);
