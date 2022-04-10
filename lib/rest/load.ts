@@ -1,13 +1,7 @@
 import { Load, LoadDocument } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import {
-    ExpandedLoad,
-    JSONResponse,
-    PaginationMetadata,
-    SimpleLoad,
-    SimpleLoadDocument,
-    Sort,
-} from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse, SimpleLoad, SimpleLoadDocument } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getLoadsExpanded = async ({
     sort,

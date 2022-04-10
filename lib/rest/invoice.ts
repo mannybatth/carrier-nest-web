@@ -4,11 +4,11 @@ import {
     ExpandedInvoice,
     UIInvoiceStatus,
     JSONResponse,
-    PaginationMetadata,
     SimpleInvoice,
     SimpleInvoicePayment,
-    Sort,
 } from '../../interfaces/models';
+import { AccountingStats } from '../../interfaces/stats';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getInvoicesExpanded = async ({
     sort,
@@ -133,4 +133,14 @@ export const deleteInvoicePayment = async (invoiceId: number, paymentId: number)
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data.result;
+};
+
+export const getAccountingStats = async () => {
+    const response = await fetch(apiUrl + '/invoices/stats');
+    const { data, errors }: JSONResponse<{ stats: AccountingStats }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.stats;
 };

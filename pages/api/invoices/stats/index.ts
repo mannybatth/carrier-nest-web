@@ -1,8 +1,7 @@
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { InvoiceStatus } from '@prisma/client';
 import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { ParsedUrlQuery } from 'querystring';
 import { JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 

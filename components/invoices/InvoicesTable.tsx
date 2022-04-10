@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import React from 'react';
-import { ExpandedInvoice, Sort } from '../../interfaces/models';
+import { ExpandedInvoice } from '../../interfaces/models';
+import { Sort } from '../../interfaces/table';
 import { invoiceStatus } from '../../lib/invoice/invoice-utils';
 import Table from '../Table';
 
@@ -8,17 +9,26 @@ type Props = {
     invoices: ExpandedInvoice[];
     headers?: string[];
     sort: Sort;
+    loading: boolean;
     changeSort: (sort: Sort) => void;
     deleteInvoice: (id: number) => void;
 };
 
 const defaultHeaders = ['id', 'load.customer.name', 'status', 'invoicedAt', 'totalAmount'];
 
-const InvoicesTable: React.FC<Props> = ({ invoices, changeSort, sort, headers = defaultHeaders, deleteInvoice }) => {
+const InvoicesTable: React.FC<Props> = ({
+    invoices,
+    changeSort,
+    sort,
+    loading,
+    headers = defaultHeaders,
+    deleteInvoice,
+}) => {
     const router = useRouter();
 
     return (
         <Table
+            loading={loading}
             headers={[
                 ...[headers.includes('id') ? { key: 'id', title: 'Invoice Id' } : null],
                 ...[headers.includes('load.customer.name') ? { key: 'load.customer.name', title: 'Customer' } : null],

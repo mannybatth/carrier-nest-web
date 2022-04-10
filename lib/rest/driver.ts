@@ -1,6 +1,7 @@
 import { Driver } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, PaginationMetadata, SimpleDriver, Sort } from '../../interfaces/models';
+import { JSONResponse, SimpleDriver } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getAllDrivers = async ({
     sort,

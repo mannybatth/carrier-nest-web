@@ -198,7 +198,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         try {
             await assignDriverToLoad(load.id, driver.id);
             notify({ title: 'Driver assigned', message: 'Driver assigned to load successfully' });
-            router.replace(`/loads/${load.id}`);
+            reloadLoad();
         } catch (e) {
             notify({ title: 'Error Assigning Driver', message: e.message });
         }
@@ -209,7 +209,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             try {
                 await assignDriverToLoad(load.id, 0);
                 notify({ title: 'Driver removed', message: 'Driver removed from load successfully' });
-                router.replace(`/loads/${load.id}`);
+                reloadLoad();
             } catch (e) {
                 notify({ title: 'Error removing driver', message: e.message });
             }

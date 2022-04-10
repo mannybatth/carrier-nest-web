@@ -1,6 +1,7 @@
 import { Customer } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, PaginationMetadata, SimpleCustomer, Sort } from '../../interfaces/models';
+import { JSONResponse, SimpleCustomer } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getAllCustomers = async ({
     sort,
