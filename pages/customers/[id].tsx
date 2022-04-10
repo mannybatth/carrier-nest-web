@@ -373,13 +373,14 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
                                     loading={tableLoading}
                                 ></LoadsTable>
                             )}
-
-                            <Pagination
-                                metadata={metadata}
-                                loading={loadingLoads || tableLoading}
-                                onPrevious={() => previousPage()}
-                                onNext={() => nextPage()}
-                            ></Pagination>
+                            {loadsList.length !== 0 && !loadingLoads && (
+                                <Pagination
+                                    metadata={metadata}
+                                    loading={loadingLoads || tableLoading}
+                                    onPrevious={() => previousPage()}
+                                    onNext={() => nextPage()}
+                                ></Pagination>
+                            )}
                         </div>
                     </div>
                 </div>

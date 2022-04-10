@@ -1,3 +1,5 @@
+import { PlusIcon, TruckIcon } from '@heroicons/react/outline';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
 import { ExpandedLoad } from '../../interfaces/models';
@@ -143,6 +145,37 @@ export const LoadsTable: React.FC<Props> = ({
             }}
             sort={sort}
             changeSort={changeSort}
+            emptyState={
+                <div className="my-5 text-center">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-12 h-12 mx-auto text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1}
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+                        />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No loads to show on this page.</h3>
+                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new load.</p>
+                    <div className="mt-6">
+                        <Link href="/loads/create">
+                            <button
+                                type="button"
+                                className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                + Create Load
+                            </button>
+                        </Link>
+                    </div>
+                </div>
+            }
         />
     );
 };

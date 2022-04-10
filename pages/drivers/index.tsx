@@ -177,12 +177,14 @@ const DriversPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp, o
                         />
                     )}
 
-                    <Pagination
-                        metadata={metadata}
-                        loading={loadingDrivers || tableLoading}
-                        onPrevious={() => previousPage()}
-                        onNext={() => nextPage()}
-                    ></Pagination>
+                    {driversList.length !== 0 && !loadingDrivers && (
+                        <Pagination
+                            metadata={metadata}
+                            loading={loadingDrivers || tableLoading}
+                            onPrevious={() => previousPage()}
+                            onNext={() => nextPage()}
+                        ></Pagination>
+                    )}
                 </div>
             </div>
         </Layout>

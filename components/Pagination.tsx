@@ -1,5 +1,5 @@
 import React from 'react';
-import { PaginationMetadata } from '../interfaces/models';
+import { PaginationMetadata } from '../interfaces/table';
 
 type Props = {
     metadata: PaginationMetadata;

@@ -311,12 +311,14 @@ const AccountingPage: PageWithAuth<Props> = ({
                             />
                         )}
                     </div>
-                    <Pagination
-                        metadata={metadata}
-                        loading={loadingInvoices || tableLoading}
-                        onPrevious={() => previousPage()}
-                        onNext={() => nextPage()}
-                    ></Pagination>
+                    {invoicesList.length !== 0 && !loadingInvoices && (
+                        <Pagination
+                            metadata={metadata}
+                            loading={loadingInvoices || tableLoading}
+                            onPrevious={() => previousPage()}
+                            onNext={() => nextPage()}
+                        ></Pagination>
+                    )}
                 </div>
             </div>
         </Layout>

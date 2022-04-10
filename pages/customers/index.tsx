@@ -177,12 +177,14 @@ const CustomersPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp,
                             />
                         )}
                     </div>
-                    <Pagination
-                        metadata={metadata}
-                        loading={loadingCustomers || tableLoading}
-                        onPrevious={() => previousPage()}
-                        onNext={() => nextPage()}
-                    ></Pagination>
+                    {customersList.length !== 0 && !loadingCustomers && (
+                        <Pagination
+                            metadata={metadata}
+                            loading={loadingCustomers || tableLoading}
+                            onPrevious={() => previousPage()}
+                            onNext={() => nextPage()}
+                        ></Pagination>
+                    )}
                 </div>
             </div>
         </Layout>
