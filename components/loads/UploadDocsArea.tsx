@@ -10,7 +10,7 @@ export const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange
 
     return (
         <div className="mt-1 sm:mt-0 sm:col-span-2">
-            <div className="flex justify-center max-w-lg px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+            <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                 <div className="space-y-1 text-center">
                     <DocumentAddIcon className="w-12 h-12 mx-auto text-gray-400"></DocumentAddIcon>
                     <div className="inline text-sm text-gray-600">

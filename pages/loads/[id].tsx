@@ -343,9 +343,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <div className="flex justify-between py-3 text-sm font-medium">
                                                     <dt className="text-gray-500">Customer</dt>
                                                     <dd className="text-gray-900">
-                                                        <Link href={`/customers/${load.customer.id}`}>
-                                                            {load.customer?.name}
-                                                        </Link>
+                                                        {load.customer && (
+                                                            <Link href={`/customers/${load.customer.id}`}>
+                                                                {load.customer?.name}
+                                                            </Link>
+                                                        )}
                                                     </dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 text-sm font-medium">
