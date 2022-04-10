@@ -16,10 +16,10 @@ export interface SkeletonConfig {
  * Next page with authentication configuration
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type PageWithAuth<PropsType = any> = NextPage<PropsType> & AuthEnabledComponentConfig & SkeletonConfig;
+export type PageWithAuth<P = any, IP = P> = NextPage<P, IP> & AuthEnabledComponentConfig & SkeletonConfig;
 
 /**
  * A component with authentication configuration
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ComponentWithAuth<PropsType = any> = React.FC<PropsType> & AuthEnabledComponentConfig;
+export type ComponentWithAuth<P = any> = React.FC<P> & AuthEnabledComponentConfig;

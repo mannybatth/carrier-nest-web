@@ -21,7 +21,7 @@ const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }) => {
                 <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
             </Head>
             {Component.authenticationEnabled ? (
-                <Auth>
+                <Auth {...pageProps}>
                     <Component {...pageProps} />
                 </Auth>
             ) : (

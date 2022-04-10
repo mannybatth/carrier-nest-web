@@ -52,3 +52,51 @@ const CustomersTable: React.FC<Props> = ({ customers, sort, changeSort, deleteCu
 };
 
 export default CustomersTable;
+
+type CustomersTableSkeletonProps = {
+    limit: number;
+};
+export const CustomersTableSkeleton: React.FC<CustomersTableSkeletonProps> = ({ limit }) => {
+    return (
+        <div className="w-full">
+            <div className="flex space-x-4 animate-pulse">
+                <div className="flex-1">
+                    <div className="h-10 rounded bg-slate-200"></div>
+                    <div className="divide-y divide-gray-200">
+                        {[...Array(limit)].map((_, i) => (
+                            <div key={i} className="grid items-center grid-cols-12 gap-4 py-3">
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-1 space-y-2">
+                                    <div className="h-4 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-1 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-2 rounded bg-slate-200"></div>
+                                    <div className="w-1/2 h-2 rounded bg-slate-200"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

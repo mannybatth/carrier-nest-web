@@ -6,7 +6,6 @@ import { ParsedUrlQuery } from 'querystring';
 import { JSONResponse, PaginationMetadata } from '../../interfaces/models';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
-import { getLoad } from './loads/[id]';
 
 const buildOrderBy = (sortBy: string, sortDir: string) => {
     if (sortBy && sortDir) {
@@ -39,7 +38,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getLoad({ req, query: req.query });
+        const response = await getCustomers({ req, query: req.query });
         return res.status(response.code).json(response);
     }
 

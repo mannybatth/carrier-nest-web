@@ -67,9 +67,9 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, ch
     };
 
     return (
-        <div className="relative flex flex-col mt-2">
-            <div className="-mx-4 -my-2 overflow-x-auto overflow-y-visible sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+        <div className="relative flex flex-col">
+            <div className="-mx-4 overflow-x-auto overflow-y-visible sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full align-middle md:px-6 lg:px-8">
                     <table className="min-w-full divide-y divide-gray-300">
                         <thead className="bg-gray-50">
                             <tr>

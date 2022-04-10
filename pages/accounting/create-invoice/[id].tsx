@@ -12,6 +12,7 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { createInvoice } from '../../../lib/rest/invoice';
+import { useLocalStorage } from '../../../lib/useLocalStorage';
 import { getLoad } from '../../api/loads/[id]';
 
 export async function getServerSideProps(context: NextPageContext) {
@@ -53,6 +54,8 @@ type Props = {
 };
 
 const CreateInvoice: PageWithAuth = ({ load }: Props) => {
+    const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
+
     const formHook = useForm<ExpandedInvoice>();
     const router = useRouter();
 
@@ -89,6 +92,7 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
         console.log('new invoice', newInvoice);
 
         setLoading(false);
+        setLastDueNetDays(data.dueNetDays);
 
         notify({ title: 'New invoice created', message: 'New invoice created successfully' });
 

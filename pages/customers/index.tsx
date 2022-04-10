@@ -2,49 +2,54 @@ import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import safeJsonStringify from 'safe-json-stringify';
-import CustomersTable from '../../components/customers/CustomersTable';
+import CustomersTable, { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer, PaginationMetadata, Sort } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/models';
+import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteCustomerById, getAllCustomers } from '../../lib/rest/customer';
-import { getCustomers } from '../api/customers';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { query } = context;
-    const sort: Sort = sortFromQuery(query);
+    return withServerAuth(context, async (context) => {
+        const { query } = context;
+        const sort: Sort = sortFromQuery(query);
 
-    const { data } = await getCustomers({
-        req: context.req,
-        query: {
-            limit: query.limit || '10',
-            offset: query.offset || '0',
-            sortBy: sort?.key,
-            sortDir: sort?.order,
-        },
+        return {
+            props: {
+                sort,
+                limit: Number(query.limit) || 10,
+                offset: Number(query.offset) || 0,
+            },
+        };
     });
-    return { props: { customers: JSON.parse(safeJsonStringify(data.customers)), metadata: data.metadata, sort } };
 }
 
 type Props = {
-    customers: ExpandedCustomer[];
-    metadata: PaginationMetadata;
     sort: Sort;
+    limit: number;
+    offset: number;
 };
 
-const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp, sort: sortProps }: Props) => {
-    const [customersList, setCustomersList] = React.useState(customers);
+const CustomersPage: PageWithAuth<Props> = ({ sort: sortProps, limit, offset }: Props) => {
+    const [lastCustomersTableLimit, setLastCustomersTableLimit] = useLocalStorage('lastCustomersTableLimit', limit);
+
+    const [loadingCustomers, setLoadingCustomers] = React.useState(true);
+    const [customersList, setCustomersList] = React.useState([]);
     const [sort, setSort] = React.useState<Sort>(sortProps);
-    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentLimit: limit,
+        currentOffset: offset,
+    });
     const router = useRouter();
 
     useEffect(() => {
-        setCustomersList(customers);
-        setMetadata(metadataProp);
-    }, [customers, metadataProp]);
+        reloadCustomers();
+    }, [sort, limit, offset]);
 
     useEffect(() => {
         setSort(sortProps);
@@ -58,13 +63,16 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp,
     };
 
     const reloadCustomers = async () => {
+        setLoadingCustomers(true);
         const { customers, metadata: metadataResponse } = await getAllCustomers({
             limit: metadata.currentLimit,
             offset: metadata.currentOffset,
             sort,
         });
+        setLastCustomersTableLimit(customers.length !== 0 ? customers.length : lastCustomersTableLimit);
         setCustomersList(customers);
         setMetadata(metadataResponse);
+        setLoadingCustomers(false);
     };
 
     const previousPage = async () => {
@@ -120,12 +128,18 @@ const CustomersPage: PageWithAuth<Props> = ({ customers, metadata: metadataProp,
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <CustomersTable
-                        customers={customersList}
-                        sort={sort}
-                        changeSort={changeSort}
-                        deleteCustomer={deleteCustomer}
-                    />
+                    <div className="py-2">
+                        {loadingCustomers ? (
+                            <CustomersTableSkeleton limit={lastCustomersTableLimit} />
+                        ) : (
+                            <CustomersTable
+                                customers={customersList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteCustomer={deleteCustomer}
+                            />
+                        )}
+                    </div>
                     <Pagination
                         metadata={metadata}
                         onPrevious={() => previousPage()}

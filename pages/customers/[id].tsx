@@ -14,29 +14,36 @@ import React, { Fragment, useEffect } from 'react';
 import safeJsonStringify from 'safe-json-stringify';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import LoadsTable from '../../components/loads/LoadsTable';
+import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
+import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
-import { deleteCustomerById } from '../../lib/rest/customer';
+import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 import { getCustomer } from '../api/customers/[id]';
 import { getLoads } from '../api/loads';
 
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
+    disabled?: boolean;
     deleteCustomer: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCustomer }) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, disabled, deleteCustomer }) => {
     const router = useRouter();
 
     return (
         <Menu as="div" className="relative inline-block text-left">
             <div>
-                <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
+                <Menu.Button
+                    className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+                    disabled={disabled}
+                >
                     Actions
                     <ChevronDownIcon className="w-5 h-5 ml-2 -mr-1" aria-hidden="true" />
                 </Menu.Button>
@@ -95,64 +102,83 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, deleteCusto
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { query } = context;
-    const customerId = query.id;
-    const sort: Sort = sortFromQuery(query);
+    return withServerAuth(context, async (context) => {
+        const { query } = context;
+        const sort: Sort = sortFromQuery(query);
 
-    const [{ data: customerData }, { data: loadsData }] = await Promise.all([
-        getCustomer({
-            req: context.req,
-            query: {
-                id: customerId,
+        return {
+            props: {
+                customerId: Number(query.id),
+                sort,
+                limit: Number(query.limit) || 10,
+                offset: Number(query.offset) || 0,
             },
-        }),
-        getLoads({
-            req: context.req,
-            query: {
-                customerId: customerId,
-                expand: 'customer,shipper,receiver',
-                limit: query.limit || '10',
-                offset: query.offset || '0',
-                sortBy: sort?.key,
-                sortDir: sort?.order,
-            },
-        }),
-    ]);
-    return {
-        props: {
-            customer: JSON.parse(safeJsonStringify(customerData.customer)) || null,
-            loadCount: loadsData?.metadata?.total || 0,
-            loads: JSON.parse(safeJsonStringify(loadsData.loads)),
-            metadata: loadsData.metadata,
-            sort,
-        },
-    };
+        };
+    });
+    // const { query } = context;
+    // const customerId = query.id;
+    // const sort: Sort = sortFromQuery(query);
+
+    // const [{ data: customerData }, { data: loadsData }] = await Promise.all([
+    //     getCustomer({
+    //         req: context.req,
+    //         query: {
+    //             id: customerId,
+    //         },
+    //     }),
+    //     getLoads({
+    //         req: context.req,
+    //         query: {
+    //             customerId: customerId,
+    //             expand: 'customer,shipper,receiver',
+    //             limit: query.limit || '10',
+    //             offset: query.offset || '0',
+    //             sortBy: sort?.key,
+    //             sortDir: sort?.order,
+    //         },
+    //     }),
+    // ]);
+    // return {
+    //     props: {
+    //         customer: JSON.parse(safeJsonStringify(customerData.customer)) || null,
+    //         loadCount: loadsData?.metadata?.total || 0,
+    //         loads: JSON.parse(safeJsonStringify(loadsData.loads)),
+    //         metadata: loadsData.metadata,
+    //         sort,
+    //     },
+    // };
 }
 
 type Props = {
-    customer: ExpandedCustomer;
-    loadCount: number;
-    loads: ExpandedLoad[];
-    metadata: PaginationMetadata;
+    customerId: number;
     sort: Sort;
+    limit: number;
+    offset: number;
 };
 
-const CustomerDetailsPage: PageWithAuth<Props> = ({
-    customer,
-    loads: loadsProp,
-    loadCount,
-    metadata: metadataProp,
-    sort: sortProps,
-}: Props) => {
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
+const CustomerDetailsPage: PageWithAuth<Props> = ({ customerId, sort: sortProps, limit, offset }: Props) => {
+    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limit);
+
+    const [loadingCustomer, setLoadingCustomer] = React.useState(true);
+    const [customer, setCustomer] = React.useState<ExpandedCustomer | null>(null);
+
+    const [loadingLoads, setLoadingLoads] = React.useState(true);
+    const [loads, setLoads] = React.useState<ExpandedLoad[]>([]);
     const [sort, setSort] = React.useState<Sort>(sortProps);
-    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentLimit: limit,
+        currentOffset: offset,
+    });
     const router = useRouter();
 
     useEffect(() => {
-        setLoads(loadsProp);
-        setMetadata(metadataProp);
-    }, [loadsProp, metadataProp]);
+        reloadCustomer();
+    }, [customerId]);
+
+    useEffect(() => {
+        reloadLoads();
+    }, [sort, limit, offset]);
 
     useEffect(() => {
         setSort(sortProps);
@@ -165,15 +191,24 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
         });
     };
 
+    const reloadCustomer = async () => {
+        setLoadingCustomer(true);
+        const customer = await getCustomerById(customerId);
+        setCustomer(customer);
+        setLoadingCustomer(true);
+    };
+
     const reloadLoads = async () => {
+        setLoadingLoads(true);
         const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            customerId: customer.id,
+            customerId: customerId,
             limit: metadata.currentLimit,
             offset: metadata.currentOffset,
             sort,
         });
         setLoads(loads);
         setMetadata(metadataResponse);
+        setLoadingLoads(false);
     };
 
     const previousPage = async () => {
@@ -209,8 +244,12 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{customer.name}</h1>
-                    <ActionsDropdown customer={customer} deleteCustomer={deleteCustomer}></ActionsDropdown>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{customer?.name}</h1>
+                    <ActionsDropdown
+                        customer={customer}
+                        disabled={!customer}
+                        deleteCustomer={deleteCustomer}
+                    ></ActionsDropdown>
                 </div>
             }
         >
@@ -223,96 +262,112 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
                             href: '/customers',
                         },
                         {
-                            label: `${customer.name}`,
+                            label: customer ? `${customer.name}` : '',
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{customer.name}</h1>
-                        <ActionsDropdown customer={customer} deleteCustomer={deleteCustomer}></ActionsDropdown>
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{customer?.name}</h1>
+                        <ActionsDropdown
+                            customer={customer}
+                            disabled={!customer}
+                            deleteCustomer={deleteCustomer}
+                        ></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
                     <div className="grid grid-cols-12 gap-5">
-                        <div className="col-span-12">
-                            <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                        <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                        {customer ? (
+                            <div className="col-span-12">
+                                <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                            <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Total Loads</p>
+                                            <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                        </div>
                                     </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                        <p className="text-sm text-gray-500">{loadCount}</p>
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                            <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Contact Email</p>
+                                            <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                        <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                            <CurrencyDollarIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Billing Email</p>
+                                            <p className="text-sm text-gray-500">{customer.billingEmail}</p>
+                                        </div>
                                     </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Contact Email</p>
-                                        <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                            <InformationCircleIcon
+                                                className="w-5 h-5 text-gray-500"
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Payment Status Email</p>
+                                            <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <CurrencyDollarIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Billing Email</p>
-                                        <p className="text-sm text-gray-500">{customer.billingEmail}</p>
-                                    </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <InformationCircleIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Payment Status Email</p>
-                                        <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
-                                    </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <LocationMarkerIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Address</p>
-                                        <p className="text-sm text-gray-500">
-                                            {customer.street && (
-                                                <>
-                                                    {customer.street} <br />
-                                                </>
-                                            )}
-                                            {customer.city && customer.state
-                                                ? `${customer.city}, ${customer.state}`
-                                                : `${customer.city} ${customer.state}`}{' '}
-                                            {customer.zip}
-                                        </p>
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                            <LocationMarkerIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Address</p>
+                                            <p className="text-sm text-gray-500">
+                                                {customer.street && (
+                                                    <>
+                                                        {customer.street} <br />
+                                                    </>
+                                                )}
+                                                {customer.city && customer.state
+                                                    ? `${customer.city}, ${customer.state}`
+                                                    : `${customer.city} ${customer.state}`}{' '}
+                                                {customer.zip}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
+                        )}
 
                         <div className="col-span-12">
                             <h3>Loads for Customer</h3>
-                            <LoadsTable
-                                loads={loads}
-                                headers={[
-                                    'refNum',
-                                    'status',
-                                    'shipper.date',
-                                    'receiver.date',
-                                    'shipper.city',
-                                    'receiver.city',
-                                    'rate',
-                                ]}
-                                sort={sort}
-                                changeSort={changeSort}
-                                deleteLoad={deleteLoad}
-                            ></LoadsTable>
+                            {loadingLoads ? (
+                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                            ) : (
+                                <LoadsTable
+                                    loads={loads}
+                                    headers={[
+                                        'refNum',
+                                        'status',
+                                        'shipper.date',
+                                        'receiver.date',
+                                        'shipper.city',
+                                        'receiver.city',
+                                        'rate',
+                                    ]}
+                                    sort={sort}
+                                    changeSort={changeSort}
+                                    deleteLoad={deleteLoad}
+                                ></LoadsTable>
+                            )}
+
                             <Pagination
                                 metadata={metadata}
                                 onPrevious={() => previousPage()}

@@ -7,6 +7,7 @@ import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
+import { useLocalStorage } from '../../../lib/useLocalStorage';
 import InvoiceFormItem from './InvoiceFormItem';
 
 type Props = {
@@ -21,6 +22,8 @@ const InvoiceForm: React.FC<Props> = ({
         formState: { errors },
     },
 }) => {
+    const [lastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
+
     const {
         fields: itemFields,
         append: appendItem,
@@ -61,7 +64,7 @@ const InvoiceForm: React.FC<Props> = ({
                     control={control}
                     rules={{ required: 'Invoice Terms is required' }}
                     name="dueNetDays"
-                    defaultValue={0}
+                    defaultValue={lastDueNetDays}
                     render={({ field: { onChange, value }, fieldState: { error } }) => (
                         <>
                             <Listbox value={value} onChange={onChange}>

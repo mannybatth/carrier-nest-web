@@ -3,53 +3,57 @@ import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import safeJsonStringify from 'safe-json-stringify';
 import Layout from '../../components/layout/Layout';
-import LoadsTable from '../../components/loads/LoadsTable';
+import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/models';
+import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
-import { getLoads } from '../api/loads';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { query } = context;
-    const sort: Sort = sortFromQuery(query);
-    const isBrowsing = query.show === 'all';
+    return withServerAuth(context, async (context) => {
+        const { query } = context;
+        const sort: Sort = sortFromQuery(query);
+        const isBrowsing = query.show === 'all';
 
-    const { data, errors } = await getLoads({
-        req: context.req,
-        query: {
-            expand: 'customer,shipper,receiver',
-            limit: query.limit || '10',
-            offset: query.offset || '0',
-            sortBy: sort?.key,
-            sortDir: sort?.order,
-            currentOnly: !isBrowsing ? '1' : null,
-        },
+        return {
+            props: {
+                sort,
+                isBrowsing,
+                limit: Number(query.limit) || 10,
+                offset: Number(query.offset) || 0,
+            },
+        };
     });
-    return { props: { loads: JSON.parse(safeJsonStringify(data.loads)), metadata: data.metadata, sort, isBrowsing } };
 }
 
 type Props = {
-    loads: ExpandedLoad[];
-    metadata: PaginationMetadata;
     sort: Sort;
     isBrowsing: boolean;
+    limit: number;
+    offset: number;
 };
 
-const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: sortProps, isBrowsing }: Props) => {
-    const [loadsList, setLoadsList] = React.useState(loads);
+const LoadsPage: PageWithAuth<Props> = ({ sort: sortProps, limit, offset, isBrowsing }: Props) => {
+    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limit);
+
+    const [loadingLoads, setLoadingLoads] = React.useState(true);
+    const [loadsList, setLoadsList] = React.useState([]);
     const [sort, setSort] = React.useState<Sort>(sortProps);
-    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentLimit: limit,
+        currentOffset: offset,
+    });
     const router = useRouter();
 
     useEffect(() => {
-        setLoadsList(loads);
-        setMetadata(metadataProp);
-    }, [loads, metadataProp]);
+        reloadLoads();
+    }, [sort, limit, offset, isBrowsing]);
 
     useEffect(() => {
         setSort(sortProps);
@@ -63,14 +67,17 @@ const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: s
     };
 
     const reloadLoads = async () => {
+        setLoadingLoads(true);
         const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            limit: metadata.currentLimit,
-            offset: metadata.currentOffset,
+            limit: limit,
+            offset: offset,
             sort,
             currentOnly: !isBrowsing,
         });
+        setLastLoadsTableLimit(loads.length !== 0 ? loads.length : lastLoadsTableLimit);
         setLoadsList(loads);
         setMetadata(metadataResponse);
+        setLoadingLoads(false);
     };
 
     const previousPage = async () => {
@@ -165,7 +172,13 @@ const LoadsPage: PageWithAuth<Props> = ({ loads, metadata: metadataProp, sort: s
                             </nav>
                         </div>
                     </div>
-                    <LoadsTable loads={loadsList} sort={sort} changeSort={changeSort} deleteLoad={deleteLoad} />
+                    <div className="py-2">
+                        {loadingLoads ? (
+                            <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                        ) : (
+                            <LoadsTable loads={loadsList} sort={sort} changeSort={changeSort} deleteLoad={deleteLoad} />
+                        )}
+                    </div>
                     <Pagination
                         metadata={metadata}
                         onPrevious={() => previousPage()}
