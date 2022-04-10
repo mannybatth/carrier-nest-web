@@ -4,32 +4,37 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
-import safeJsonStringify from 'safe-json-stringify';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import LoadsTable from '../../components/loads/LoadsTable';
+import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
+import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { ExpandedDriver, ExpandedLoad } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
+import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
-import { deleteDriverById } from '../../lib/rest/driver';
+import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
-import { getDriver } from '../api/drivers/[id]';
-import { getLoads } from '../api/loads';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
+    disabled?: boolean;
     deleteDriver: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver }) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, disabled, deleteDriver }) => {
     const router = useRouter();
 
     return (
         <Menu as="div" className="relative inline-block text-left">
             <div>
-                <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
+                <Menu.Button
+                    className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+                    disabled={disabled}
+                >
                     Actions
                     <ChevronDownIcon className="w-5 h-5 ml-2 -mr-1" aria-hidden="true" />
                 </Menu.Button>
@@ -88,106 +93,141 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, deleteDriver 
 };
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { query } = context;
-    const driverId = query.id;
-    const sort: Sort = sortFromQuery(query);
+    return withServerAuth(context, async (context) => {
+        const { query } = context;
+        const sort: Sort = sortFromQuery(query);
 
-    const [{ data: driverData }, { data: loadsData }] = await Promise.all([
-        getDriver({
-            req: context.req,
-            query: {
-                id: driverId,
+        return {
+            props: {
+                driverId: Number(query.id),
+                sort,
+                limit: Number(query.limit) || 10,
+                offset: Number(query.offset) || 0,
             },
-        }),
-        getLoads({
-            req: context.req,
-            query: {
-                driverId: driverId,
-                expand: 'customer,shipper,receiver',
-                limit: query.limit || '10',
-                offset: query.offset || '0',
-                sortBy: sort?.key,
-                sortDir: sort?.order,
-            },
-        }),
-    ]);
-    return {
-        props: {
-            driver: JSON.parse(safeJsonStringify(driverData.driver)) || null,
-            loadCount: loadsData?.metadata?.total || 0,
-            loads: JSON.parse(safeJsonStringify(loadsData.loads)),
-            metadata: loadsData.metadata,
-            sort,
-        },
-    };
+        };
+    });
 }
 
 type Props = {
-    driver: ExpandedDriver;
-    loadCount: number;
-    loads: ExpandedLoad[];
-    metadata: PaginationMetadata;
+    driverId: number;
     sort: Sort;
+    limit: number;
+    offset: number;
 };
 
 const DriverDetailsPage: PageWithAuth<Props> = ({
-    driver,
-    loads: loadsProp,
-    loadCount,
-    metadata: metadataProp,
+    driverId,
     sort: sortProps,
+    limit: limitProp,
+    offset: offsetProp,
 }: Props) => {
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>(loadsProp);
+    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
+
+    const [loadingDriver, setLoadingDriver] = React.useState(true);
+    const [loadingLoads, setLoadingLoads] = React.useState(true);
+    const [tableLoading, setTableLoading] = React.useState(false);
+
+    const [driver, setDriver] = React.useState<ExpandedDriver | null>(null);
+    const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
+
     const [sort, setSort] = React.useState<Sort>(sortProps);
-    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const [limit, setLimit] = React.useState(limitProp);
+    const [offset, setOffset] = React.useState(offsetProp);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentOffset: offsetProp,
+        currentLimit: limitProp,
+    });
     const router = useRouter();
 
     useEffect(() => {
-        setLoads(loadsProp);
-        setMetadata(metadataProp);
-    }, [loadsProp, metadataProp]);
+        reloadDriver();
+    }, [driverId]);
 
     useEffect(() => {
-        setSort(sortProps);
-    }, [sortProps]);
+        setLimit(limitProp);
+        setOffset(offsetProp);
+        reloadLoads({ sort, limit: limitProp, offset: offsetProp });
+    }, [limitProp, offsetProp]);
 
     const changeSort = (sort: Sort) => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromSort(sort, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromSort(sort, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setSort(sort);
+        reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
-    const reloadLoads = async () => {
+    const reloadDriver = async () => {
+        setLoadingDriver(true);
+        const driver = await getDriverById(driverId);
+        setDriver(driver);
+        setLoadingDriver(false);
+    };
+
+    const reloadLoads = async ({
+        sort,
+        limit,
+        offset,
+        useTableLoading = false,
+    }: {
+        sort?: Sort;
+        limit: number;
+        offset: number;
+        useTableLoading?: boolean;
+    }) => {
+        !useTableLoading && setLoadingLoads(true);
+        useTableLoading && setTableLoading(true);
         const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            driverId: driver.id,
-            limit: metadata.currentLimit,
-            offset: metadata.currentOffset,
+            driverId,
+            limit,
+            offset,
             sort,
         });
-        setLoads(loads);
+        setLoadsList(loads);
         setMetadata(metadataResponse);
+        setLoadingLoads(false);
+        setTableLoading(false);
     };
 
     const previousPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.prev, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.prev, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.prev.limit);
+        setOffset(metadata.prev.offset);
+        reloadLoads({ sort, limit: metadata.prev.limit, offset: metadata.prev.offset, useTableLoading: true });
     };
 
     const nextPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.next, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.next, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.next.limit);
+        setOffset(metadata.next.offset);
+        reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
     const deleteLoad = async (id: number) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-        reloadLoads();
+        reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
     const deleteDriver = async (id: number) => {
@@ -202,8 +242,8 @@ const DriverDetailsPage: PageWithAuth<Props> = ({
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{driver.name}</h1>
-                    <ActionsDropdown driver={driver} deleteDriver={deleteDriver}></ActionsDropdown>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{driver?.name}</h1>
+                    <ActionsDropdown driver={driver} disabled={!driver} deleteDriver={deleteDriver}></ActionsDropdown>
                 </div>
             }
         >
@@ -216,70 +256,85 @@ const DriverDetailsPage: PageWithAuth<Props> = ({
                             href: '/drivers',
                         },
                         {
-                            label: `${driver.name}`,
+                            label: driver ? `${driver.name}` : '',
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{driver.name}</h1>
-                        <ActionsDropdown driver={driver} deleteDriver={deleteDriver}></ActionsDropdown>
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{driver?.name}</h1>
+                        <ActionsDropdown
+                            driver={driver}
+                            disabled={!driver}
+                            deleteDriver={deleteDriver}
+                        ></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
                     <div className="grid grid-cols-12 gap-5">
-                        <div className="col-span-12">
-                            <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                        <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                        {driver ? (
+                            <div className="col-span-12">
+                                <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                            <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Total Loads</p>
+                                            <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                        </div>
                                     </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                        <p className="text-sm text-gray-500">{loadCount}</p>
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                            <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Email</p>
+                                            <p className="text-sm text-gray-500">{driver.email}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                        <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Email</p>
-                                        <p className="text-sm text-gray-500">{driver.email}</p>
-                                    </div>
-                                </div>
-                                <div className="flex p-3">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                        <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-gray-900">Phone</p>
-                                        <p className="text-sm text-gray-500">{driver.phone}</p>
+                                    <div className="flex p-3">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                            <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">Phone</p>
+                                            <p className="text-sm text-gray-500">{driver.phone}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
+                        )}
 
                         <div className="col-span-12">
-                            <h3>Loads Assigned to Driver</h3>
-                            <LoadsTable
-                                loads={loads}
-                                headers={[
-                                    'refNum',
-                                    'status',
-                                    'shipper.date',
-                                    'receiver.date',
-                                    'shipper.city',
-                                    'receiver.city',
-                                    'rate',
-                                ]}
-                                sort={sort}
-                                changeSort={changeSort}
-                                deleteLoad={deleteLoad}
-                            ></LoadsTable>
+                            <h3 className="mb-2">Loads Assigned to Driver</h3>
+                            {loadingLoads ? (
+                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                            ) : (
+                                <LoadsTable
+                                    loads={loadsList}
+                                    headers={[
+                                        'refNum',
+                                        'status',
+                                        'shipper.date',
+                                        'receiver.date',
+                                        'shipper.city',
+                                        'receiver.city',
+                                        'rate',
+                                    ]}
+                                    sort={sort}
+                                    changeSort={changeSort}
+                                    deleteLoad={deleteLoad}
+                                    loading={tableLoading}
+                                ></LoadsTable>
+                            )}
+
                             <Pagination
                                 metadata={metadata}
+                                loading={loadingLoads || tableLoading}
                                 onPrevious={() => previousPage()}
                                 onNext={() => nextPage()}
                             ></Pagination>

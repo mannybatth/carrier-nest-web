@@ -1,20 +1,23 @@
 import { useRouter } from 'next/router';
 import React from 'react';
-import { ExpandedDriver, Sort } from '../../interfaces/models';
+import { ExpandedDriver } from '../../interfaces/models';
+import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 
 type Props = {
     drivers: ExpandedDriver[];
     sort: Sort;
+    loading: boolean;
     changeSort: (sort: Sort) => void;
     deleteDriver: (id: number) => void;
 };
 
-const DriversTable: React.FC<Props> = ({ drivers, changeSort, deleteDriver, sort }) => {
+const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, deleteDriver }) => {
     const router = useRouter();
 
     return (
         <Table
+            loading={loading}
             headers={[
                 { key: 'name', title: 'Name' },
                 { key: 'email', title: 'Email' },

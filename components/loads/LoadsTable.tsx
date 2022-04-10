@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import React from 'react';
-import { ExpandedLoad, Sort } from '../../interfaces/models';
+import { ExpandedLoad } from '../../interfaces/models';
+import { Sort } from '../../interfaces/table';
 import { loadStatus } from '../../lib/load/load-utils';
 import Table from '../Table';
 
@@ -8,6 +9,7 @@ type Props = {
     loads: ExpandedLoad[];
     headers?: string[];
     sort: Sort;
+    loading: boolean;
     changeSort: (sort: Sort) => void;
     deleteLoad: (id: number) => void;
 };
@@ -22,11 +24,19 @@ const defaultHeaders = [
     'receiver.city',
 ];
 
-export const LoadsTable: React.FC<Props> = ({ loads, changeSort, sort, headers = defaultHeaders, deleteLoad }) => {
+export const LoadsTable: React.FC<Props> = ({
+    loads,
+    changeSort,
+    sort,
+    loading,
+    headers = defaultHeaders,
+    deleteLoad,
+}) => {
     const router = useRouter();
 
     return (
         <Table
+            loading={loading}
             headers={[
                 ...[headers.includes('refNum') ? { key: 'refNum', title: 'Reference #' } : null],
                 ...[headers.includes('customer.name') ? { key: 'customer.name', title: 'Customer' } : null],

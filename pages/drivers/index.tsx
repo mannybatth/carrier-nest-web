@@ -1,91 +1,136 @@
+import { Driver } from '@prisma/client';
 import { NextPageContext } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import safeJsonStringify from 'safe-json-stringify';
+import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, PaginationMetadata, Sort } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
+import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
-import { getDrivers } from '../api/drivers';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { query } = context;
-    const sort: Sort = sortFromQuery(query);
+    return withServerAuth(context, async (context) => {
+        const { query } = context;
+        const sort: Sort = sortFromQuery(query);
 
-    const { data } = await getDrivers({
-        req: context.req,
-        query: {
-            limit: query.limit || '10',
-            offset: query.offset || '0',
-            sortBy: sort?.key,
-            sortDir: sort?.order,
-        },
+        return {
+            props: {
+                sort,
+                limit: Number(query.limit) || 10,
+                offset: Number(query.offset) || 0,
+            },
+        };
     });
-    return { props: { drivers: JSON.parse(safeJsonStringify(data.drivers)), metadata: data.metadata, sort } };
 }
 
 type Props = {
-    drivers: ExpandedDriver[];
-    metadata: PaginationMetadata;
     sort: Sort;
+    limit: number;
+    offset: number;
 };
 
-const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp, sort: sortProps }: Props) => {
-    const [driversList, setDriversList] = React.useState(drivers);
+const DriversPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp, offset: offsetProp }: Props) => {
+    const [lastDriversTableLimit, setLastDriversTableLimit] = useLocalStorage('lastDriversTableLimit', limitProp);
+
+    const [loadingDrivers, setLoadingDrivers] = React.useState(true);
+    const [tableLoading, setTableLoading] = React.useState(false);
+
+    const [driversList, setDriversList] = React.useState<Driver[]>([]);
+
     const [sort, setSort] = React.useState<Sort>(sortProps);
-    const [metadata, setMetadata] = React.useState<PaginationMetadata>(metadataProp);
+    const [limit, setLimit] = React.useState(limitProp);
+    const [offset, setOffset] = React.useState(offsetProp);
+    const [metadata, setMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentOffset: offsetProp,
+        currentLimit: limitProp,
+    });
     const router = useRouter();
 
     useEffect(() => {
-        setDriversList(drivers);
-        setMetadata(metadataProp);
-    }, [drivers, metadataProp]);
-
-    useEffect(() => {
-        setSort(sortProps);
-    }, [sortProps]);
+        setLimit(limitProp);
+        setOffset(offsetProp);
+        reloadDrivers({ sort, limit: limitProp, offset: offsetProp });
+    }, [limitProp, offsetProp]);
 
     const changeSort = (sort: Sort) => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromSort(sort, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromSort(sort, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setSort(sort);
+        reloadDrivers({ sort, limit, offset, useTableLoading: true });
     };
 
-    const reloadDrivers = async () => {
+    const reloadDrivers = async ({
+        sort,
+        limit,
+        offset,
+        useTableLoading = false,
+    }: {
+        sort?: Sort;
+        limit: number;
+        offset: number;
+        useTableLoading?: boolean;
+    }) => {
+        !useTableLoading && setLoadingDrivers(true);
+        useTableLoading && setTableLoading(true);
         const { drivers, metadata: metadataResponse } = await getAllDrivers({
-            limit: metadata.currentLimit,
-            offset: metadata.currentOffset,
+            limit,
+            offset,
             sort,
         });
+        setLastDriversTableLimit(drivers.length !== 0 ? drivers.length : lastDriversTableLimit);
         setDriversList(drivers);
         setMetadata(metadataResponse);
+        setLoadingDrivers(false);
+        setTableLoading(false);
     };
 
     const previousPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.prev, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.prev, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.prev.limit);
+        setOffset(metadata.prev.offset);
+        reloadDrivers({ sort, limit: metadata.prev.limit, offset: metadata.prev.offset, useTableLoading: true });
     };
 
     const nextPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.next, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.next, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.next.limit);
+        setOffset(metadata.next.offset);
+        reloadDrivers({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
     const deleteDriver = async (id: number) => {
         await deleteDriverById(id);
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
-        reloadDrivers();
+        reloadDrivers({ sort, limit, offset, useTableLoading: true });
     };
 
     return (
@@ -120,14 +165,21 @@ const DriversPage: PageWithAuth<Props> = ({ drivers, metadata: metadataProp, sor
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <DriversTable
-                        drivers={driversList}
-                        sort={sort}
-                        changeSort={changeSort}
-                        deleteDriver={deleteDriver}
-                    />
+                    {loadingDrivers ? (
+                        <CustomersTableSkeleton limit={lastDriversTableLimit} />
+                    ) : (
+                        <DriversTable
+                            drivers={driversList}
+                            sort={sort}
+                            changeSort={changeSort}
+                            deleteDriver={deleteDriver}
+                            loading={tableLoading}
+                        />
+                    )}
+
                     <Pagination
                         metadata={metadata}
+                        loading={loadingDrivers || tableLoading}
                         onPrevious={() => previousPage()}
                         onNext={() => nextPage()}
                     ></Pagination>

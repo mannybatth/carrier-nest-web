@@ -11,7 +11,6 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
-import safeJsonStringify from 'safe-json-stringify';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -19,14 +18,13 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedCustomer, ExpandedLoad, PaginationMetadata, Sort } from '../../interfaces/models';
+import { ExpandedCustomer, ExpandedLoad } from '../../interfaces/models';
+import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
-import { getCustomer } from '../api/customers/[id]';
-import { getLoads } from '../api/loads';
 
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
@@ -115,38 +113,6 @@ export async function getServerSideProps(context: NextPageContext) {
             },
         };
     });
-    // const { query } = context;
-    // const customerId = query.id;
-    // const sort: Sort = sortFromQuery(query);
-
-    // const [{ data: customerData }, { data: loadsData }] = await Promise.all([
-    //     getCustomer({
-    //         req: context.req,
-    //         query: {
-    //             id: customerId,
-    //         },
-    //     }),
-    //     getLoads({
-    //         req: context.req,
-    //         query: {
-    //             customerId: customerId,
-    //             expand: 'customer,shipper,receiver',
-    //             limit: query.limit || '10',
-    //             offset: query.offset || '0',
-    //             sortBy: sort?.key,
-    //             sortDir: sort?.order,
-    //         },
-    //     }),
-    // ]);
-    // return {
-    //     props: {
-    //         customer: JSON.parse(safeJsonStringify(customerData.customer)) || null,
-    //         loadCount: loadsData?.metadata?.total || 0,
-    //         loads: JSON.parse(safeJsonStringify(loadsData.loads)),
-    //         metadata: loadsData.metadata,
-    //         sort,
-    //     },
-    // };
 }
 
 type Props = {
@@ -156,19 +122,28 @@ type Props = {
     offset: number;
 };
 
-const CustomerDetailsPage: PageWithAuth<Props> = ({ customerId, sort: sortProps, limit, offset }: Props) => {
-    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limit);
+const CustomerDetailsPage: PageWithAuth<Props> = ({
+    customerId,
+    sort: sortProps,
+    limit: limitProp,
+    offset: offsetProp,
+}: Props) => {
+    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
     const [loadingCustomer, setLoadingCustomer] = React.useState(true);
-    const [customer, setCustomer] = React.useState<ExpandedCustomer | null>(null);
-
     const [loadingLoads, setLoadingLoads] = React.useState(true);
-    const [loads, setLoads] = React.useState<ExpandedLoad[]>([]);
+    const [tableLoading, setTableLoading] = React.useState(false);
+
+    const [customer, setCustomer] = React.useState<ExpandedCustomer | null>(null);
+    const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
+
     const [sort, setSort] = React.useState<Sort>(sortProps);
+    const [limit, setLimit] = React.useState(limitProp);
+    const [offset, setOffset] = React.useState(offsetProp);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>({
         total: 0,
-        currentLimit: limit,
-        currentOffset: offset,
+        currentOffset: offsetProp,
+        currentLimit: limitProp,
     });
     const router = useRouter();
 
@@ -177,59 +152,89 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({ customerId, sort: sortProps,
     }, [customerId]);
 
     useEffect(() => {
-        reloadLoads();
-    }, [sort, limit, offset]);
-
-    useEffect(() => {
-        setSort(sortProps);
-    }, [sortProps]);
+        setLimit(limitProp);
+        setOffset(offsetProp);
+        reloadLoads({ sort, limit: limitProp, offset: offsetProp });
+    }, [limitProp, offsetProp]);
 
     const changeSort = (sort: Sort) => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromSort(sort, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromSort(sort, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setSort(sort);
+        reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
     const reloadCustomer = async () => {
         setLoadingCustomer(true);
         const customer = await getCustomerById(customerId);
         setCustomer(customer);
-        setLoadingCustomer(true);
+        setLoadingCustomer(false);
     };
 
-    const reloadLoads = async () => {
-        setLoadingLoads(true);
+    const reloadLoads = async ({
+        sort,
+        limit,
+        offset,
+        useTableLoading = false,
+    }: {
+        sort?: Sort;
+        limit: number;
+        offset: number;
+        useTableLoading?: boolean;
+    }) => {
+        !useTableLoading && setLoadingLoads(true);
+        useTableLoading && setTableLoading(true);
         const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            customerId: customerId,
-            limit: metadata.currentLimit,
-            offset: metadata.currentOffset,
+            customerId,
+            limit,
+            offset,
             sort,
         });
-        setLoads(loads);
+        setLoadsList(loads);
         setMetadata(metadataResponse);
         setLoadingLoads(false);
+        setTableLoading(false);
     };
 
     const previousPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.prev, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.prev, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.prev.limit);
+        setOffset(metadata.prev.offset);
+        reloadLoads({ sort, limit: metadata.prev.limit, offset: metadata.prev.offset, useTableLoading: true });
     };
 
     const nextPage = async () => {
-        router.push({
-            pathname: router.pathname,
-            query: queryFromPagination(metadata.next, router.query),
-        });
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromPagination(metadata.next, router.query),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setLimit(metadata.next.limit);
+        setOffset(metadata.next.offset);
+        reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
     const deleteLoad = async (id: number) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-        reloadLoads();
+        reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
     const deleteCustomer = async (id: number) => {
@@ -347,12 +352,12 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({ customerId, sort: sortProps,
                         )}
 
                         <div className="col-span-12">
-                            <h3>Loads for Customer</h3>
+                            <h3 className="mb-2">Loads for Customer</h3>
                             {loadingLoads ? (
                                 <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                             ) : (
                                 <LoadsTable
-                                    loads={loads}
+                                    loads={loadsList}
                                     headers={[
                                         'refNum',
                                         'status',
@@ -365,11 +370,13 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({ customerId, sort: sortProps,
                                     sort={sort}
                                     changeSort={changeSort}
                                     deleteLoad={deleteLoad}
+                                    loading={tableLoading}
                                 ></LoadsTable>
                             )}
 
                             <Pagination
                                 metadata={metadata}
+                                loading={loadingLoads || tableLoading}
                                 onPrevious={() => previousPage()}
                                 onNext={() => nextPage()}
                             ></Pagination>

@@ -1,10 +1,4 @@
 import { Customer, InvoiceStatus, Prisma } from '@prisma/client';
-import { SubdivisionInfo } from 'iso-3166-2';
-
-export type Sort = {
-    key: string;
-    order: 'asc' | 'desc' | null;
-};
 
 export type JSONResponse<T> = {
     code: number;
@@ -15,37 +9,6 @@ export type JSONResponse<T> = {
 export type SearchResult<T> = {
     sim: number;
 } & T;
-
-export type PaginationMetadata = {
-    total: number;
-    currentOffset: number;
-    currentLimit: number;
-    prev?: {
-        offset: number;
-        limit: number;
-    };
-    next?: {
-        offset: number;
-        limit: number;
-    };
-};
-
-export interface LocationEntry {
-    street: string;
-    city: string;
-    region: {
-        shortCode: string;
-        text: string;
-        iso3166Info?: SubdivisionInfo.Full;
-    };
-    zip: string;
-    country: {
-        shortCode: string;
-        text: string;
-    };
-    longitude: number;
-    latitude: number;
-}
 
 /**
  * Load

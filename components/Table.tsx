@@ -3,6 +3,7 @@ import { ArrowSmDownIcon, ArrowSmUpIcon, DotsVerticalIcon } from '@heroicons/rea
 import classNames from 'classnames';
 import React, { Fragment, useEffect } from 'react';
 import { Sort } from '../interfaces/models';
+import Spinner from './Spinner';
 
 export type TableHeader = {
     key: string;
@@ -26,11 +27,12 @@ type Props = {
     headers: TableHeader[];
     rows: TableDataRow[];
     sort: Sort;
+    loading: boolean;
     onRowClick: (id: number, index: number) => void;
     changeSort: (sort: Sort) => void;
 };
 
-const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, changeSort }) => {
+const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, loading, onRowClick, changeSort }) => {
     const [sort, setSort] = React.useState<Sort>(sortProps);
 
     useEffect(() => {
@@ -39,8 +41,8 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, ch
 
     const onChangeSort = (key: string) => {
         if (key === sort?.key && sort?.order === 'desc') {
-            setSort(null);
             changeSort(null);
+            setSort(null);
             return;
         }
 
@@ -48,8 +50,8 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, ch
             key,
             order: !sort || sort.key !== key ? 'asc' : 'desc',
         };
-        setSort(newSort);
         changeSort(newSort);
+        setSort(newSort);
     };
 
     const renderSortIcon = (key: string) => {
@@ -68,6 +70,13 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, onRowClick, ch
 
     return (
         <div className="relative flex flex-col">
+            {loading && (
+                <div className="absolute inset-0 animate-pulse">
+                    <div className="flex items-center justify-center w-full h-full rounded opacity-80 bg-slate-50">
+                        <Spinner></Spinner>
+                    </div>
+                </div>
+            )}
             <div className="-mx-4 overflow-x-auto overflow-y-visible sm:-mx-6 lg:-mx-8">
                 <div className="inline-block min-w-full align-middle md:px-6 lg:px-8">
                     <table className="min-w-full divide-y divide-gray-300">

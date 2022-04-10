@@ -1,20 +1,23 @@
 import { useRouter } from 'next/router';
 import React from 'react';
-import { ExpandedCustomer, Sort } from '../../interfaces/models';
+import { ExpandedCustomer } from '../../interfaces/models';
+import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 
 type Props = {
     customers: ExpandedCustomer[];
     sort: Sort;
+    loading: boolean;
     changeSort: (sort: Sort) => void;
     deleteCustomer: (id: number) => void;
 };
 
-const CustomersTable: React.FC<Props> = ({ customers, sort, changeSort, deleteCustomer }) => {
+const CustomersTable: React.FC<Props> = ({ customers, sort, loading, changeSort, deleteCustomer }) => {
     const router = useRouter();
 
     return (
         <Table
+            loading={loading}
             headers={[
                 { key: 'name', title: 'Name' },
                 { key: 'contactEmail', title: 'Email' },
