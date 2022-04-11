@@ -181,6 +181,7 @@ export const getLoad = async ({
                               paidAmount: true,
                               remainingAmount: true,
                               lastPaymentAt: true,
+                              extraItems: true,
                           },
                       },
                   }

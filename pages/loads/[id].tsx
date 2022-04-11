@@ -24,6 +24,7 @@ import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton'
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument, SimpleLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
+import { DownloadInvoicePDFButton } from '../../lib/invoice/invoice-pdf';
 import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
@@ -387,23 +388,14 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         </dd>
                                                     </div>
                                                     {load.invoice ? (
-                                                        <ul
-                                                            role="list"
-                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                                        >
-                                                            <li className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                                <div className="flex items-center flex-1 w-0">
-                                                                    <PaperClipIcon
-                                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                    <span className="flex-1 w-0 ml-2 truncate">
-                                                                        invoice.pdf
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex-shrink-0 ml-4"></div>
-                                                            </li>
-                                                        </ul>
+                                                        <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
+                                                            <DownloadInvoicePDFButton
+                                                                invoice={load.invoice}
+                                                                customer={load.customer}
+                                                                load={load}
+                                                                fileName={`invoice-${load.invoice.id}.pdf`}
+                                                            />
+                                                        </div>
                                                     ) : null}
                                                 </div>
                                                 <div>
