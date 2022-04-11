@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
+import * as CurrencyFormat from 'react-currency-format';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
@@ -328,7 +329,14 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                             Revenue of Load
                                         </td>
                                         <td className="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
-                                            ${invoice.load.rate}
+                                            <CurrencyFormat
+                                                value={invoice.load.rate}
+                                                displayType={'text'}
+                                                thousandSeparator={true}
+                                                prefix={'$'}
+                                                decimalScale={2}
+                                                fixedDecimalScale={true}
+                                            />
                                         </td>
                                     </tr>
                                     {invoice.extraItems?.map((item, index) => (
@@ -340,7 +348,14 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                                 {item.title}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
-                                                ${item.amount}
+                                                <CurrencyFormat
+                                                    value={item.amount}
+                                                    displayType={'text'}
+                                                    thousandSeparator={true}
+                                                    prefix={'$'}
+                                                    decimalScale={2}
+                                                    fixedDecimalScale={true}
+                                                />
                                             </td>
                                         </tr>
                                     ))}
@@ -351,7 +366,16 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             <div className="w-full px-3 mt-3 ml-auto sm:w-1/2 lg:w-1/3">
                                 <div className="flex justify-between mb-4">
                                     <div className="font-medium">Total Amount</div>
-                                    <div>${invoice.totalAmount}</div>
+                                    <div>
+                                        <CurrencyFormat
+                                            value={invoice.totalAmount}
+                                            displayType={'text'}
+                                            thousandSeparator={true}
+                                            prefix={'$'}
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

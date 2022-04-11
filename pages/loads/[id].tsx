@@ -24,10 +24,11 @@ import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton'
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument, SimpleLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
-import { DownloadInvoicePDFButton } from '../../lib/invoice/invoice-pdf';
+import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
+import * as CurrencyFormat from 'react-currency-format';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -367,7 +368,16 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 </div>
                                                 <div className="flex justify-between py-3 text-sm font-medium">
                                                     <dt className="text-gray-500">Rate</dt>
-                                                    <dd className="text-gray-900">${load.rate}</dd>
+                                                    <dd className="text-gray-900">
+                                                        <CurrencyFormat
+                                                            value={load.rate}
+                                                            displayType={'text'}
+                                                            thousandSeparator={true}
+                                                            prefix={'$'}
+                                                            decimalScale={2}
+                                                            fixedDecimalScale={true}
+                                                        />
+                                                    </dd>
                                                 </div>
                                                 <div>
                                                     <div className="flex justify-between py-3 text-sm font-medium">

@@ -1,7 +1,7 @@
-import { PlusIcon, TruckIcon } from '@heroicons/react/outline';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
+import * as CurrencyFormat from 'react-currency-format';
 import { ExpandedLoad } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import { loadStatus } from '../../lib/load/load-utils';
@@ -125,7 +125,24 @@ export const LoadsTable: React.FC<Props> = ({
                               }
                             : null,
                     ],
-                    ...[headers.includes('rate') ? { value: `$${load.rate}` } : null],
+                    ...[
+                        headers.includes('rate')
+                            ? {
+                                  node: (
+                                      <div className="text-sm leading-5 text-gray-900">
+                                          <CurrencyFormat
+                                              value={load.rate}
+                                              displayType={'text'}
+                                              thousandSeparator={true}
+                                              prefix={'$'}
+                                              decimalScale={2}
+                                              fixedDecimalScale={true}
+                                          />
+                                      </div>
+                                  ),
+                              }
+                            : null,
+                    ],
                 ].filter((x) => x),
                 menuItems: [
                     {

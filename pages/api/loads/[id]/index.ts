@@ -167,7 +167,20 @@ export const getLoad = async ({
             userId: session.user.id,
         },
         include: {
-            ...(expandCustomer ? { customer: { select: { id: true, name: true } } } : {}),
+            ...(expandCustomer
+                ? {
+                      customer: {
+                          select: {
+                              id: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                          },
+                      },
+                  }
+                : {}),
             ...(expandInvoice
                 ? {
                       invoice: {
