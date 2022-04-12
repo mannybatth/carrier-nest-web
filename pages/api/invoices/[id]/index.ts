@@ -161,6 +161,7 @@ export const getInvoice = async ({
                               customer: true,
                               shipper: true,
                               receiver: true,
+                              stops: true,
                           },
                       },
                   }

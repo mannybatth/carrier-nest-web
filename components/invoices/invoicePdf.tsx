@@ -160,7 +160,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
                             fontSize: 10,
                         }}
                     >
-                        <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Additional Item</Text>
+                        <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Additional</Text>
                         <Text style={{ flex: 1 }}>{item.title}</Text>
                         <Text style={{ flexGrow: 0 }}>
                             <CurrencyFormat
@@ -337,16 +337,7 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
     const { data: session } = useSession();
 
     const handleDownload = async () => {
-        const carrier = await getCarrierById(session.user.carrierId);
-        const blob = await pdf(
-            <InvoicePDF carrier={carrier} invoice={invoice} customer={customer} load={load} />,
-        ).toBlob();
-
-        const pdfUrl = window.URL.createObjectURL(blob);
-        const tempLink = document.createElement('a');
-        tempLink.href = pdfUrl;
-        tempLink.setAttribute('download', fileName);
-        tempLink.click();
+        await downloadInvoice(session.user.carrierId, invoice, customer, load, fileName);
     };
 
     return (
@@ -361,4 +352,21 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
             <div className="flex-shrink-0 ml-4"></div>
         </button>
     );
+};
+
+export const downloadInvoice = async (
+    carrierId: number,
+    invoice: ExpandedInvoice,
+    customer: Customer,
+    load: ExpandedLoad,
+    fileName = 'invoice.pdf',
+) => {
+    const carrier = await getCarrierById(carrierId);
+    const blob = await pdf(<InvoicePDF carrier={carrier} invoice={invoice} customer={customer} load={load} />).toBlob();
+
+    const pdfUrl = window.URL.createObjectURL(blob);
+    const tempLink = document.createElement('a');
+    tempLink.href = pdfUrl;
+    tempLink.setAttribute('download', fileName);
+    tempLink.click();
 };

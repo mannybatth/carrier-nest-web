@@ -3,10 +3,12 @@ import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
 import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import * as CurrencyFormat from 'react-currency-format';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
+import { downloadInvoice } from '../../../components/invoices/invoicePdf';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
@@ -21,10 +23,11 @@ import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../.
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
     disabled?: boolean;
+    downloadInvoice: () => void;
     deleteInvoice: (id: number) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, deleteInvoice }) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, downloadInvoice, deleteInvoice }) => {
     const router = useRouter();
 
     return (
@@ -82,6 +85,22 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, de
                                 </a>
                             )}
                         </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        downloadInvoice();
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Download Invoice
+                                </a>
+                            )}
+                        </Menu.Item>
                     </div>
                     <div className="py-1">
                         <Menu.Item>
@@ -124,6 +143,7 @@ type Props = {
 
 const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
+    const { data: session } = useSession();
 
     const [openAddPayment, setOpenAddPayment] = useState(false);
     const router = useRouter();
@@ -166,6 +186,16 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
         reloadInvoice();
     };
 
+    const downloadInvoiceClicked = async () => {
+        downloadInvoice(
+            session.user.carrierId,
+            invoice,
+            invoice.load.customer,
+            invoice.load,
+            `invoice-${invoice.id}.pdf`,
+        );
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -184,6 +214,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             invoice={invoice}
                             disabled={!invoice}
                             deleteInvoice={deleteInvoice}
+                            downloadInvoice={downloadInvoiceClicked}
                         ></ActionsDropdown>
                     </div>
                 </div>
@@ -223,6 +254,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             invoice={invoice}
                             disabled={!invoice}
                             deleteInvoice={deleteInvoice}
+                            downloadInvoice={downloadInvoiceClicked}
                         ></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
