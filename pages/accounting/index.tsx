@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import * as CurrencyFormat from 'react-currency-format';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -187,15 +188,36 @@ const AccountingPage: PageWithAuth<Props> = ({
                         <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-3">
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Paid This Month</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalPaid}</dd>
+                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                    <CurrencyFormat
+                                        value={stats.totalPaid}
+                                        displayType={'text'}
+                                        thousandSeparator={true}
+                                        prefix={'$'}
+                                    />
+                                </dd>
                             </div>
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Total Unpaid</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalUnpaid}</dd>
+                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                    <CurrencyFormat
+                                        value={stats.totalUnpaid}
+                                        displayType={'text'}
+                                        thousandSeparator={true}
+                                        prefix={'$'}
+                                    />
+                                </dd>
                             </div>
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Total Overdue</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">${stats.totalOverdue}</dd>
+                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                    <CurrencyFormat
+                                        value={stats.totalOverdue}
+                                        displayType={'text'}
+                                        thousandSeparator={true}
+                                        prefix={'$'}
+                                    />
+                                </dd>
                             </div>
                         </dl>
                     )}
