@@ -293,6 +293,14 @@ export const getLoad = async ({
                 : {}),
         },
     });
+
+    if (!load) {
+        return {
+            code: 404,
+            errors: [{ message: 'Load not found' }],
+        };
+    }
+
     return {
         code: 200,
         data: { load },

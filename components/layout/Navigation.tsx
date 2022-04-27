@@ -21,7 +21,7 @@ const navigation = [
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
     { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
-    { name: 'Reporting', href: '/reporting', icon: ChartPieIcon },
+    { name: 'IFTA', href: '/ifta', icon: ChartPieIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 

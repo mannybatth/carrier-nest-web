@@ -190,6 +190,14 @@ export const getInvoice = async ({
                 : {}),
         },
     });
+
+    if (!invoice) {
+        return {
+            code: 404,
+            errors: [{ message: 'Invoice not found' }],
+        };
+    }
+
     return {
         code: 200,
         data: { invoice },

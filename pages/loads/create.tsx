@@ -7,8 +7,9 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad } from '../../interfaces/models';
+import { ExpandedLoad, SimpleLoadStop } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
+import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -16,10 +17,18 @@ const CreateLoad: PageWithAuth = () => {
 
     const [loading, setLoading] = React.useState(false);
 
+    const [showConfirmation, setShowConfirmation] = React.useState(false);
+    const [dataToSave, setDataToSave] = React.useState<ExpandedLoad>(null);
+
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
 
-        setLoading(true);
+        const needsConfirmation =
+            !data.shipper.longitude ||
+            !data.shipper.latitude ||
+            !data.receiver.longitude ||
+            !data.receiver.latitude ||
+            !data.stops.every((stop: SimpleLoadStop) => stop.longitude && stop.latitude);
 
         data.shipper.type = LoadStopType.SHIPPER;
         data.receiver.type = LoadStopType.RECEIVER;
@@ -35,6 +44,17 @@ const CreateLoad: PageWithAuth = () => {
             stops: data.stops,
         };
 
+        if (needsConfirmation) {
+            setDataToSave(loadData);
+            setShowConfirmation(true);
+        } else {
+            await saveLoadData(loadData);
+        }
+    };
+
+    const saveLoadData = async (loadData: ExpandedLoad) => {
+        setLoading(true);
+
         const newLoad = await createLoad(loadData);
         console.log('new load', newLoad);
 
@@ -48,6 +68,11 @@ const CreateLoad: PageWithAuth = () => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
+            <SaveLoadConfirmation
+                show={showConfirmation}
+                onSave={() => saveLoadData(dataToSave)}
+                onClose={() => setShowConfirmation(false)}
+            />
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
                     className="sm:px-6 md:px-8"

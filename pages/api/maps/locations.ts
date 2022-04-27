@@ -35,7 +35,7 @@ export const getLocation = async ({
 
     if (!session || !session.user) {
         return {
-            code: 400,
+            code: 404,
             errors: [{ message: 'No session found' }],
         };
     }
