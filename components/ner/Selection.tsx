@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback, useContext } from 'react';
 import useMouse from '@react-hook/mouse-position';
 import CursorText from './CursorText';
-import { Point, Rectangle } from '../../interfaces/ner';
+import { Entity, Point, Rectangle } from '../../interfaces/ner';
 import SelectionRectangle from './SelectionRectangle';
 import EntityContext from '../../lib/ner/entityContext';
 
@@ -22,11 +22,12 @@ interface Props {
     children: React.ReactNode;
     className?: string;
     style?: { [key: string]: string };
+    onSelectionChange?: ({ selectionCoords, entity }: { selectionCoords: Rectangle; entity: Entity }) => void;
 }
 
 const initialCoords: Rectangle = { left: 0, top: 0, width: 0, height: 0 };
 
-const Selection = ({ children, className, style }: Props) => {
+const Selection = ({ children, className, style, onSelectionChange }: Props) => {
     const selectionRef = useRef(null);
     const mouse = useMouse(selectionRef);
 
@@ -79,13 +80,7 @@ const Selection = ({ children, className, style }: Props) => {
                 const { x, y } = mouse;
                 coordsToUse = { left: x, top: y, width: 1, height: 1 };
             }
-
-            const { children: selectionChildren } = selectionRef.current;
-            console.log('mark to add: ', { entity, selectionChildren, coordsToUse });
-            // const markToAdd = buildNerAnnotation(pageNumber, entity, selectionChildren, coordsToUse);
-            // if (markToAdd.nerAnnotation.textIds.length) {
-            //     addAnnotation(markToAdd);
-            // }
+            onSelectionChange && onSelectionChange({ entity, selectionCoords: coordsToUse });
         }
 
         setIsDragging(false);

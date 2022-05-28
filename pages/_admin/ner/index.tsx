@@ -4,23 +4,16 @@ import { useEffect, useState } from 'react';
 import Layout from '../../../components/layout/Layout';
 import NerAnnotator from '../../../components/ner/NerAnnotator';
 import { PageWithAuth } from '../../../interfaces/auth';
-import {
-    exportToJsonFile,
-    readEntryBlob,
-    readEntryText,
-    readEntryUint8Array,
-    unzipAllFiles,
-} from '../../../lib/ner/utils';
-import { AnnotatedDataItem, OcrDataItem } from '../../../interfaces/ner';
+import { exportToJsonFile, readEntryBlob, readEntryText, unzipAllFiles } from '../../../lib/ner/utils';
+import { PageOcrData } from '../../../interfaces/ner';
 
 const NERPage: PageWithAuth = () => {
-    const [allData, setAllData] = useState<AnnotatedDataItem[]>([]);
     const [filesList, setFilesList] = useState<zip.Entry[]>();
-    const [ocrData, setOcrData] = useState<OcrDataItem[]>([]);
+    const [allData, setAllData] = useState<PageOcrData[]>([]);
     const [currentFileIndex, setCurrentFileIndex] = useState<number>();
 
     const [imageContent, setImageContent] = useState<Blob>();
-    const [currentDataItem, setCurrentDataItem] = useState<AnnotatedDataItem>();
+    const [currentDataItem, setCurrentDataItem] = useState<PageOcrData>();
 
     // const [selectedEntity, setSelectedEntity] = useState(-1);
     // const [annotations, setAnnotations] = useState<Array<Annotation>>([]);
@@ -30,7 +23,7 @@ const NERPage: PageWithAuth = () => {
         if (filesList && filesList.length > 0) {
             const allData = filesList.map((entry) => {
                 const fileName = entry.filename;
-                return { words: [], width: 0, height: 0, image: fileName } as AnnotatedDataItem;
+                return { words: [], width: 0, height: 0, image: fileName } as PageOcrData;
             });
             setAllData(allData);
 
@@ -112,7 +105,7 @@ const NERPage: PageWithAuth = () => {
         const dataJson = entries.find((entry) => entry.filename.includes('data.json'));
         if (dataJson) {
             const data = await readEntryText(dataJson);
-            setOcrData(JSON.parse(data));
+            setAllData(JSON.parse(data));
         }
     };
 
@@ -165,7 +158,7 @@ const NERPage: PageWithAuth = () => {
                             <NerAnnotator
                                 key={currentFileIndex}
                                 data={imageContent}
-                                ocrDataItem={ocrData[currentFileIndex]}
+                                ocrData={allData[currentFileIndex]}
                                 setCurrentDataItem={setCurrentDataItem}
                             ></NerAnnotator>
                         </div>

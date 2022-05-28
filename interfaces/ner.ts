@@ -10,28 +10,17 @@ export interface Point {
     y: number;
 }
 
-export interface OcrDataItem {
-    words: Array<{
-        text: string;
-        left: number;
-        top: number;
-        width: number;
-        height: number;
-    }>;
-    image: string;
-    height: number;
+export interface PageOcrDataWord {
+    text: string;
+    left: number;
+    top: number;
     width: number;
+    height: number;
+    tagId?: number;
 }
 
-export interface AnnotatedDataItem {
-    words: Array<{
-        text: string;
-        left: number;
-        top: number;
-        width: number;
-        height: number;
-        tagId: number;
-    }>;
+export interface PageOcrData {
+    words: Array<PageOcrDataWord>;
     image: string;
     height: number;
     width: number;

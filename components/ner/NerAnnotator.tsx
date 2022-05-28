@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { AnnotatedDataItem, entities, OcrDataItem } from '../../interfaces/ner';
+import { entities, PageOcrData } from '../../interfaces/ner';
 import EntityContext from '../../lib/ner/entityContext';
 import NerPage from './NerPage';
 
 type Props = {
     data: Blob;
-    ocrDataItem: OcrDataItem;
-    setCurrentDataItem?(dataItem: AnnotatedDataItem): void;
+    ocrData: PageOcrData;
+    setCurrentDataItem?(dataItem: PageOcrData): void;
 };
 
-const NerAnnotator: React.FC<Props> = ({ data, ocrDataItem, setCurrentDataItem }) => {
+const NerAnnotator: React.FC<Props> = ({ data, ocrData, setCurrentDataItem }) => {
     const [selectedEntity, setSelectedEntity] = useState(-1);
 
     return (
@@ -18,7 +18,7 @@ const NerAnnotator: React.FC<Props> = ({ data, ocrDataItem, setCurrentDataItem }
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col items-center px-6 space-y-6">
                     <EntityContext.Provider value={{ entity: entities[selectedEntity] }}>
-                        <NerPage data={data} ocrDataItem={ocrDataItem}></NerPage>
+                        <NerPage data={data} pageOcrData={ocrData}></NerPage>
                     </EntityContext.Provider>
                 </div>
             </div>
