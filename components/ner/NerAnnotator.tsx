@@ -17,7 +17,7 @@ const NerAnnotator: React.FC<Props> = ({ data, ocrDataItem, setCurrentDataItem }
             <div className="flex-none">JSON HERE</div>
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col items-center px-6 space-y-6">
-                    <EntityContext.Provider value={{ entity: entities[0] }}>
+                    <EntityContext.Provider value={{ entity: entities[selectedEntity] }}>
                         <NerPage data={data} ocrDataItem={ocrDataItem}></NerPage>
                     </EntityContext.Provider>
                 </div>

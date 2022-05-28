@@ -41,13 +41,9 @@ const Selection = ({ children, className, style }: Props) => {
             // annotating mode
             return 'select-none cursor-crosshair';
         }
-        if (entity) {
-            // normal mode
-            return 'cursor-default';
-        }
 
-        // text selection mode
-        return 'cursor-text selection:bg-black selection:bg-opacity-20 selection:text-transparent';
+        // normal mode
+        return 'cursor-default';
     }, [entity, isDragging]);
 
     const handleKeyEvent = useCallback(

@@ -1,8 +1,5 @@
-import React, { FC, useContext, useMemo, useRef } from 'react';
+import React, { FC, useMemo, useRef } from 'react';
 import { Entity, Point } from '../../interfaces/ner';
-// import { Entity } from '../interfaces/entity';
-// import { Point } from '../interfaces/point';
-// import ConfigContext from '../context/configContext';
 
 interface Props {
     mouseCoords: Point;
