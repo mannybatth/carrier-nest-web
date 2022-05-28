@@ -104,21 +104,15 @@ const NERPage: PageWithAuth = () => {
     };
 
     const processZipEntries = async (entries: zip.Entry[]) => {
-        console.log('entries', entries);
-
         // get all jpegs
         const jpegs = entries.filter((entry) => entry.filename.endsWith('.jpg') || entry.filename.endsWith('.jpeg'));
         setFilesList(jpegs);
-
-        console.log('jpegs', jpegs);
 
         // get data.json file
         const dataJson = entries.find((entry) => entry.filename.includes('data.json'));
         if (dataJson) {
             const data = await readEntryText(dataJson);
             setOcrData(JSON.parse(data));
-
-            console.log('ocrData', JSON.parse(data));
         }
     };
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { OcrDataItem } from '../../interfaces/ner';
+import Selection from './Selection';
 
 type Props = {
     data: Blob;
@@ -20,9 +21,6 @@ const NerPage: React.FC<Props> = ({ data, ocrDataItem }) => {
 
     useEffect(() => {
         if (canvasRef && context && data) {
-            console.log('NerPage: useEffect: data', data);
-            console.log('ocrDataItem', ocrDataItem);
-
             // Render blob to canvas
             const img = new Image();
             img.onload = () => {
@@ -45,8 +43,14 @@ const NerPage: React.FC<Props> = ({ data, ocrDataItem }) => {
     }, [data, canvasRef, context]);
 
     return (
-        <div>
+        <div className="relative">
             <canvas ref={canvasRef} width={ocrDataItem.width * scale} height={ocrDataItem.height * scale} />
+            <Selection
+                className="absolute top-0 bottom-0 left-0 right-0 overflow-hidden leading-tight"
+                style={{ width: `${ocrDataItem.width * scale}px`, height: `${ocrDataItem.height * scale}px` }}
+            >
+                <div></div>
+            </Selection>
         </div>
     );
 };

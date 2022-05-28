@@ -1,3 +1,15 @@
+export interface Rectangle {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+export interface Point {
+    x: number;
+    y: number;
+}
+
 export interface OcrDataItem {
     words: Array<{
         text: string;

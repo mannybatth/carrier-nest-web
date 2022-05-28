@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AnnotatedDataItem, entities, OcrDataItem } from '../../interfaces/ner';
+import EntityContext from '../../lib/ner/entityContext';
 import NerPage from './NerPage';
 
 type Props = {
@@ -16,7 +17,9 @@ const NerAnnotator: React.FC<Props> = ({ data, ocrDataItem, setCurrentDataItem }
             <div className="flex-none">JSON HERE</div>
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col items-center px-6 space-y-6">
-                    <NerPage data={data} ocrDataItem={ocrDataItem}></NerPage>
+                    <EntityContext.Provider value={{ entity: entities[0] }}>
+                        <NerPage data={data} ocrDataItem={ocrDataItem}></NerPage>
+                    </EntityContext.Provider>
                 </div>
             </div>
             <div className="flex-none overflow-y-auto">
