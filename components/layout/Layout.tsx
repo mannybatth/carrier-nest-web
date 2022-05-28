@@ -8,13 +8,14 @@ import SideBarSearch from './SideBarSearch';
 
 export type Props = {
     smHeaderComponent: JSX.Element;
+    className?: string;
 };
 
-const Layout: React.FC<Props> = ({ children, smHeaderComponent }) => {
+const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div>
+        <div className={className}>
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <Dialog as="div" className="fixed inset-0 z-40 flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child
