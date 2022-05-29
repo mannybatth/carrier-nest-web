@@ -79,12 +79,12 @@ def main(source, destination):
     data = []
 
     # Read all images from source directory
-    for name in os.listdir(source):
+    for name in sorted(os.listdir(source)):
         if name.endswith('.jpg'):
             data.append(extract_ocr_data(name))
 
     # Write data to json file
-    with open(os.path.join(destination, 'data.json'), 'w') as f:
+    with open(os.path.join(destination, 'ocr.json'), 'w') as f:
         f.write(json.dumps(data))
 
 

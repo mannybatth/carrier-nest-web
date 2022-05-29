@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import Layout from '../../../components/layout/Layout';
 import NerAnnotator from '../../../components/ner/NerAnnotator';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { exportToJsonFile, readEntryBlob, readEntryText, unzipAllFiles } from '../../../lib/ner/utils';
+import {
+    convertToMLData,
+    exportToJsonFile,
+    readEntryBlob,
+    readEntryText,
+    revertBioTagging,
+    unzipAllFiles,
+} from '../../../lib/ner/utils';
 import { entities, PageOcrData } from '../../../interfaces/ner';
 
 const NERPage: PageWithAuth = () => {
@@ -78,10 +85,10 @@ const NERPage: PageWithAuth = () => {
 
     const exportBtnClicked = () => {
         exportToJsonFile(
-            {
+            convertToMLData({
                 data: allData,
                 labels: entities,
-            },
+            }),
             'data.json',
         );
     };
@@ -91,12 +98,38 @@ const NERPage: PageWithAuth = () => {
         const jpegs = entries.filter((entry) => entry.filename.endsWith('.jpg') || entry.filename.endsWith('.jpeg'));
         setFilesList(jpegs);
 
+        let allPagesData: PageOcrData[] = [];
+
         // get data.json file
-        const dataJson = entries.find((entry) => entry.filename.includes('data.json'));
-        if (dataJson) {
-            const data = await readEntryText(dataJson);
-            setAllData(JSON.parse(data));
+        const dataJson = entries.find((entry) => entry.filename.endsWith('data.json'));
+        const ocrJson = entries.find((entry) => entry.filename.endsWith('ocr.json'));
+
+        if (!dataJson && !ocrJson) {
+            console.log('No data.json or ocr.json file found');
+            return;
         }
+
+        if (dataJson) {
+            console.log('Found data.json file');
+            const data = await readEntryText(dataJson);
+            const raw = JSON.parse(data);
+            const { untaggedData } = revertBioTagging(raw, entities);
+            console.log('untaggedData', untaggedData);
+            allPagesData = untaggedData;
+        } else if (ocrJson) {
+            console.log('Found ocr.json file');
+            const data = await readEntryText(ocrJson);
+            allPagesData = JSON.parse(data);
+        }
+
+        // Sort jpegs by content in dataJson
+        jpegs.sort((a, b) => {
+            const aIndex = allPagesData.findIndex((d) => a.filename.endsWith(d.image));
+            const bIndex = allPagesData.findIndex((d) => b.filename.endsWith(d.image));
+            return aIndex - bIndex;
+        });
+
+        setAllData(allPagesData);
     };
 
     return (
