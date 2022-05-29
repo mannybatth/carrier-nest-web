@@ -5,7 +5,7 @@ import Layout from '../../../components/layout/Layout';
 import NerAnnotator from '../../../components/ner/NerAnnotator';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { exportToJsonFile, readEntryBlob, readEntryText, unzipAllFiles } from '../../../lib/ner/utils';
-import { PageOcrData } from '../../../interfaces/ner';
+import { entities, PageOcrData } from '../../../interfaces/ner';
 
 const NERPage: PageWithAuth = () => {
     const [filesList, setFilesList] = useState<zip.Entry[]>();
@@ -77,7 +77,13 @@ const NERPage: PageWithAuth = () => {
     };
 
     const exportBtnClicked = () => {
-        exportToJsonFile(allData, 'data.json');
+        exportToJsonFile(
+            {
+                data: allData,
+                labels: entities,
+            },
+            'data.json',
+        );
     };
 
     const processZipEntries = async (entries: zip.Entry[]) => {
