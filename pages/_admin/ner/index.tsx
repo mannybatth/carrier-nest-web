@@ -13,11 +13,7 @@ const NERPage: PageWithAuth = () => {
     const [currentFileIndex, setCurrentFileIndex] = useState<number>();
 
     const [imageContent, setImageContent] = useState<Blob>();
-    const [currentDataItem, setCurrentDataItem] = useState<PageOcrData>();
-
-    // const [selectedEntity, setSelectedEntity] = useState(-1);
-    // const [annotations, setAnnotations] = useState<Array<Annotation>>([]);
-    // const [textMap, setTextMap] = useState<any>([]);
+    const [currentPageOcrData, setCurrentPageOcrData] = useState<PageOcrData>();
 
     useEffect(() => {
         if (filesList && filesList.length > 0) {
@@ -34,7 +30,7 @@ const NERPage: PageWithAuth = () => {
     useEffect(() => {
         if (currentFileIndex === undefined || currentFileIndex < 0) {
             setImageContent(undefined);
-            setCurrentDataItem(undefined);
+            setCurrentPageOcrData(undefined);
             return;
         }
 
@@ -43,7 +39,7 @@ const NERPage: PageWithAuth = () => {
             setImageContent(content);
         }
 
-        setCurrentDataItem(allData[currentFileIndex]);
+        setCurrentPageOcrData(allData[currentFileIndex]);
 
         if (filesList[currentFileIndex]) {
             readContent(filesList[currentFileIndex]);
@@ -58,7 +54,6 @@ const NERPage: PageWithAuth = () => {
         }
 
         if (currentFileIndex > 0) {
-            saveCurrentDataItem();
             setCurrentFileIndex(currentFileIndex - 1);
         }
     };
@@ -69,18 +64,8 @@ const NERPage: PageWithAuth = () => {
         }
 
         if (currentFileIndex < filesList.length - 1) {
-            saveCurrentDataItem();
             setCurrentFileIndex(currentFileIndex + 1);
         }
-    };
-
-    const saveCurrentDataItem = () => {
-        if (currentFileIndex && currentFileIndex > 0) {
-            return;
-        }
-
-        allData[currentFileIndex] = currentDataItem;
-        setAllData([...allData]);
     };
 
     const clearState = () => {
@@ -88,11 +73,10 @@ const NERPage: PageWithAuth = () => {
         setFilesList([]);
         setCurrentFileIndex(-1);
         setImageContent(undefined);
-        setCurrentDataItem(undefined);
+        setCurrentPageOcrData(undefined);
     };
 
     const exportBtnClicked = () => {
-        saveCurrentDataItem();
         exportToJsonFile(allData, 'data.json');
     };
 
@@ -158,8 +142,8 @@ const NERPage: PageWithAuth = () => {
                             <NerAnnotator
                                 key={currentFileIndex}
                                 data={imageContent}
-                                ocrData={allData[currentFileIndex]}
-                                setCurrentDataItem={setCurrentDataItem}
+                                ocrData={currentPageOcrData}
+                                setPageOcrData={(data) => (allData[currentFileIndex] = data)}
                             ></NerAnnotator>
                         </div>
                     )}

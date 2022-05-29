@@ -1,19 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { entities, Entity, PageOcrData, PageOcrDataWord, Rectangle } from '../../interfaces/ner';
+import { entities, Entity, PageOcrData, Rectangle } from '../../interfaces/ner';
 import Selection from './Selection';
 
 type Props = {
     data: Blob;
     pageOcrData: PageOcrData;
+    setPageOcrData?(ocrData: PageOcrData): void;
 };
 
-const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
+const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
     const scale = 1;
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
 
-    const [annotatedWords, setAnnotatedWords] = useState<PageOcrDataWord[]>([]);
+    const [pageData, setPageData] = useState<PageOcrData>();
 
     const [originalCanvasImage, setOriginalCanvasImage] = useState<ImageData>(null);
 
@@ -24,9 +25,19 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
     }, [canvasRef]);
 
     useEffect(() => {
-        if (canvasRef && context && data) {
-            console.log('INITIAL RENDER CANVAS');
+        setPageData({
+            ...pageOcrData,
+            words: [
+                ...pageOcrData.words.map((word) => ({
+                    ...word,
+                    tagId: word.tagId || 0,
+                })),
+            ],
+        });
+    }, [pageOcrData]);
 
+    useEffect(() => {
+        if (canvasRef && context && data) {
             // Clear canvas
             context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
@@ -63,9 +74,14 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
             // Restore the state of the canvas
             context.putImageData(originalCanvasImage, 0, 0);
 
-            if (annotatedWords && annotatedWords.length > 0) {
+            const words = pageData?.words;
+            if (words && words.length > 0) {
                 // Draw annotated words on canvas
-                annotatedWords.forEach((word) => {
+                words.forEach((word) => {
+                    if (word.tagId === 0) {
+                        return;
+                    }
+
                     const { left: x, top: y, width, height } = word;
 
                     const entity = entities[word.tagId - 1];
@@ -76,11 +92,6 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
                     context.fillRect(x * scale, y * scale, width * scale, height * scale);
                     context.globalAlpha = 1.0;
 
-                    // context.strokeStyle = entity.color;
-                    // context.lineWidth = 3;
-
-                    // context.strokeRect(x * scale, y * scale, width * scale, height * scale);
-
                     // Draw entity id on top of word
                     context.fillStyle = entity.color;
                     context.fillRect(x * scale, y * scale - 12, String(entity.id).length * 12 * scale, 12 * scale);
@@ -90,11 +101,11 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
                 });
             }
         }
-    }, [annotatedWords, canvasRef, context]);
+    }, [pageData, canvasRef, context, originalCanvasImage]);
 
     const processSelection = ({ selectionCoords, entity }: { selectionCoords: Rectangle; entity: Entity }) => {
         const { left, top, width, height } = selectionCoords;
-        const { words } = pageOcrData;
+        const { words } = pageData;
 
         const selectedWords = words.filter((word) => {
             const { left: wordLeft, top: wordTop, width: wordWidth, height: wordHeight } = word;
@@ -108,12 +119,7 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
             );
         });
 
-        console.log('selectedWords', selectedWords);
-
         const atLeastOneUntaggedWord = selectedWords.some((word) => !word.tagId);
-
-        console.log('atLeastOneUntaggedWord', atLeastOneUntaggedWord);
-
         if (atLeastOneUntaggedWord) {
             // Add entity tag to selected words
             selectedWords.forEach((word) => {
@@ -122,14 +128,16 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
         } else {
             // Remove entity tag from selected words
             selectedWords.forEach((word) => {
-                word.tagId = undefined;
+                word.tagId = 0;
             });
         }
 
-        const annotatedWords = words.filter((word) => word.tagId);
-        setAnnotatedWords([...annotatedWords]);
-
-        console.log('annotatedWords', annotatedWords);
+        const newOcrData = {
+            ...pageData,
+            words: [...words],
+        };
+        setPageData(newOcrData);
+        setPageOcrData(newOcrData);
     };
 
     return (
@@ -138,7 +146,6 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData }) => {
             <Selection
                 className="absolute top-0 bottom-0 left-0 right-0 overflow-hidden leading-tight"
                 onSelectionChange={(selection) => {
-                    console.log(selection);
                     processSelection(selection);
                 }}
                 style={{ width: `${pageOcrData.width * scale}px`, height: `${pageOcrData.height * scale}px` }}

@@ -6,19 +6,18 @@ import NerPage from './NerPage';
 type Props = {
     data: Blob;
     ocrData: PageOcrData;
-    setCurrentDataItem?(dataItem: PageOcrData): void;
+    setPageOcrData?(ocrData: PageOcrData): void;
 };
 
-const NerAnnotator: React.FC<Props> = ({ data, ocrData, setCurrentDataItem }) => {
+const NerAnnotator: React.FC<Props> = ({ data, ocrData, setPageOcrData }) => {
     const [selectedEntity, setSelectedEntity] = useState(-1);
 
     return (
         <div className="relative flex flex-row w-full space-x-6 h-[calc(100vh-5.5rem)] ">
-            <div className="flex-none">JSON HERE</div>
             <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col items-center px-6 space-y-6">
                     <EntityContext.Provider value={{ entity: entities[selectedEntity] }}>
-                        <NerPage data={data} pageOcrData={ocrData}></NerPage>
+                        <NerPage data={data} pageOcrData={ocrData} setPageOcrData={setPageOcrData}></NerPage>
                     </EntityContext.Provider>
                 </div>
             </div>
