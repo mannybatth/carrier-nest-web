@@ -9,7 +9,6 @@ from PIL import Image
 
 
 source = sys.argv[1]
-destination = sys.argv[2]
 
 LEVELS = {
     'page_num': 1,
@@ -58,7 +57,7 @@ def extract_ocr_data(name):
 
         # Run pytesseract.image_to_data on image
         tesseract_output = pytesseract.image_to_data(
-            image, output_type=pytesseract.Output.DICT)
+            image, output_type=pytesseract.Output.DICT, config='--psm 11')
 
         # Extract data from tesseract output
         data = extract_data(tesseract_output)
@@ -80,7 +79,7 @@ def main(source, destination):
 
     # Read all images from source directory
     for name in sorted(os.listdir(source)):
-        if name.endswith('.jpg'):
+        if name.endswith('.jpg') or name.endswith('.png'):
             data.append(extract_ocr_data(name))
 
     # Write data to json file
@@ -89,4 +88,4 @@ def main(source, destination):
 
 
 if __name__ == '__main__':
-    main(source, destination)
+    main(source, source)
