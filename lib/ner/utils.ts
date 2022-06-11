@@ -1,5 +1,5 @@
 import * as zip from '@zip.js/zip.js';
-import { Entity, PageOcrData, PageOcrDataWord } from '../../interfaces/ner';
+import { Entity, PageOcrData } from '../../interfaces/ner';
 
 export const unzipOnlyPDFs = async (zipFile: File): Promise<zip.Entry[]> => {
     const reader = new zip.ZipReader(new zip.BlobReader(zipFile));

@@ -9,7 +9,7 @@ type Props = {
 };
 
 const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
-    const scale = 1;
+    const scale = 0.5;
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
@@ -58,6 +58,14 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
                     context.strokeRect(x * scale, y * scale, width * scale, height * scale);
                 });
 
+                if (canvasRef.current.width === 0) {
+                    canvasRef.current.width = img.width * scale;
+                }
+
+                if (canvasRef.current.height === 0) {
+                    canvasRef.current.height = img.height * scale;
+                }
+
                 // Save the state of the canvas
                 const imageData = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
                 setOriginalCanvasImage(imageData);
@@ -94,10 +102,10 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
 
                     // Draw entity id on top of word
                     context.fillStyle = entity.color;
-                    context.fillRect(x * scale, y * scale - 12, String(entity.id).length * 12 * scale, 12 * scale);
+                    context.fillRect(x * scale, y * scale - 14, String(entity.id).length * 12, 14);
                     context.fillStyle = 'white';
                     context.font = '12px Arial';
-                    context.fillText(String(' ' + entity.id), x * scale, y * scale);
+                    context.fillText(String(' ' + entity.id), x * scale, y * scale - 2);
                 });
             }
         }
@@ -112,11 +120,15 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
 
             // Check if selection overlaps with word
             return (
-                left * scale <= wordLeft * scale + wordWidth * scale &&
-                left * scale + width * scale >= wordLeft * scale &&
-                top * scale <= wordTop * scale + wordHeight * scale &&
-                top * scale + height * scale >= wordTop * scale
+                left <= wordLeft * scale + wordWidth * scale &&
+                left + width >= wordLeft * scale &&
+                top <= wordTop * scale + wordHeight * scale &&
+                top + height >= wordTop * scale
             );
+        });
+
+        selectedWords.forEach((word) => {
+            console.log(`Selected word: ${word.text}`);
         });
 
         const atLeastOneUntaggedWord = selectedWords.some((word) => !word.tagId);

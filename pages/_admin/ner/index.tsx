@@ -42,10 +42,11 @@ const NERPage: PageWithAuth = () => {
         }
 
         async function readContent(entry: zip.Entry) {
-            const content = await readEntryBlob(entry, 'image/jpeg');
+            const content = await readEntryBlob(entry, 'image/png');
             setImageContent(content);
         }
 
+        allData[currentFileIndex].words = allData[currentFileIndex].words || [];
         setCurrentPageOcrData(allData[currentFileIndex]);
 
         if (filesList[currentFileIndex]) {
@@ -94,9 +95,12 @@ const NERPage: PageWithAuth = () => {
     };
 
     const processZipEntries = async (entries: zip.Entry[]) => {
-        // get all jpegs
-        const jpegs = entries.filter((entry) => entry.filename.endsWith('.jpg') || entry.filename.endsWith('.jpeg'));
-        setFilesList(jpegs);
+        // get all images
+        const images = entries.filter(
+            (entry) =>
+                entry.filename.endsWith('.jpg') || entry.filename.endsWith('.jpeg') || entry.filename.endsWith('.png'),
+        );
+        setFilesList(images);
 
         let allPagesData: PageOcrData[] = [];
 
@@ -114,7 +118,6 @@ const NERPage: PageWithAuth = () => {
             const data = await readEntryText(dataJson);
             const raw = JSON.parse(data);
             const { untaggedData } = revertBioTagging(raw, entities);
-            console.log('untaggedData', untaggedData);
             allPagesData = untaggedData;
         } else if (ocrJson) {
             console.log('Found ocr.json file');
@@ -122,8 +125,8 @@ const NERPage: PageWithAuth = () => {
             allPagesData = JSON.parse(data);
         }
 
-        // Sort jpegs by content in dataJson
-        jpegs.sort((a, b) => {
+        // Sort images by content in dataJson
+        images.sort((a, b) => {
             const aIndex = allPagesData.findIndex((d) => a.filename.endsWith(d.image));
             const bIndex = allPagesData.findIndex((d) => b.filename.endsWith(d.image));
             return aIndex - bIndex;

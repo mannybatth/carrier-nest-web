@@ -12,7 +12,7 @@ const SelectionRectangle = ({ isDragging, coordinates }: Props) => {
     return (
         <span
             data-ignore={true}
-            className="absolute border-2 border-black border-dashed opacity-30"
+            className="absolute border-2 border-red-400 border-dashed opacity-30"
             style={{
                 visibility,
                 left: `${coordinates.left}px`,
