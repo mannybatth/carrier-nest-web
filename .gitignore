@@ -3,3 +3,5 @@ node_modules/
 .DS_STORE
 .env
 .env*.local
+training-files/dataset/
+training-files/dataset-raw/
