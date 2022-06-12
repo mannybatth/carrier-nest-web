@@ -107,6 +107,39 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
                     context.font = '12px Arial';
                     context.fillText(String(' ' + entity.id), x * scale, y * scale - 2);
                 });
+
+                // Highlight predictions
+                const brokerTaggedWords = words.filter((word) => word.tagId === 1);
+                words.forEach((word) => {
+                    if (word.tagId !== 0) {
+                        return;
+                    }
+
+                    const text = word.text;
+
+                    // Check if text contains brokerTaggedWords
+                    const brokerTaggedWord = brokerTaggedWords.find((brokerTaggedWord) => {
+                        // Remove punctuation from word
+                        const w = brokerTaggedWord.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+                        const t = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+
+                        // Check if t contains w
+                        return t.toLowerCase().includes(w.toLowerCase());
+                    });
+
+                    const shouldHighlight =
+                        brokerTaggedWord || text.toLowerCase().includes('www.') || text.toLowerCase().includes('.com');
+
+                    if (brokerTaggedWord || shouldHighlight) {
+                        const { left: x, top: y, width, height } = word;
+
+                        // Draw highlight over word
+                        context.fillStyle = '#FFFF00';
+                        context.globalAlpha = 0.4;
+                        context.fillRect(x * scale, y * scale, width * scale, height * scale);
+                        context.globalAlpha = 1.0;
+                    }
+                });
             }
         }
     }, [pageData, canvasRef, context, originalCanvasImage]);

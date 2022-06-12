@@ -156,4 +156,19 @@ export const entities: Array<Entity> = [
         name: 'SO_TIME',
         color: '#ec89e0',
     },
+    {
+        id: 20,
+        name: 'INVOICE_EMAIL',
+        color: '#5053ca',
+    },
+    {
+        id: 21,
+        name: 'CONTACT_EMAIL',
+        color: '#4cac9c',
+    },
+    {
+        id: 22,
+        name: 'BROKER_WEBSITE',
+        color: '#f0d065',
+    },
 ];

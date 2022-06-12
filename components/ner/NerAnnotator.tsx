@@ -27,7 +27,7 @@ const NerAnnotator: React.FC<Props> = ({ data, ocrData, setPageOcrData }) => {
                         <span className="flex items-center justify-center w-10 h-8">{index + 1}</span>
                         <span
                             role="button"
-                            className="p-2 font-medium text-center text-black cursor-pointer w-44 hover:bg-gray-100"
+                            className="p-1 font-medium text-center text-black cursor-pointer w-44 hover:bg-gray-100"
                             style={
                                 selectedEntity === index || selectedEntity === -1
                                     ? { backgroundColor: entity.color }
