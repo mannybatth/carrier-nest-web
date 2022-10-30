@@ -4,4 +4,9 @@ node_modules/
 .env
 .env*.local
 training-files/dataset/
-training-files/dataset-raw/
+training-files/dataset-final/
+training-files/dataset-img-raw/
+training-files/dataset-pdf-archives/
+training-files/dataset-final.zip
+training-files/dataset.zip
+training-files/training-files-20220829T171419Z-001.zip
