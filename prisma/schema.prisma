@@ -1,11 +1,11 @@
-datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-}
-
 generator client {
     provider        = "prisma-client-js"
-    previewFeatures = ["extendedIndexes", "fullTextSearch"]
+    previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("POSTGRES_PRISMA_URL")
 }
 
 model Account {
@@ -22,9 +22,8 @@ model Account {
     sessionState      String? @map("session_state")
     oauthTokenSecret  String? @map("oauth_token_secret")
     oauthToken        String? @map("oauth_token")
-
-    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId Int
+    userId            Int
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
 }
@@ -38,24 +37,24 @@ model Session {
 }
 
 model User {
-    id            Int            @id @default(autoincrement())
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
-    name          String?
-    email         String?        @unique
-    emailVerified DateTime?
-    image         String?
-    carrier       Carrier?       @relation(fields: [carrierId], references: [id])
-    carrierId     Int?
-    isSiteAdmin   Boolean        @default(false)
-    accounts      Account[]
-    sessions      Session[]
-    loads         Load[]
-    invoices      Invoice[]
-    loadDocuments LoadDocument[]
-    stops         LoadStop[]
-
+    id             Int              @id @default(autoincrement())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+    name           String?
+    email          String?          @unique
+    emailVerified  DateTime?
+    image          String?
+    carrierId      Int?
+    isSiteAdmin    Boolean          @default(false)
+    accounts       Account[]
+    invoices       Invoice[]
     InvoicePayment InvoicePayment[]
+    loads          Load[]
+    loadDocuments  LoadDocument[]
+    stops          LoadStop[]
+    sessions       Session[]
+    carrier        Carrier?         @relation(fields: [carrierId], references: [id])
+
     @@index([name, email, carrierId])
 }
 
@@ -82,50 +81,43 @@ model Carrier {
     zip       String
     country   String
     phone     String?
-    users     User[]
-    loads     Load[]
     customers Customer[]
     drivers   Driver[]
     invoices  Invoice[]
+    loads     Load[]
+    users     User[]
 
     @@index([name, email])
 }
 
 model Load {
     id            Int            @id @default(autoincrement())
-    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId        Int
-    customer      Customer?      @relation(fields: [customerId], references: [id])
     customerId    Int?
-    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId     Int
-    driver        Driver?        @relation(fields: [driverId], references: [id])
     driverId      Int?
     createdAt     DateTime       @default(now())
     updatedAt     DateTime       @updatedAt
     refNum        String
-    shipper       LoadStop       @relation("shipper", fields: [shipperId], references: [id])
     shipperId     Int
-    receiver      LoadStop       @relation("receiver", fields: [receiverId], references: [id])
     receiverId    Int
-    stops         LoadStop[]
     rate          Decimal
-    invoice       Invoice?
     distance      Int
+    invoice       Invoice?
+    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    customer      Customer?      @relation(fields: [customerId], references: [id])
+    driver        Driver?        @relation(fields: [driverId], references: [id])
+    receiver      LoadStop       @relation("receiver", fields: [receiverId], references: [id])
+    shipper       LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     loadDocuments LoadDocument[]
+    stops         LoadStop[]
 
     @@index([refNum, carrierId, userId, customerId])
 }
 
-enum LoadStopType {
-    SHIPPER
-    RECEIVER
-    STOP
-}
-
 model LoadStop {
     id              Int          @id @default(autoincrement())
-    user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId          Int
     type            LoadStopType
     name            String
@@ -138,11 +130,12 @@ model LoadStop {
     time            String
     longitude       Float?
     latitude        Float?
-    loadsAsShipper  Load[]       @relation("shipper")
-    loadsAsReceiver Load[]       @relation("receiver")
-    loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])
     loadIdAsStop    Int?
     stopIndex       Int          @default(0)
+    loadsAsReceiver Load[]       @relation("receiver")
+    loadsAsShipper  Load[]       @relation("shipper")
+    loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])
+    user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Customer {
@@ -158,8 +151,8 @@ model Customer {
     state              String?
     zip                String?
     country            String?
-    carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId          Int
+    carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loads              Load[]
 
     @@index([name, carrierId])
@@ -172,26 +165,17 @@ model Driver {
     name      String
     email     String?
     phone     String?
-    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId Int
+    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loads     Load[]
 
     @@index([name, carrierId])
 }
 
-enum InvoiceStatus {
-    NOT_PAID
-    PARTIALLY_PAID
-    PAID
-}
-
 model Invoice {
     id              Int              @id @default(autoincrement())
-    user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId          Int
-    carrier         Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     carrierId       Int
-    load            Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId          Int              @unique
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
@@ -203,6 +187,9 @@ model Invoice {
     dueNetDays      Int              @default(0)
     paidAmount      Decimal?         @default(0)
     lastPaymentAt   DateTime?
+    carrier         Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    load            Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
     extraItems      InvoiceItem[]
     payments        InvoicePayment[]
 
@@ -211,27 +198,25 @@ model Invoice {
 
 model InvoiceItem {
     id        Int     @id @default(autoincrement())
-    invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
     invoiceId Int
     title     String
     amount    Decimal
+    invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoicePayment {
     id        Int      @id @default(autoincrement())
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    Int
-    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
     invoiceId Int
     amount    Decimal
     paidAt    DateTime
+    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoadDocument {
     id        Int      @id @default(autoincrement())
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    Int
-    load      Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
     loadId    Int
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -240,4 +225,18 @@ model LoadDocument {
     fileName  String
     fileType  String
     fileSize  Int
+    load      Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum LoadStopType {
+    SHIPPER
+    RECEIVER
+    STOP
+}
+
+enum InvoiceStatus {
+    NOT_PAID
+    PARTIALLY_PAID
+    PAID
 }
