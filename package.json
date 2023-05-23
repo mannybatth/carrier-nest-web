@@ -4,7 +4,7 @@
     "description": "",
     "scripts": {
         "dev": "next",
-        "build": "next build",
+        "build": "npm run generate && next build",
         "start": "next start",
         "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix",
         "db-push": "prisma db push",
