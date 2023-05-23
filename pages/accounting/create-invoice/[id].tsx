@@ -14,10 +14,12 @@ import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { createInvoice } from '../../../lib/rest/invoice';
 import { useLocalStorage } from '../../../lib/useLocalStorage';
 import { getLoad } from '../../api/loads/[id]';
+import { getSession } from 'next-auth/react';
 
 export async function getServerSideProps(context: NextPageContext) {
+    const session = await getSession(context);
     const { data } = await getLoad({
-        req: context.req,
+        session,
         query: {
             id: context.query.id,
             expand: 'customer,shipper,receiver,stops,invoice,driver,documents',

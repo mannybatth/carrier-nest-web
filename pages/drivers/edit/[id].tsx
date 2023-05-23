@@ -12,14 +12,16 @@ import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedDriver } from '../../../interfaces/models';
 import { updateDriver } from '../../../lib/rest/driver';
 import { getDriver } from '../../api/drivers/[id]';
+import { getSession } from 'next-auth/react';
 
 type Props = {
     driver: Driver;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
+    const session = await getSession(context);
     const { data } = await getDriver({
-        req: context.req,
+        session,
         query: {
             id: context.query.id,
         },

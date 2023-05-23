@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { JSONResponse, SearchResult } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
-export async function loadSearch(query: string): Promise<SearchResult<Load>[]> {
-    const [_, loads] = await prisma.$transaction([
+export async function loadSearch(query: string): Promise<SearchResult<{ id: string; refNum: string }>[]> {
+    const [_, loads]: [unknown, SearchResult<{ id: string; refNum: string }>[]] = await prisma.$transaction([
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
         prisma.$queryRaw`SELECT id, "refNum", similarity("refNum", ${query}) as sim FROM "Load" WHERE "refNum" % ${query} ORDER BY sim desc LIMIT 5`,
     ]);
@@ -27,7 +27,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const q = req.query.q as string;
-        const loads: Load[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
+        const loads = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
             code: 200,
@@ -45,7 +45,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
     }
 
-    async function search(query: string): Promise<Load[]> {
+    async function search(query: string): Promise<SearchResult<{ id: string; refNum: string }>[]> {
         return loadSearch(query);
     }
 }

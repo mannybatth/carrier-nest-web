@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { JSONResponse, SearchResult } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
-export async function driverSearch(query: string): Promise<SearchResult<Driver>[]> {
-    const [_, drivers] = await prisma.$transaction([
+export async function driverSearch(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
+    const [_, drivers]: [unknown, SearchResult<{ id: string; name: string }>[]] = await prisma.$transaction([
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
         prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Driver" WHERE name % ${query} ORDER BY sim desc LIMIT 5`,
     ]);
@@ -27,7 +27,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const q = req.query.q as string;
-        const drivers: Driver[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
+        const drivers = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
             code: 200,
@@ -45,7 +45,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
     }
 
-    async function search(query: string): Promise<Driver[]> {
+    async function search(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
         return driverSearch(query);
     }
 }

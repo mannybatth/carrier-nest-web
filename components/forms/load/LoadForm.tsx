@@ -244,6 +244,7 @@ const LoadForm: React.FC<Props> = ({
                                     className="inline-flex items-center px-4 py-0.5 text-xs font-medium leading-5 text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     onClick={() => {
                                         appendStop({
+                                            id: null,
                                             type: LoadStopType.STOP,
                                             name: ``,
                                             street: '',
@@ -253,6 +254,9 @@ const LoadForm: React.FC<Props> = ({
                                             country: '',
                                             date: new Date(),
                                             time: '',
+                                            longitude: null,
+                                            latitude: null,
+                                            stopIndex: stopFields.length,
                                         });
                                     }}
                                 >

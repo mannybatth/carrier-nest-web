@@ -5,6 +5,7 @@ import { ExpandedDriver, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
+import { Session } from 'next-auth';
 
 export default handler;
 
@@ -24,7 +25,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getDriver({ req, res, query: req.query });
+        const session = await getServerSession(req, res, authOptions);
+        const response = await getDriver({ session, query: req.query });
         return res.status(response.code).json(response);
     }
 
@@ -97,16 +99,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 }
 
 export const getDriver = async ({
-    req,
-    res,
+    session,
     query,
 }: {
-    req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    session: Session;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ driver: Driver }>> => {
-    const session = await getServerSession(req, res, authOptions);
-
     const driver = await prisma.driver.findFirst({
         where: {
             id: Number(query.id),

@@ -1,6 +1,6 @@
 import { Customer } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
+import { Session, getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedCustomer, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
@@ -24,7 +24,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getCustomer({ req, res, query: req.query });
+        const session = await getServerSession(req, res, authOptions);
+        const response = await getCustomer({ session, query: req.query });
         return res.status(response.code).json(response);
     }
 
@@ -103,16 +104,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 }
 
 export const getCustomer = async ({
-    req,
-    res,
+    session,
     query,
 }: {
-    req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    session?: Session;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ customer: Customer }>> => {
-    const session = await getServerSession(req, res, authOptions);
-
     const customer = await prisma.customer.findFirst({
         where: {
             id: Number(query.id),

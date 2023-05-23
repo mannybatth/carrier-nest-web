@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { JSONResponse, SearchResult } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 
-export async function customerSearch(query: string): Promise<SearchResult<Customer>[]> {
-    const [_, customers] = await prisma.$transaction([
+export async function customerSearch(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
+    const [_, customers]: [unknown, SearchResult<{ id: string; name: string }>[]] = await prisma.$transaction([
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
         prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" WHERE name % ${query} ORDER BY sim desc LIMIT 5`,
     ]);
@@ -26,7 +26,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const q = req.query.q as string;
-        const customers: Customer[] = req.query.fullText ? await fullTextSearch(q) : await search(q);
+        const customers = req.query.fullText ? await fullTextSearch(q) : await search(q);
 
         return res.status(200).json({
             code: 200,
@@ -44,7 +44,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
     }
 
-    async function search(query: string): Promise<Customer[]> {
+    async function search(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
         return customerSearch(query);
     }
 }

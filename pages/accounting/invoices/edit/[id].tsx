@@ -13,10 +13,12 @@ import { PageWithAuth } from '../../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../../interfaces/models';
 import { updateInvoice } from '../../../../lib/rest/invoice';
 import { getInvoice } from '../../../api/invoices/[id]';
+import { getSession } from 'next-auth/react';
 
 export async function getServerSideProps(context: NextPageContext) {
+    const session = await getSession(context);
     const { data } = await getInvoice({
-        req: context.req,
+        session,
         query: {
             id: context.query.id,
             expand: 'load,extraItems,payments',

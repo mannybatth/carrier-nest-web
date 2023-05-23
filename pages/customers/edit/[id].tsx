@@ -11,14 +11,16 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { updateCustomer } from '../../../lib/rest/customer';
 import { getCustomer } from '../../api/customers/[id]';
+import { getSession } from 'next-auth/react';
 
 type Props = {
     customer: Customer;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
+    const session = await getSession(context);
     const { data } = await getCustomer({
-        req: context.req,
+        session,
         query: {
             id: context.query.id,
         },

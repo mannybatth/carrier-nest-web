@@ -13,14 +13,16 @@ import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
 import { updateLoad } from '../../../lib/rest/load';
 import { getLoad } from '../../api/loads/[id]';
+import { getSession } from 'next-auth/react';
 
 type Props = {
     load: ExpandedLoad;
 };
 
 export async function getServerSideProps(context: NextPageContext) {
+    const session = await getSession(context);
     const { data } = await getLoad({
-        req: context.req,
+        session,
         query: {
             id: context.query.id,
             expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
