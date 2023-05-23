@@ -1,9 +1,9 @@
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { LocationEntry } from '../../../interfaces/location';
 import { JSONResponse } from '../../../interfaces/models';
+import { authOptions } from '../auth/[...nextauth]';
 
 export default handler;
 
@@ -19,19 +19,21 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getLocation({ req, query: req.query });
+        const response = await getLocation({ req, res, query: req.query });
         return res.status(response.code).json(response);
     }
 }
 
 export const getLocation = async ({
     req,
+    res,
     query,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ locations: LocationEntry[] }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     if (!session || !session.user) {
         return {

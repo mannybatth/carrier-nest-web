@@ -1,12 +1,12 @@
 import { Load, Prisma } from '@prisma/client';
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
+import { authOptions } from './auth/[...nextauth]';
 
 const buildOrderBy = (
     sortBy: string,
@@ -61,24 +61,26 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getLoads({ req, query: req.query });
+        const response = await getLoads({ req, res, query: req.query });
         return res.status(response.code).json(response);
     }
 
     async function _post() {
-        const response = await postLoads({ req });
+        const response = await postLoads({ req, res });
         return res.status(response.code).json(response);
     }
 }
 
 export const getLoads = async ({
     req,
+    res,
     query,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ loads: Partial<ExpandedLoad[]>; metadata: PaginationMetadata }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     const expand = query.expand as string;
     const expandCustomer = expand?.includes('customer');
@@ -200,9 +202,15 @@ export const getLoads = async ({
     };
 };
 
-export const postLoads = async ({ req }: { req: NextApiRequest }): Promise<JSONResponse<{ load: Load }>> => {
+export const postLoads = async ({
+    req,
+    res,
+}: {
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
+}): Promise<JSONResponse<{ load: Load }>> => {
     try {
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
         const loadData = req.body as ExpandedLoad;
 
         const load = await prisma.load.create({

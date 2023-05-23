@@ -1,9 +1,10 @@
 import { LoadDocument } from '@prisma/client';
+import aws from 'aws-sdk';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
-import aws from 'aws-sdk';
+import { authOptions } from '../../../auth/[...nextauth]';
 
 export default handler;
 
@@ -19,7 +20,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _delete() {
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
 
         const load = await prisma.load.findFirst({
             where: {

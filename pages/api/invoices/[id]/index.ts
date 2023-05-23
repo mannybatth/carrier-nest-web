@@ -1,10 +1,10 @@
 import { Prisma } from '@prisma/client';
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedInvoice, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
+import { authOptions } from '../../auth/[...nextauth]';
 
 export default handler;
 
@@ -24,12 +24,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getInvoice({ req, query: req.query });
+        const response = await getInvoice({ req, res, query: req.query });
         return res.status(response.code).json(response);
     }
 
     async function _put() {
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -101,7 +101,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _delete() {
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -132,12 +132,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 export const getInvoice = async ({
     req,
+    res,
     query,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ invoice: ExpandedInvoice }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     const expand = query.expand as string;
     const expandLoad = expand?.includes('load');

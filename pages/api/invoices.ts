@@ -1,13 +1,12 @@
 import { Invoice, InvoiceStatus, Prisma } from '@prisma/client';
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Session } from 'next-auth';
-import { getSession } from 'next-auth/react';
+import { Session, getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedInvoice, JSONResponse, UIInvoiceStatus } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
+import { authOptions } from './auth/[...nextauth]';
 
 const buildOrderBy = (
     sortBy: string,
@@ -92,13 +91,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getInvoices({ req, query: req.query });
+        const response = await getInvoices({ req, res, query: req.query });
         return res.status(response.code).json(response);
     }
 
     async function _post() {
         try {
-            const session = await getSession({ req });
+            const session = await getServerSession(req, res, authOptions);
             const invoiceData = req.body as ExpandedInvoice;
 
             const dueDate = new Date(invoiceData.invoicedAt);
@@ -150,12 +149,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 export const getInvoices = async ({
     req,
+    res,
     query,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ invoices: ExpandedInvoice[]; metadata: PaginationMetadata }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     const expand = query.expand as string;
     const expandLoad = expand?.includes('load');

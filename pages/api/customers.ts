@@ -1,12 +1,12 @@
 import { Customer } from '@prisma/client';
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
 import { ParsedUrlQuery } from 'querystring';
 import { JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './auth/[...nextauth]';
 
 const buildOrderBy = (sortBy: string, sortDir: string) => {
     if (sortBy && sortDir) {
@@ -39,13 +39,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getCustomers({ req, query: req.query });
+        const response = await getCustomers({ req, res, query: req.query });
         return res.status(response.code).json(response);
     }
 
     async function _post() {
         try {
-            const session = await getSession({ req });
+            const session = await getServerSession(req, res, authOptions);
+
             const customerData = req.body as Customer;
 
             const customer = await prisma.customer.create({
@@ -82,12 +83,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 export const getCustomers = async ({
     req,
+    res,
     query,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ customers: Customer[]; metadata: PaginationMetadata }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     const sortBy = query.sortBy as string;
     const sortDir = (query.sortDir as string) || 'asc';

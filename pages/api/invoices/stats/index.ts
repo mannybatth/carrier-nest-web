@@ -1,9 +1,9 @@
 import { InvoiceStatus } from '@prisma/client';
-import { IncomingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
+import { authOptions } from '../../auth/[...nextauth]';
 
 export default handler;
 
@@ -19,17 +19,19 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
-        const response = await getInvoiceStats({ req });
+        const response = await getInvoiceStats({ req, res });
         return res.status(response.code).json(response);
     }
 }
 
 export const getInvoiceStats = async ({
     req,
+    res,
 }: {
-    req: IncomingMessage;
+    req: NextApiRequest;
+    res: NextApiResponse<JSONResponse<any>>;
 }): Promise<JSONResponse<{ stats: { totalPaid: number; totalUnpaid: number; totalOverdue: number } }>> => {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
 
     const now = new Date();
     const totalAmountPaidThisMonth = await prisma.invoicePayment.groupBy({

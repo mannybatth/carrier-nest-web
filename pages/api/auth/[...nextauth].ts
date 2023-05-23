@@ -6,10 +6,10 @@ import EmailProvider from 'next-auth/providers/email';
 import { sendVerificationRequest } from './verification-request';
 import { JWT } from 'next-auth/jwt';
 
-const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, options);
+const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, authOptions);
 export default authHandler;
 
-const options: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
     providers: [
         EmailProvider({
             server: {
