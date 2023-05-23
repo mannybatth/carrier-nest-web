@@ -30,4 +30,7 @@ module.exports = {
         },
     },
     plugins: [require('@tailwindcss/line-clamp'), require('@tailwindcss/forms')],
+    env: {
+        NEXT_PUBLIC_VERCEL_URL: process.env.VERCEL_URL,
+    },
 };
