@@ -1,6 +1,6 @@
 import { Load, LoadDocument } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedLoad, JSONResponse, SimpleLoad, SimpleLoadDocument } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getLoadsExpanded = async ({
@@ -82,7 +82,7 @@ export const createLoad = async (load: ExpandedLoad) => {
     return data.load;
 };
 
-export const updateLoad = async (id: number, load: SimpleLoad) => {
+export const updateLoad = async (id: number, load: Partial<Load>) => {
     const response = await fetch(apiUrl + '/loads/' + id, {
         method: 'PUT',
         headers: {
@@ -110,7 +110,7 @@ export const deleteLoadById = async (id: number) => {
     return data.result;
 };
 
-export const addLoadDocumentToLoad = async (loadId: number, loadDocument: SimpleLoadDocument) => {
+export const addLoadDocumentToLoad = async (loadId: number, loadDocument: Partial<LoadDocument>) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/documents', {
         method: 'POST',
         headers: {

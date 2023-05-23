@@ -1,7 +1,7 @@
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { InvoicePayment, InvoiceStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { JSONResponse, SimpleInvoicePayment } from '../../../../../interfaces/models';
+import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
 
 export default handler;
@@ -43,7 +43,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const paymentData = req.body as SimpleInvoicePayment;
+        const paymentData = req.body as InvoicePayment;
 
         console.log('payment to add', paymentData);
 

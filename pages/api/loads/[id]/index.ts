@@ -49,11 +49,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         console.log('load to update', loadData);
 
-        const updatedLoad = await prisma.load.update({
+        const updatedLoad = await prisma.load.upsert({
             where: {
                 id: Number(req.query.id),
             },
-            data: {
+            create: null,
+            update: {
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
@@ -68,21 +69,85 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                 },
                 shipper: {
-                    update: {
-                        ...loadData.shipper,
-                        user: {
-                            connect: {
-                                id: session.user.id,
+                    upsert: {
+                        create: {
+                            type: loadData.shipper.type,
+                            name: loadData.shipper.name,
+                            street: loadData.shipper.street || '',
+                            city: loadData.shipper.city || '',
+                            state: loadData.shipper.state || '',
+                            zip: loadData.shipper.zip || '',
+                            country: loadData.shipper.country || '',
+                            date: loadData.shipper.date || '',
+                            time: loadData.shipper.time || '',
+                            longitude: loadData.shipper.longitude || 0,
+                            latitude: loadData.shipper.latitude || 0,
+                            stopIndex: loadData.shipper.stopIndex || 0,
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        },
+                        update: {
+                            type: loadData.shipper.type,
+                            name: loadData.shipper.name,
+                            street: loadData.shipper.street || '',
+                            city: loadData.shipper.city || '',
+                            state: loadData.shipper.state || '',
+                            zip: loadData.shipper.zip || '',
+                            country: loadData.shipper.country || '',
+                            date: loadData.shipper.date || '',
+                            time: loadData.shipper.time || '',
+                            longitude: loadData.shipper.longitude || 0,
+                            latitude: loadData.shipper.latitude || 0,
+                            stopIndex: loadData.shipper.stopIndex || 0,
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
                             },
                         },
                     },
                 },
                 receiver: {
-                    update: {
-                        ...loadData.receiver,
-                        user: {
-                            connect: {
-                                id: session.user.id,
+                    upsert: {
+                        create: {
+                            type: loadData.receiver.type,
+                            name: loadData.receiver.name,
+                            street: loadData.receiver.street || '',
+                            city: loadData.receiver.city || '',
+                            state: loadData.receiver.state || '',
+                            zip: loadData.receiver.zip || '',
+                            country: loadData.receiver.country || '',
+                            date: loadData.receiver.date || '',
+                            time: loadData.receiver.time || '',
+                            longitude: loadData.receiver.longitude || 0,
+                            latitude: loadData.receiver.latitude || 0,
+                            stopIndex: loadData.receiver.stopIndex || 0,
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
+                        },
+                        update: {
+                            type: loadData.receiver.type,
+                            name: loadData.receiver.name,
+                            street: loadData.receiver.street || '',
+                            city: loadData.receiver.city || '',
+                            state: loadData.receiver.state || '',
+                            zip: loadData.receiver.zip || '',
+                            country: loadData.receiver.country || '',
+                            date: loadData.receiver.date || '',
+                            time: loadData.receiver.time || '',
+                            longitude: loadData.receiver.longitude || 0,
+                            latitude: loadData.receiver.latitude || 0,
+                            stopIndex: loadData.receiver.stopIndex || 0,
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                },
                             },
                         },
                     },
@@ -167,124 +232,23 @@ export const getLoad = async ({
             userId: session.user.id,
         },
         include: {
-            ...(expandCustomer
-                ? {
-                      customer: {
-                          select: {
-                              id: true,
-                              name: true,
-                              street: true,
-                              city: true,
-                              state: true,
-                              zip: true,
-                          },
-                      },
-                  }
-                : {}),
-            ...(expandInvoice
-                ? {
-                      invoice: {
-                          select: {
-                              id: true,
-                              status: true,
-                              totalAmount: true,
-                              invoicedAt: true,
-                              dueDate: true,
-                              dueNetDays: true,
-                              paidAmount: true,
-                              remainingAmount: true,
-                              lastPaymentAt: true,
-                              extraItems: true,
-                          },
-                      },
-                  }
-                : {}),
-            ...(expandShipper
-                ? {
-                      shipper: {
-                          select: {
-                              id: true,
-                              type: true,
-                              name: true,
-                              street: true,
-                              city: true,
-                              state: true,
-                              zip: true,
-                              country: true,
-                              date: true,
-                              time: true,
-                              longitude: true,
-                              latitude: true,
-                          },
-                      },
-                  }
-                : {}),
-            ...(expandReceiver
-                ? {
-                      receiver: {
-                          select: {
-                              id: true,
-                              type: true,
-                              name: true,
-                              street: true,
-                              city: true,
-                              state: true,
-                              zip: true,
-                              country: true,
-                              date: true,
-                              time: true,
-                              longitude: true,
-                              latitude: true,
-                          },
-                      },
-                  }
-                : {}),
+            ...(expandCustomer ? { customer: true } : {}),
+            ...(expandInvoice ? { invoice: true } : {}),
+            ...(expandShipper ? { shipper: true } : {}),
+            ...(expandReceiver ? { receiver: true } : {}),
             ...(expandStops
                 ? {
                       stops: {
-                          select: {
-                              id: true,
-                              type: true,
-                              name: true,
-                              street: true,
-                              city: true,
-                              state: true,
-                              zip: true,
-                              country: true,
-                              date: true,
-                              time: true,
-                              longitude: true,
-                              latitude: true,
-                          },
                           orderBy: {
                               stopIndex: 'asc',
                           },
                       },
                   }
                 : {}),
-            ...(expandDriver
-                ? {
-                      driver: {
-                          select: {
-                              id: true,
-                              name: true,
-                              phone: true,
-                              email: true,
-                          },
-                      },
-                  }
-                : {}),
+            ...(expandDriver ? { driver: true } : {}),
             ...(expandDocuments
                 ? {
                       loadDocuments: {
-                          select: {
-                              id: true,
-                              fileUrl: true,
-                              fileName: true,
-                              fileType: true,
-                              fileSize: true,
-                              createdAt: true,
-                          },
                           orderBy: {
                               createdAt: 'desc',
                           },

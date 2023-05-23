@@ -4,7 +4,7 @@ import { Invoice, InvoicePayment, Prisma } from '@prisma/client';
 import React, { Fragment, useRef } from 'react';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useForm } from 'react-hook-form';
-import { ExpandedInvoice, SimpleInvoicePayment } from '../../../interfaces/models';
+import { ExpandedInvoice } from '../../../interfaces/models';
 import { createInvoicePayment } from '../../../lib/rest/invoice';
 import Spinner from '../../Spinner';
 import MoneyInput from '../MoneyInput';
@@ -27,12 +27,12 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
         control,
         setValue,
         formState: { errors },
-    } = useForm<SimpleInvoicePayment>();
+    } = useForm<InvoicePayment>();
 
-    const submit = async (data: SimpleInvoicePayment) => {
+    const submit = async (data: InvoicePayment) => {
         setLoading(true);
 
-        const payment: SimpleInvoicePayment = {
+        const payment: Partial<InvoicePayment> = {
             paidAt: data.paidAt,
             amount: data.amount,
         };

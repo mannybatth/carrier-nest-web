@@ -1,12 +1,6 @@
-import { Invoice } from '@prisma/client';
+import { Invoice, InvoicePayment } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import {
-    ExpandedInvoice,
-    UIInvoiceStatus,
-    JSONResponse,
-    SimpleInvoice,
-    SimpleInvoicePayment,
-} from '../../interfaces/models';
+import { ExpandedInvoice, UIInvoiceStatus, JSONResponse } from '../../interfaces/models';
 import { AccountingStats } from '../../interfaces/stats';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
@@ -79,7 +73,7 @@ export const createInvoice = async (invoice: ExpandedInvoice) => {
     return data.invoice;
 };
 
-export const updateInvoice = async (id: number, invoice: SimpleInvoice) => {
+export const updateInvoice = async (id: number, invoice: Partial<Invoice>) => {
     const response = await fetch(apiUrl + '/invoices/' + id, {
         method: 'PUT',
         headers: {
@@ -107,7 +101,7 @@ export const deleteInvoiceById = async (id: number) => {
     return data.result;
 };
 
-export const createInvoicePayment = async (invoiceId: number, payment: SimpleInvoicePayment) => {
+export const createInvoicePayment = async (invoiceId: number, payment: Partial<InvoicePayment>) => {
     const response = await fetch(apiUrl + '/invoices/' + invoiceId + '/payments', {
         method: 'POST',
         headers: {

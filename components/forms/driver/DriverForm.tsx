@@ -1,9 +1,9 @@
+import { Driver } from '@prisma/client';
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { SimpleDriver } from '../../../interfaces/models';
 
 type Props = {
-    formHook: UseFormReturn<SimpleDriver>;
+    formHook: UseFormReturn<Driver>;
     condensed?: boolean;
 };
 

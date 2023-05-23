@@ -6,21 +6,21 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { SimpleDriver } from '../../interfaces/models';
 import { createDriver } from '../../lib/rest/driver';
+import { Driver } from '@prisma/client';
 
 const CreateDriver: PageWithAuth = () => {
-    const formHook = useForm<SimpleDriver>();
+    const formHook = useForm<Driver>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
 
-    const submit = async (data: SimpleDriver) => {
+    const submit = async (data: Driver) => {
         console.log(data);
 
         setLoading(true);
 
-        const driverData: SimpleDriver = {
+        const driverData: Partial<Driver> = {
             name: data.name,
             email: data.email,
             phone: data.phone,

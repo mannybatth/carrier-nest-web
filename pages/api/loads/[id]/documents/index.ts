@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import { JSONResponse, SimpleLoadDocument } from '../../../../../interfaces/models';
+import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
+import { LoadDocument } from '@prisma/client';
 
 export default handler;
 
@@ -33,7 +34,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const docData = req.body as SimpleLoadDocument;
+        const docData = req.body as LoadDocument;
 
         const loadDocument = await prisma.loadDocument.create({
             data: {
@@ -47,7 +48,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         id: session.user.id,
                     },
                 },
-                ...docData,
+                fileKey: docData.fileKey,
+                fileUrl: docData.fileUrl,
+                fileName: docData.fileName,
+                fileType: docData.fileType,
+                fileSize: docData.fileSize,
             },
         });
 

@@ -124,7 +124,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                     load: {
                         connect: {
-                            id: invoiceData.load.id,
+                            id: invoiceData.loadId,
                         },
                     },
                     extraItems: {

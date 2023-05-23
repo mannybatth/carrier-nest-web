@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { LoadStop, Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
@@ -10,7 +10,7 @@ import Layout from '../../../components/layout/Layout';
 import SaveLoadConfirmation from '../../../components/loads/SaveLoadConfirmation';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
-import type { ExpandedLoad, SimpleLoadStop } from '../../../interfaces/models';
+import type { ExpandedLoad } from '../../../interfaces/models';
 import { updateLoad } from '../../../lib/rest/load';
 import { getLoad } from '../../api/loads/[id]';
 
@@ -63,7 +63,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
         load.receiver.date = new Date(load.receiver.date);
         load.shipper.date = new Date(load.shipper.date);
-        load.stops = load.stops.map((stop: SimpleLoadStop) => ({
+        load.stops = load.stops.map((stop: LoadStop) => ({
             ...stop,
             date: new Date(stop.date),
         }));
@@ -85,7 +85,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             !data.shipper.latitude ||
             !data.receiver.longitude ||
             !data.receiver.latitude ||
-            !data.stops.every((stop: SimpleLoadStop) => stop.longitude && stop.latitude);
+            !data.stops.every((stop: LoadStop) => stop.longitude && stop.latitude);
 
         const loadData: ExpandedLoad = {
             customerId: data.customer.id,
@@ -106,7 +106,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             delete (loadData.receiver as any)?.id;
         }
         if (loadData.stops && loadData.stops.length) {
-            loadData.stops.forEach((stop: SimpleLoadStop) => {
+            loadData.stops.forEach((stop: LoadStop) => {
                 if ((stop as any)?.id) {
                     delete (stop as any)?.id;
                 }

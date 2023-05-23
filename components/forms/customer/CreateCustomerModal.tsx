@@ -2,7 +2,6 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Customer } from '@prisma/client';
 import React, { Fragment } from 'react';
 import { useForm } from 'react-hook-form';
-import { SimpleCustomer } from '../../../interfaces/models';
 import { createCustomer } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
 import CustomerForm from './CustomerForm';
@@ -15,12 +14,12 @@ type Props = {
 
 const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }) => {
     const [loading, setLoading] = React.useState(false);
-    const formHook = useForm<SimpleCustomer>();
+    const formHook = useForm<Customer>();
 
-    const submit = async (data: SimpleCustomer) => {
+    const submit = async (data: Customer) => {
         setLoading(true);
 
-        const customer: SimpleCustomer = {
+        const customer: Partial<Customer> = {
             name: data.name,
             contactEmail: '',
             billingEmail: '',

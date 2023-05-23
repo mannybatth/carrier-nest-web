@@ -1,4 +1,5 @@
 import { NextComponentType, NextPageContext } from 'next';
+import { Session } from 'next-auth';
 import { SessionProvider, signIn, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
@@ -11,26 +12,7 @@ import '../styles/globals.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
-type ProtectedAppProps = AppProps & { Component: NextComponentWithAuth };
-
-const App: React.FC<ProtectedAppProps> = ({ Component, pageProps }) => {
-    return (
-        <SessionProvider session={pageProps.session}>
-            <Head>
-                <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-                <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-            </Head>
-            {Component.authenticationEnabled ? (
-                <Auth {...pageProps}>
-                    <Component {...pageProps} />
-                </Auth>
-            ) : (
-                <Component {...pageProps} />
-            )}
-            <Toaster />
-        </SessionProvider>
-    );
-};
+type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
 
 const Auth: React.FC = ({ children }) => {
     const { status } = useSession();
@@ -53,4 +35,23 @@ const Auth: React.FC = ({ children }) => {
     );
 };
 
-export default App;
+// Use of the <SessionProvider> is mandatory to allow components that call
+// `useSession()` anywhere in your application to access the `session` object.
+export default function App({ Component, pageProps: { session, ...pageProps } }: ProtectedAppProps) {
+    return (
+        <SessionProvider session={session}>
+            <Head>
+                <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+            </Head>
+            {Component.authenticationEnabled ? (
+                <Auth {...pageProps}>
+                    <Component {...pageProps} />
+                </Auth>
+            ) : (
+                <Component {...pageProps} />
+            )}
+            <Toaster />
+        </SessionProvider>
+    );
+}

@@ -9,7 +9,6 @@ import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { ExpandedCustomer, SimpleCustomer } from '../../../interfaces/models';
 import { updateCustomer } from '../../../lib/rest/customer';
 import { getCustomer } from '../../api/customers/[id]';
 
@@ -41,7 +40,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) => {
-    const formHook = useForm<SimpleCustomer>();
+    const formHook = useForm<Customer>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
@@ -64,12 +63,12 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
         formHook.setValue('country', customer.country);
     }, [customer]);
 
-    const submit = async (data: SimpleCustomer) => {
+    const submit = async (data: Customer) => {
         console.log('data to save', data);
 
         setLoading(true);
 
-        const customerData: ExpandedCustomer = {
+        const customerData: Partial<Customer> = {
             name: data.name,
             contactEmail: data.contactEmail,
             billingEmail: data.billingEmail,

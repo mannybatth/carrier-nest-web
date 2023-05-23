@@ -153,11 +153,7 @@ export const getInvoice = async ({
             ...(expandLoad
                 ? {
                       load: {
-                          select: {
-                              id: true,
-                              refNum: true,
-                              rate: true,
-                              distance: true,
+                          include: {
                               customer: true,
                               shipper: true,
                               receiver: true,

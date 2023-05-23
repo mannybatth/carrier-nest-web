@@ -1,6 +1,6 @@
 import { Customer } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, SimpleCustomer } from '../../interfaces/models';
+import { JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getAllCustomers = async ({
@@ -65,7 +65,7 @@ export const fullTextSearchCustomersByName = async (value: string) => {
     return data.customers;
 };
 
-export const createCustomer = async (customer: SimpleCustomer) => {
+export const createCustomer = async (customer: Partial<Customer>) => {
     const response = await fetch(apiUrl + '/customers', {
         method: 'POST',
         headers: {
@@ -81,7 +81,7 @@ export const createCustomer = async (customer: SimpleCustomer) => {
     return data.customer;
 };
 
-export const updateCustomer = async (id: number, customer: SimpleCustomer) => {
+export const updateCustomer = async (id: number, customer: Partial<Customer>) => {
     const response = await fetch(apiUrl + '/customers/' + id, {
         method: 'PUT',
         headers: {

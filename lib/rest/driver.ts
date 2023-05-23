@@ -1,6 +1,6 @@
 import { Driver } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse, SimpleDriver } from '../../interfaces/models';
+import { JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getAllDrivers = async ({
@@ -64,7 +64,7 @@ export const fullTextSearchDriversByName = async (value: string) => {
     return data.drivers;
 };
 
-export const createDriver = async (driver: SimpleDriver) => {
+export const createDriver = async (driver: Partial<Driver>) => {
     const response = await fetch(apiUrl + '/drivers', {
         method: 'POST',
         headers: {
@@ -80,7 +80,7 @@ export const createDriver = async (driver: SimpleDriver) => {
     return data.driver;
 };
 
-export const updateDriver = async (id: number, driver: SimpleDriver) => {
+export const updateDriver = async (id: number, driver: Partial<Driver>) => {
     const response = await fetch(apiUrl + '/drivers/' + id, {
         method: 'PUT',
         headers: {

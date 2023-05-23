@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
 type InvoicePDFProps = {
     carrier: Carrier;
     invoice: ExpandedInvoice;
-    customer: Customer;
+    customer: Partial<Customer>;
     load: ExpandedLoad;
 };
 
@@ -323,7 +323,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
 
 type DownloadButtonProps = {
     invoice: ExpandedInvoice;
-    customer: Customer;
+    customer: Partial<Customer>;
     load: ExpandedLoad;
     fileName: string;
 };
@@ -357,7 +357,7 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
 export const downloadInvoice = async (
     carrierId: number,
     invoice: ExpandedInvoice,
-    customer: Customer,
+    customer: Partial<Customer>,
     load: ExpandedLoad,
     fileName = 'invoice.pdf',
 ) => {

@@ -9,7 +9,7 @@ import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { ExpandedDriver, SimpleDriver } from '../../../interfaces/models';
+import { ExpandedDriver } from '../../../interfaces/models';
 import { updateDriver } from '../../../lib/rest/driver';
 import { getDriver } from '../../api/drivers/[id]';
 
@@ -41,7 +41,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
-    const formHook = useForm<SimpleDriver>();
+    const formHook = useForm<Driver>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
@@ -58,7 +58,7 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
         formHook.setValue('phone', driver.phone);
     }, [driver]);
 
-    const submit = async (data: SimpleDriver) => {
+    const submit = async (data: Driver) => {
         console.log('data to save', data);
 
         setLoading(true);

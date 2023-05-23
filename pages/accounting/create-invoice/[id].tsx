@@ -84,7 +84,7 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
             totalAmount: new Prisma.Decimal(total),
             remainingAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
-            load,
+            loadId: load.id,
             extraItems: data.extraItems,
         };
 

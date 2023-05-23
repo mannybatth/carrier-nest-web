@@ -8,7 +8,7 @@ import {
     TruckIcon,
     UploadIcon,
 } from '@heroicons/react/outline';
-import { Driver } from '@prisma/client';
+import { Driver, LoadDocument } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useS3Upload } from 'next-s3-upload';
@@ -22,7 +22,7 @@ import { UploadDocsArea } from '../../components/loads/UploadDocsArea';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, ExpandedLoadDocument, SimpleLoadDocument } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import { loadStatus } from '../../lib/load/load-utils';
@@ -233,7 +233,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         try {
             const response = await uploadToS3(file);
             if (response?.key) {
-                const simpleDoc: SimpleLoadDocument = {
+                const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.key,
                     fileUrl: response.url,
                     fileName: file.name,

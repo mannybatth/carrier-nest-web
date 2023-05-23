@@ -1,5 +1,5 @@
 import { ParsedUrlQuery, ParsedUrlQueryInput } from 'querystring';
-import { Sort } from '../../interfaces/models';
+import { Sort } from '../../interfaces/table';
 
 export const sortFromQuery = (query: ParsedUrlQuery): Sort => {
     let sort: Sort = null;

@@ -6,21 +6,21 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { SimpleCustomer } from '../../interfaces/models';
 import { createCustomer } from '../../lib/rest/customer';
+import { Customer } from '@prisma/client';
 
 const CreateCustomer: PageWithAuth = () => {
-    const formHook = useForm<SimpleCustomer>();
+    const formHook = useForm<Customer>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
 
-    const submit = async (data: SimpleCustomer) => {
+    const submit = async (data: Customer) => {
         console.log(data);
 
         setLoading(true);
 
-        const customerData: SimpleCustomer = {
+        const customerData: Partial<Customer> = {
             name: data.name,
             contactEmail: data.contactEmail,
             billingEmail: data.billingEmail,

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { countryCodes } from '../../../interfaces/country-codes';
-import { SimpleCustomer } from '../../../interfaces/models';
+import { Customer } from '@prisma/client';
 
 type Props = {
-    formHook: UseFormReturn<SimpleCustomer>;
+    formHook: UseFormReturn<Customer>;
     condensed?: boolean;
 };
 

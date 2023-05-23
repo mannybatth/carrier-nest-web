@@ -13,7 +13,7 @@ export async function getServerSideProps(context: NextPageContext) {
     });
 }
 
-type Props = {};
+type Props = unknown;
 
 const IFTAPage: PageWithAuth<Props> = ({}: Props) => {
     const router = useRouter();

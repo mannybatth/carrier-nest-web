@@ -1,4 +1,4 @@
-import { Customer, InvoiceStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export type JSONResponse<T> = {
     code: number;
@@ -21,66 +21,88 @@ export enum LoadStatus {
     OVERDUE = 'overdue',
 }
 
-const simpleLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
-    select: {
-        type: true,
-        name: true,
-        street: true,
-        city: true,
-        state: true,
-        zip: true,
-        country: true,
-        date: true,
-        time: true,
-        longitude: true,
-        latitude: true,
+const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
+    include: {
+        customer: { select: { id: true, name: true } },
+        shipper: {
+            select: {
+                id: true,
+                type: true,
+                name: true,
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
+                country: true,
+                date: true,
+                time: true,
+                longitude: true,
+                latitude: true,
+                stopIndex: true,
+            },
+        },
+        receiver: {
+            select: {
+                id: true,
+                type: true,
+                name: true,
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
+                country: true,
+                date: true,
+                time: true,
+                longitude: true,
+                latitude: true,
+                stopIndex: true,
+            },
+        },
+        stops: {
+            select: {
+                id: true,
+                type: true,
+                name: true,
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
+                country: true,
+                date: true,
+                time: true,
+                longitude: true,
+                latitude: true,
+                stopIndex: true,
+            },
+        },
+        invoice: {
+            select: {
+                id: true,
+                status: true,
+                totalAmount: true,
+                invoicedAt: true,
+                dueDate: true,
+                dueNetDays: true,
+                paidAmount: true,
+                remainingAmount: true,
+                lastPaymentAt: true,
+            },
+        },
+        driver: true,
+        loadDocuments: true,
     },
 });
-export type SimpleLoadStop = Prisma.LoadStopGetPayload<typeof simpleLoadStop>;
-
-const simpleLoad = Prisma.validator<Prisma.LoadArgs>()({
-    select: {
-        customerId: true,
-        refNum: true,
-        rate: true,
-        distance: true,
-    },
-});
-export type SimpleLoad = Prisma.LoadGetPayload<typeof simpleLoad>;
-
-export type ExpandedLoad = SimpleLoad & {
-    id?: number;
-    customer?: Customer;
-    shipper?: SimpleLoadStop;
-    receiver?: SimpleLoadStop;
-    stops?: SimpleLoadStop[];
-    invoice?: ExpandedInvoice;
-    driver?: ExpandedDriver;
-    loadDocuments?: ExpandedLoadDocument[];
-};
+export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>>;
 
 /**
  * Customer
  */
-const simpleCustomer = Prisma.validator<Prisma.CustomerArgs>()({
-    select: {
-        name: true,
-        contactEmail: true,
-        billingEmail: true,
-        paymentStatusEmail: true,
-        street: true,
-        city: true,
-        state: true,
-        zip: true,
-        country: true,
+const expandedCustomer = Prisma.validator<Prisma.CustomerArgs>()({
+    include: {
+        loads: true,
     },
 });
-export type SimpleCustomer = Prisma.CustomerGetPayload<typeof simpleCustomer>;
-
-export type ExpandedCustomer = SimpleCustomer & {
-    id?: number;
-    loads?: ExpandedLoad[];
-};
+export type ExpandedCustomer = Partial<Prisma.CustomerGetPayload<typeof expandedCustomer>>;
 
 /**
  * Invoice
@@ -92,86 +114,50 @@ export enum UIInvoiceStatus {
     PAID = 'paid',
 }
 
-const simpleInvoiceItem = Prisma.validator<Prisma.InvoiceItemArgs>()({
-    select: {
-        title: true,
-        amount: true,
+const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
+    include: {
+        load: {
+            include: {
+                customer: true,
+                shipper: true,
+                receiver: true,
+                stops: true,
+            },
+        },
+        extraItems: {
+            select: {
+                id: true,
+                title: true,
+                amount: true,
+            },
+        },
+        payments: {
+            select: {
+                id: true,
+                amount: true,
+                paidAt: true,
+            },
+        },
     },
 });
-export type SimpleInvoiceItem = Prisma.InvoiceItemGetPayload<typeof simpleInvoiceItem>;
-
-export type ExpandedInvoiceItem = SimpleInvoiceItem & {
-    id?: number;
-};
-
-const simpleInvoicePayment = Prisma.validator<Prisma.InvoicePaymentArgs>()({
-    select: {
-        amount: true,
-        paidAt: true,
-    },
-});
-export type SimpleInvoicePayment = Prisma.InvoicePaymentGetPayload<typeof simpleInvoicePayment>;
-
-export type ExpandedInvoicePayment = SimpleInvoicePayment & {
-    id?: number;
-};
-
-const simpleInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
-    select: {
-        totalAmount: true,
-        invoicedAt: true,
-        dueNetDays: true,
-    },
-});
-export type SimpleInvoice = Prisma.InvoiceGetPayload<typeof simpleInvoice>;
-
-export type ExpandedInvoice = SimpleInvoice & {
-    id?: number;
-    createdAt?: Date;
-    updatedAt?: Date;
-    status?: InvoiceStatus;
-    dueDate?: Date;
-    lastPaymentAt?: Date;
-    remainingAmount?: Prisma.Decimal;
-    paidAmount?: Prisma.Decimal;
-    load?: ExpandedLoad & Record<string, unknown>;
-    extraItems?: ExpandedInvoiceItem[];
-    payments?: ExpandedInvoicePayment[];
-};
+export type ExpandedInvoice = Partial<Prisma.InvoiceGetPayload<typeof expandedInvoice>>;
 
 /**
  * Driver
  */
-const simpleDriver = Prisma.validator<Prisma.DriverArgs>()({
-    select: {
-        name: true,
-        email: true,
-        phone: true,
+const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
+    include: {
+        loads: true,
     },
 });
-export type SimpleDriver = Prisma.DriverGetPayload<typeof simpleDriver>;
-
-export type ExpandedDriver = SimpleDriver & {
-    id?: number;
-    loads?: (ExpandedLoad & Record<string, unknown>)[];
-};
+export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>>;
 
 /**
- * Load Document
+ * LoadDocument
  */
-const simpleLoadDocument = Prisma.validator<Prisma.LoadDocumentArgs>()({
-    select: {
-        fileKey: true,
-        fileUrl: true,
-        fileName: true,
-        fileType: true,
-        fileSize: true,
+const expandedLoadDocument = Prisma.validator<Prisma.LoadDocumentArgs>()({
+    include: {
+        load: true,
     },
 });
-export type SimpleLoadDocument = Prisma.LoadDocumentGetPayload<typeof simpleLoadDocument>;
-
-export type ExpandedLoadDocument = SimpleLoadDocument & {
-    id?: number;
-    createdAt?: Date;
-    load?: ExpandedLoad & Record<string, unknown>;
-};
+export type ExpandedLoadDocument = Partial<Prisma.LoadDocumentGetPayload<typeof expandedLoadDocument>>;

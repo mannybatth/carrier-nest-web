@@ -1,4 +1,4 @@
-import { LoadStopType, Prisma } from '@prisma/client';
+import { LoadStop, LoadStopType, Prisma } from '@prisma/client';
 import { useRouter } from 'next/router';
 import React from 'react';
 import { useForm } from 'react-hook-form';
@@ -7,7 +7,7 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, SimpleLoadStop } from '../../interfaces/models';
+import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
 
@@ -28,7 +28,7 @@ const CreateLoad: PageWithAuth = () => {
             !data.shipper.latitude ||
             !data.receiver.longitude ||
             !data.receiver.latitude ||
-            !data.stops.every((stop: SimpleLoadStop) => stop.longitude && stop.latitude);
+            !data.stops.every((stop: LoadStop) => stop.longitude && stop.latitude);
 
         data.shipper.type = LoadStopType.SHIPPER;
         data.receiver.type = LoadStopType.RECEIVER;
