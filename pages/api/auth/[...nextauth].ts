@@ -32,7 +32,6 @@ const options: NextAuthOptions = {
         }),
     ],
     adapter: PrismaAdapter(prisma),
-    secret: process.env.SECRET,
     callbacks: {
         async session({ session, user, token }: { session: Session; user: any; token: JWT }) {
             if (user && session) {
