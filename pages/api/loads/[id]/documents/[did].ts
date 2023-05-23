@@ -1,5 +1,5 @@
 import { LoadDocument } from '@prisma/client';
-import aws from 'aws-sdk';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -70,18 +70,21 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 export const deleteDocumentFromS3 = async (document: LoadDocument): Promise<void> => {
     return new Promise((resolve, reject) => {
-        const s3 = new aws.S3({
-            accessKeyId: process.env.S3_UPLOAD_KEY,
-            secretAccessKey: process.env.S3_UPLOAD_SECRET,
+        const client = new S3Client({
             region: process.env.S3_UPLOAD_REGION,
+            credentials: {
+                accessKeyId: process.env.S3_UPLOAD_KEY,
+                secretAccessKey: process.env.S3_UPLOAD_SECRET,
+            },
         });
 
-        const params = {
+        const input = {
             Bucket: process.env.S3_UPLOAD_BUCKET,
             Key: document.fileKey,
         };
 
-        s3.deleteObject(params, function (err, data) {
+        const command = new DeleteObjectCommand(input);
+        client.send(command, function (err, data) {
             resolve();
         });
     });
