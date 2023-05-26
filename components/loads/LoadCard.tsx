@@ -16,7 +16,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({ load }) => {
                         <div className="flex-shrink-0 hidden mr-4 md:block">
                             <TruckIcon className="text-gray-400 w-7 h-7" aria-hidden="true" />
                         </div>
-                        <div className="flex-1 mr-3">
+                        <div className="flex-1 hidden mr-3 sm:block">
                             <div className="text-xl font-medium text-gray-900">{load.customer.name}</div>
                             <div className="text-sm font-medium text-gray-500 truncate">Load Ref: # {load.refNum}</div>
                         </div>
