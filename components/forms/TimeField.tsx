@@ -11,6 +11,9 @@ export function isNumber<T>(value: T): boolean {
 }
 
 export function formatTimeItem(value?: string | number): string {
+    if (!value) {
+        return '';
+    }
     return `${value || ''}00`.substring(0, 2);
 }
 
@@ -21,6 +24,10 @@ export function validateTimeAndCursor(
     colon = DEFAULT_COLON,
     cursorPosition = 0,
 ): [string, number] {
+    if (!value) {
+        colon = '';
+    }
+
     const [oldH, oldM, oldS] = defaultValue.split(colon);
 
     let newCursorPosition = Number(cursorPosition);
@@ -177,7 +184,8 @@ export default class TimeField extends React.Component<Props, State> {
                 newPosition = position - 1;
             } else {
                 // user removed a number
-                newValue = `${inputValue.substring(0, position)}0${inputValue.substring(position)}`;
+                newValue =
+                    inputValue !== '' ? `${inputValue.substring(0, position)}0${inputValue.substring(position)}` : '';
             }
         }
 

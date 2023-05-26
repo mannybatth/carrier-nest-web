@@ -50,12 +50,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         console.log('load to update', loadData);
 
-        const updatedLoad = await prisma.load.upsert({
+        const updatedLoad = await prisma.load.update({
             where: {
                 id: Number(req.query.id),
             },
-            create: null,
-            update: {
+            data: {
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
