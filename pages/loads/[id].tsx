@@ -28,7 +28,7 @@ import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
-import * as CurrencyFormat from 'react-currency-format';
+import { formatValue } from 'react-currency-input-field';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -369,14 +369,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <div className="flex justify-between py-3 text-sm font-medium">
                                                     <dt className="text-gray-500">Rate</dt>
                                                     <dd className="text-gray-900">
-                                                        <CurrencyFormat
-                                                            value={load.rate}
-                                                            displayType={'text'}
-                                                            thousandSeparator={true}
-                                                            prefix={'$'}
-                                                            decimalScale={2}
-                                                            fixedDecimalScale={true}
-                                                        />
+                                                        {formatValue({
+                                                            value: load.rate.toString(),
+                                                            groupSeparator: ',',
+                                                            decimalSeparator: '.',
+                                                            prefix: '$',
+                                                            decimalScale: 2,
+                                                        })}
                                                     </dd>
                                                 </div>
                                                 <div>

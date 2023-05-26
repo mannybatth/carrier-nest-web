@@ -5,7 +5,7 @@ import { ExpandedInvoice } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import { invoiceStatus } from '../../lib/invoice/invoice-utils';
 import Table from '../Table';
-import * as CurrencyFormat from 'react-currency-format';
+import { formatValue } from 'react-currency-input-field';
 
 type Props = {
     invoices: ExpandedInvoice[];
@@ -72,14 +72,13 @@ const InvoicesTable: React.FC<Props> = ({
                             ? {
                                   node: (
                                       <div className="text-sm leading-5 text-gray-900">
-                                          <CurrencyFormat
-                                              value={invoice.totalAmount}
-                                              displayType={'text'}
-                                              thousandSeparator={true}
-                                              prefix={'$'}
-                                              decimalScale={2}
-                                              fixedDecimalScale={true}
-                                          />
+                                          {formatValue({
+                                              value: invoice.totalAmount.toString(),
+                                              groupSeparator: ',',
+                                              decimalSeparator: '.',
+                                              prefix: '$',
+                                              decimalScale: 2,
+                                          })}
                                       </div>
                                   ),
                               }

@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
-import * as CurrencyFormat from 'react-currency-format';
 import { ExpandedLoad } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import { loadStatus } from '../../lib/load/load-utils';
 import Table from '../Table';
+import { formatValue } from 'react-currency-input-field';
 
 type Props = {
     loads: ExpandedLoad[];
@@ -130,14 +130,13 @@ export const LoadsTable: React.FC<Props> = ({
                             ? {
                                   node: (
                                       <div className="text-sm leading-5 text-gray-900">
-                                          <CurrencyFormat
-                                              value={load.rate}
-                                              displayType={'text'}
-                                              thousandSeparator={true}
-                                              prefix={'$'}
-                                              decimalScale={2}
-                                              fixedDecimalScale={true}
-                                          />
+                                          {formatValue({
+                                              value: load.rate.toString(),
+                                              groupSeparator: ',',
+                                              decimalSeparator: '.',
+                                              prefix: '$',
+                                              decimalScale: 2,
+                                          })}
                                       </div>
                                   ),
                               }

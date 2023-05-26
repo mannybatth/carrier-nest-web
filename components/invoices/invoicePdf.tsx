@@ -3,10 +3,10 @@ import { Carrier, Customer } from '@prisma/client';
 import { Document, Page, pdf, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { useSession } from 'next-auth/react';
 import React from 'react';
-import * as CurrencyFormat from 'react-currency-format';
 import { ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';
 import { invoiceTermOptions } from '../../lib/invoice/invoice-utils';
 import { getCarrierById } from '../../lib/rest/carrier';
+import { formatValue } from 'react-currency-input-field';
 
 const styles = StyleSheet.create({
     body: {
@@ -23,7 +23,7 @@ type InvoicePDFProps = {
     load: ExpandedLoad;
 };
 
-const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, load }) => (
+export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, load }) => (
     <Document>
         <Page style={styles.body}>
             <View style={{ backgroundColor: '#497BA0', height: 8, marginBottom: 14 }}></View>
@@ -139,14 +139,13 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
                     <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Flat Rate</Text>
                     <Text style={{ flex: 1 }}>Revenue of Load</Text>
                     <Text style={{ flexGrow: 0 }}>
-                        <CurrencyFormat
-                            value={load.rate}
-                            displayType={'text'}
-                            thousandSeparator={true}
-                            prefix={'$'}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                        />
+                        {formatValue({
+                            value: load.rate.toString(),
+                            groupSeparator: ',',
+                            decimalSeparator: '.',
+                            prefix: '$',
+                            decimalScale: 2,
+                        })}
                     </Text>
                 </View>
                 {invoice.extraItems.map((item) => (
@@ -163,14 +162,13 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
                         <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Additional</Text>
                         <Text style={{ flex: 1 }}>{item.title}</Text>
                         <Text style={{ flexGrow: 0 }}>
-                            <CurrencyFormat
-                                value={item.amount}
-                                displayType={'text'}
-                                thousandSeparator={true}
-                                prefix={'$'}
-                                decimalScale={2}
-                                fixedDecimalScale={true}
-                            />
+                            {formatValue({
+                                value: item.amount.toString(),
+                                groupSeparator: ',',
+                                decimalSeparator: '.',
+                                prefix: '$',
+                                decimalScale: 2,
+                            })}
                         </Text>
                     </View>
                 ))}
@@ -193,14 +191,13 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
                             <Text style={{ fontFamily: 'Helvetica-Bold' }}>Zero Rated - Tax</Text>
                         </View>
                         <Text>
-                            <CurrencyFormat
-                                value={invoice.totalAmount}
-                                displayType={'text'}
-                                thousandSeparator={true}
-                                prefix={'$'}
-                                decimalScale={2}
-                                fixedDecimalScale={true}
-                            />
+                            {formatValue({
+                                value: invoice.totalAmount.toString(),
+                                groupSeparator: ',',
+                                decimalSeparator: '.',
+                                prefix: '$',
+                                decimalScale: 2,
+                            })}
                         </Text>
                     </View>
                     <View
@@ -216,14 +213,13 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, loa
                             <Text style={{}}>Total Amount (US$)</Text>
                         </View>
                         <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-                            <CurrencyFormat
-                                value={invoice.totalAmount}
-                                displayType={'text'}
-                                thousandSeparator={true}
-                                prefix={'$'}
-                                decimalScale={2}
-                                fixedDecimalScale={true}
-                            />
+                            {formatValue({
+                                value: invoice.totalAmount.toString(),
+                                groupSeparator: ',',
+                                decimalSeparator: '.',
+                                prefix: '$',
+                                decimalScale: 2,
+                            })}
                         </Text>
                     </View>
                 </View>

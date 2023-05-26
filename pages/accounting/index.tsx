@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import * as CurrencyFormat from 'react-currency-format';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -17,6 +16,7 @@ import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteInvoiceById, getAccountingStats, getInvoicesExpanded } from '../../lib/rest/invoice';
 import { useLocalStorage } from '../../lib/useLocalStorage';
+import { formatValue } from 'react-currency-input-field';
 
 export async function getServerSideProps(context: NextPageContext) {
     return withServerAuth(context, async (context) => {
@@ -189,34 +189,37 @@ const AccountingPage: PageWithAuth<Props> = ({
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Paid This Month</dt>
                                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    <CurrencyFormat
-                                        value={stats.totalPaid}
-                                        displayType={'text'}
-                                        thousandSeparator={true}
-                                        prefix={'$'}
-                                    />
+                                    {formatValue({
+                                        value: stats.totalPaid.toString(),
+                                        groupSeparator: ',',
+                                        decimalSeparator: '.',
+                                        prefix: '$',
+                                        decimalScale: 2,
+                                    })}
                                 </dd>
                             </div>
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Total Unpaid</dt>
                                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    <CurrencyFormat
-                                        value={stats.totalUnpaid}
-                                        displayType={'text'}
-                                        thousandSeparator={true}
-                                        prefix={'$'}
-                                    />
+                                    {formatValue({
+                                        value: stats.totalUnpaid.toString(),
+                                        groupSeparator: ',',
+                                        decimalSeparator: '.',
+                                        prefix: '$',
+                                        decimalScale: 2,
+                                    })}
                                 </dd>
                             </div>
                             <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
                                 <dt className="text-sm font-medium text-gray-500 truncate">Total Overdue</dt>
                                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    <CurrencyFormat
-                                        value={stats.totalOverdue}
-                                        displayType={'text'}
-                                        thousandSeparator={true}
-                                        prefix={'$'}
-                                    />
+                                    {formatValue({
+                                        value: stats.totalOverdue.toString(),
+                                        groupSeparator: ',',
+                                        decimalSeparator: '.',
+                                        prefix: '$',
+                                        decimalScale: 2,
+                                    })}
                                 </dd>
                             </div>
                         </dl>

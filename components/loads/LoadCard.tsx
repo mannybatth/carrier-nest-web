@@ -1,7 +1,7 @@
 import { ArrowRightIcon, TruckIcon } from '@heroicons/react/outline';
 import React from 'react';
-import * as CurrencyFormat from 'react-currency-format';
 import { ExpandedLoad } from '../../interfaces/models';
+import { formatValue } from 'react-currency-input-field';
 
 type LoadCardProps = {
     load: ExpandedLoad;
@@ -50,14 +50,13 @@ export const LoadCard: React.FC<LoadCardProps> = ({ load }) => {
                             </div>
                         </div>
                         <div className="flex-1 text-lg font-medium text-right">
-                            <CurrencyFormat
-                                value={load.rate}
-                                displayType={'text'}
-                                thousandSeparator={true}
-                                prefix={'$'}
-                                decimalScale={2}
-                                fixedDecimalScale={true}
-                            />
+                            {formatValue({
+                                value: load.rate.toString(),
+                                groupSeparator: ',',
+                                decimalSeparator: '.',
+                                prefix: '$',
+                                decimalScale: 2,
+                            })}
                         </div>
                     </dt>
                 </dl>

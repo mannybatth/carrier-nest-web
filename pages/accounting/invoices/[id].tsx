@@ -1,14 +1,13 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
-import { Invoice } from '@prisma/client';
+import { Carrier, Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
-import * as CurrencyFormat from 'react-currency-format';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
-import { downloadInvoice } from '../../../components/invoices/invoicePdf';
+import { InvoicePDF, downloadInvoice } from '../../../components/invoices/invoicePdf';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
@@ -19,6 +18,8 @@ import { ExpandedInvoice } from '../../../interfaces/models';
 import { withServerAuth } from '../../../lib/auth/server-auth';
 import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
+import { getCarrierById } from '../../../lib/rest/carrier';
+import { formatValue } from 'react-currency-input-field';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
@@ -143,6 +144,7 @@ type Props = {
 
 const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
+    const [carrier, setCarrier] = useState<Carrier>();
     const { data: session } = useSession();
 
     const [openAddPayment, setOpenAddPayment] = useState(false);
@@ -150,6 +152,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
 
     useEffect(() => {
         reloadInvoice();
+        loadCarrier();
     }, [invoiceId]);
 
     const reloadInvoice = async () => {
@@ -159,6 +162,11 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
 
     const addPayment = () => {
         setOpenAddPayment(true);
+    };
+
+    const loadCarrier = async () => {
+        const carrier = await getCarrierById(session.user.carrierId);
+        setCarrier(carrier);
     };
 
     const onNewPaymentCreate = (invoice: Invoice) => {
@@ -361,14 +369,13 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                             Revenue of Load
                                         </td>
                                         <td className="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
-                                            <CurrencyFormat
-                                                value={invoice.load.rate}
-                                                displayType={'text'}
-                                                thousandSeparator={true}
-                                                prefix={'$'}
-                                                decimalScale={2}
-                                                fixedDecimalScale={true}
-                                            />
+                                            {formatValue({
+                                                value: invoice.load.rate.toString(),
+                                                groupSeparator: ',',
+                                                decimalSeparator: '.',
+                                                prefix: '$',
+                                                decimalScale: 2,
+                                            })}
                                         </td>
                                     </tr>
                                     {invoice.extraItems?.map((item, index) => (
@@ -380,14 +387,13 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                                 {item.title}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
-                                                <CurrencyFormat
-                                                    value={item.amount}
-                                                    displayType={'text'}
-                                                    thousandSeparator={true}
-                                                    prefix={'$'}
-                                                    decimalScale={2}
-                                                    fixedDecimalScale={true}
-                                                />
+                                                {formatValue({
+                                                    value: item.amount.toString(),
+                                                    groupSeparator: ',',
+                                                    decimalSeparator: '.',
+                                                    prefix: '$',
+                                                    decimalScale: 2,
+                                                })}
                                             </td>
                                         </tr>
                                     ))}
@@ -399,14 +405,13 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                 <div className="flex justify-between mb-4">
                                     <div className="font-medium">Total Amount</div>
                                     <div>
-                                        <CurrencyFormat
-                                            value={invoice.totalAmount}
-                                            displayType={'text'}
-                                            thousandSeparator={true}
-                                            prefix={'$'}
-                                            decimalScale={2}
-                                            fixedDecimalScale={true}
-                                        />
+                                        {formatValue({
+                                            value: invoice.totalAmount.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -512,6 +517,14 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                         <InvoiceDetailsSkeleton></InvoiceDetailsSkeleton>
                     )}
                 </div>
+                {invoice ? (
+                    <InvoicePDF
+                        carrier={carrier}
+                        invoice={invoice}
+                        customer={invoice.load.customer}
+                        load={invoice.load}
+                    />
+                ) : null}
             </div>
         </Layout>
     );
