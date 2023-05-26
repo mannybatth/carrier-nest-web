@@ -33,12 +33,22 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                     <Text style={{ color: '#497B9F', marginBottom: 6, fontSize: 14, fontFamily: 'Helvetica-Bold' }}>
                         {carrier.name}
                     </Text>
-                    <Text style={{ fontSize: 10, marginBottom: 2, textTransform: 'uppercase' }}>{carrier.street}</Text>
-                    <Text style={{ fontSize: 10, marginBottom: 2, textTransform: 'uppercase' }}>
-                        {carrier.city}, {carrier.state} {carrier.zip}
-                    </Text>
-                    <Text style={{ fontSize: 10, marginBottom: 2 }}>Phone: {carrier.phone}</Text>
-                    <Text style={{ fontSize: 10 }}>{carrier.email}</Text>
+                    {carrier.street ? (
+                        <Text style={{ fontSize: 10, marginBottom: 2, textTransform: 'uppercase' }}>
+                            {carrier.street}
+                        </Text>
+                    ) : null}
+                    {carrier.city || carrier.state || carrier.zip ? (
+                        <Text style={{ fontSize: 10, marginBottom: 2, textTransform: 'uppercase' }}>
+                            {carrier.city ? carrier.city + ', ' : null}
+                            {carrier.state ? carrier.state + ' ' : null}
+                            {carrier.zip}
+                        </Text>
+                    ) : null}
+                    {carrier.phone ? (
+                        <Text style={{ fontSize: 10, marginBottom: 2 }}>Phone: {carrier.phone}</Text>
+                    ) : null}
+                    {carrier.email ? <Text style={{ fontSize: 10 }}>{carrier.email}</Text> : null}
                 </View>
                 <View>
                     <Text style={{ fontSize: 18 }}>INVOICE # {invoice.id}</Text>
@@ -60,9 +70,13 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                         {customer.name}
                     </Text>
                     <Text style={{ fontSize: 10, marginBottom: 2, textTransform: 'uppercase' }}>{customer.street}</Text>
-                    <Text style={{ fontSize: 10, textTransform: 'uppercase' }}>
-                        {customer.city}, {customer.state} {customer.zip}
-                    </Text>
+                    {customer.city || customer.state || customer.zip ? (
+                        <Text style={{ fontSize: 10, textTransform: 'uppercase' }}>
+                            {customer.city ? customer.city + ', ' : null}
+                            {customer.state ? customer.state + ' ' : null}
+                            {customer.zip}
+                        </Text>
+                    ) : null}
                 </View>
                 <View style={{ flex: 0.7 }}>
                     <View
@@ -109,6 +123,95 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                             {invoiceTermOptions.find((option) => option.value === invoice.dueNetDays)?.label}
                         </Text>
                     </View>
+                </View>
+            </View>
+
+            <Text style={{ marginTop: 20, fontSize: 13 }}>Stop Details</Text>
+
+            <View style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
+                <View
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        backgroundColor: '#497BA0',
+                        padding: 10,
+                        color: 'white',
+                        fontSize: 10,
+                    }}
+                >
+                    <Text style={{ flexGrow: 0, width: 50 }}>Stop #</Text>
+                    <Text style={{ flexGrow: 0, width: 80 }}>Date</Text>
+                    <Text style={{ flexGrow: 0, width: 60 }}>Action</Text>
+                    <Text style={{ flex: 1 }}>Location</Text>
+                </View>
+                <View
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        padding: 10,
+                        borderBottom: '1px solid #D1D1D1',
+                        fontSize: 10,
+                    }}
+                >
+                    <Text style={{ flexGrow: 0, width: 50 }}>1</Text>
+                    <Text style={{ flexGrow: 0, width: 80 }}>
+                        {new Intl.DateTimeFormat('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                        }).format(new Date(load.shipper.date))}
+                    </Text>
+                    <Text style={{ flexGrow: 0, width: 60 }}>Pick Up</Text>
+                    <Text style={{ flex: 1 }}>
+                        {load.shipper.street} {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
+                    </Text>
+                </View>
+                {load.stops.map((stop, index) => (
+                    <View
+                        key={index}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            padding: 10,
+                            borderBottom: '1px solid #D1D1D1',
+                            fontSize: 10,
+                        }}
+                    >
+                        <Text style={{ flexGrow: 0, width: 50 }}>{index + 2}</Text>
+                        <Text style={{ flexGrow: 0, width: 80 }}>
+                            {new Intl.DateTimeFormat('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: '2-digit',
+                            }).format(new Date(stop.date))}
+                        </Text>
+                        <Text style={{ flexGrow: 0, width: 60 }}>Stop #{index + 1}</Text>
+                        <Text style={{ flex: 1 }}>
+                            {stop.street} {stop.city}, {stop.state} {stop.zip}
+                        </Text>
+                    </View>
+                ))}
+                <View
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        padding: 10,
+                        borderBottom: '1px solid #D1D1D1',
+                        fontSize: 10,
+                    }}
+                >
+                    <Text style={{ flexGrow: 0, width: 50 }}>{load.stops.length + 2}</Text>
+                    <Text style={{ flexGrow: 0, width: 80 }}>
+                        {new Intl.DateTimeFormat('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                        }).format(new Date(load.receiver.date))}
+                    </Text>
+                    <Text style={{ flexGrow: 0, width: 60 }}>Drop Off</Text>
+                    <Text style={{ flex: 1 }}>
+                        {load.receiver.street} {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
+                    </Text>
                 </View>
             </View>
 
@@ -222,95 +325,6 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                             })}
                         </Text>
                     </View>
-                </View>
-            </View>
-
-            <Text style={{ marginTop: 20, fontSize: 13 }}>Stop Details</Text>
-
-            <View style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
-                <View
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        backgroundColor: '#497BA0',
-                        padding: 10,
-                        color: 'white',
-                        fontSize: 10,
-                    }}
-                >
-                    <Text style={{ flexGrow: 0, width: 50 }}>Stop #</Text>
-                    <Text style={{ flexGrow: 0, width: 80 }}>Date</Text>
-                    <Text style={{ flexGrow: 0, width: 60 }}>Action</Text>
-                    <Text style={{ flex: 1 }}>Location</Text>
-                </View>
-                <View
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        padding: 10,
-                        borderBottom: '1px solid #D1D1D1',
-                        fontSize: 10,
-                    }}
-                >
-                    <Text style={{ flexGrow: 0, width: 50 }}>1</Text>
-                    <Text style={{ flexGrow: 0, width: 80 }}>
-                        {new Intl.DateTimeFormat('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                        }).format(new Date(load.shipper.date))}
-                    </Text>
-                    <Text style={{ flexGrow: 0, width: 60 }}>Pick Up</Text>
-                    <Text style={{ flex: 1 }}>
-                        {load.shipper.street} {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
-                    </Text>
-                </View>
-                {load.stops.map((stop, index) => (
-                    <View
-                        key={index}
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            padding: 10,
-                            borderBottom: '1px solid #D1D1D1',
-                            fontSize: 10,
-                        }}
-                    >
-                        <Text style={{ flexGrow: 0, width: 50 }}>{index + 2}</Text>
-                        <Text style={{ flexGrow: 0, width: 80 }}>
-                            {new Intl.DateTimeFormat('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: '2-digit',
-                            }).format(new Date(stop.date))}
-                        </Text>
-                        <Text style={{ flexGrow: 0, width: 60 }}>Stop #{index + 1}</Text>
-                        <Text style={{ flex: 1 }}>
-                            {stop.street} {stop.city}, {stop.state} {stop.zip}
-                        </Text>
-                    </View>
-                ))}
-                <View
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        padding: 10,
-                        borderBottom: '1px solid #D1D1D1',
-                        fontSize: 10,
-                    }}
-                >
-                    <Text style={{ flexGrow: 0, width: 50 }}>{load.stops.length + 2}</Text>
-                    <Text style={{ flexGrow: 0, width: 80 }}>
-                        {new Intl.DateTimeFormat('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                        }).format(new Date(load.receiver.date))}
-                    </Text>
-                    <Text style={{ flexGrow: 0, width: 60 }}>Drop Off</Text>
-                    <Text style={{ flex: 1 }}>
-                        {load.receiver.street} {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
-                    </Text>
                 </View>
             </View>
         </Page>
