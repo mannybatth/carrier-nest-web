@@ -67,7 +67,7 @@ const SideBarSearch: React.FC = () => {
                 </a>
             </div>
             <Transition.Root show={open} as={Fragment} afterLeave={afterLeave}>
-                <Dialog as="div" className="fixed inset-0 p-4 overflow-y-auto sm:p-6 md:p-20" onClose={setOpen}>
+                <Dialog as="div" className="fixed inset-0 z-50 p-4 overflow-y-auto sm:p-6 md:p-20" onClose={setOpen}>
                     <Transition.Child
                         as={Fragment}
                         enter="ease-out duration-300"
