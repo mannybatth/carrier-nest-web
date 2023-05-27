@@ -144,7 +144,6 @@ type Props = {
 
 const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
-    const [carrier, setCarrier] = useState<Carrier>();
     const { data: session } = useSession();
 
     const [openAddPayment, setOpenAddPayment] = useState(false);
@@ -152,7 +151,6 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
 
     useEffect(() => {
         reloadInvoice();
-        loadCarrier();
     }, [invoiceId]);
 
     const reloadInvoice = async () => {
@@ -162,11 +160,6 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
 
     const addPayment = () => {
         setOpenAddPayment(true);
-    };
-
-    const loadCarrier = async () => {
-        const carrier = await getCarrierById(session.user.carrierId);
-        setCarrier(carrier);
     };
 
     const onNewPaymentCreate = (invoice: Invoice) => {
@@ -292,7 +285,10 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                                 <div>{invoice.load.customer.name}</div>
                                                 <div>{invoice.load.customer.street}</div>
                                                 <div>
-                                                    {invoice.load.customer.city}, {invoice.load.customer.state}{' '}
+                                                    {invoice.load.customer.city
+                                                        ? invoice.load.customer.city + ', '
+                                                        : null}
+                                                    {invoice.load.customer.state ? invoice.load.customer.state : ' '}
                                                     {invoice.load.customer.zip}
                                                 </div>
                                             </dd>
@@ -517,14 +513,6 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                         <InvoiceDetailsSkeleton></InvoiceDetailsSkeleton>
                     )}
                 </div>
-                {invoice ? (
-                    <InvoicePDF
-                        carrier={carrier}
-                        invoice={invoice}
-                        customer={invoice.load.customer}
-                        load={invoice.load}
-                    />
-                ) : null}
             </div>
         </Layout>
     );

@@ -251,30 +251,32 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                         })}
                     </Text>
                 </View>
-                {invoice.extraItems.map((item) => (
-                    <View
-                        key={item.id}
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            padding: 10,
-                            borderBottom: '1px solid #D1D1D1',
-                            fontSize: 10,
-                        }}
-                    >
-                        <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Additional</Text>
-                        <Text style={{ flex: 1 }}>{item.title}</Text>
-                        <Text style={{ flexGrow: 0 }}>
-                            {formatValue({
-                                value: item.amount.toString(),
-                                groupSeparator: ',',
-                                decimalSeparator: '.',
-                                prefix: '$',
-                                decimalScale: 2,
-                            })}
-                        </Text>
-                    </View>
-                ))}
+                {invoice.extraItems && invoice.extraItems.length > 0
+                    ? invoice.extraItems.map((item) => (
+                          <View
+                              key={item.id}
+                              style={{
+                                  display: 'flex',
+                                  flexDirection: 'row',
+                                  padding: 10,
+                                  borderBottom: '1px solid #D1D1D1',
+                                  fontSize: 10,
+                              }}
+                          >
+                              <Text style={{ flexGrow: 0, width: 90, fontFamily: 'Helvetica-Bold' }}>Additional</Text>
+                              <Text style={{ flex: 1 }}>{item.title}</Text>
+                              <Text style={{ flexGrow: 0 }}>
+                                  {formatValue({
+                                      value: item.amount.toString(),
+                                      groupSeparator: ',',
+                                      decimalSeparator: '.',
+                                      prefix: '$',
+                                      decimalScale: 2,
+                                  })}
+                              </Text>
+                          </View>
+                      ))
+                    : null}
             </View>
 
             <View style={{ display: 'flex', flexDirection: 'row', fontSize: 11, marginTop: 4 }}>

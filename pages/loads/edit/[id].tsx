@@ -100,21 +100,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             stops: data.stops,
         };
 
-        // Remove ids from loadData
-        if ((loadData.shipper as any)?.id) {
-            delete (loadData.shipper as any)?.id;
-        }
-        if ((loadData.receiver as any)?.id) {
-            delete (loadData.receiver as any)?.id;
-        }
-        if (loadData.stops && loadData.stops.length) {
-            loadData.stops.forEach((stop: LoadStop) => {
-                if ((stop as any)?.id) {
-                    delete (stop as any)?.id;
-                }
-            });
-        }
-
         if (needsConfirmation) {
             setDataToSave(loadData);
             setShowConfirmation(true);

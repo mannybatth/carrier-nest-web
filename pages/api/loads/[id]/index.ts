@@ -50,6 +50,94 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         console.log('load to update', loadData);
 
+        const loadShipper = await prisma.loadStop.upsert({
+            where: {
+                id: loadData.shipper.id,
+            },
+            create: {
+                type: loadData.shipper.type,
+                name: loadData.shipper.name,
+                street: loadData.shipper.street || '',
+                city: loadData.shipper.city || '',
+                state: loadData.shipper.state || '',
+                zip: loadData.shipper.zip || '',
+                country: loadData.shipper.country || '',
+                date: loadData.shipper.date || '',
+                time: loadData.shipper.time || '',
+                longitude: loadData.shipper.longitude || 0,
+                latitude: loadData.shipper.latitude || 0,
+                stopIndex: loadData.shipper.stopIndex || 0,
+                user: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+            update: {
+                type: loadData.shipper.type,
+                name: loadData.shipper.name,
+                street: loadData.shipper.street || '',
+                city: loadData.shipper.city || '',
+                state: loadData.shipper.state || '',
+                zip: loadData.shipper.zip || '',
+                country: loadData.shipper.country || '',
+                date: loadData.shipper.date || '',
+                time: loadData.shipper.time || '',
+                longitude: loadData.shipper.longitude || 0,
+                latitude: loadData.shipper.latitude || 0,
+                stopIndex: loadData.shipper.stopIndex || 0,
+                user: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+        });
+
+        const loadReceiver = await prisma.loadStop.upsert({
+            where: {
+                id: loadData.receiver.id,
+            },
+            create: {
+                type: loadData.receiver.type,
+                name: loadData.receiver.name,
+                street: loadData.receiver.street || '',
+                city: loadData.receiver.city || '',
+                state: loadData.receiver.state || '',
+                zip: loadData.receiver.zip || '',
+                country: loadData.receiver.country || '',
+                date: loadData.receiver.date || '',
+                time: loadData.receiver.time || '',
+                longitude: loadData.receiver.longitude || 0,
+                latitude: loadData.receiver.latitude || 0,
+                stopIndex: loadData.receiver.stopIndex || 0,
+                user: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+            update: {
+                type: loadData.receiver.type,
+                name: loadData.receiver.name,
+                street: loadData.receiver.street || '',
+                city: loadData.receiver.city || '',
+                state: loadData.receiver.state || '',
+                zip: loadData.receiver.zip || '',
+                country: loadData.receiver.country || '',
+                date: loadData.receiver.date || '',
+                time: loadData.receiver.time || '',
+                longitude: loadData.receiver.longitude || 0,
+                latitude: loadData.receiver.latitude || 0,
+                stopIndex: loadData.receiver.stopIndex || 0,
+                user: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+        });
+
         const updatedLoad = await prisma.load.update({
             where: {
                 id: Number(req.query.id),
@@ -69,93 +157,30 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                 },
                 shipper: {
-                    upsert: {
-                        create: {
-                            type: loadData.shipper.type,
-                            name: loadData.shipper.name,
-                            street: loadData.shipper.street || '',
-                            city: loadData.shipper.city || '',
-                            state: loadData.shipper.state || '',
-                            zip: loadData.shipper.zip || '',
-                            country: loadData.shipper.country || '',
-                            date: loadData.shipper.date || '',
-                            time: loadData.shipper.time || '',
-                            longitude: loadData.shipper.longitude || 0,
-                            latitude: loadData.shipper.latitude || 0,
-                            stopIndex: loadData.shipper.stopIndex || 0,
-                            user: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
-                        update: {
-                            type: loadData.shipper.type,
-                            name: loadData.shipper.name,
-                            street: loadData.shipper.street || '',
-                            city: loadData.shipper.city || '',
-                            state: loadData.shipper.state || '',
-                            zip: loadData.shipper.zip || '',
-                            country: loadData.shipper.country || '',
-                            date: loadData.shipper.date || '',
-                            time: loadData.shipper.time || '',
-                            longitude: loadData.shipper.longitude || 0,
-                            latitude: loadData.shipper.latitude || 0,
-                            stopIndex: loadData.shipper.stopIndex || 0,
-                            user: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
+                    connect: {
+                        id: loadShipper.id,
                     },
                 },
                 receiver: {
-                    upsert: {
-                        create: {
-                            type: loadData.receiver.type,
-                            name: loadData.receiver.name,
-                            street: loadData.receiver.street || '',
-                            city: loadData.receiver.city || '',
-                            state: loadData.receiver.state || '',
-                            zip: loadData.receiver.zip || '',
-                            country: loadData.receiver.country || '',
-                            date: loadData.receiver.date || '',
-                            time: loadData.receiver.time || '',
-                            longitude: loadData.receiver.longitude || 0,
-                            latitude: loadData.receiver.latitude || 0,
-                            stopIndex: loadData.receiver.stopIndex || 0,
-                            user: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
-                        update: {
-                            type: loadData.receiver.type,
-                            name: loadData.receiver.name,
-                            street: loadData.receiver.street || '',
-                            city: loadData.receiver.city || '',
-                            state: loadData.receiver.state || '',
-                            zip: loadData.receiver.zip || '',
-                            country: loadData.receiver.country || '',
-                            date: loadData.receiver.date || '',
-                            time: loadData.receiver.time || '',
-                            longitude: loadData.receiver.longitude || 0,
-                            latitude: loadData.receiver.latitude || 0,
-                            stopIndex: loadData.receiver.stopIndex || 0,
-                            user: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
+                    connect: {
+                        id: loadReceiver.id,
                     },
                 },
                 stops: {
                     deleteMany: {},
                     create: loadData.stops.map((stop) => ({
-                        ...stop,
+                        type: stop.type,
+                        name: stop.name,
+                        street: stop.street || '',
+                        city: stop.city || '',
+                        state: stop.state || '',
+                        zip: stop.zip || '',
+                        country: stop.country || '',
+                        date: stop.date || '',
+                        time: stop.time || '',
+                        longitude: stop.longitude || 0,
+                        latitude: stop.latitude || 0,
+                        stopIndex: stop.stopIndex || 0,
                         user: {
                             connect: {
                                 id: session.user.id,
