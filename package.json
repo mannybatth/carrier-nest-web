@@ -26,6 +26,7 @@
         "@turf/distance": "^6.5.0",
         "@zip.js/zip.js": "^2.4.12",
         "classnames": "^2.3.1",
+        "date-fns": "^2.30.0",
         "iconv-lite": "^0.6.3",
         "iso-3166-2": "^1.0.0",
         "next": "^12.1.4",

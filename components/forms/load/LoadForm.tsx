@@ -224,7 +224,7 @@ const LoadForm: React.FC<Props> = ({
 
                     {stopFields.map((field, i) => (
                         <LoadFormStop
-                            key={i}
+                            key={field.id}
                             {...{ register, errors, control, setValue, getValues, watch }}
                             type={LoadStopType.STOP}
                             totalStops={stopFields.length}
@@ -251,7 +251,7 @@ const LoadForm: React.FC<Props> = ({
                                             city: '',
                                             state: '',
                                             zip: '',
-                                            country: '',
+                                            country: 'US',
                                             date: new Date(),
                                             time: '',
                                             longitude: null,

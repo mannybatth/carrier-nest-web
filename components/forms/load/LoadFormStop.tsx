@@ -2,25 +2,28 @@ import { Combobox } from '@headlessui/react';
 import { CalendarIcon, CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
+import dateFnsFormat from 'date-fns/format';
+import dateFnsParse from 'date-fns/parse';
+import * as iso3166 from 'iso-3166-2';
 import React, { useEffect, useState } from 'react';
+import { DateUtils } from 'react-day-picker';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import {
     Control,
     Controller,
     FieldErrors,
+    UseFormGetValues,
     UseFormRegister,
     UseFormSetValue,
-    UseFormGetValues,
     UseFormWatch,
 } from 'react-hook-form';
 import { countryCodes } from '../../../interfaces/country-codes';
+import { LocationEntry } from '../../../interfaces/location';
 import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
-import * as iso3166 from 'iso-3166-2';
-import { LocationEntry } from '../../../interfaces/location';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -175,8 +178,6 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
     const validateLocationCoordinatesWithForm = () => {
         if (!selectedLocation) {
-            setValue(fieldId('longitude'), null);
-            setValue(fieldId('latitude'), null);
             return;
         }
 
@@ -238,6 +239,19 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
         }
     };
 
+    const DATE_FORMAT = 'MM-dd-yyyy';
+    const parseDate = (str, format, locale) => {
+        const parsed = dateFnsParse(str, format, new Date(), { locale });
+        if (DateUtils.isDate(parsed)) {
+            return parsed;
+        }
+        return undefined;
+    };
+
+    const formatDate = (date, format, locale) => {
+        return dateFnsFormat(date, format, { locale });
+    };
+
     return (
         <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
             {index !== undefined && (
@@ -294,7 +308,15 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     <DayPickerInput
                                         onDayChange={onChange}
                                         value={value}
-                                        inputProps={{ type: 'text', id: fieldId('date'), autoComplete: 'date' }}
+                                        formatDate={formatDate}
+                                        format={DATE_FORMAT}
+                                        parseDate={parseDate}
+                                        placeholder={`${dateFnsFormat(new Date(), DATE_FORMAT)}`}
+                                        inputProps={{
+                                            type: 'text',
+                                            id: fieldId('date'),
+                                            autoComplete: 'date',
+                                        }}
                                     />
                                     <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
                                         <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
@@ -507,16 +529,14 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         rules={{ required: 'Country is required' }}
                         name={fieldId('country')}
                         defaultValue="US"
-                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        render={({ field, fieldState: { error } }) => (
                             <>
                                 <label htmlFor={fieldId('country')} className="block text-sm font-medium text-gray-700">
                                     Country
                                 </label>
                                 <select
-                                    id={fieldId('country')}
+                                    {...field}
                                     className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={value}
-                                    onChange={onChange}
                                 >
                                     {countryCodes.map((countryCode) => (
                                         <option key={countryCode.code} value={countryCode.code}>
