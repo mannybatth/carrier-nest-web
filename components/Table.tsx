@@ -135,7 +135,10 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, loading, empty
                                         <td className="px-6 py-2 text-right whitespace-no-wrap">
                                             <Menu as="div" className="z-10 inline-block text-left">
                                                 <div>
-                                                    <Menu.Button className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                    <Menu.Button
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
                                                         <span className="sr-only">Open options</span>
                                                         <DotsVerticalIcon className="w-6 h-6" aria-hidden="true" />
                                                     </Menu.Button>
