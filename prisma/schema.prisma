@@ -6,47 +6,47 @@ generator client {
 datasource db {
     provider          = "postgresql"
     url               = env("POSTGRES_PRISMA_URL")
-    directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
-    shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
+    directUrl         = env("POSTGRES_URL_NON_POOLING")
+    shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model Account {
-    id                Int     @id @default(autoincrement())
-    type              String
-    provider          String
-    providerAccountId String
-    refreshToken      String? @map("refresh_token")
-    accessToken       String? @map("access_token")
-    expiresAt         Int?    @map("expires_at")
-    tokenType         String? @map("token_type")
-    scope             String?
-    idToken           String?
-    sessionState      String? @map("session_state")
-    oauthTokenSecret  String? @map("oauth_token_secret")
-    oauthToken        String? @map("oauth_token")
-    userId            Int
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id                 String  @id @default(cuid())
+    userId             String  @map("user_id")
+    type               String
+    provider           String
+    providerAccountId  String  @map("provider_account_id")
+    refresh_token      String?
+    access_token       String?
+    expires_at         Int?
+    token_type         String?
+    scope              String?
+    id_token           String?
+    session_state      String?
+    oauth_token_secret String?
+    oauth_token        String?
+    user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
 }
 
 model Session {
-    id           Int      @id @default(autoincrement())
-    sessionToken String   @unique
-    userId       Int
+    id           String   @id @default(cuid())
+    sessionToken String   @unique @map("session_token")
+    userId       String   @map("user_id")
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-    id             Int              @id @default(autoincrement())
+    id             String           @id @default(cuid())
     createdAt      DateTime         @default(now())
     updatedAt      DateTime         @updatedAt
     name           String?
     email          String?          @unique
     emailVerified  DateTime?
     image          String?
-    carrierId      Int?
+    carrierId      String?
     isSiteAdmin    Boolean          @default(false)
     accounts       Account[]
     invoices       Invoice[]
@@ -70,7 +70,7 @@ model VerificationToken {
 }
 
 model Carrier {
-    id        Int        @id @default(autoincrement())
+    id        String     @id @default(cuid())
     createdAt DateTime   @default(now())
     updatedAt DateTime   @updatedAt
     email     String     @unique
@@ -93,16 +93,16 @@ model Carrier {
 }
 
 model Load {
-    id            Int            @id @default(autoincrement())
-    userId        Int
-    customerId    Int?
-    carrierId     Int
-    driverId      Int?
+    id            String         @id @default(cuid())
+    userId        String
+    customerId    String?
+    carrierId     String
+    driverId      String?
     createdAt     DateTime       @default(now())
     updatedAt     DateTime       @updatedAt
     refNum        String
-    shipperId     Int
-    receiverId    Int
+    shipperId     String
+    receiverId    String
     rate          Decimal
     distance      Int
     invoice       Invoice?
@@ -119,8 +119,8 @@ model Load {
 }
 
 model LoadStop {
-    id              Int          @id @default(autoincrement())
-    userId          Int
+    id              String       @id @default(cuid())
+    userId          String
     type            LoadStopType
     name            String
     street          String
@@ -132,7 +132,7 @@ model LoadStop {
     time            String
     longitude       Float?
     latitude        Float?
-    loadIdAsStop    Int?
+    loadIdAsStop    String?
     stopIndex       Int          @default(0)
     loadsAsReceiver Load[]       @relation("receiver")
     loadsAsShipper  Load[]       @relation("shipper")
@@ -141,7 +141,7 @@ model LoadStop {
 }
 
 model Customer {
-    id                 Int      @id @default(autoincrement())
+    id                 String   @id @default(cuid())
     createdAt          DateTime @default(now())
     updatedAt          DateTime @updatedAt
     name               String
@@ -153,7 +153,7 @@ model Customer {
     state              String?
     zip                String?
     country            String?
-    carrierId          Int
+    carrierId          String
     carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loads              Load[]
 
@@ -161,13 +161,13 @@ model Customer {
 }
 
 model Driver {
-    id        Int      @id @default(autoincrement())
+    id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     name      String
     email     String?
     phone     String?
-    carrierId Int
+    carrierId String
     carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loads     Load[]
 
@@ -175,10 +175,10 @@ model Driver {
 }
 
 model Invoice {
-    id              Int              @id @default(autoincrement())
-    userId          Int
-    carrierId       Int
-    loadId          Int              @unique
+    id              String           @id @default(cuid())
+    userId          String
+    carrierId       String
+    loadId          String              @unique
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
     status          InvoiceStatus
@@ -199,17 +199,17 @@ model Invoice {
 }
 
 model InvoiceItem {
-    id        Int     @id @default(autoincrement())
-    invoiceId Int
+    id        String  @id @default(cuid())
+    invoiceId String
     title     String
     amount    Decimal
     invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoicePayment {
-    id        Int      @id @default(autoincrement())
-    userId    Int
-    invoiceId Int
+    id        String   @id @default(cuid())
+    userId    String
+    invoiceId String
     amount    Decimal
     paidAt    DateTime
     invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -217,9 +217,9 @@ model InvoicePayment {
 }
 
 model LoadDocument {
-    id        Int      @id @default(autoincrement())
-    userId    Int
-    loadId    Int
+    id        String   @id @default(cuid())
+    userId    String
+    loadId    String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     fileKey   String

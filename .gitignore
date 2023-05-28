@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .DS_STORE
+.env
 .env*.local
 training-files/dataset/
 training-files/dataset-final/
