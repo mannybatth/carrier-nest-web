@@ -44,7 +44,8 @@ model User {
     email            String?          @unique
     emailVerified    DateTime?
     image            String?
-    defaultCarrierId String?
+    defaultCarrierId String?          @map("default_carrier_id")
+    defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
     isSiteAdmin      Boolean          @default(false)
     accounts         Account[]
     invoices         Invoice[]
@@ -53,7 +54,7 @@ model User {
     loadDocuments    LoadDocument[]
     stops            LoadStop[]
     sessions         Session[]
-    carrier          Carrier[]
+    carriers         Carrier[]
 
     @@index([name, email, defaultCarrierId])
 }
@@ -68,24 +69,25 @@ model VerificationToken {
 }
 
 model Carrier {
-    id        String     @id @default(cuid())
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
-    email     String     @unique
-    name      String
-    dotNum    String?
-    mcNum     String?
-    street    String
-    city      String
-    state     String
-    zip       String
-    country   String
-    phone     String?
-    customers Customer[]
-    drivers   Driver[]
-    invoices  Invoice[]
-    loads     Load[]
-    users     User[]
+    id                  String     @id @default(cuid())
+    createdAt           DateTime   @default(now())
+    updatedAt           DateTime   @updatedAt
+    email               String     @unique
+    name                String
+    dotNum              String?
+    mcNum               String?
+    street              String
+    city                String
+    state               String
+    zip                 String
+    country             String
+    phone               String?
+    customers           Customer[]
+    drivers             Driver[]
+    invoices            Invoice[]
+    loads               Load[]
+    users               User[]
+    defaultCarrierUsers User[]     @relation("defaultCarrier")
 
     @@index([name, email])
 }
