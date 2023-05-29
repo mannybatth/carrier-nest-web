@@ -81,7 +81,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 payments: {
                     create: [
                         {
-                            ...paymentData,
+                            amount: paymentData.amount,
+                            paidAt: paymentData.paidAt,
                             user: {
                                 connect: {
                                     id: session.user.id,

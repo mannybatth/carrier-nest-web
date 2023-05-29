@@ -89,7 +89,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 extraItems: {
                     deleteMany: {},
                     create: invoiceData.extraItems.map((extraItem) => ({
-                        ...extraItem,
+                        title: extraItem.title,
+                        amount: extraItem.amount,
                     })),
                 },
             },
