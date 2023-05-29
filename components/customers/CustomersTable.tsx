@@ -10,7 +10,7 @@ type Props = {
     sort: Sort;
     loading: boolean;
     changeSort: (sort: Sort) => void;
-    deleteCustomer: (id: number) => void;
+    deleteCustomer: (id: string) => void;
 };
 
 const CustomersTable: React.FC<Props> = ({ customers, sort, loading, changeSort, deleteCustomer }) => {

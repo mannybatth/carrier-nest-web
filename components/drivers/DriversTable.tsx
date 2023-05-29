@@ -10,7 +10,7 @@ type Props = {
     sort: Sort;
     loading: boolean;
     changeSort: (sort: Sort) => void;
-    deleteDriver: (id: number) => void;
+    deleteDriver: (id: string) => void;
 };
 
 const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, deleteDriver }) => {

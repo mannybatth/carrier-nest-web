@@ -12,8 +12,8 @@ export const getLoadsExpanded = async ({
     currentOnly,
 }: {
     sort?: Sort;
-    customerId?: number;
-    driverId?: number;
+    customerId?: string;
+    driverId?: string;
     limit?: number;
     offset?: number;
     currentOnly?: boolean;
@@ -53,7 +53,7 @@ export const getLoadsExpanded = async ({
     return data;
 };
 
-export const getLoadById = async (id: number): Promise<ExpandedLoad> => {
+export const getLoadById = async (id: string): Promise<ExpandedLoad> => {
     const params = new URLSearchParams({
         expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
     });
@@ -82,7 +82,7 @@ export const createLoad = async (load: ExpandedLoad) => {
     return data.load;
 };
 
-export const updateLoad = async (id: number, load: Partial<Load>) => {
+export const updateLoad = async (id: string, load: Partial<Load>) => {
     const response = await fetch(apiUrl + '/loads/' + id, {
         method: 'PUT',
         headers: {
@@ -98,7 +98,7 @@ export const updateLoad = async (id: number, load: Partial<Load>) => {
     return data.updatedLoad;
 };
 
-export const deleteLoadById = async (id: number) => {
+export const deleteLoadById = async (id: string) => {
     const response = await fetch(apiUrl + '/loads/' + id, {
         method: 'DELETE',
     });
@@ -110,7 +110,7 @@ export const deleteLoadById = async (id: number) => {
     return data.result;
 };
 
-export const addLoadDocumentToLoad = async (loadId: number, loadDocument: Partial<LoadDocument>) => {
+export const addLoadDocumentToLoad = async (loadId: string, loadDocument: Partial<LoadDocument>) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/documents', {
         method: 'POST',
         headers: {
@@ -126,7 +126,7 @@ export const addLoadDocumentToLoad = async (loadId: number, loadDocument: Partia
     return data.loadDocument;
 };
 
-export const deleteLoadDocumentFromLoad = async (loadId: number, loadDocumentId: number) => {
+export const deleteLoadDocumentFromLoad = async (loadId: string, loadDocumentId: string) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/documents/' + loadDocumentId, {
         method: 'DELETE',
     });

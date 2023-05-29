@@ -12,7 +12,7 @@ export type TableHeader = {
 };
 
 export type TableDataRow = {
-    id: number;
+    id: string;
     items: {
         value?: string;
         node?: React.ReactNode;
@@ -29,7 +29,7 @@ type Props = {
     sort: Sort;
     loading: boolean;
     emptyState?: React.ReactNode;
-    onRowClick: (id: number, index: number) => void;
+    onRowClick: (id: string, index: number) => void;
     changeSort: (sort: Sort) => void;
 };
 

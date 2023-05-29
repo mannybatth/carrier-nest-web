@@ -13,7 +13,7 @@ type Props = {
     sort: Sort;
     loading: boolean;
     changeSort: (sort: Sort) => void;
-    deleteLoad: (id: number) => void;
+    deleteLoad: (id: string) => void;
 };
 
 const defaultHeaders = [

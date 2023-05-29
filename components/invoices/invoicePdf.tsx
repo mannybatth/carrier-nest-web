@@ -367,7 +367,7 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
 };
 
 export const downloadInvoice = async (
-    carrierId: number,
+    carrierId: string,
     invoice: ExpandedInvoice,
     customer: Partial<Customer>,
     load: ExpandedLoad,

@@ -13,7 +13,7 @@ type Props = {
     sort: Sort;
     loading: boolean;
     changeSort: (sort: Sort) => void;
-    deleteInvoice: (id: number) => void;
+    deleteInvoice: (id: string) => void;
 };
 
 const defaultHeaders = ['id', 'load.customer.name', 'status', 'invoicedAt', 'totalAmount'];

@@ -34,7 +34,7 @@ export const getAllDrivers = async ({
     return data;
 };
 
-export const getDriverById = async (id: number) => {
+export const getDriverById = async (id: string) => {
     const response = await fetch(apiUrl + '/drivers/' + id);
     const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
 
@@ -80,7 +80,7 @@ export const createDriver = async (driver: Partial<Driver>) => {
     return data.driver;
 };
 
-export const updateDriver = async (id: number, driver: Partial<Driver>) => {
+export const updateDriver = async (id: string, driver: Partial<Driver>) => {
     const response = await fetch(apiUrl + '/drivers/' + id, {
         method: 'PUT',
         headers: {
@@ -96,7 +96,7 @@ export const updateDriver = async (id: number, driver: Partial<Driver>) => {
     return data.updatedDriver;
 };
 
-export const deleteDriverById = async (id: number) => {
+export const deleteDriverById = async (id: string) => {
     const response = await fetch(apiUrl + '/drivers/' + id, {
         method: 'DELETE',
     });
@@ -108,7 +108,7 @@ export const deleteDriverById = async (id: number) => {
     return data.result;
 };
 
-export const assignDriverToLoad = async (loadId: number, driverId: number) => {
+export const assignDriverToLoad = async (loadId: string, driverId: string) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver/' + driverId, {
         method: 'PATCH',
     });

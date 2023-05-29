@@ -159,7 +159,7 @@ const AccountingPage: PageWithAuth<Props> = ({
         reloadInvoices({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteInvoice = async (id: number) => {
+    const deleteInvoice = async (id: string) => {
         await deleteInvoiceById(id);
 
         notify({ title: 'Invoice deleted', message: 'Invoice deleted successfully' });

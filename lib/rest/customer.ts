@@ -35,7 +35,7 @@ export const getAllCustomers = async ({
     return data;
 };
 
-export const getCustomerById = async (id: number) => {
+export const getCustomerById = async (id: string) => {
     const response = await fetch(apiUrl + '/customers/' + id);
     const { data, errors }: JSONResponse<{ customer: Customer }> = await response.json();
 
@@ -81,7 +81,7 @@ export const createCustomer = async (customer: Partial<Customer>) => {
     return data.customer;
 };
 
-export const updateCustomer = async (id: number, customer: Partial<Customer>) => {
+export const updateCustomer = async (id: string, customer: Partial<Customer>) => {
     const response = await fetch(apiUrl + '/customers/' + id, {
         method: 'PUT',
         headers: {
@@ -97,7 +97,7 @@ export const updateCustomer = async (id: number, customer: Partial<Customer>) =>
     return data.updatedCustomer;
 };
 
-export const deleteCustomerById = async (id: number) => {
+export const deleteCustomerById = async (id: string) => {
     const response = await fetch(apiUrl + '/customers/' + id, {
         method: 'DELETE',
     });

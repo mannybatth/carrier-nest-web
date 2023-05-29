@@ -22,7 +22,7 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
     disabled?: boolean;
-    deleteDriver: (id: number) => void;
+    deleteDriver: (id: string) => void;
 };
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, disabled, deleteDriver }) => {
@@ -99,7 +99,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
         return {
             props: {
-                driverId: Number(query.id),
+                driverId: String(query.id),
                 sort,
                 limit: Number(query.limit) || 10,
                 offset: Number(query.offset) || 0,
@@ -109,7 +109,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 type Props = {
-    driverId: number;
+    driverId: string;
     sort: Sort;
     limit: number;
     offset: number;
@@ -223,14 +223,14 @@ const DriverDetailsPage: PageWithAuth<Props> = ({
         reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteLoad = async (id: number) => {
+    const deleteLoad = async (id: string) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
         reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
-    const deleteDriver = async (id: number) => {
+    const deleteDriver = async (id: string) => {
         await deleteDriverById(id);
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });

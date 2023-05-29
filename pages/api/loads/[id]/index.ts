@@ -34,7 +34,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const load = await prisma.load.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
         });
@@ -140,7 +140,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const updatedLoad = await prisma.load.update({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
             data: {
                 refNum: loadData.refNum || '',
@@ -202,7 +202,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const load = await prisma.load.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
             include: {
@@ -222,7 +222,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         await prisma.load.delete({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
         });
 
@@ -251,7 +251,7 @@ export const getLoad = async ({
 
     const load = await prisma.load.findFirst({
         where: {
-            id: Number(query.id),
+            id: String(query.id),
             userId: session.user.id,
         },
         include: {

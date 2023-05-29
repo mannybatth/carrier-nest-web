@@ -135,7 +135,7 @@ const LoadsPage: PageWithAuth<Props> = ({
         reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteLoad = async (id: number) => {
+    const deleteLoad = async (id: string) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });

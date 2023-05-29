@@ -22,7 +22,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const load = await prisma.load.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
         });
@@ -34,9 +34,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const driverId = Number(req.query.did);
+        const driverId = String(req.query.did);
 
-        if (driverId === 0) {
+        if (!driverId) {
             console.log('Remove assigned driver from load', load.id);
 
             const updatedLoad = await prisma.load.update({

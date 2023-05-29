@@ -23,9 +23,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const payment = await prisma.invoicePayment.findFirst({
             where: {
-                id: Number(req.query.pid),
+                id: String(req.query.pid),
                 invoice: {
-                    id: Number(req.query.id),
+                    id: String(req.query.id),
                     userId: session.user.id,
                 },
             },
@@ -40,13 +40,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         await prisma.invoicePayment.delete({
             where: {
-                id: Number(req.query.pid),
+                id: String(req.query.pid),
             },
         });
 
         const invoice = await prisma.invoice.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
             include: {
@@ -87,7 +87,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         await prisma.invoice.update({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
             data: {
                 paidAmount,

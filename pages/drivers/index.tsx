@@ -126,7 +126,7 @@ const DriversPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp, o
         reloadDrivers({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteDriver = async (id: number) => {
+    const deleteDriver = async (id: string) => {
         await deleteDriverById(id);
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });

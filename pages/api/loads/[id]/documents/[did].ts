@@ -24,7 +24,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const load = await prisma.load.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
         });
@@ -36,7 +36,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const documentId = Number(req.query.did);
+        const documentId = String(req.query.did);
 
         const document = await prisma.loadDocument.findFirst({
             where: {

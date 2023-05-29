@@ -34,7 +34,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const customer = await prisma.customer.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 carrierId: session.user.carrierId,
             },
         });
@@ -52,7 +52,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const updatedCustomer = await prisma.customer.update({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
             data: {
                 name: customerData.name,
@@ -78,7 +78,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const customer = await prisma.customer.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 carrierId: session.user.carrierId,
             },
         });
@@ -92,7 +92,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         await prisma.customer.delete({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
         });
 
@@ -112,7 +112,7 @@ export const getCustomer = async ({
 }): Promise<JSONResponse<{ customer: Customer }>> => {
     const customer = await prisma.customer.findFirst({
         where: {
-            id: Number(query.id),
+            id: String(query.id),
             carrierId: session.user.carrierId,
         },
     });

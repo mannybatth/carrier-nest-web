@@ -1,31 +1,30 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
-import { Carrier, Invoice } from '@prisma/client';
+import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
+import { formatValue } from 'react-currency-input-field';
+import { notify } from '../../../components/Notification';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
-import { InvoicePDF, downloadInvoice } from '../../../components/invoices/invoicePdf';
+import { downloadInvoice } from '../../../components/invoices/invoicePdf';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
-import { notify } from '../../../components/Notification';
 import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetailsSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { withServerAuth } from '../../../lib/auth/server-auth';
 import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
-import { getCarrierById } from '../../../lib/rest/carrier';
-import { formatValue } from 'react-currency-input-field';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
     disabled?: boolean;
     downloadInvoice: () => void;
-    deleteInvoice: (id: number) => void;
+    deleteInvoice: (id: string) => void;
 };
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, downloadInvoice, deleteInvoice }) => {
@@ -132,14 +131,14 @@ export async function getServerSideProps(context: NextPageContext) {
         const { id } = context.query;
         return {
             props: {
-                invoiceId: Number(id),
+                invoiceId: id,
             },
         };
     });
 }
 
 type Props = {
-    invoiceId: number;
+    invoiceId: string;
 };
 
 const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
@@ -167,7 +166,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
         reloadInvoice();
     };
 
-    const deleteInvoice = async (invoiceId: number) => {
+    const deleteInvoice = async (invoiceId: string) => {
         console.log('delete invoice', invoiceId);
 
         await deleteInvoiceById(invoiceId);
@@ -177,7 +176,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
         router.push('/accounting');
     };
 
-    const deletePayment = async (paymentId: number) => {
+    const deletePayment = async (paymentId: string) => {
         console.log('delete payment', paymentId);
 
         await deleteInvoicePayment(invoice.id, paymentId);

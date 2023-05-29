@@ -23,7 +23,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const invoice = await prisma.invoice.findFirst({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
                 userId: session.user.id,
             },
             include: {
@@ -71,7 +71,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const updatedInvoice = await prisma.invoice.update({
             where: {
-                id: Number(req.query.id),
+                id: String(req.query.id),
             },
             data: {
                 status: newStatus,

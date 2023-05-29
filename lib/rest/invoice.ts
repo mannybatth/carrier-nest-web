@@ -44,7 +44,7 @@ export const getInvoicesExpanded = async ({
     return data;
 };
 
-export const getInvoiceById = async (id: number): Promise<ExpandedInvoice> => {
+export const getInvoiceById = async (id: string): Promise<ExpandedInvoice> => {
     const params = new URLSearchParams({
         expand: 'load,extraItems,payments',
     });
@@ -73,7 +73,7 @@ export const createInvoice = async (invoice: ExpandedInvoice) => {
     return data.invoice;
 };
 
-export const updateInvoice = async (id: number, invoice: Partial<Invoice>) => {
+export const updateInvoice = async (id: string, invoice: Partial<Invoice>) => {
     const response = await fetch(apiUrl + '/invoices/' + id, {
         method: 'PUT',
         headers: {
@@ -89,7 +89,7 @@ export const updateInvoice = async (id: number, invoice: Partial<Invoice>) => {
     return data.updatedInvoice;
 };
 
-export const deleteInvoiceById = async (id: number) => {
+export const deleteInvoiceById = async (id: string) => {
     const response = await fetch(apiUrl + '/invoices/' + id, {
         method: 'DELETE',
     });
@@ -101,7 +101,7 @@ export const deleteInvoiceById = async (id: number) => {
     return data.result;
 };
 
-export const createInvoicePayment = async (invoiceId: number, payment: Partial<InvoicePayment>) => {
+export const createInvoicePayment = async (invoiceId: string, payment: Partial<InvoicePayment>) => {
     const response = await fetch(apiUrl + '/invoices/' + invoiceId + '/payments', {
         method: 'POST',
         headers: {
@@ -117,7 +117,7 @@ export const createInvoicePayment = async (invoiceId: number, payment: Partial<I
     return data.updatedInvoice;
 };
 
-export const deleteInvoicePayment = async (invoiceId: number, paymentId: number) => {
+export const deleteInvoicePayment = async (invoiceId: string, paymentId: string) => {
     const response = await fetch(apiUrl + '/invoices/' + invoiceId + '/payments/' + paymentId, {
         method: 'DELETE',
     });

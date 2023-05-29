@@ -125,7 +125,7 @@ const CustomersPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp,
         reloadCustomers({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteCustomer = async (id: number) => {
+    const deleteCustomer = async (id: string) => {
         await deleteCustomerById(id);
 
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });

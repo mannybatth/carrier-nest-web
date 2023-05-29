@@ -29,7 +29,7 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 type ActionsDropdownProps = {
     customer: ExpandedCustomer;
     disabled?: boolean;
-    deleteCustomer: (id: number) => void;
+    deleteCustomer: (id: string) => void;
 };
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, disabled, deleteCustomer }) => {
@@ -106,7 +106,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
         return {
             props: {
-                customerId: Number(query.id),
+                customerId: String(query.id),
                 sort,
                 limit: Number(query.limit) || 10,
                 offset: Number(query.offset) || 0,
@@ -116,7 +116,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 type Props = {
-    customerId: number;
+    customerId: string;
     sort: Sort;
     limit: number;
     offset: number;
@@ -230,14 +230,14 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
         reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteLoad = async (id: number) => {
+    const deleteLoad = async (id: string) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
         reloadLoads({ sort, limit, offset, useTableLoading: true });
     };
 
-    const deleteCustomer = async (id: number) => {
+    const deleteCustomer = async (id: string) => {
         await deleteCustomerById(id);
 
         notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
