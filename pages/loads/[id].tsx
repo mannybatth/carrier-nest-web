@@ -164,7 +164,7 @@ export async function getServerSideProps(context: NextPageContext) {
         const { id } = context.query;
         return {
             props: {
-                loadId: Number(id),
+                loadId: String(id),
             },
         };
     });
