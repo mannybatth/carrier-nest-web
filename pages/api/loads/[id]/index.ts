@@ -148,7 +148,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 distance: loadData.distance || 0,
                 carrier: {
                     connect: {
-                        id: session.user.carrierId,
+                        id: session.user.defaultCarrierId,
                     },
                 },
                 customer: {

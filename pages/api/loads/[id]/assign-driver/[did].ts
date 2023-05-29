@@ -53,7 +53,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const driver = await prisma.driver.findFirst({
             where: {
                 id: driverId,
-                carrierId: session.user.carrierId,
+                carrierId: session.user.defaultCarrierId,
             },
         });
 

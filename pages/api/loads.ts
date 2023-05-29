@@ -90,8 +90,8 @@ export const getLoads = async ({
     const sortBy = query.sortBy as string;
     const sortDir = (query.sortDir as 'asc' | 'desc') || 'asc';
 
-    const customerId = query.customerId !== undefined ? Number(query.customerId) : undefined;
-    const driverId = query.driverId !== undefined ? Number(query.driverId) : undefined;
+    const customerId = query.customerId !== undefined ? String(query.customerId) : undefined;
+    const driverId = query.driverId !== undefined ? String(query.driverId) : undefined;
     const limit = query.limit !== undefined ? Number(query.limit) : undefined;
     const offset = query.offset !== undefined ? Number(query.offset) : undefined;
 
@@ -225,7 +225,7 @@ export const postLoads = async ({
                 },
                 carrier: {
                     connect: {
-                        id: session.user.carrierId,
+                        id: session.user.defaultCarrierId,
                     },
                 },
                 customer: {

@@ -36,7 +36,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const driver = await prisma.driver.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.carrierId,
+                carrierId: session.user.defaultCarrierId,
             },
         });
 
@@ -74,7 +74,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const driver = await prisma.driver.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.carrierId,
+                carrierId: session.user.defaultCarrierId,
             },
         });
 
@@ -108,7 +108,7 @@ export const getDriver = async ({
     const driver = await prisma.driver.findFirst({
         where: {
             id: String(query.id),
-            carrierId: session.user.carrierId,
+            carrierId: session.user.defaultCarrierId,
         },
     });
     return {

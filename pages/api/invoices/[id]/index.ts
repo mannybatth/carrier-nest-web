@@ -83,7 +83,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 dueNetDays: invoiceData.dueNetDays || 0,
                 carrier: {
                     connect: {
-                        id: session.user.carrierId,
+                        id: session.user.defaultCarrierId,
                     },
                 },
                 extraItems: {

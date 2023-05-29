@@ -118,7 +118,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                     carrier: {
                         connect: {
-                            id: session.user.carrierId,
+                            id: session.user.defaultCarrierId,
                         },
                     },
                     load: {

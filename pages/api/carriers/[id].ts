@@ -35,7 +35,7 @@ export const getCarrier = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ carrier: Carrier }>> => {
     const session = await getServerSession(req, res, authOptions);
-    const userCarrierId = session.user?.carrierId;
+    const userCarrierId = session.user?.defaultCarrierId;
 
     if (!userCarrierId) {
         return {
@@ -44,7 +44,7 @@ export const getCarrier = async ({
         };
     }
 
-    const carrierIdToFind = Number(query.id);
+    const carrierIdToFind = String(query.id);
 
     if (carrierIdToFind !== userCarrierId) {
         return {

@@ -35,7 +35,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const customer = await prisma.customer.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.carrierId,
+                carrierId: session.user.defaultCarrierId,
             },
         });
 
@@ -79,7 +79,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const customer = await prisma.customer.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.carrierId,
+                carrierId: session.user.defaultCarrierId,
             },
         });
 
@@ -113,7 +113,7 @@ export const getCustomer = async ({
     const customer = await prisma.customer.findFirst({
         where: {
             id: String(query.id),
-            carrierId: session.user.carrierId,
+            carrierId: session.user.defaultCarrierId,
         },
     });
 

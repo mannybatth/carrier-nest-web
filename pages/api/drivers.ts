@@ -55,7 +55,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     phone: driverData.phone || '',
                     carrier: {
                         connect: {
-                            id: session.user.carrierId,
+                            id: session.user.defaultCarrierId,
                         },
                     },
                 },
@@ -109,7 +109,7 @@ export const getDrivers = async ({
 
     const total = await prisma.driver.count({
         where: {
-            carrierId: session.user.carrierId,
+            carrierId: session.user.defaultCarrierId,
         },
     });
 
@@ -117,7 +117,7 @@ export const getDrivers = async ({
 
     const drivers = await prisma.driver.findMany({
         where: {
-            carrierId: session.user.carrierId,
+            carrierId: session.user.defaultCarrierId,
         },
         ...(limit ? { take: limit } : { take: 10 }),
         ...(offset ? { skip: offset } : { skip: 0 }),

@@ -349,7 +349,7 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
     const { data: session } = useSession();
 
     const handleDownload = async () => {
-        await downloadInvoice(session.user.carrierId, invoice, customer, load, fileName);
+        await downloadInvoice(session.user.defaultCarrierId, invoice, customer, load, fileName);
     };
 
     return (

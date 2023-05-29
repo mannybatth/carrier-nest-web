@@ -188,7 +188,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
 
     const downloadInvoiceClicked = async () => {
         downloadInvoice(
-            session.user.carrierId,
+            session.user.defaultCarrierId,
             invoice,
             invoice.load.customer,
             invoice.load,

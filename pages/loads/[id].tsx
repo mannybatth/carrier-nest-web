@@ -33,7 +33,7 @@ import { formatValue } from 'react-currency-input-field';
 type ActionsDropdownProps = {
     load: ExpandedLoad;
     disabled?: boolean;
-    deleteLoad: (id: number) => void;
+    deleteLoad: (id: string) => void;
     assignDriver: (remove?: boolean) => void;
 };
 
@@ -171,7 +171,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 type Props = {
-    loadId: number;
+    loadId: string;
 };
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
@@ -209,7 +209,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const assignDriverAction = async (remove?: boolean) => {
         if (remove) {
             try {
-                await assignDriverToLoad(load.id, 0);
+                await assignDriverToLoad(load.id, null);
                 notify({ title: 'Driver removed', message: 'Driver removed from load successfully' });
                 reloadLoad();
             } catch (e) {
@@ -220,7 +220,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
-    const deleteLoad = async (id: number) => {
+    const deleteLoad = async (id: string) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
@@ -260,7 +260,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setDocsLoading(false);
     };
 
-    const deleteLoadDocument = async (id: number) => {
+    const deleteLoadDocument = async (id: string) => {
         setDocsLoading(true);
         try {
             await deleteLoadDocumentFromLoad(load.id, id);
