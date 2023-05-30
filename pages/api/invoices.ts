@@ -38,7 +38,7 @@ const buildOrderBy = (
 
 const buildWhere = (session: Session, status?: UIInvoiceStatus): Prisma.InvoiceWhereInput => {
     const conditions: Prisma.InvoiceWhereInput = {
-        userId: session.user.id,
+        carrierId: session.user.defaultCarrierId,
     };
 
     if (!status) {
