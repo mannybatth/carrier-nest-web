@@ -359,7 +359,7 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
         >
             <div className="flex items-center flex-1 w-0">
                 <PaperClipIcon className="flex-shrink-0 w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="flex-1 w-0 ml-2 text-left truncate">invoice.pdf</span>
+                <span className="flex-1 w-0 ml-2 text-left truncate">{fileName}</span>
             </div>
             <div className="flex-shrink-0 ml-4"></div>
         </button>

@@ -402,7 +402,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 invoice={load.invoice}
                                                                 customer={load.customer}
                                                                 load={load}
-                                                                fileName={`invoice-${load.invoice.id}.pdf`}
+                                                                fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
                                                             />
                                                         </div>
                                                     ) : null}

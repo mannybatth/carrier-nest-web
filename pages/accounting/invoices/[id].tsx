@@ -192,7 +192,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
             invoice,
             invoice.load.customer,
             invoice.load,
-            `invoice-${invoice.id}.pdf`,
+            `invoice-${invoice.invoiceNum}.pdf`,
         );
     };
 
