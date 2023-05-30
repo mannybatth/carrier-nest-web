@@ -3,6 +3,7 @@ node_modules/
 .DS_STORE
 .env
 .env*.local
+training-files/2023-dataset-raw/
 training-files/dataset/
 training-files/dataset-final/
 training-files/dataset-img-raw/

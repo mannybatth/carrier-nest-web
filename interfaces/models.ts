@@ -79,6 +79,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
             select: {
                 id: true,
                 status: true,
+                invoiceNum: true,
                 totalAmount: true,
                 invoicedAt: true,
                 dueDate: true,

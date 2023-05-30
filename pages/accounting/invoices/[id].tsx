@@ -201,7 +201,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
             smHeaderComponent={
                 <div className="flex flex-col">
                     <div className="flex items-center space-x-2">
-                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Invoice # {invoiceId}</h1>
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Invoice # {invoice?.invoiceNum}</h1>
                         <button
                             type="button"
                             onClick={addPayment}
@@ -235,13 +235,13 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             href: '/accounting',
                         },
                         {
-                            label: `# ${invoiceId}`,
+                            label: `# ${invoice?.invoiceNum ?? ''}`,
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <div className="flex space-x-3">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Invoice # {invoiceId}</h1>
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Invoice # {invoice?.invoiceNum}</h1>
                         <button
                             type="button"
                             onClick={addPayment}

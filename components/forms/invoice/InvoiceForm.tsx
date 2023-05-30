@@ -32,7 +32,23 @@ const InvoiceForm: React.FC<Props> = ({
 
     return (
         <div className="grid grid-cols-6 gap-6">
-            <div className="col-span-6 md:col-span-3">
+            <div className="col-span-6 md:col-span-2">
+                <label htmlFor="invoiceNum" className="block text-sm font-medium text-gray-700">
+                    Invoice Num
+                </label>
+                <input
+                    type="number"
+                    id="invoiceNum"
+                    {...register('invoiceNum', {
+                        required: 'Invoice number is required',
+                        min: { value: 1, message: 'Invoice number must be greater than 0' },
+                    })}
+                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+                {errors.invoiceNum && <p className="mt-2 text-sm text-red-600">{errors.invoiceNum.message}</p>}
+            </div>
+
+            <div className="col-span-6 md:col-span-2">
                 <label htmlFor="invoicedAt" className="block text-sm font-medium text-gray-700">
                     Invoiced Date
                 </label>
@@ -59,7 +75,7 @@ const InvoiceForm: React.FC<Props> = ({
                 />
             </div>
 
-            <div className="col-span-6 md:col-span-3">
+            <div className="col-span-6 md:col-span-2">
                 <Controller
                     control={control}
                     rules={{ required: 'Invoice Terms is required' }}

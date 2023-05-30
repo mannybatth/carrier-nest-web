@@ -142,6 +142,7 @@ export const getLoads = async ({
                     id: true,
                     status: true,
                     totalAmount: true,
+                    invoiceNum: true,
                     invoicedAt: true,
                     dueDate: true,
                     dueNetDays: true,

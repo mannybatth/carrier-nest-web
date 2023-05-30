@@ -70,6 +70,7 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
             return;
         }
 
+        formHook.setValue('invoiceNum', invoice.invoiceNum);
         formHook.setValue('invoicedAt', new Date(invoice.invoicedAt));
         formHook.setValue('dueNetDays', invoice.dueNetDays);
         formHook.setValue('extraItems', invoice.extraItems);
@@ -81,6 +82,7 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
         setLoading(true);
 
         const invoiceData: ExpandedInvoice = {
+            invoiceNum: Number(data.invoiceNum),
             invoicedAt: data.invoicedAt,
             totalAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
@@ -110,7 +112,7 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
                             href: '/accounting',
                         },
                         {
-                            label: `# ${invoice.id}`,
+                            label: `# ${invoice?.invoiceNum ?? ''}`,
                             href: `/accounting/invoices/${invoice.id}`,
                         },
                         {

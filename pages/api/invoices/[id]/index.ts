@@ -75,6 +75,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: String(req.query.id),
             },
             data: {
+                invoiceNum: invoiceData.invoiceNum,
                 totalAmount: invoiceData.totalAmount || 0,
                 remainingAmount: remainingAmount,
                 paidAmount: paidAmount,

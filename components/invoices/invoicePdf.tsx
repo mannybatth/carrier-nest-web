@@ -51,7 +51,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                     {carrier.email ? <Text style={{ fontSize: 10 }}>{carrier.email}</Text> : null}
                 </View>
                 <View>
-                    <Text style={{ fontSize: 18 }}>INVOICE # {invoice.id}</Text>
+                    <Text style={{ fontSize: 18 }}>INVOICE # {invoice.invoiceNum}</Text>
                 </View>
             </View>
 

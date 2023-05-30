@@ -16,7 +16,7 @@ type Props = {
     deleteInvoice: (id: string) => void;
 };
 
-const defaultHeaders = ['id', 'load.customer.name', 'status', 'invoicedAt', 'totalAmount'];
+const defaultHeaders = ['invoiceNum', 'load.customer.name', 'status', 'invoicedAt', 'totalAmount'];
 
 const InvoicesTable: React.FC<Props> = ({
     invoices,
@@ -32,7 +32,7 @@ const InvoicesTable: React.FC<Props> = ({
         <Table
             loading={loading}
             headers={[
-                ...[headers.includes('id') ? { key: 'id', title: 'Invoice Id' } : null],
+                ...[headers.includes('invoiceNum') ? { key: 'invoiceNum', title: 'Invoice Num' } : null],
                 ...[headers.includes('load.customer.name') ? { key: 'load.customer.name', title: 'Customer' } : null],
                 ...[headers.includes('status') ? { key: 'status', title: 'Status', disableSort: true } : null],
                 ...[headers.includes('invoicedAt') ? { key: 'invoicedAt', title: 'Invoice Date' } : null],
@@ -41,7 +41,7 @@ const InvoicesTable: React.FC<Props> = ({
             rows={invoices.map((invoice) => ({
                 id: invoice.id,
                 items: [
-                    ...[headers.includes('id') ? { value: `${invoice.id}` } : null],
+                    ...[headers.includes('invoiceNum') ? { value: `${invoice.invoiceNum}` } : null],
                     ...[headers.includes('load.customer.name') ? { value: invoice.load?.customer?.name } : null],
                     ...[
                         headers.includes('status')

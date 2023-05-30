@@ -387,7 +387,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     href={`/accounting/invoices/${load.invoice.id}`}
                                                                     passHref
                                                                 >
-                                                                    <a># {load.invoice.id}</a>
+                                                                    <a># {load.invoice?.invoiceNum}</a>
                                                                 </Link>
                                                             ) : (
                                                                 <Link href={`/accounting/create-invoice/${load.id}`}>
