@@ -181,7 +181,7 @@ model Invoice {
     loadId          String           @unique
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
-    invoiceNum      Int              @default(autoincrement())
+    invoiceNum      Int
     status          InvoiceStatus
     totalAmount     Decimal
     remainingAmount Decimal
@@ -197,6 +197,7 @@ model Invoice {
     payments        InvoicePayment[]
 
     @@index([userId, invoiceNum])
+    @@unique([carrierId, invoiceNum])
 }
 
 model InvoiceItem {
