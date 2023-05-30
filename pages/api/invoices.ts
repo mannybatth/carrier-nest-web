@@ -106,6 +106,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const invoice = await prisma.invoice.create({
                 data: {
                     status: InvoiceStatus.NOT_PAID,
+                    invoiceNum: invoiceData.invoiceNum,
                     totalAmount: invoiceData.totalAmount || 0,
                     remainingAmount: invoiceData.remainingAmount || 0,
                     invoicedAt: invoiceData.invoicedAt,
