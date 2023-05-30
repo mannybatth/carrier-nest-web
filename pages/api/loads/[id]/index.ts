@@ -252,7 +252,7 @@ export const getLoad = async ({
     const load = await prisma.load.findFirst({
         where: {
             id: String(query.id),
-            userId: session.user.id,
+            carrierId: session.user.defaultCarrierId,
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),

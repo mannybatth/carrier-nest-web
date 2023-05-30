@@ -148,7 +148,7 @@ export const getInvoice = async ({
     const invoice = await prisma.invoice.findFirst({
         where: {
             id: String(query.id),
-            userId: session.user.id,
+            carrierId: session.user.defaultCarrierId,
         },
         include: {
             ...(expandLoad
