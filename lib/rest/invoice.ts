@@ -138,3 +138,13 @@ export const getAccountingStats = async () => {
     }
     return data.stats;
 };
+
+export const getNextInvoiceNum = async () => {
+    const response = await fetch(apiUrl + '/invoices/next-invoice-num');
+    const { data, errors }: JSONResponse<{ nextInvoiceNum: number }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.nextInvoiceNum;
+};

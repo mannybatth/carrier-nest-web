@@ -15,16 +15,21 @@ import { createInvoice } from '../../../lib/rest/invoice';
 import { useLocalStorage } from '../../../lib/useLocalStorage';
 import { getLoad } from '../../api/loads/[id]';
 import { getSession } from 'next-auth/react';
+import { getNextInvoiceNum } from '../../api/invoices/next-invoice-num';
 
 export async function getServerSideProps(context: NextPageContext) {
     const session = await getSession(context);
-    const { data } = await getLoad({
-        session,
-        query: {
-            id: context.query.id,
-            expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
-        },
-    });
+    const promise = Promise.all([
+        getLoad({
+            session,
+            query: {
+                id: context.query.id,
+                expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
+            },
+        }),
+        getNextInvoiceNum(session.user.defaultCarrierId),
+    ]);
+    const [{ data }, nextInvoiceNum] = await promise;
 
     if (!data?.load) {
         return {
@@ -47,15 +52,17 @@ export async function getServerSideProps(context: NextPageContext) {
     return {
         props: {
             load: JSON.parse(safeJsonStringify(data.load)),
+            nextInvoiceNum,
         },
     };
 }
 
 type Props = {
     load: ExpandedLoad;
+    nextInvoiceNum: number;
 };
 
-const CreateInvoice: PageWithAuth = ({ load }: Props) => {
+const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
     const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
 
     const formHook = useForm<ExpandedInvoice>();
@@ -65,6 +72,10 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
     const [total, setTotal] = React.useState(0);
 
     const watchFields = useWatch({ control: formHook.control, name: 'extraItems' });
+
+    useEffect(() => {
+        formHook.setValue('invoiceNum', nextInvoiceNum);
+    }, [nextInvoiceNum]);
 
     useEffect(() => {
         const data = formHook.getValues() as ExpandedInvoice;
@@ -91,16 +102,21 @@ const CreateInvoice: PageWithAuth = ({ load }: Props) => {
             extraItems: data.extraItems,
         };
 
-        const newInvoice = await createInvoice(invoiceData);
-        console.log('new invoice', newInvoice);
+        try {
+            const newInvoice = await createInvoice(invoiceData);
+            console.log('new invoice', newInvoice);
 
-        setLoading(false);
-        setLastDueNetDays(data.dueNetDays);
+            setLoading(false);
+            setLastDueNetDays(data.dueNetDays);
 
-        notify({ title: 'New invoice created', message: 'New invoice created successfully' });
+            notify({ title: 'New invoice created', message: 'New invoice created successfully' });
 
-        // Redirect to invoice page
-        router.push(`/accounting/invoices/${newInvoice.id}`);
+            // Redirect to invoice page
+            router.push(`/accounting/invoices/${newInvoice.id}`);
+        } catch (error) {
+            setLoading(false);
+            notify({ title: 'Error', message: 'Error creating invoice', type: 'error' });
+        }
     };
 
     return (

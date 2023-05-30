@@ -19,7 +19,11 @@ export const notify = ({ title, message, type = 'success' }: Props) =>
                 <div className="flex-1 w-0 p-4">
                     <div className="flex items-start">
                         <div className="flex-shrink-0">
-                            <CheckCircleIcon className="w-6 h-6 text-green-400" aria-hidden="true" />
+                            {type === 'success' ? (
+                                <CheckCircleIcon className="w-6 h-6 text-green-400" aria-hidden="true" />
+                            ) : (
+                                <XIcon className="w-6 h-6 text-red-400" aria-hidden="true" />
+                            )}
                         </div>
                         <div className="ml-3 w-0 flex-1 pt-0.5">
                             <p className="text-sm font-medium text-gray-900">{title}</p>
