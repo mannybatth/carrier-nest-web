@@ -10,6 +10,7 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
+import { pythonApiUrl } from '../../constants';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -66,6 +67,31 @@ const CreateLoad: PageWithAuth = () => {
         router.push(`/loads/${newLoad.id}`);
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = async () => {
+            const arrayBuffer = reader.result as ArrayBuffer;
+            const byteArray = new Uint8Array(arrayBuffer);
+
+            const formData = new FormData();
+            formData.append('file', new Blob([byteArray]), file.name);
+
+            const response = await fetch(pythonApiUrl + '/ratecons', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            console.log(data);
+        };
+    };
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
             <SaveLoadConfirmation
@@ -91,6 +117,23 @@ const CreateLoad: PageWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 mb-64 sm:px-6 md:px-8">
+                    <div className="flex items-center justify-between px-4 py-4 bg-white sm:px-6">
+                        <div className="flex-1">
+                            <label
+                                htmlFor="file-upload"
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                Upload File
+                            </label>
+                            <input
+                                id="file-upload"
+                                name="file-upload"
+                                type="file"
+                                className="hidden"
+                                onChange={handleFileUpload}
+                            />
+                        </div>
+                    </div>
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
