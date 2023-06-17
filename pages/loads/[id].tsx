@@ -357,7 +357,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                     <dd className="text-gray-900">
                                                         {load.driver ? (
                                                             <Link href={`/drivers/${load.driver.id}`} passHref>
-                                                                <a>{load.driver.name}</a>
+                                                                {load.driver.name}
                                                             </Link>
                                                         ) : (
                                                             <a onClick={() => setOpenSelectDriver(true)}>
@@ -387,7 +387,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     href={`/accounting/invoices/${load.invoice.id}`}
                                                                     passHref
                                                                 >
-                                                                    <a># {load.invoice?.invoiceNum}</a>
+                                                                    # {load.invoice?.invoiceNum}
                                                                 </Link>
                                                             ) : (
                                                                 <Link href={`/accounting/create-invoice/${load.id}`}>

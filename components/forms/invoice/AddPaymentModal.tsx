@@ -2,12 +2,14 @@ import { Dialog, Transition } from '@headlessui/react';
 import { CalendarIcon } from '@heroicons/react/outline';
 import { Invoice, InvoicePayment, Prisma } from '@prisma/client';
 import React, { Fragment, useRef } from 'react';
-import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useForm } from 'react-hook-form';
+import dateFnsFormat from 'date-fns/format';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { createInvoicePayment } from '../../../lib/rest/invoice';
 import Spinner from '../../Spinner';
 import MoneyInput from '../MoneyInput';
+import parseISO from 'date-fns/parseISO';
+import formatISO from 'date-fns/formatISO';
 
 type Props = {
     show: boolean;
@@ -103,25 +105,23 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                             control={control}
                                             rules={{ required: 'Date is required' }}
                                             name="paidAt"
-                                            defaultValue={new Date()}
                                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                                                 <>
                                                     <div className="relative mt-1">
-                                                        <DayPickerInput
-                                                            onDayChange={onChange}
-                                                            value={value}
-                                                            inputProps={{
-                                                                type: 'text',
-                                                                id: 'paidAt',
-                                                                autoComplete: 'date',
+                                                        <input
+                                                            onChange={(e) => {
+                                                                onChange(new Date(formatISO(parseISO(e.target.value))));
                                                             }}
+                                                            value={value ? dateFnsFormat(value, 'yyyy-MM-dd') : ''}
+                                                            type="date"
+                                                            id="paidAt"
+                                                            autoComplete="date"
+                                                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                                                                error
+                                                                    ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
+                                                                    : ''
+                                                            }`}
                                                         />
-                                                        <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
-                                                            <CalendarIcon
-                                                                className="w-5 h-5 text-gray-400"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </div>
                                                     </div>
                                                     {error && (
                                                         <p className="mt-2 text-sm text-red-600">{error?.message}</p>

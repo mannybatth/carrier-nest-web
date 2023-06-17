@@ -26,7 +26,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: String(req.query.pid),
                 invoice: {
                     id: String(req.query.id),
-                    userId: session.user.id,
+                    carrierId: session.user.defaultCarrierId,
                 },
             },
         });
@@ -47,7 +47,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const invoice = await prisma.invoice.findFirst({
             where: {
                 id: String(req.query.id),
-                userId: session.user.id,
+                carrierId: session.user.defaultCarrierId,
             },
             include: {
                 payments: {

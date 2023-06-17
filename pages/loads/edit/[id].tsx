@@ -63,12 +63,12 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             return;
         }
 
-        load.receiver.date = new Date(load.receiver.date);
-        load.shipper.date = new Date(load.shipper.date);
-        load.stops = load.stops.map((stop: LoadStop) => ({
-            ...stop,
-            date: new Date(stop.date),
-        }));
+        // load.receiver.date = new Date(load.receiver.date);
+        // load.shipper.date = new Date(load.shipper.date);
+        // load.stops = load.stops.map((stop: LoadStop) => ({
+        //     ...stop,
+        //     date: new Date(stop.date),
+        // }));
 
         formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);

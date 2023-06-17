@@ -6,10 +6,10 @@ import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
 
-export type Props = {
+export type Props = PropsWithChildren<{
     smHeaderComponent: JSX.Element;
     className?: string;
-};
+}>;
 
 const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);

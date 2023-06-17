@@ -20,8 +20,8 @@ const BreadCrumb: React.FC<Props> = ({ paths, ...props }) => {
                     {paths.map((path, index) => (
                         <span key={index}>
                             {(path.href && (
-                                <Link href={path.href}>
-                                    <a className="text-inherit">{path.label}</a>
+                                <Link href={path.href} className="text-inherit">
+                                    {path.label}
                                 </Link>
                             )) || <span className="text-inherit">{path.label}</span>}
                             {index !== paths.length - 1 && (

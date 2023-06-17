@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, useContext, PropsWithChildren } from 'react';
 import useMouse from '@react-hook/mouse-position';
 import CursorText from './CursorText';
 import { Entity, Point, Rectangle } from '../../interfaces/ner';
@@ -19,7 +19,6 @@ export const calculateSelectionRectangle = (startPoint: Point, endPoint: Point):
 };
 
 interface Props {
-    children: React.ReactNode;
     className?: string;
     style?: { [key: string]: string };
     onSelectionChange?: ({ selectionCoords, entity }: { selectionCoords: Rectangle; entity: Entity }) => void;
@@ -27,7 +26,7 @@ interface Props {
 
 const initialCoords: Rectangle = { left: 0, top: 0, width: 0, height: 0 };
 
-const Selection = ({ children, className, style, onSelectionChange }: Props) => {
+const Selection = ({ children, className, style, onSelectionChange }: PropsWithChildren<Props>) => {
     const selectionRef = useRef(null);
     const mouse = useMouse(selectionRef);
 

@@ -3,18 +3,17 @@ import { Session } from 'next-auth';
 import { SessionProvider, signIn, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import React from 'react';
+import React, { PropsWithChildren } from 'react';
 import { Toaster } from 'react-hot-toast';
 import Spinner from '../components/Spinner';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
-import 'react-day-picker/lib/style.css';
 import '../styles/globals.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
 
-const Auth: React.FC = ({ children }) => {
+const Auth: React.FC<PropsWithChildren> = ({ children }) => {
     const { status } = useSession();
 
     React.useEffect(() => {

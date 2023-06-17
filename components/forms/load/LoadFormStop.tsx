@@ -3,11 +3,8 @@ import { CalendarIcon, CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroico
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
 import dateFnsFormat from 'date-fns/format';
-import dateFnsParse from 'date-fns/parse';
 import * as iso3166 from 'iso-3166-2';
 import React, { useEffect, useState } from 'react';
-import { DateUtils } from 'react-day-picker';
-import DayPickerInput from 'react-day-picker/DayPickerInput';
 import {
     Control,
     Controller,
@@ -24,6 +21,9 @@ import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
+import parseISO from 'date-fns/parseISO';
+import parse from 'date-fns/parse';
+import formatISO from 'date-fns/formatISO';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -239,19 +239,6 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
         }
     };
 
-    const DATE_FORMAT = 'MM-dd-yyyy';
-    const parseDate = (str, format, locale) => {
-        const parsed = dateFnsParse(str, format, new Date(), { locale });
-        if (DateUtils.isDate(parsed)) {
-            return parsed;
-        }
-        return undefined;
-    };
-
-    const formatDate = (date, format, locale) => {
-        return dateFnsFormat(date, format, { locale });
-    };
-
     return (
         <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
             {index !== undefined && (
@@ -305,22 +292,20 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
                                 <div className="relative mt-1">
-                                    <DayPickerInput
-                                        onDayChange={onChange}
-                                        value={value}
-                                        formatDate={formatDate}
-                                        format={DATE_FORMAT}
-                                        parseDate={parseDate}
-                                        placeholder={`${dateFnsFormat(new Date(), DATE_FORMAT)}`}
-                                        inputProps={{
-                                            type: 'text',
-                                            id: fieldId('date'),
-                                            autoComplete: 'date',
+                                    <input
+                                        onChange={(e) => {
+                                            onChange(formatISO(parseISO(e.target.value)));
                                         }}
+                                        value={value ? dateFnsFormat(parseISO(value), 'yyyy-MM-dd') : ''}
+                                        type="date"
+                                        id={fieldId('date')}
+                                        autoComplete="date"
+                                        className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                                            error
+                                                ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
+                                                : ''
+                                        }`}
                                     />
-                                    <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
-                                        <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                    </div>
                                 </div>
                                 {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
                             </>

@@ -3,12 +3,14 @@ import { CalendarIcon, CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/re
 import { Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import React, { Fragment } from 'react';
-import DayPickerInput from 'react-day-picker/DayPickerInput';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
+import dateFnsFormat from 'date-fns/format';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { useLocalStorage } from '../../../lib/useLocalStorage';
 import InvoiceFormItem from './InvoiceFormItem';
+import parseISO from 'date-fns/parseISO';
+import formatISO from 'date-fns/formatISO';
 
 type Props = {
     formHook: UseFormReturn<ExpandedInvoice>;
@@ -56,18 +58,23 @@ const InvoiceForm: React.FC<Props> = ({
                     control={control}
                     rules={{ required: 'Invoice date is required' }}
                     name="invoicedAt"
-                    defaultValue={new Date()}
                     render={({ field: { onChange, value }, fieldState: { error } }) => (
                         <>
                             <div className="relative mt-1">
-                                <DayPickerInput
-                                    onDayChange={onChange}
-                                    value={value}
-                                    inputProps={{ type: 'text', id: 'invoicedAt', autoComplete: 'date' }}
+                                <input
+                                    onChange={(e) => {
+                                        onChange(new Date(formatISO(parseISO(e.target.value))));
+                                    }}
+                                    value={value ? dateFnsFormat(value, 'yyyy-MM-dd') : ''}
+                                    type="date"
+                                    id="invoicedAt"
+                                    autoComplete="date"
+                                    className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                                        error
+                                            ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
+                                            : ''
+                                    }`}
                                 />
-                                <div className="absolute right-0 flex items-center pr-3 pointer-events-none inset-y-1">
-                                    <CalendarIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                                </div>
                             </div>
                             {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
                         </>

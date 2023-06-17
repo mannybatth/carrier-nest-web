@@ -41,15 +41,17 @@ const Navigation: React.FC = () => {
         <div>
             <nav className="flex-1 mt-5">
                 {navigation.map((item) => (
-                    <Link href={item.href} key={item.name}>
-                        <a
-                            className={classNames(
-                                isActive(item.href)
-                                    ? 'bg-gray-200 text-zinc-700 font-bold'
-                                    : 'text-zinc-600 hover:bg-gray-200 hover:text-zinc-700',
-                                'flex items-center px-4 py-2 text-sm  hover:cursor-pointer  active:bg-gray-300 group',
-                            )}
-                        >
+                    <Link
+                        href={item.href}
+                        key={item.name}
+                        className={classNames(
+                            isActive(item.href)
+                                ? 'bg-gray-200 text-zinc-700 font-bold'
+                                : 'text-zinc-600 hover:bg-gray-200 hover:text-zinc-700',
+                            'flex items-center px-4 py-2 text-sm  hover:cursor-pointer  active:bg-gray-300 group',
+                        )}
+                    >
+                        <>
                             <item.icon
                                 className={classNames(
                                     isActive(item.href)
@@ -60,7 +62,7 @@ const Navigation: React.FC = () => {
                                 aria-hidden="true"
                             />
                             {item.name}
-                        </a>
+                        </>
                     </Link>
                 ))}
             </nav>
