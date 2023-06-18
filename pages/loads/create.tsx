@@ -10,7 +10,7 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
-import { pythonApiUrl } from '../../constants';
+import { apiUrl, pythonApiUrl } from '../../constants';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -82,7 +82,7 @@ const CreateLoad: PageWithAuth = () => {
             const formData = new FormData();
             formData.append('file', new Blob([byteArray]), file.name);
 
-            const response = await fetch(pythonApiUrl + '/ratecons', {
+            const response = await fetch(apiUrl + '/ai/ratecon', {
                 method: 'POST',
                 body: formData,
             });
