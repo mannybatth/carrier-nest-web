@@ -1,9 +1,9 @@
-import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { CharacterTextSplitter } from 'langchain/text_splitter';
-import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { RetrievalQAChain } from 'langchain/chains';
-import { PDFLoader } from '/Users/mannysingh/Projects/langchainjs/langchain/dist/document_loaders/fs/pdf.js';
+import { ChatOpenAI } from 'langchain-edge-fix/chat_models/openai';
+import { CharacterTextSplitter } from 'langchain-edge-fix/text_splitter';
+import { MemoryVectorStore } from 'langchain-edge-fix/vectorstores/memory';
+import { OpenAIEmbeddings } from 'langchain-edge-fix/embeddings/openai';
+import { RetrievalQAChain } from 'langchain-edge-fix/chains';
+import { PDFLoader } from 'langchain-edge-fix/document_loaders/fs/pdf';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
