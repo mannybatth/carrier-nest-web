@@ -74,5 +74,20 @@ export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoa
     });
 
     const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
+
+    data.load.pickup_date = normalizeDateStr(data.load.pickup_date);
+    data.load.delivery_date = normalizeDateStr(data.load.delivery_date);
+
     return data.load;
+};
+
+const normalizeDateStr = (dateStr: string): string => {
+    // If dateStr is in the format "mm/dd", add the current year
+    if (dateStr.match(/^\d{2}\/\d{2}$/)) {
+        const date = new Date();
+        const year = date.getFullYear();
+        return `${dateStr}/${year}`;
+    }
+
+    return dateStr;
 };
