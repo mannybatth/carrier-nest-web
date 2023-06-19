@@ -65,7 +65,14 @@ const InvoiceForm: React.FC<Props> = ({
                                     onChange={(e) => {
                                         onChange(new Date(formatISO(parseISO(e.target.value))));
                                     }}
-                                    value={value ? dateFnsFormat(value, 'yyyy-MM-dd') : ''}
+                                    value={
+                                        value
+                                            ? dateFnsFormat(
+                                                  value instanceof Date ? value : parseISO(value),
+                                                  'yyyy-MM-dd',
+                                              )
+                                            : ''
+                                    }
                                     type="date"
                                     id="invoicedAt"
                                     autoComplete="date"

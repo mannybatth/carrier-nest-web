@@ -10,12 +10,7 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
-import { apiUrl } from '../../constants';
-import { Document } from 'langchain/document';
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-
-import workerSrc from 'pdfjs-dist/build/pdf.worker.entry';
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+import { parsePdf, AILoad } from '../../lib/rest/ai';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -84,53 +79,30 @@ const CreateLoad: PageWithAuth = () => {
             const arrayBuffer = reader.result as ArrayBuffer;
             const byteArray = new Uint8Array(arrayBuffer);
 
-            const pdf = await pdfjsLib.getDocument({
-                data: byteArray,
-                useWorkerFetch: false,
-                isEvalSupported: false,
-                useSystemFonts: true,
-            }).promise;
-            const meta = await pdf.getMetadata().catch(() => null);
-
-            const documents: Document[] = [];
-
-            for (let i = 1; i <= pdf.numPages; i += 1) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-
-                if (content.items.length === 0) {
-                    continue;
-                }
-
-                const text = content.items.map((item) => (item as any).str).join('\n');
-
-                documents.push(
-                    new Document({
-                        pageContent: text,
-                        metadata: {
-                            source: 'blob',
-                            blobType: file.type,
-                            pdf: {
-                                info: meta?.info,
-                                metadata: meta?.metadata,
-                                totalPages: pdf.numPages,
-                            },
-                            loc: {
-                                pageNumber: i,
-                            },
-                        },
-                    }),
-                );
-            }
-
-            const response = await fetch(apiUrl + '/ai/ratecon', {
-                method: 'POST',
-                body: JSON.stringify(documents),
-            });
-
-            const data = await response.json();
-            console.log(data);
+            const load = await parsePdf(byteArray, file);
+            applyAIOutputToForm(load);
         };
+    };
+
+    const applyAIOutputToForm = (load: AILoad) => {
+        console.log('response from AI', load);
+
+        formHook.setValue('refNum', load.load_number);
+        formHook.setValue('rate', new Prisma.Decimal(load.rate));
+        formHook.setValue('shipper.name', load.shipper);
+        formHook.setValue('shipper.street', load.shipper_address.street);
+        formHook.setValue('shipper.city', load.shipper_address.city);
+        formHook.setValue('shipper.state', load.shipper_address.state);
+        formHook.setValue('shipper.zip', load.shipper_address.zip);
+        formHook.setValue('shipper.date', new Date(load.pickup_date));
+        formHook.setValue('shipper.time', load.pickup_time);
+        formHook.setValue('receiver.name', load.consignee);
+        formHook.setValue('receiver.street', load.consignee_address.street);
+        formHook.setValue('receiver.city', load.consignee_address.city);
+        formHook.setValue('receiver.state', load.consignee_address.state);
+        formHook.setValue('receiver.zip', load.consignee_address.zip);
+        formHook.setValue('receiver.date', new Date(load.delivery_date));
+        formHook.setValue('receiver.time', load.delivery_time);
     };
 
     return (

@@ -112,7 +112,16 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                                             onChange={(e) => {
                                                                 onChange(new Date(formatISO(parseISO(e.target.value))));
                                                             }}
-                                                            value={value ? dateFnsFormat(value, 'yyyy-MM-dd') : ''}
+                                                            value={
+                                                                value
+                                                                    ? dateFnsFormat(
+                                                                          value instanceof Date
+                                                                              ? value
+                                                                              : parseISO(value),
+                                                                          'yyyy-MM-dd',
+                                                                      )
+                                                                    : ''
+                                                            }
                                                             type="date"
                                                             id="paidAt"
                                                             autoComplete="date"
