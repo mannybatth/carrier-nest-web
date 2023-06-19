@@ -31,7 +31,7 @@ export default async function POST(req: NextRequest) {
 
         const splitter = new CharacterTextSplitter({
             chunkSize: 1000,
-            chunkOverlap: 200,
+            chunkOverlap: 300,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
@@ -41,19 +41,19 @@ export default async function POST(req: NextRequest) {
             returnSourceDocuments: false,
         });
 
-        const prompt = `For the given text of a Carrier Rate and Load Confirmation pdf, provide a JSON representation of the document. All values should be present in the document, do not make any assumptions about the values.
-The JSON representation should include the following fields:
+        const prompt = `For the given text of a Carrier Rate and Load Confirmation pdf, scan the text and extract the following information in a JSON formatted string. All values should be present in the document, do not make any assumptions about the values.
+The JSON result should include the following fields:
 - "logistics_company": The name of the logistics company
 - "load_number": The load/reference number for the shipment
 - "shipper": The name of the shipper
 - "shipper_address": The address of the shipper. Return a object with the following fields: "street", "city", "state", "zip", "country"
 - "pickup_date": The date of pickup
 - "pickup_time": The time of pickup. Give time in 24 hour format
-- "consignee": The name of the consignee
-- "consignee_address": The address of the consignee. Return a object with the following fields: "street", "city", "state", "zip", "country"
+- "consignee": The name of the consignee/receiver
+- "consignee_address": The address of the consignee/receiver. Return a object with the following fields: "street", "city", "state", "zip", "country"
 - "delivery_date": The date of delivery
 - "delivery_time": The time of delivery. Give time in 24 hour format
-- "rate": The rate for the shipment. Only include the number, not the currency
+- "rate": The flat rate for the line haul. Only include the number, not the currency
 - "invoice_email": The email address where to send proof of delivery (POD/BOL) and invoice after delivery. If there is no email address, return "null"
 `;
 
