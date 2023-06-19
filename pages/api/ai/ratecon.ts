@@ -86,16 +86,10 @@ Output: {"load": {"logistics_company": "STORD FREIGHT LLC", "load_number": "L604
         ]);
         chatPrompt.partialVariables = { instructions: instructions };
 
-        const qaChain = RetrievalQAChain.fromLLM(
-            new ChatOpenAI({
-                verbose: true,
-            }),
-            vectordb.asRetriever(7),
-            {
-                returnSourceDocuments: false,
-                prompt: chatPrompt,
-            },
-        );
+        const qaChain = RetrievalQAChain.fromLLM(new ChatOpenAI({}), vectordb.asRetriever(7), {
+            returnSourceDocuments: false,
+            prompt: chatPrompt,
+        });
 
         const result = await qaChain.call({
             query: 'Output:',
