@@ -22,7 +22,6 @@ import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
 import parseISO from 'date-fns/parseISO';
-import parse from 'date-fns/parse';
 import formatISO from 'date-fns/formatISO';
 
 export type LoadFormStopProps = {
@@ -283,7 +282,11 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
                 <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                     <label htmlFor={fieldId('date')} className="block text-sm font-medium text-gray-700">
-                        Pick Up Date
+                        {props.type === LoadStopType.RECEIVER
+                            ? 'Delivery Date'
+                            : props.type === LoadStopType.SHIPPER
+                            ? 'Pick Up Date'
+                            : 'Date'}
                     </label>
                     <Controller
                         control={control}
@@ -322,7 +325,11 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
                 <div className="col-span-12 sm:col-span-3 lg:col-span-3">
                     <label htmlFor={fieldId('time')} className="block text-sm font-medium text-gray-700">
-                        Pick Up Time
+                        {props.type === LoadStopType.RECEIVER
+                            ? 'Drop Off Time'
+                            : props.type === LoadStopType.SHIPPER
+                            ? 'Pick Up Time'
+                            : 'Time'}
                     </label>
 
                     <Controller
