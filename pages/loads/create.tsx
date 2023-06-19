@@ -11,6 +11,7 @@ import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
 import { parsePdf, AILoad } from '../../lib/rest/ai';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -79,8 +80,10 @@ const CreateLoad: PageWithAuth = () => {
             const arrayBuffer = reader.result as ArrayBuffer;
             const byteArray = new Uint8Array(arrayBuffer);
 
+            setLoading(true);
             const load = await parsePdf(byteArray, file);
             applyAIOutputToForm(load);
+            setLoading(false);
         };
     };
 
@@ -129,7 +132,8 @@ const CreateLoad: PageWithAuth = () => {
                     <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 mb-64 sm:px-6 md:px-8">
+                <div className="relative px-5 mb-64 sm:px-6 md:px-8">
+                    {loading && <LoadingOverlay />}
                     <div className="flex items-center justify-between px-4 py-4 bg-white sm:px-6">
                         <div className="flex-1">
                             <label
