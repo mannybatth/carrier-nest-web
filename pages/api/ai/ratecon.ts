@@ -1,39 +1,25 @@
-import { ChatOpenAI } from 'langchain-edge-fix/chat_models/openai';
-import { CharacterTextSplitter } from 'langchain-edge-fix/text_splitter';
-import { MemoryVectorStore } from 'langchain-edge-fix/vectorstores/memory';
-import { OpenAIEmbeddings } from 'langchain-edge-fix/embeddings/openai';
-import { RetrievalQAChain } from 'langchain-edge-fix/chains';
-import { PDFLoader } from 'langchain-edge-fix/document_loaders/fs/pdf';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { CharacterTextSplitter } from 'langchain/text_splitter';
+import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { RetrievalQAChain } from 'langchain/chains';
+import { Document } from 'langchain/document';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const config = {
-    runtime: 'edge', // for Edge API Routes only
-    unstable_allowDynamic: [
-        '/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js',
-        '/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.worker.js',
-    ],
+    runtime: 'edge',
 };
 
 export default async function POST(req: NextRequest) {
-    // get the file from req.formData
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const list = await req.json();
 
-    if (!file) {
-        return NextResponse.json(
-            {
-                code: 400,
-                errors: [{ message: 'No file provided' }],
-            },
-            { status: 400 },
-        );
-    }
-
-    // load the file into a PDFLoader
-    const pdfLoader = new PDFLoader(file, {
-        pdfjs: () => import('./pdfjs-dist/build/pdf'),
+    let documents: Document[] = list.map((item) => {
+        return new Document({
+            pageContent: item.pageContent,
+            metadata: item.metadata,
+        });
     });
-    let documents = await pdfLoader.load();
+
     // Split text into characters
     const splitter = new CharacterTextSplitter({
         chunkSize: 1000,
