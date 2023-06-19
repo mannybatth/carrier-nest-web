@@ -88,7 +88,7 @@ Output: {"load": {"logistics_company": "STORD FREIGHT LLC", "load_number": "L604
 
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
-                verbose: true,
+                verbose: process.env.NODE_ENV === 'development',
             }),
             vectordb.asRetriever(),
             {
