@@ -90,21 +90,25 @@ const CreateLoad: PageWithAuth = () => {
     const applyAIOutputToForm = (load: AILoad) => {
         console.log('response from AI', load);
 
+        if (!load) {
+            return;
+        }
+
         formHook.setValue('refNum', load.load_number);
-        formHook.setValue('rate', new Prisma.Decimal(load.rate));
+        formHook.setValue('rate', load.rate ? new Prisma.Decimal(load.rate) : null);
         formHook.setValue('shipper.name', load.shipper);
         formHook.setValue('shipper.street', load.shipper_address?.street);
         formHook.setValue('shipper.city', load.shipper_address?.city);
         formHook.setValue('shipper.state', load.shipper_address?.state);
         formHook.setValue('shipper.zip', load.shipper_address?.zip);
-        formHook.setValue('shipper.date', new Date(load.pickup_date));
+        formHook.setValue('shipper.date', load.pickup_date ? new Date(load.pickup_date) : null);
         formHook.setValue('shipper.time', load.pickup_time);
         formHook.setValue('receiver.name', load.consignee);
         formHook.setValue('receiver.street', load.consignee_address?.street);
         formHook.setValue('receiver.city', load.consignee_address?.city);
         formHook.setValue('receiver.state', load.consignee_address?.state);
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
-        formHook.setValue('receiver.date', new Date(load.delivery_date));
+        formHook.setValue('receiver.date', load.delivery_date ? new Date(load.delivery_date) : null);
         formHook.setValue('receiver.time', load.delivery_time);
     };
 

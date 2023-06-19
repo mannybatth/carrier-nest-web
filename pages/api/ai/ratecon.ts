@@ -31,7 +31,7 @@ export default async function POST(req: NextRequest) {
         });
 
         const splitter = new CharacterTextSplitter({
-            chunkSize: 1000,
+            chunkSize: 1500,
             chunkOverlap: 300,
         });
 
@@ -44,23 +44,23 @@ export default async function POST(req: NextRequest) {
 load: { // Load Details
     logistics_company: string // The name of the logistics company
     load_number: string // The load/reference number for the shipment. Remove '#' from string
-    shipper: string // The name of the shipper
-    shipper_address: { // The address of the shipper.
-        street: string // Street
-        city: string // City
-        state: string // State
-        zip: string // Zip
-        country: string // Country
+    shipper: string // The name of the shipper/pickup location
+    shipper_address: { // The address of the shipper/pickup location
+        street: string // Street address of the shipper/pickup location
+        city: string // City of the shipper/pickup location
+        state: string // State of the shipper/pickup location
+        zip: string // Zip code of the shipper/pickup location
+        country: string // Country of the shipper/pickup location
     }
     pickup_date: string // The date of pickup
     pickup_time: string // The time of pickup. Give time in 24 hour format
-    consignee: string // The name of the consignee/receiver
-    consignee_address: { // The address of the consignee/receiver
-        street: string // Street
-        city: string // City
-        state: string // State
-        zip: string // Zip
-        country: string // Country
+    consignee: string // The name of the consignee/receiver/delivery location
+    consignee_address: { // The address of the consignee/receiver/delivery location
+        street: string // Street address of the consignee/receiver/delivery location
+        city: string // City of the consignee/receiver/delivery location
+        state: string // State of the consignee/receiver/delivery location
+        zip: string // Zip code of the consignee/receiver/delivery location
+        country: string // Country of the consignee/receiver/delivery location
     }
     delivery_date: string // The date of delivery
     delivery_time: string // The time of delivery
@@ -82,21 +82,32 @@ Output: {"load": {"logistics_company": "STORD FREIGHT LLC", "load_number": "L604
             SystemMessagePromptTemplate.fromTemplate(
                 "Your goal is to extract structured information from the user's input that matches the form described below. When extracting information please make sure it matches the type information exactly. Do not add any attributes that do not appear in the schema shown below.\n\n{instructions}",
             ),
-            HumanMessagePromptTemplate.fromTemplate('{context}'),
+            HumanMessagePromptTemplate.fromTemplate('Input: {context}\n'),
         ]);
         chatPrompt.partialVariables = { instructions: instructions };
 
-        const qaChain = RetrievalQAChain.fromLLM(new ChatOpenAI({}), vectordb.asRetriever(7), {
-            returnSourceDocuments: false,
-            prompt: chatPrompt,
-        });
+        const qaChain = RetrievalQAChain.fromLLM(
+            new ChatOpenAI({
+                verbose: true,
+            }),
+            vectordb.asRetriever(),
+            {
+                returnSourceDocuments: false,
+                prompt: chatPrompt,
+            },
+        );
 
         const result = await qaChain.call({
             query: 'Output:',
         });
 
         if (typeof result.text === 'string') {
-            const jsonStr = result.text?.replace(/`/g, '');
+            let jsonStr = result.text?.replace(/`/g, '');
+
+            // Remove the Output: prefix if it exists
+            if (jsonStr.startsWith('Output:')) {
+                jsonStr = jsonStr.slice('Output:'.length);
+            }
 
             try {
                 const json = JSON.parse(jsonStr);
