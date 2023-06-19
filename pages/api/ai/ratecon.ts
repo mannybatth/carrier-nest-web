@@ -6,7 +6,13 @@ import { RetrievalQAChain } from 'langchain-edge-fix/chains';
 import { PDFLoader } from 'langchain-edge-fix/document_loaders/fs/pdf';
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+export const config = {
+    runtime: 'edge', // for Edge API Routes only
+    unstable_allowDynamic: [
+        '/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js',
+        '/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.worker.js',
+    ],
+};
 
 export default async function POST(req: NextRequest) {
     // get the file from req.formData
@@ -24,7 +30,9 @@ export default async function POST(req: NextRequest) {
     }
 
     // load the file into a PDFLoader
-    const pdfLoader = new PDFLoader(file);
+    const pdfLoader = new PDFLoader(file, {
+        pdfjs: () => import('./pdfjs-dist/build/pdf'),
+    });
     let documents = await pdfLoader.load();
     // Split text into characters
     const splitter = new CharacterTextSplitter({

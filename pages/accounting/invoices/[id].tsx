@@ -447,7 +447,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                                                 }).format(new Date(payment.paidAt))}
                                                             </td>
                                                             <td className="px-3 py-4 text-sm text-right whitespace-nowrap">
-                                                                ${payment.amount}
+                                                                <>${payment.amount}</>
                                                             </td>
                                                             <td className="px-6 py-2 text-right whitespace-no-wrap">
                                                                 <Menu as="div" className="inline-block text-left">
