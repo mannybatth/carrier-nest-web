@@ -8,7 +8,7 @@ export async function customerSearch(query: string): Promise<SearchResult<{ id: 
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
         prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" WHERE name % ${query} ORDER BY sim desc LIMIT 5`,
     ]);
-    return customers.filter((c) => c.sim > 0);
+    return customers.filter((c) => c.sim > 0).sort((a, b) => b.sim - a.sim);
 }
 
 export default handler;

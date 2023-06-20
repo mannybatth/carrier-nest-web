@@ -79,7 +79,7 @@ const LoadForm: React.FC<Props> = ({
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                                 <Combobox
                                     as="div"
-                                    value={value}
+                                    value={value || ''}
                                     onChange={(selectedCustomer: Customer) => {
                                         setCustomerSearchTerm('');
                                         setDebouncedCustomerSearchTerm('');

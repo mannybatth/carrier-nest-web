@@ -12,6 +12,7 @@ import { createLoad } from '../../lib/rest/load';
 import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
 import { parsePdf, AILoad } from '../../lib/rest/ai';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { searchCustomersByName } from '../../lib/rest/customer';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -81,14 +82,12 @@ const CreateLoad: PageWithAuth = () => {
 
             setLoading(true);
             const load = await parsePdf(byteArray, file);
-            applyAIOutputToForm(load);
+            await applyAIOutputToForm(load);
             setLoading(false);
         };
     };
 
-    const applyAIOutputToForm = (load: AILoad) => {
-        console.log('response from AI', load);
-
+    const applyAIOutputToForm = async (load: AILoad) => {
         if (!load) {
             return;
         }
@@ -109,6 +108,15 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
         formHook.setValue('receiver.date', load.delivery_date ? new Date(load.delivery_date) : null);
         formHook.setValue('receiver.time', load.delivery_time);
+        await setCustomerFromOutput(load);
+    };
+
+    const setCustomerFromOutput = async (load: AILoad) => {
+        if (!load.logistics_company) {
+            return;
+        }
+        const customers = await searchCustomersByName(load.logistics_company);
+        formHook.setValue('customer', customers[0]);
     };
 
     return (

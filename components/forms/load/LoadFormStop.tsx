@@ -343,7 +343,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             <>
                                 <div className="relative mt-1">
                                     <TimeField
-                                        value={value}
+                                        value={value || ''}
                                         onChange={onChange}
                                         input={
                                             <input
@@ -371,7 +371,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <Combobox
                                 as="div"
-                                value={value}
+                                value={value || ''}
                                 onChange={(selectedLocation: LocationEntry) => {
                                     setSelectedLocation(selectedLocation);
                                     setLocationSearchTerm('');
