@@ -78,8 +78,14 @@ export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoa
     if (data?.load?.pickup_date) {
         data.load.pickup_date = normalizeDateStr(data.load.pickup_date);
     }
+    if (data?.load?.pickup_time) {
+        data.load.pickup_time = normalizeTimeStr(data.load.pickup_time);
+    }
     if (data?.load?.delivery_date) {
         data.load.delivery_date = normalizeDateStr(data.load.delivery_date);
+    }
+    if (data?.load?.delivery_time) {
+        data.load.delivery_time = normalizeTimeStr(data.load.delivery_time);
     }
 
     return data?.load;
@@ -98,4 +104,32 @@ const normalizeDateStr = (dateStr: string): string => {
     }
 
     return dateStr;
+};
+
+const normalizeTimeStr = (timeStr: string): string => {
+    if (!timeStr) {
+        return timeStr;
+    }
+
+    // If timeStr is in the format "hhmm", add a colon
+    if (timeStr.match(/^\d{4}$/)) {
+        return `${timeStr.slice(0, 2)}:${timeStr.slice(2)}`;
+    }
+
+    // If timeStr is in the format "hhmmss", change to "hh:mm"
+    if (timeStr.match(/^\d{6}$/)) {
+        return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`;
+    }
+
+    // If timeStr is in the format "hh:mm:ss", change to "hh:mm"
+    if (timeStr.match(/^\d{2}:\d{2}:\d{2}$/)) {
+        return timeStr.slice(0, 5);
+    }
+
+    // If timeStr is in the format "hh", change to "hh:00"
+    if (timeStr.match(/^\d{2}$/)) {
+        return `${timeStr}:00`;
+    }
+
+    return timeStr;
 };

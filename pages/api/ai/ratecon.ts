@@ -46,7 +46,7 @@ export default async function POST(req: NextRequest) {
 \`\`\`json scheme
 
 load: { // Load Details
-    logistics_company: string // The name of the logistics company
+    logistics_company: string // The name of the logistics company. Most of the time it is at the top of the document. Do not use the carrier name
     load_number: string // The load/reference number for the shipment
     shipper: string // The name of the shipper/pickup location
     shipper_address: { // The address of the shipper/pickup location
@@ -95,11 +95,13 @@ Context: {context}\n`;
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
                 temperature: 0,
+                verbose: process.env.NODE_ENV === 'development',
             }),
             vectordb.asRetriever(7),
             {
                 returnSourceDocuments: false,
                 prompt: chatPrompt,
+                verbose: process.env.NODE_ENV === 'development',
             },
         );
 
