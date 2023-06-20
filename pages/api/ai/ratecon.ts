@@ -95,13 +95,11 @@ Context: {context}\n`;
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
                 temperature: 0,
-                verbose: process.env.NODE_ENV === 'development',
             }),
             vectordb.asRetriever(7),
             {
                 returnSourceDocuments: false,
                 prompt: chatPrompt,
-                verbose: process.env.NODE_ENV === 'development',
             },
         );
 
