@@ -126,6 +126,11 @@ const normalizeTimeStr = (timeStr: string): string => {
         return timeStr.slice(0, 5);
     }
 
+    // If timeStr is in the format "h:mm", change to "hh:mm"
+    if (timeStr.match(/^\d{1}:\d{2}$/)) {
+        return `0${timeStr}`;
+    }
+
     // If timeStr is in the format "hh", change to "hh:00"
     if (timeStr.match(/^\d{2}$/)) {
         return `${timeStr}:00`;
