@@ -58,7 +58,6 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(true);
 
         const newLoad = await createLoad(loadData);
-        console.log('new load', newLoad);
 
         setLoading(false);
 
