@@ -336,7 +336,6 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     <Controller
                         control={control}
                         rules={{
-                            required: 'Pick Up Time is required',
                             minLength: { value: 5, message: 'Time is invalid' },
                         }}
                         name={fieldId('time')}
