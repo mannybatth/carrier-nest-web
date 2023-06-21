@@ -3,6 +3,12 @@ import { apiUrl } from '../../constants';
 import { JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
+export interface SearchCustomer {
+    id: string;
+    name: string;
+    sim: number;
+}
+
 export const getAllCustomers = async ({
     sort,
     limit,
@@ -47,7 +53,7 @@ export const getCustomerById = async (id: string) => {
 
 export const searchCustomersByName = async (value: string) => {
     const response = await fetch(apiUrl + '/customers/search?q=' + value);
-    const { data, errors }: JSONResponse<{ customers: Customer[] }> = await response.json();
+    const { data, errors }: JSONResponse<{ customers: SearchCustomer[] }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));

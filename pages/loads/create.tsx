@@ -16,6 +16,7 @@ import { searchCustomersByName } from '../../lib/rest/customer';
 import { queryLocations } from '../../lib/rest/maps';
 import { LocationEntry, regionFromLocationEntry } from '../../interfaces/location';
 import AddressConfirmation from '../../components/loads/AddressConfirmation';
+import { FileUploader } from 'react-drag-drop-files';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -76,8 +77,7 @@ const CreateLoad: PageWithAuth = () => {
         router.push(`/loads/${newLoad.id}`);
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files[0];
+    const handleFileUpload = async (file: File) => {
         if (!file) {
             return;
         }
@@ -88,11 +88,16 @@ const CreateLoad: PageWithAuth = () => {
             const arrayBuffer = reader.result as ArrayBuffer;
             const byteArray = new Uint8Array(arrayBuffer);
 
-            setLoading(true);
-            const load = await parsePdf(byteArray, file);
-            setAILoad(load);
-            await applyAIOutputToForm(load);
-            setLoading(false);
+            try {
+                setLoading(true);
+                const load = await parsePdf(byteArray, file);
+                setAILoad(load);
+                await applyAIOutputToForm(load);
+                setLoading(false);
+            } catch (e) {
+                setLoading(false);
+                notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
+            }
         };
     };
 
@@ -132,7 +137,18 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
         const customers = await searchCustomersByName(load.logistics_company);
-        formHook.setValue('customer', customers[0]);
+        console.log('customers', customers);
+
+        if (!customers || customers.length === 0) {
+            return;
+        }
+
+        const customer = customers[0];
+        if (customer.sim > 0.49) {
+            formHook.setValue('customer', customers[0]);
+        } else {
+            formHook.setValue('customer', null);
+        }
     };
 
     const findAddressesFromOutput = async (load: AILoad) => {
@@ -220,23 +236,34 @@ const CreateLoad: PageWithAuth = () => {
                 </div>
                 <div className="relative px-5 mb-64 sm:px-6 md:px-8">
                     {loading && <LoadingOverlay />}
-                    <div className="flex items-center justify-between px-4 py-4 bg-white sm:px-6">
-                        <div className="flex-1">
-                            <label
-                                htmlFor="file-upload"
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Upload File
+
+                    <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
+                        <div className="flex mb-4">
+                            <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
+                                <span className="flex items-center space-x-2">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-6 h-6 text-gray-600"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                        />
+                                    </svg>
+                                    <span className="font-medium text-gray-600">
+                                        Drop a rate confirmation file, or{' '}
+                                        <span className="text-blue-600 underline">browse</span>
+                                    </span>
+                                </span>
                             </label>
-                            <input
-                                id="file-upload"
-                                name="file-upload"
-                                type="file"
-                                className="hidden"
-                                onChange={handleFileUpload}
-                            />
                         </div>
-                    </div>
+                    </FileUploader>
+
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">

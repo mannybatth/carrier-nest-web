@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
-import { searchCustomersByName } from '../../../lib/rest/customer';
+import { SearchCustomer, searchCustomersByName } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
 import CreateCustomerModal from '../customer/CreateCustomerModal';
 import MoneyInput from '../MoneyInput';
@@ -30,7 +30,7 @@ const LoadForm: React.FC<Props> = ({
 
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
-    const [customerSearchResults, setCustomerSearchResults] = React.useState<Customer[]>(null);
+    const [customerSearchResults, setCustomerSearchResults] = React.useState<SearchCustomer[]>(null);
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
 
     const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });

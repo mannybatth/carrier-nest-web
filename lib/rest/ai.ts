@@ -68,6 +68,21 @@ export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoa
         );
     }
 
+    // Validate the documents
+    documents.forEach((doc) => {
+        if (!doc.pageContent) {
+            throw new Error('Invalid input. Expected pageContent to be a string.');
+        }
+        if (!doc.metadata) {
+            throw new Error('Invalid input. Expected metadata to be an object.');
+        }
+
+        // Check for escape sequences in the content
+        if (/%u[0-9A-F]{4}|\\./i.test(doc.pageContent)) {
+            throw new Error('Invalid input. Expected pageContent to be a string.');
+        }
+    });
+
     const response = await fetch(apiUrl + '/ai/ratecon', {
         method: 'POST',
         body: JSON.stringify(documents),
