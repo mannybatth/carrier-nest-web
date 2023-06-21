@@ -15,7 +15,7 @@ import {
     UseFormWatch,
 } from 'react-hook-form';
 import { countryCodes } from '../../../interfaces/country-codes';
-import { LocationEntry } from '../../../interfaces/location';
+import { LocationEntry, regionFromLocationEntry } from '../../../interfaces/location';
 import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
@@ -23,6 +23,7 @@ import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
 import parseISO from 'date-fns/parseISO';
 import formatISO from 'date-fns/formatISO';
+import { SearchCircleIcon, SearchIcon } from '@heroicons/react/solid';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -377,18 +378,11 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     setLocationSearchTerm('');
                                     setDebouncedLocationSearchTerm('');
 
-                                    const regionCode = selectedLocation?.region?.shortCode;
-                                    if (regionCode) {
-                                        const iso3166Info = iso3166.subdivision(regionCode);
-                                        if (iso3166Info) {
-                                            selectedLocation.region.iso3166Info = iso3166Info;
-                                            setValue(fieldId('state'), iso3166Info.regionCode);
-                                        } else {
-                                            setValue(fieldId('state'), regionCode);
-                                        }
-                                    } else {
-                                        setValue(fieldId('state'), selectedLocation?.region?.text);
+                                    const { regionText, iso3166Info } = regionFromLocationEntry(selectedLocation);
+                                    if (iso3166Info) {
+                                        selectedLocation.region.iso3166Info = iso3166Info;
                                     }
+                                    setValue(fieldId('state'), regionText);
 
                                     setValue(fieldId('city'), selectedLocation.city);
                                     setValue(fieldId('zip'), selectedLocation.zip);
@@ -400,7 +394,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             >
                                 <div className="flex items-center space-x-3">
                                     <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
-                                        Street Address
+                                        Street Address{' '}
+                                        <SearchIcon className="inline-block w-4 h-4 text-gray-400" aria-hidden="true" />
                                     </Combobox.Label>
 
                                     {watchLongitude && watchLatitude && (

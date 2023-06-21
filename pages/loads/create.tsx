@@ -13,6 +13,9 @@ import SaveLoadConfirmation from '../../components/loads/SaveLoadConfirmation';
 import { parsePdf, AILoad } from '../../lib/rest/ai';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { searchCustomersByName } from '../../lib/rest/customer';
+import { queryLocations } from '../../lib/rest/maps';
+import { LocationEntry, regionFromLocationEntry } from '../../interfaces/location';
+import AddressConfirmation from '../../components/loads/AddressConfirmation';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -22,6 +25,11 @@ const CreateLoad: PageWithAuth = () => {
 
     const [showConfirmation, setShowConfirmation] = React.useState(false);
     const [dataToSave, setDataToSave] = React.useState<ExpandedLoad>(null);
+
+    const [aiLoad, setAILoad] = React.useState<AILoad>(null);
+    const [showAddressConfirmation, setShowAddressConfirmation] = React.useState(false);
+    const [shipperLocations, setShipperLocations] = React.useState<LocationEntry[]>([]);
+    const [receiverLocations, setReceiverLocations] = React.useState<LocationEntry[]>([]);
 
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
@@ -82,6 +90,7 @@ const CreateLoad: PageWithAuth = () => {
 
             setLoading(true);
             const load = await parsePdf(byteArray, file);
+            setAILoad(load);
             await applyAIOutputToForm(load);
             setLoading(false);
         };
@@ -108,7 +117,14 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
         formHook.setValue('receiver.date', load.delivery_date ? new Date(load.delivery_date) : null);
         formHook.setValue('receiver.time', load.delivery_time);
-        await setCustomerFromOutput(load);
+
+        const [{ shipperLocations, receiverLocations }] = await Promise.all([
+            findAddressesFromOutput(load),
+            setCustomerFromOutput(load),
+        ]);
+        setShipperLocations(shipperLocations);
+        setReceiverLocations(receiverLocations);
+        setShowAddressConfirmation(true);
     };
 
     const setCustomerFromOutput = async (load: AILoad) => {
@@ -119,12 +135,71 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('customer', customers[0]);
     };
 
+    const findAddressesFromOutput = async (load: AILoad) => {
+        const promises: Promise<LocationEntry[]>[] = [];
+        if (load.shipper_address) {
+            const query = `${load.shipper_address.street} ${load.shipper_address.city} ${load.shipper_address.state} ${load.shipper_address.zip}`;
+            promises.push(queryLocations(query));
+        } else {
+            promises.push(Promise.resolve([]));
+        }
+
+        if (load.consignee_address) {
+            const query = `${load.consignee_address.street} ${load.consignee_address.city} ${load.consignee_address.state} ${load.consignee_address.zip}`;
+            promises.push(queryLocations(query));
+        } else {
+            promises.push(Promise.resolve([]));
+        }
+
+        const [shipperLocations, receiverLocations] = await Promise.all(promises);
+
+        return {
+            shipperLocations,
+            receiverLocations,
+        };
+    };
+
+    const handleAddressConfirmation = (shipperLocationEntry: LocationEntry, receiverLocationEntry: LocationEntry) => {
+        if (shipperLocationEntry) {
+            const { regionText: shipperRegionText } = regionFromLocationEntry(shipperLocationEntry);
+            formHook.setValue('shipper.street', shipperLocationEntry.street);
+            formHook.setValue('shipper.city', shipperLocationEntry.city);
+            formHook.setValue('shipper.state', shipperRegionText);
+            formHook.setValue('shipper.zip', shipperLocationEntry.zip);
+            formHook.setValue('shipper.country', shipperLocationEntry.country.shortCode);
+            formHook.setValue('shipper.longitude', shipperLocationEntry.longitude);
+            formHook.setValue('shipper.latitude', shipperLocationEntry.latitude);
+        }
+
+        if (receiverLocationEntry) {
+            const { regionText: receiverRegionText } = regionFromLocationEntry(receiverLocationEntry);
+            formHook.setValue('receiver.street', receiverLocationEntry.street);
+            formHook.setValue('receiver.city', receiverLocationEntry.city);
+            formHook.setValue('receiver.state', receiverRegionText);
+            formHook.setValue('receiver.zip', receiverLocationEntry.zip);
+            formHook.setValue('receiver.country', receiverLocationEntry.country.shortCode);
+            formHook.setValue('receiver.longitude', receiverLocationEntry.longitude);
+            formHook.setValue('receiver.latitude', receiverLocationEntry.latitude);
+        }
+    };
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
             <SaveLoadConfirmation
                 show={showConfirmation}
                 onSave={() => saveLoadData(dataToSave)}
                 onClose={() => setShowConfirmation(false)}
+            />
+            <AddressConfirmation
+                show={showAddressConfirmation}
+                aiLoad={aiLoad}
+                shipperLocations={shipperLocations}
+                receiverLocations={receiverLocations}
+                onConfirm={(shipper: LocationEntry, receiver: LocationEntry) => {
+                    handleAddressConfirmation(shipper, receiver);
+                    setShowAddressConfirmation(false);
+                }}
+                onClose={() => setShowAddressConfirmation(false)}
             />
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
