@@ -96,7 +96,7 @@ const CreateLoad: PageWithAuth = () => {
                 setLoading(false);
             } catch (e) {
                 setLoading(false);
-                notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
+                notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
             }
         };
     };

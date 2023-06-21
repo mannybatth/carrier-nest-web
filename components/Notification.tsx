@@ -42,5 +42,5 @@ export const notify = ({ title, message, type = 'success' }: Props) =>
                 </div>
             </div>
         ),
-        { duration: 4000, position: 'bottom-right' },
+        { duration: 6000, position: 'bottom-right' },
     );

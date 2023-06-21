@@ -37,6 +37,11 @@ export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoa
     }).promise;
     const meta = await pdf.getMetadata().catch(() => null);
 
+    // Max 10 pages allowed
+    if (pdf.numPages > 10) {
+        throw new Error('Maximum 10 pages allowed.');
+    }
+
     const documents: Document[] = [];
 
     for (let i = 1; i <= pdf.numPages; i += 1) {
