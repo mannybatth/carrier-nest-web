@@ -34,8 +34,8 @@ export default async function POST(req: NextRequest) {
         });
 
         const splitter = new CharacterTextSplitter({
-            chunkSize: 1800,
-            chunkOverlap: 400,
+            chunkSize: 2000,
+            chunkOverlap: 500,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
@@ -49,7 +49,7 @@ load: { // Load Details
     consignee_pickup_number: string // The consignee pickup number
     po_number: string // The PO number
     shipper_id: string // The shipper ID
-    load_number: string // The load # or reference # or order # or waybill # for the load. Should not be the same as the shipper_pickup_number, consignee_pickup_number, shipper_id, or po_number
+    load_number: string // The load # or reference # or order # or pro # or waybill # for the load. Should not be the same as the shipper_pickup_number, consignee_pickup_number, shipper_id, or po_number
     shipper: string // The name of the shipper/pickup location
     shipper_address: { // The address of the shipper/pickup location
         street: string // Street address of the shipper/pickup location
@@ -70,24 +70,26 @@ load: { // Load Details
     }
     delivery_date: string // The date of delivery
     delivery_time: string // The time of delivery
-    rate: number // The flat rate for the line haul. Only include the number, not the currency
-    invoice_email: string // The email address where to send proof of delivery (POD/BOL) and invoice after delivery. If there is no email address, return null
+    rate: number // The flat rate for the line haul or the cost of the load. Only include the number, not the currency.
+    invoice_email: string // Email address to submit delivery documents/POD/invoice for standard pay.
 }
 \`\`\``;
 
         const query = `
 Your goal is to read the rate confirmation document given in the context and extract structured information that matches the json scheme provided. When extracting information please make sure it matches the type information exactly. Do not add any attributes that do not appear in the schema.
-Please output the extracted information in JSON format. Do not output anything except for the extracted information. Do not add any clarifying information. Do not add any fields that are not in the schema. If the text contains attributes that do not appear in the schema, please ignore them. All output must be in JSON format and follow the schema provided below.
+Output the extracted information in JSON format. Do not output anything except for the extracted information. Do not add any clarifying information. Do not add any fields that are not in the schema. If the text contains attributes that do not appear in the schema, please ignore them. All output must be in JSON format and follow the schema provided below.
 
 ${scheme}
 
 Follow these guidelines to help you extract the information:
-- The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information
+- The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
 - Convert all dates found in context to the format MM/DD/YYYY
 - Convert all times found in context to the format HH:MM
-- The load number should be next to the load number label and will appear in the context as "Load #", "Reference #", "Order #", or "Waybill #". The load number will appear more than once in the context. Make sure to extract the correct load number
-- The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time
-- The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time
+- The load number should be next to the load number label and will appear in the context as "Load #", "Reference #", "Order #", "Pro:" or "Waybill #" (prioritize in that order). The load number will appear more than once in the context. Make sure to extract the correct load number.
+- The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
+- The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time.
+- The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email will contain the domain of the logistics company.
+- Return null for any fields that are not found in the context.
 
 Output: `;
 
@@ -96,7 +98,7 @@ Output: `;
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
             }),
-            vectordb.asRetriever(7),
+            vectordb.asRetriever(6),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
