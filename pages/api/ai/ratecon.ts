@@ -85,10 +85,10 @@ Follow these guidelines to help you extract the information:
 - The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
 - Convert all dates found in context to the format MM/DD/YYYY
 - Convert all times found in context to the format HH:MM
-- The load number should be next to the load number label and will appear in the context as "Load #", "Reference #", "Order #", "Pro:" or "Waybill #" (prioritize in that order). The load number will appear more than once in the context. Make sure to extract the correct load number.
+- The load number should be next to the load number label and will appear next to labels such as "Load", "Reference", "Order", "Pro" or "Waybill" (prioritize in that order). The load number will appear more than once in the context. Make sure to extract the correct load number.
 - The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
 - The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time.
-- The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email will contain the domain of the logistics company.
+- The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email most of the time will contain the domain of the logistics company.
 - Return null for any fields that are not found in the context.
 
 Output: `;
@@ -98,7 +98,7 @@ Output: `;
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
             }),
-            vectordb.asRetriever(6),
+            vectordb.asRetriever(7),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
