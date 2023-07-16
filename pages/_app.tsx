@@ -28,7 +28,7 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
         }
     }, [status, session]);
 
-    if (router.pathname === '/setup/carrier') {
+    if (status === 'authenticated' && router.pathname === '/setup/carrier') {
         return <>{children}</>;
     }
 
