@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     ChartPieIcon,
     CogIcon,
@@ -8,12 +7,10 @@ import {
     TruckIcon,
     UserGroupIcon,
 } from '@heroicons/react/outline';
+import classNames from 'classnames';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-
-function classNames(...classes) {
-    return classes.filter(Boolean).join(' ');
-}
+import React from 'react';
 
 const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon },

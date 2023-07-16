@@ -11,3 +11,27 @@ export const getCarrierById = async (id: string) => {
     }
     return data.carrier;
 };
+
+export const getCarriers = async () => {
+    const response = await fetch(`${apiUrl}/carriers`);
+    const { data, errors }: JSONResponse<{ carriers: Carrier[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.carriers;
+};
+
+export const createNewCarrier = async (carrier: Carrier) => {
+    const response = await fetch(`${apiUrl}/carriers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(carrier),
+    });
+    const { data, errors }: JSONResponse<{ carrier: Carrier }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.carrier;
+};

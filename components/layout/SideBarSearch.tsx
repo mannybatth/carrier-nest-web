@@ -1,16 +1,13 @@
 import { Combobox, Dialog, Transition } from '@headlessui/react';
 import { EmojiSadIcon, SearchIcon } from '@heroicons/react/outline';
 import { Customer, Driver, Load } from '@prisma/client';
+import classNames from 'classnames';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import { SearchResult } from '../../interfaces/models';
 import { useDebounce } from '../../lib/debounce';
 import { search } from '../../lib/rest/search';
 import Spinner from '../Spinner';
-
-function classNames(...classes) {
-    return classes.filter(Boolean).join(' ');
-}
 
 const SideBarSearch: React.FC = () => {
     const [open, setOpen] = useState(false);

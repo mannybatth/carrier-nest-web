@@ -1,28 +1,128 @@
-import React from 'react';
-import Layout from '../../components/layout/Layout';
+import { Carrier } from '@prisma/client';
+import { signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
+import { createNewCarrier } from '../../lib/rest/carrier';
 
 const CarrierSetup: PageWithAuth = () => {
-    return (
-        <Layout
-            smHeaderComponent={
-                <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900"></h1>
-                </div>
+    const [isLoading, setIsLoading] = useState(false); // add this state
+    const formHook = useForm<Carrier>();
+    const { replace } = useRouter();
+    const { update } = useSession();
+
+    const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
+        { id: 'name', label: 'Company Name', required: true, type: 'input' },
+        { id: 'email', label: 'Contact Email', required: false, type: 'input' },
+        { id: 'phone', label: 'Phone Number', required: false, type: 'input' },
+        { id: 'mcNum', label: 'MC Number', required: false, type: 'input' },
+        { id: 'dotNum', label: 'DOT Number', required: false, type: 'input' },
+        { id: 'street', label: 'Street Address', required: false, type: 'input' },
+        { id: 'city', label: 'City', required: false, type: 'input' },
+        { id: 'state', label: 'State', required: false, type: 'input' },
+        { id: 'zip', label: 'Zip Code', required: false, type: 'input' },
+        { id: 'country', label: 'Country', required: false, type: 'select' },
+    ];
+
+    const onSubmit = async (data: Carrier) => {
+        setIsLoading(true);
+        try {
+            const carrier = await createNewCarrier(data);
+
+            if (carrier) {
+                notify({ title: 'Carrier created successfully', type: 'success' });
+                await update();
+                await replace('/');
             }
-        >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900"></h1>
+        } catch (error) {
+            notify({ title: error.message, type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleLogout = (e) => {
+        e.preventDefault();
+        signOut();
+    };
+
+    const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-blue-500">
+            <button
+                onClick={handleLogout}
+                className="absolute px-4 py-2 font-bold text-white bg-blue-700 border border-transparent rounded-md shadow-sm top-4 right-4 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700"
+            >
+                Logout
+            </button>
+            <div className="w-full max-w-lg px-10 py-10 my-10 mb-4 bg-white rounded-lg shadow-2xl">
+                <div className="flex flex-col mb-4">
+                    <div className="flex justify-center">
+                        <h1 className="mb-6 text-4xl font-semibold text-gray-800">Carrier Setup</h1>
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    <div className="border-4 border-gray-200 border-dashed rounded-lg"></div>
+                    <form onSubmit={formHook.handleSubmit(onSubmit)}>
+                        {fields.map((field) => (
+                            <div key={field.id} className="mb-4">
+                                <label htmlFor={field.id} className="block mb-2 text-sm font-bold text-gray-700">
+                                    {field.label} {field.required && <span className="text-red-600">*</span>}
+                                </label>
+                                {field.type === 'input' ? (
+                                    <input
+                                        className={
+                                            formHook.formState.errors[field.id]
+                                                ? 'w-full px-3 py-2 leading-tight text-gray-700 border-red-600 rounded shadow appearance-none focus:outline-none focus:shadow-outline-red'
+                                                : 'w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline'
+                                        }
+                                        id={field.id}
+                                        type="text"
+                                        {...formHook.register(field.id, {
+                                            required: field.required ? field.label + ' is required' : false,
+                                        })}
+                                    />
+                                ) : (
+                                    <select
+                                        className={
+                                            formHook.formState.errors[field.id]
+                                                ? 'w-full px-3 py-2 leading-tight text-gray-700 border-red-600 rounded shadow appearance-none focus:outline-none focus:shadow-outline-red'
+                                                : 'w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline'
+                                        }
+                                        id={field.id}
+                                        {...formHook.register(field.id, {
+                                            required: field.required ? field.label + ' is required' : false,
+                                        })}
+                                    >
+                                        {countryOptions.map((country) => (
+                                            <option key={country} value={country}>
+                                                {country}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                                {formHook.formState.errors[field.id] && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {formHook.formState.errors[field.id].message}
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                        <div className="flex items-center justify-between mt-8">
+                            <button
+                                type="submit"
+                                disabled={isLoading} // disable button during loading
+                                className={`w-full px-4 py-2 font-bold text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                                    isLoading ? 'opacity-50' : ''
+                                }`}
+                            >
+                                {isLoading ? 'Creating...' : 'Create New Carrier'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </Layout>
+        </div>
     );
 };
 
