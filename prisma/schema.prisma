@@ -17,6 +17,7 @@ model Account {
     refresh_token      String?
     access_token       String?
     expires_at         Int?
+    ext_expires_in     Int?
     token_type         String?
     scope              String?
     id_token           String?
@@ -196,8 +197,8 @@ model Invoice {
     extraItems      InvoiceItem[]
     payments        InvoicePayment[]
 
-    @@index([userId, invoiceNum])
     @@unique([carrierId, invoiceNum])
+    @@index([userId, invoiceNum])
 }
 
 model InvoiceItem {

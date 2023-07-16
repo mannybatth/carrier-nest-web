@@ -3,6 +3,9 @@ import NextAuth, { NextAuthOptions, Session } from 'next-auth';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '../../../lib/prisma';
 import EmailProvider from 'next-auth/providers/email';
+import GoogleProvider from 'next-auth/providers/google';
+import AzureADProvider from 'next-auth/providers/azure-ad';
+import AzureADB2CProvider from 'next-auth/providers/azure-ad-b2c';
 import { sendVerificationRequest } from './verification-request';
 import { JWT } from 'next-auth/jwt';
 
@@ -29,6 +32,14 @@ export const authOptions: NextAuthOptions = {
                 });
             },
             // maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
+        }),
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        }),
+        AzureADProvider({
+            clientId: process.env.AZURE_AD_CLIENT_ID,
+            clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
         }),
     ],
     adapter: PrismaAdapter(prisma),
