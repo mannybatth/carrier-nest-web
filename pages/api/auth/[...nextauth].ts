@@ -1,13 +1,14 @@
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { User } from '@prisma/client';
 import { NextApiHandler } from 'next';
 import NextAuth, { NextAuthOptions, Session } from 'next-auth';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import prisma from '../../../lib/prisma';
+import { AdapterUser } from 'next-auth/adapters';
+import { JWT } from 'next-auth/jwt';
+import AzureADProvider from 'next-auth/providers/azure-ad';
 import EmailProvider from 'next-auth/providers/email';
 import GoogleProvider from 'next-auth/providers/google';
-import AzureADProvider from 'next-auth/providers/azure-ad';
-import AzureADB2CProvider from 'next-auth/providers/azure-ad-b2c';
+import prisma from '../../../lib/prisma';
 import { sendVerificationRequest } from './verification-request';
-import { JWT } from 'next-auth/jwt';
 
 const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, authOptions);
 export default authHandler;
@@ -44,9 +45,9 @@ export const authOptions: NextAuthOptions = {
     ],
     adapter: PrismaAdapter(prisma),
     callbacks: {
-        async session({ session, user, token }: { session: Session; user: any; token: JWT }) {
+        async session({ session, user, token }: { session: Session; user: AdapterUser; token: JWT }) {
             if (user && session) {
-                session.user = user;
+                session.user = user as User;
             }
             return session;
         },

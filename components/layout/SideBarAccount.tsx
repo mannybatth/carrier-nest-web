@@ -1,24 +1,28 @@
-import React from 'react';
-import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/solid';
+import { Carrier } from '@prisma/client';
+import classNames from 'classnames';
 import { signOut } from 'next-auth/react';
+import React, { Fragment } from 'react';
 
-function classNames(...classes) {
-    return classes.filter(Boolean).join(' ');
-}
+export type Props = {
+    defaultCarrier: Carrier;
+    carrierList: Carrier[];
+};
 
-const SideBarAccount: React.FC = () => (
+const SideBarAccount: React.FC<Props> = ({ defaultCarrier, carrierList }) => (
     <div className="flex">
         <Menu as="div" className="relative inline-block w-full">
             <Menu.Button className="flex flex-row items-center w-full px-4 py-3 space-x-2 text-left hover:bg-gray-200 hover:cursor-pointer active:bg-gray-300">
                 <div className="flex items-center justify-center flex-shrink-0 w-4 h-4 text-xs font-medium text-white rounded-sm bg-neutral-400">
-                    P
+                    {defaultCarrier?.name?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                    <div className="text-sm font-medium leading-4 text-zinc-600 line-clamp-1">PSB EXPRESS INC</div>
+                    <div className="text-sm font-medium leading-4 text-zinc-600 line-clamp-1">
+                        {defaultCarrier?.name}
+                    </div>
                     <div className="text-xs font-medium leading-4 text-zinc-500 line-clamp-1">
-                        psbexpressinc@gmail.com
+                        {defaultCarrier?.email}
                     </div>
                 </div>
                 <div className="flex-shrink-0">

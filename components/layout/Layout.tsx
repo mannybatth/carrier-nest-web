@@ -5,6 +5,8 @@ import Navigation from './Navigation';
 import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
+import { useSession } from 'next-auth/react';
+import { getCarriers } from '../../lib/rest/carrier';
 
 export type Props = PropsWithChildren<{
     smHeaderComponent: JSX.Element;
@@ -12,7 +14,20 @@ export type Props = PropsWithChildren<{
 }>;
 
 const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
+    const { data: session } = useSession();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [defaultCarrier, setDefaultCarrier] = useState(null);
+    const [carrierList, setCarrierList] = useState(null);
+
+    React.useEffect(() => {
+        if (session?.user?.defaultCarrierId) {
+            getCarriers().then((carriers) => {
+                const defaultCarrier = carriers.find((carrier) => carrier.id === session.user.defaultCarrierId);
+                setDefaultCarrier(defaultCarrier);
+                setCarrierList(carriers);
+            });
+        }
+    }, [session]);
 
     return (
         <div className={className}>
@@ -70,7 +85,10 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                         <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
                                     </button>
                                 </div>
-                                <SideBarAccount></SideBarAccount>
+                                <SideBarAccount
+                                    defaultCarrier={defaultCarrier}
+                                    carrierList={carrierList}
+                                ></SideBarAccount>
                                 <SideBarSearch></SideBarSearch>
                                 <Navigation></Navigation>
                             </div>
@@ -94,7 +112,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
                             </button>
                         </div>
-                        <SideBarAccount></SideBarAccount>
+                        <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carrierList}></SideBarAccount>
                         <SideBarSearch></SideBarSearch>
                         <Navigation></Navigation>
                     </div>
