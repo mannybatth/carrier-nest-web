@@ -24,16 +24,3 @@ export const loadStatus = (load: ExpandedLoad): LoadStatus => {
 
     return LoadStatus.PENDING;
 };
-
-export const getLoadDistance = (load: ExpandedLoad): number => {
-    const stops = load.stops;
-
-    const from = point([load.shipper.longitude, load.shipper.latitude]);
-    const to = point([load.receiver.longitude, load.receiver.latitude]);
-
-    const miles = distance(from, to, { units: 'miles' });
-
-    console.log('miles', miles);
-
-    return miles;
-};

@@ -79,7 +79,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                     <h3 className="mb-4">or</h3>
                     <div className="flex flex-col items-start">
                         <button
-                            onClick={() => signIn('google')}
+                            onClick={() => signIn('google', { callbackUrl })}
                             className="flex items-center justify-start w-full px-4 py-2 mb-2 font-bold text-gray-800 bg-white rounded-lg hover:bg-gray-100"
                         >
                             <span
@@ -95,7 +95,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                             Continue with Google
                         </button>
                         <button
-                            onClick={() => signIn('azure-ad')}
+                            onClick={() => signIn('azure-ad', { callbackUrl })}
                             className="flex items-center justify-start w-full px-4 py-2 mb-2 font-bold text-gray-800 bg-white rounded-lg hover:bg-gray-100"
                         >
                             <span

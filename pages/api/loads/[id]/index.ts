@@ -64,8 +64,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 country: loadData.shipper.country || '',
                 date: loadData.shipper.date || '',
                 time: loadData.shipper.time || '',
-                longitude: loadData.shipper.longitude || 0,
-                latitude: loadData.shipper.latitude || 0,
                 stopIndex: loadData.shipper.stopIndex || 0,
                 user: {
                     connect: {
@@ -83,8 +81,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 country: loadData.shipper.country || '',
                 date: loadData.shipper.date || '',
                 time: loadData.shipper.time || '',
-                longitude: loadData.shipper.longitude || 0,
-                latitude: loadData.shipper.latitude || 0,
                 stopIndex: loadData.shipper.stopIndex || 0,
                 user: {
                     connect: {
@@ -108,8 +104,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 country: loadData.receiver.country || '',
                 date: loadData.receiver.date || '',
                 time: loadData.receiver.time || '',
-                longitude: loadData.receiver.longitude || 0,
-                latitude: loadData.receiver.latitude || 0,
                 stopIndex: loadData.receiver.stopIndex || 0,
                 user: {
                     connect: {
@@ -127,8 +121,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 country: loadData.receiver.country || '',
                 date: loadData.receiver.date || '',
                 time: loadData.receiver.time || '',
-                longitude: loadData.receiver.longitude || 0,
-                latitude: loadData.receiver.latitude || 0,
                 stopIndex: loadData.receiver.stopIndex || 0,
                 user: {
                     connect: {
@@ -178,8 +170,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         country: stop.country || '',
                         date: stop.date || '',
                         time: stop.time || '',
-                        longitude: stop.longitude || 0,
-                        latitude: stop.latitude || 0,
                         stopIndex: stop.stopIndex || 0,
                         user: {
                             connect: {
