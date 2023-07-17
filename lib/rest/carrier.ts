@@ -6,6 +6,10 @@ const state = {
     carriers: [] as Carrier[],
 };
 
+export const resetCarriersState = () => {
+    state.carriers = [];
+};
+
 export const getCarrierById = async (id: string) => {
     const response = await fetch(`${apiUrl}/carriers/${id}`);
     const { data, errors }: JSONResponse<{ carrier: Carrier }> = await response.json();
@@ -36,6 +40,20 @@ export const getCarriers = async () => {
 export const createNewCarrier = async (carrier: Carrier) => {
     const response = await fetch(`${apiUrl}/carriers`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(carrier),
+    });
+    const { data, errors }: JSONResponse<{ carrier: Carrier }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.carrier;
+};
+
+export const updateCarrier = async (carrierId: string, carrier: Carrier) => {
+    const response = await fetch(`${apiUrl}/carriers/${carrierId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(carrier),
     });

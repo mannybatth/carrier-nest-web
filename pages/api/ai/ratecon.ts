@@ -98,7 +98,7 @@ Output: `;
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
             }),
-            vectordb.asRetriever(7),
+            vectordb.asRetriever(6),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
