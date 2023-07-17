@@ -131,8 +131,6 @@ model LoadStop {
     country         String
     date            DateTime
     time            String
-    longitude       Float?
-    latitude        Float?
     loadIdAsStop    String?
     stopIndex       Int          @default(0)
     loadsAsReceiver Load[]       @relation("receiver")

@@ -1,5 +1,5 @@
 import { Combobox } from '@headlessui/react';
-import { CalendarIcon, CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
+import { CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
 import dateFnsFormat from 'date-fns/format';
@@ -23,7 +23,7 @@ import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
 import parseISO from 'date-fns/parseISO';
 import formatISO from 'date-fns/formatISO';
-import { SearchCircleIcon, SearchIcon } from '@heroicons/react/solid';
+import { SearchIcon } from '@heroicons/react/solid';
 
 export type LoadFormStopProps = {
     type: LoadStopType;

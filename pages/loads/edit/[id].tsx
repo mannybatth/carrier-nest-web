@@ -1,4 +1,4 @@
-import { LoadStop, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
@@ -7,7 +7,6 @@ import safeJsonStringify from 'safe-json-stringify';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
-import SaveLoadConfirmation from '../../../components/loads/SaveLoadConfirmation';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
@@ -54,9 +53,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
     const [loading, setLoading] = React.useState(false);
     const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
 
-    const [showConfirmation, setShowConfirmation] = React.useState(false);
-    const [dataToSave, setDataToSave] = React.useState<ExpandedLoad>(null);
-
     useEffect(() => {
         if (!load) {
             formHook.reset();
@@ -82,13 +78,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
         console.log('prop load', loadProp);
         console.log('data to save', data);
 
-        const needsConfirmation =
-            !data.shipper.longitude ||
-            !data.shipper.latitude ||
-            !data.receiver.longitude ||
-            !data.receiver.latitude ||
-            !data.stops.every((stop: LoadStop) => stop.longitude && stop.latitude);
-
         const loadData: ExpandedLoad = {
             customerId: data.customer.id,
             refNum: data.refNum,
@@ -100,12 +89,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             stops: data.stops,
         };
 
-        if (needsConfirmation) {
-            setDataToSave(loadData);
-            setShowConfirmation(true);
-        } else {
-            await saveLoadData(loadData);
-        }
+        await saveLoadData(loadData);
     };
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
@@ -124,11 +108,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Load</h1>}>
-            <SaveLoadConfirmation
-                show={showConfirmation}
-                onSave={() => saveLoadData(dataToSave)}
-                onClose={() => setShowConfirmation(false)}
-            />
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
                     className="sm:px-6 md:px-8"

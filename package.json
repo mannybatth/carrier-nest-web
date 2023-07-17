@@ -9,7 +9,8 @@
         "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix",
         "db-push": "prisma db push",
         "generate": "prisma generate",
-        "studio": "prisma studio"
+        "studio": "prisma studio",
+        "migrate": "prisma migrate dev"
     },
     "keywords": [],
     "author": "",

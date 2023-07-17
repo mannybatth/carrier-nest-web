@@ -254,8 +254,6 @@ const LoadForm: React.FC<Props> = ({
                                             country: 'US',
                                             date: new Date(),
                                             time: '',
-                                            longitude: null,
-                                            latitude: null,
                                             stopIndex: stopFields.length,
                                         });
                                     }}
