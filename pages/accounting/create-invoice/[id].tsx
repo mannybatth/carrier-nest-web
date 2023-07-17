@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { InvoiceItem, Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
@@ -99,7 +99,10 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
             remainingAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
             loadId: load.id,
-            extraItems: data.extraItems,
+            extraItems: data.extraItems.map((item) => ({
+                title: item.title,
+                amount: new Prisma.Decimal(item.amount),
+            })) as InvoiceItem[],
         };
 
         try {

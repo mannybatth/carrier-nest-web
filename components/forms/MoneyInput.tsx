@@ -29,6 +29,7 @@ const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }) => {
                 value={value}
                 onChange={handleChange}
                 type="number"
+                step="any"
                 className={classNames(
                     props.className,
                     'block w-full pr-12 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 pl-7 sm:text-sm',
