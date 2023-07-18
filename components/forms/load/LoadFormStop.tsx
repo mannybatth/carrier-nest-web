@@ -1,8 +1,10 @@
 import { Combobox } from '@headlessui/react';
 import { CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
+import { SearchIcon } from '@heroicons/react/solid';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
-import dateFnsFormat from 'date-fns/format';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
 import * as iso3166 from 'iso-3166-2';
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,9 +23,6 @@ import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
 import TimeField from '../TimeField';
-import parseISO from 'date-fns/parseISO';
-import formatISO from 'date-fns/formatISO';
-import { SearchIcon } from '@heroicons/react/solid';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -298,16 +297,9 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                 <div className="relative mt-1">
                                     <input
                                         onChange={(e) => {
-                                            onChange(formatISO(parseISO(e.target.value)));
+                                            onChange(parseISO(e.target.value));
                                         }}
-                                        value={
-                                            value
-                                                ? dateFnsFormat(
-                                                      value instanceof Date ? value : parseISO(value),
-                                                      'yyyy-MM-dd',
-                                                  )
-                                                : ''
-                                        }
+                                        value={value ? format(new Date(value), 'yyyy-MM-dd') : ''}
                                         type="date"
                                         id={fieldId('date')}
                                         autoComplete="date"

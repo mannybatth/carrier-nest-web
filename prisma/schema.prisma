@@ -121,6 +121,7 @@ model Load {
 
 model LoadStop {
     id              String       @id @default(cuid())
+    createdAt       DateTime     @default(now())
     userId          String
     type            LoadStopType
     name            String
@@ -200,15 +201,17 @@ model Invoice {
 }
 
 model InvoiceItem {
-    id        String  @id @default(cuid())
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
     invoiceId String
     title     String
     amount    Decimal
-    invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoicePayment {
     id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
     userId    String
     invoiceId String
     amount    Decimal
