@@ -299,7 +299,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         onChange={(e) => {
                                             onChange(parseISO(e.target.value));
                                         }}
-                                        value={value ? format(value, 'yyyy-MM-dd') : undefined}
+                                        value={value ? format(new Date(value), 'yyyy-MM-dd') : ''}
                                         type="date"
                                         id={fieldId('date')}
                                         autoComplete="date"
