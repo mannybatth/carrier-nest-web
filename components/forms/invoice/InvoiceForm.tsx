@@ -2,9 +2,9 @@ import { Listbox, Transition } from '@headlessui/react';
 import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
 import { Prisma } from '@prisma/client';
 import classNames from 'classnames';
-import dateFnsFormat from 'date-fns/format';
-import formatISO from 'date-fns/formatISO';
+import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
+import startOfDay from 'date-fns/startOfDay';
 import React, { Fragment } from 'react';
 import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedInvoice } from '../../../interfaces/models';
@@ -58,21 +58,15 @@ const InvoiceForm: React.FC<Props> = ({
                     control={control}
                     rules={{ required: 'Invoice date is required' }}
                     name="invoicedAt"
+                    defaultValue={startOfDay(new Date())}
                     render={({ field: { onChange, value }, fieldState: { error } }) => (
                         <>
                             <div className="relative mt-1">
                                 <input
                                     onChange={(e) => {
-                                        onChange(new Date(formatISO(parseISO(e.target.value))));
+                                        onChange(parseISO(e.target.value));
                                     }}
-                                    value={
-                                        value
-                                            ? dateFnsFormat(
-                                                  value instanceof Date ? value : parseISO(value),
-                                                  'yyyy-MM-dd',
-                                              )
-                                            : ''
-                                    }
+                                    value={format(value, 'yyyy-MM-dd')}
                                     type="date"
                                     id="invoicedAt"
                                     autoComplete="date"

@@ -2,6 +2,8 @@ import { LoadStopType, Prisma } from '@prisma/client';
 import { useRouter } from 'next/router';
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import startOfDay from 'date-fns/startOfDay';
+import parse from 'date-fns/parse';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
@@ -88,14 +90,20 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('shipper.city', load.shipper_address?.city);
         formHook.setValue('shipper.state', load.shipper_address?.state);
         formHook.setValue('shipper.zip', load.shipper_address?.zip);
-        formHook.setValue('shipper.date', load.pickup_date ? new Date(load.pickup_date) : null);
+        formHook.setValue(
+            'shipper.date',
+            load.pickup_date ? startOfDay(parse(load.pickup_date, 'mm/dd/yyyy', new Date())) : null,
+        );
         formHook.setValue('shipper.time', load.pickup_time);
         formHook.setValue('receiver.name', load.consignee);
         formHook.setValue('receiver.street', load.consignee_address?.street);
         formHook.setValue('receiver.city', load.consignee_address?.city);
         formHook.setValue('receiver.state', load.consignee_address?.state);
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
-        formHook.setValue('receiver.date', load.delivery_date ? new Date(load.delivery_date) : null);
+        formHook.setValue(
+            'receiver.date',
+            load.delivery_date ? startOfDay(parse(load.delivery_date, 'mm/dd/yyyy', new Date())) : null,
+        );
         formHook.setValue('receiver.time', load.delivery_time);
 
         setCustomerFromOutput(load);

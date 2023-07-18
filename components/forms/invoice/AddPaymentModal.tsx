@@ -1,15 +1,14 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { CalendarIcon } from '@heroicons/react/outline';
 import { Invoice, InvoicePayment, Prisma } from '@prisma/client';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+import startOfDay from 'date-fns/startOfDay';
 import React, { Fragment, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import dateFnsFormat from 'date-fns/format';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { createInvoicePayment } from '../../../lib/rest/invoice';
 import Spinner from '../../Spinner';
 import MoneyInput from '../MoneyInput';
-import parseISO from 'date-fns/parseISO';
-import formatISO from 'date-fns/formatISO';
 
 type Props = {
     show: boolean;
@@ -105,23 +104,15 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                             control={control}
                                             rules={{ required: 'Date is required' }}
                                             name="paidAt"
+                                            defaultValue={startOfDay(new Date())}
                                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                                                 <>
                                                     <div className="relative mt-1">
                                                         <input
                                                             onChange={(e) => {
-                                                                onChange(new Date(formatISO(parseISO(e.target.value))));
+                                                                onChange(parseISO(e.target.value));
                                                             }}
-                                                            value={
-                                                                value
-                                                                    ? dateFnsFormat(
-                                                                          value instanceof Date
-                                                                              ? value
-                                                                              : parseISO(value),
-                                                                          'yyyy-MM-dd',
-                                                                      )
-                                                                    : ''
-                                                            }
+                                                            value={format(value, 'yyyy-MM-dd')}
                                                             type="date"
                                                             id="paidAt"
                                                             autoComplete="date"
