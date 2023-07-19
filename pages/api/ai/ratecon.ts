@@ -53,11 +53,7 @@ export default async function POST(req: NextRequest) {
 
 load: { // Load Details
     logistics_company: string // The name of the logistics company
-    shipper_pickup_number: string // The shipper pickup number
-    consignee_pickup_number: string // The consignee pickup number
-    po_number: string // The PO number
-    shipper_id: string // The shipper ID
-    load_number: string // The load # or reference # or order # or pro # or waybill # for the load. Should not be the same as the shipper_pickup_number, consignee_pickup_number, shipper_id, or po_number
+    load_number: string // The load number for the load
     shipper: string // The name of the shipper/pickup location
     shipper_address: { // The address of the shipper/pickup location
         street: string // Street address of the shipper/pickup location
@@ -89,15 +85,15 @@ Output the extracted information in JSON format. Do not output anything except f
 
 ${scheme}
 
-Follow these guidelines to help you extract the information:
-- The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
-- Convert all dates found in context to the format MM/DD/YYYY
-- Convert all times found in context to the format HH:MM
-- The load number should be next to the load number label and will appear next to labels such as "Load", "Reference", "Order", "Pro" or "Waybill" (prioritize in that order). The load number will appear more than once in the context. Make sure to extract the correct load number.
-- The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
-- The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time.
-- The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email most of the time will contain the domain of the logistics company.
-- Return null for any fields that are not found in the context.
+Follow these guidelines to help you extract the information. Strictly follow the guidelines below. If you do not follow the guidelines below, you will not be able to extract the information correctly.
+1. The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
+2. load_number will most likely be found on the first page. load_number should be in front of labels "Load #", "load number", "Load", "Reference", "Order", "Pro" or "Waybill" (prioritize in that order). Its important you look for these labels when extracting the load_number. Prioritize numbers that show up in the beginning of the document. The load_number will appear more than once in the context so prioritize the number that appears the most on the document.
+3. Convert all dates found in context to the format MM/DD/YYYY
+4. Convert all times found in context to the format HH:MM
+5. The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
+6. The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time.
+7. The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email most of the time will contain the domain of the logistics company.
+8. Return null for any fields that are not found in the context.
 
 Output: `;
 
@@ -106,7 +102,7 @@ Output: `;
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
             }),
-            vectordb.asRetriever(6),
+            vectordb.asRetriever(7),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
