@@ -70,7 +70,7 @@ load: { // Load Details
     }
     delivery_date: string // The date of delivery
     delivery_time: string // The time of delivery
-    rate: number // The flat rate for the line haul or the cost of the load. Only include the number, not the currency.
+    rate: number // The flat rate for the line haul or the cost of the load. Total pay for load. Only include the number, not the currency.
     invoice_email: string // Email address to submit delivery documents/POD/invoice for standard pay.
 }
 \`\`\``;
