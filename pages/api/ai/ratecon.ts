@@ -46,7 +46,7 @@ export default async function POST(req: NextRequest) {
 
 load: { // Load Details
     logistics_company: string // The name of the logistics company
-    load_number: string // The load number for the load
+    load_number: string // The load number for the load or shipment
     shipper: string // The name of the shipper/pickup location
     shipper_address: { // The address of the shipper/pickup location
         street: string // Street address of the shipper/pickup location
@@ -80,7 +80,7 @@ ${scheme}
 
 Follow these guidelines to help you extract the information. Strictly follow the guidelines below. If you do not follow the guidelines below, you will not be able to extract the information correctly.
 1. The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
-2. load_number will most likely be found on the first page. load_number should be in front of labels "Load #", "load number", "Load", "Reference", "Order", "Pro" or "Waybill" (prioritize in that order). Its important you look for these labels when extracting the load_number. Prioritize numbers that show up in the beginning of the document. The load_number will appear more than once in the context so prioritize the number that appears the most on the document.
+2. load_number will most likely be found on the first page. load_number should be in front of labels "Load #", "load number", "Load", "Reference", "Reference ID", "Order", "Pro" or "Waybill" (prioritize in that order). Its important you look for these labels when extracting the load_number.
 3. Convert all dates found in context to the format MM/DD/YYYY
 4. Convert all times found in context to the format HH:MM
 5. The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
