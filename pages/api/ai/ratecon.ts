@@ -33,12 +33,20 @@ export default async function POST(req: NextRequest) {
             });
         });
 
+        console.log('Documents:');
+        console.log(documents);
+
         const splitter = new CharacterTextSplitter({
+            separator: '\n',
             chunkSize: 2000,
             chunkOverlap: 500,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
+
+        console.log('-----');
+        console.log('Split Documents:');
+        console.log(splitDocuments);
         const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
 
         const scheme = `\`\`\`json scheme

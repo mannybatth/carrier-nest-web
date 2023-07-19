@@ -28,7 +28,12 @@ export interface AIAddress {
     country: string;
 }
 
-export const calcPdfPageCount = async (byteArray: Uint8Array): Promise<number> => {
+export const calcPdfPageCount = async (
+    byteArray: Uint8Array,
+): Promise<{
+    totalPages: number;
+    metadata: pdfjsLib.Metadata;
+}> => {
     const pdf = await pdfjsLib.getDocument({
         data: byteArray,
         useWorkerFetch: false,
@@ -36,7 +41,10 @@ export const calcPdfPageCount = async (byteArray: Uint8Array): Promise<number> =
         useSystemFonts: true,
     }).promise;
 
-    return pdf.numPages;
+    return {
+        totalPages: pdf.numPages,
+        metadata: await pdf.getMetadata(),
+    };
 };
 
 export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoad> => {
