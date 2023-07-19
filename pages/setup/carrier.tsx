@@ -15,15 +15,15 @@ const CarrierSetup: PageWithAuth = () => {
 
     const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
-        { id: 'email', label: 'Contact Email', required: false, type: 'input' },
-        { id: 'phone', label: 'Phone Number', required: false, type: 'input' },
+        { id: 'email', label: 'Contact Email', required: true, type: 'input' },
+        { id: 'phone', label: 'Phone Number', required: true, type: 'input' },
         { id: 'mcNum', label: 'MC Number', required: false, type: 'input' },
         { id: 'dotNum', label: 'DOT Number', required: false, type: 'input' },
-        { id: 'street', label: 'Street Address', required: false, type: 'input' },
-        { id: 'city', label: 'City', required: false, type: 'input' },
-        { id: 'state', label: 'State', required: false, type: 'input' },
-        { id: 'zip', label: 'Zip Code', required: false, type: 'input' },
-        { id: 'country', label: 'Country', required: false, type: 'select' },
+        { id: 'street', label: 'Street Address', required: true, type: 'input' },
+        { id: 'city', label: 'City', required: true, type: 'input' },
+        { id: 'state', label: 'State', required: true, type: 'input' },
+        { id: 'zip', label: 'Zip Code', required: true, type: 'input' },
+        { id: 'country', label: 'Country', required: true, type: 'select' },
     ];
 
     const onSubmit = async (data: Carrier) => {
