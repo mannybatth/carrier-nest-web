@@ -27,9 +27,12 @@ export const config = {
 //         uniqueFileName,
 //     };
 // }
+import serviceAccount from './carriernest-b2439132b52e.json';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-    const client = new DocumentProcessorServiceClient();
+    const client = new DocumentProcessorServiceClient({
+        credentials: serviceAccount,
+    });
 
     if (req.method === 'POST') {
         const form = new IncomingForm();
