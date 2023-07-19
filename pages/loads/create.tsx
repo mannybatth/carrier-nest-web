@@ -63,6 +63,8 @@ const CreateLoad: PageWithAuth = () => {
 
         setLoading(true);
 
+        let metadata = null;
+        let numOfPages = 0;
         try {
             await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -70,9 +72,11 @@ const CreateLoad: PageWithAuth = () => {
                 reader.onload = async () => {
                     const arrayBuffer = reader.result as ArrayBuffer;
                     const byteArray = new Uint8Array(arrayBuffer);
-                    const pageCount = await calcPdfPageCount(byteArray);
+                    const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
+                    metadata = pdfMetaData;
+                    numOfPages = totalPages;
 
-                    if (pageCount < 1) {
+                    if (totalPages < 1) {
                         notify({
                             title: 'Error',
                             message: 'PDF file must contain at least 1 page',
@@ -80,7 +84,7 @@ const CreateLoad: PageWithAuth = () => {
                         });
                         reject();
                         return;
-                    } else if (pageCount > 10) {
+                    } else if (totalPages > 10) {
                         notify({
                             title: 'Error',
                             message: 'PDF file must contain no more than 10 pages',
@@ -109,10 +113,21 @@ const CreateLoad: PageWithAuth = () => {
 
             const ocrResult = await ocrResponse.json();
 
-            const documents = ocrResult.pages.map((pageText: string) => {
+            const documents = ocrResult.pages.map((pageText: string, index: number) => {
                 return {
                     pageContent: pageText,
-                    metadata: {},
+                    metadata: {
+                        source: 'blob',
+                        blobType: file.type,
+                        pdf: {
+                            info: metadata?.info,
+                            metadata: metadata?.metadata,
+                            totalPages: numOfPages,
+                        },
+                        loc: {
+                            pageNumber: index,
+                        },
+                    },
                 };
             });
 
