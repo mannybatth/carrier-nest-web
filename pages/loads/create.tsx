@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import startOfDay from 'date-fns/startOfDay';
-import parse from 'date-fns/parse';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
@@ -11,10 +10,12 @@ import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
-import { parsePdf, AILoad } from '../../lib/rest/ai';
+import { AILoad, calcPdfPageCount } from '../../lib/rest/ai';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { searchCustomersByName } from '../../lib/rest/customer';
 import { FileUploader } from 'react-drag-drop-files';
+import { apiUrl } from '../../constants';
+import { parseDate } from '../../lib/helpers/date';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -60,22 +61,89 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
-        const reader = new FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onload = async () => {
-            const arrayBuffer = reader.result as ArrayBuffer;
-            const byteArray = new Uint8Array(arrayBuffer);
+        setLoading(true);
 
-            try {
-                setLoading(true);
-                const load = await parsePdf(byteArray, file);
-                await applyAIOutputToForm(load);
-                setLoading(false);
-            } catch (e) {
-                setLoading(false);
-                notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
-            }
-        };
+        try {
+            await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async () => {
+                    const arrayBuffer = reader.result as ArrayBuffer;
+                    const byteArray = new Uint8Array(arrayBuffer);
+                    const pageCount = await calcPdfPageCount(byteArray);
+
+                    if (pageCount < 1) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain at least 1 page',
+                            type: 'error',
+                        });
+                        reject();
+                        return;
+                    } else if (pageCount > 10) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain no more than 10 pages',
+                            type: 'error',
+                        });
+                        reject();
+                        return;
+                    }
+
+                    resolve(null);
+                };
+            });
+        } catch (e) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const ocrResponse = await fetch(`${apiUrl}/ai/ocr`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const ocrResult = await ocrResponse.json();
+
+            const documents = ocrResult.pages.map((pageText: string) => {
+                return {
+                    pageContent: pageText,
+                    metadata: {},
+                };
+            });
+
+            const response = await fetch(apiUrl + '/ai/ratecon', {
+                method: 'POST',
+                body: JSON.stringify(documents),
+            });
+            const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
+            await applyAIOutputToForm(data?.load);
+        } catch (e) {
+            notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
+        }
+
+        setLoading(false);
+
+        // const reader = new FileReader();
+        // reader.readAsArrayBuffer(file);
+        // reader.onload = async () => {
+        //     const arrayBuffer = reader.result as ArrayBuffer;
+        //     const byteArray = new Uint8Array(arrayBuffer);
+
+        //     try {
+        //         setLoading(true);
+        //         const load = await parsePdf(byteArray, file);
+        //         await applyAIOutputToForm(load);
+        //         setLoading(false);
+        //     } catch (e) {
+        //         setLoading(false);
+        //         notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
+        //     }
+        // };
     };
 
     const applyAIOutputToForm = async (load: AILoad) => {
@@ -90,20 +158,14 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('shipper.city', load.shipper_address?.city);
         formHook.setValue('shipper.state', load.shipper_address?.state);
         formHook.setValue('shipper.zip', load.shipper_address?.zip);
-        formHook.setValue(
-            'shipper.date',
-            load.pickup_date ? startOfDay(parse(load.pickup_date, 'mm/dd/yyyy', new Date())) : null,
-        );
+        formHook.setValue('shipper.date', load.pickup_date ? startOfDay(parseDate(load.pickup_date)) : null);
         formHook.setValue('shipper.time', load.pickup_time);
         formHook.setValue('receiver.name', load.consignee);
         formHook.setValue('receiver.street', load.consignee_address?.street);
         formHook.setValue('receiver.city', load.consignee_address?.city);
         formHook.setValue('receiver.state', load.consignee_address?.state);
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
-        formHook.setValue(
-            'receiver.date',
-            load.delivery_date ? startOfDay(parse(load.delivery_date, 'mm/dd/yyyy', new Date())) : null,
-        );
+        formHook.setValue('receiver.date', load.delivery_date ? startOfDay(parseDate(load.delivery_date)) : null);
         formHook.setValue('receiver.time', load.delivery_time);
 
         setCustomerFromOutput(load);
