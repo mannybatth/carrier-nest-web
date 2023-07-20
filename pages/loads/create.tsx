@@ -1,4 +1,4 @@
-import { LoadStopType, Prisma } from '@prisma/client';
+import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import { useRouter } from 'next/router';
 import React from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,7 +12,7 @@ import { ExpandedLoad } from '../../interfaces/models';
 import { createLoad } from '../../lib/rest/load';
 import { AILoad, calcPdfPageCount } from '../../lib/rest/ai';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { searchCustomersByName } from '../../lib/rest/customer';
+import { getAllCustomers } from '../../lib/rest/customer';
 import { FileUploader } from 'react-drag-drop-files';
 import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
@@ -102,16 +102,22 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
+        let logisticsCompany: string = null;
+        let customersList: Customer[] = [];
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            const ocrResponse = await fetch(`${apiUrl}/ai/ocr`, {
-                method: 'POST',
-                body: formData,
-            });
+            const [ocrResponse, customersResponse] = await Promise.all([
+                fetch(`${apiUrl}/ai/ocr`, {
+                    method: 'POST',
+                    body: formData,
+                }),
+                getAllCustomers({ limit: 999, offset: 0 }),
+            ]);
 
             const ocrResult = await ocrResponse.json();
+            customersList = customersResponse.customers;
 
             const documents = ocrResult.pages.map((pageText: string, index: number) => {
                 return {
@@ -136,29 +142,38 @@ const CreateLoad: PageWithAuth = () => {
                 body: JSON.stringify(documents),
             });
             const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
+
+            if (code !== 200) {
+                notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
+                return;
+            }
+
+            logisticsCompany = data?.load?.logistics_company;
             await applyAIOutputToForm(data?.load);
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
 
+        try {
+            const customerNames = customersList.map((customer) => customer.name);
+            const response = await fetch(apiUrl + '/ai/query-customers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    q: logisticsCompany,
+                    customers_list: customerNames,
+                }),
+            });
+            const { code, response: match }: { code: number; response: { text: string } } = await response.json();
+
+            const matchCustomer = customersList.find((customer) => customer.name === match.text);
+            if (matchCustomer) {
+                formHook.setValue('customer', matchCustomer);
+            }
+        } catch (e) {
+            notify({ title: 'Error', message: e?.message || 'Error assigning a customer', type: 'error' });
+        }
+
         setLoading(false);
-
-        // const reader = new FileReader();
-        // reader.readAsArrayBuffer(file);
-        // reader.onload = async () => {
-        //     const arrayBuffer = reader.result as ArrayBuffer;
-        //     const byteArray = new Uint8Array(arrayBuffer);
-
-        //     try {
-        //         setLoading(true);
-        //         const load = await parsePdf(byteArray, file);
-        //         await applyAIOutputToForm(load);
-        //         setLoading(false);
-        //     } catch (e) {
-        //         setLoading(false);
-        //         notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
-        //     }
-        // };
     };
 
     const applyAIOutputToForm = async (load: AILoad) => {
@@ -182,27 +197,6 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('receiver.zip', load.consignee_address?.zip);
         formHook.setValue('receiver.date', load.delivery_date ? startOfDay(parseDate(load.delivery_date)) : null);
         formHook.setValue('receiver.time', load.delivery_time);
-
-        setCustomerFromOutput(load);
-    };
-
-    const setCustomerFromOutput = async (load: AILoad) => {
-        if (!load.logistics_company) {
-            return;
-        }
-        const customers = await searchCustomersByName(load.logistics_company);
-        console.log('customers', customers);
-
-        if (!customers || customers.length === 0) {
-            return;
-        }
-
-        const customer = customers[0];
-        if (customer.sim > 0.49) {
-            formHook.setValue('customer', customers[0]);
-        } else {
-            formHook.setValue('customer', null);
-        }
     };
 
     return (
