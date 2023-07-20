@@ -149,10 +149,12 @@ const CreateLoad: PageWithAuth = () => {
             }
 
             logisticsCompany = data?.load?.logistics_company;
-            await applyAIOutputToForm(data?.load);
+            applyAIOutputToForm(data?.load);
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
+
+        formHook.setValue('customer', null);
 
         try {
             const customerNames = customersList.map((customer) => customer.name);
@@ -165,9 +167,11 @@ const CreateLoad: PageWithAuth = () => {
             });
             const { code, response: match }: { code: number; response: { text: string } } = await response.json();
 
-            const matchCustomer = customersList.find((customer) => customer.name === match.text);
-            if (matchCustomer) {
-                formHook.setValue('customer', matchCustomer);
+            if (code === 200 && match?.text) {
+                const matchCustomer = customersList.find((customer) => customer.name === match.text);
+                if (matchCustomer) {
+                    formHook.setValue('customer', matchCustomer);
+                }
             }
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error assigning a customer', type: 'error' });
@@ -176,7 +180,7 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
     };
 
-    const applyAIOutputToForm = async (load: AILoad) => {
+    const applyAIOutputToForm = (load: AILoad) => {
         if (!load) {
             return;
         }
