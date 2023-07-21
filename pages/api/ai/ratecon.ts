@@ -41,53 +41,52 @@ export default async function POST(req: NextRequest) {
         const splitDocuments = await splitter.splitDocuments(documents);
         const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
 
-        const scheme = `\`\`\`json scheme
-
-load: { // Load Details
-    logistics_company: string // The name of the logistics company
-    load_number: string // The load number for the load or shipment
-    shipper: string // The name of the shipper/pickup location
-    shipper_address: { // The address of the shipper/pickup location
-        street: string // Street address of the shipper/pickup location
-        city: string // City of the shipper/pickup location
-        state: string // State of the shipper/pickup location
-        zip: string // Zip code of the shipper/pickup location
-        country: string // Country of the shipper/pickup location
-    }
-    pickup_date: string // The date of pickup
-    pickup_time: string // The time of pickup
-    consignee: string // The name of the consignee/receiver/delivery location
-    consignee_address: { // The address of the consignee/receiver/delivery location
-        street: string // Street address of the consignee/receiver/delivery location
-        city: string // City of the consignee/receiver/delivery location
-        state: string // State of the consignee/receiver/delivery location
-        zip: string // Zip code of the consignee/receiver/delivery location
-        country: string // Country of the consignee/receiver/delivery location
-    }
-    delivery_date: string // The date of delivery
-    delivery_time: string // The time of delivery
-    rate: number // The flat rate for the line haul or the cost of the load. Total pay for load. Only include the number, not the currency.
-    invoice_email: string // Email address to submit delivery documents/POD/invoice for standard pay.
-}
-\`\`\``;
-
         const query = `
-Your goal is to read the rate confirmation document given in the context and extract structured information that matches the json scheme provided. When extracting information please make sure it matches the type information exactly. Do not add any attributes that do not appear in the schema.
-Output the extracted information in JSON format. Do not output anything except for the extracted information. Do not add any clarifying information. Do not add any fields that are not in the schema. If the text contains attributes that do not appear in the schema, please ignore them. All output must be in JSON format and follow the schema provided below.
+I have a logistics rate confirmation document with details about a specific load. The text has been extracted using OCR. I need your help to accurately parse this information and structure it in a JSON format. Please be particularly attentive to the designations "PU" and "SO". "PU" refers to the pickup location, also known as the shipper's location, and "SO" refers to the delivery location, also known as the consignee's location. Ensure not to confuse these with the carrier's address.
 
-${scheme}
+Here are the details you need to extract:
 
-Follow these guidelines to help you extract the information. Strictly follow the guidelines below. If you do not follow the guidelines below, you will not be able to extract the information correctly.
-1. The logistics company is the creator of this document and will most of the time be located at top of the document. The logistics company name is not the carrier that booked the load and should not be located under carrier contact information.
-2. load_number will most likely be found on the first page. load_number should be in front of labels "Load #", "load number", "Load", "Reference", "Reference ID", "Order", "Pro" or "Waybill" (prioritize in that order). Its important you look for these labels when extracting the load_number.
-3. Convert all dates found in context to the format MM/DD/YYYY
-4. Convert all times found in context to the format HH:MM
-5. The shipper name should be next to the shipper address. The shipper name and address should be next to the pickup date and time.
-6. The consignee name should be next to the consignee address. The consignee name and address should be next to the delivery date and time.
-7. The invoice email where the carrier submits delivery documents once the load is completed for standard pay. The invoice email is usually found close to labels "POD", "proof of delivery", "BOL", "bill of lading", "invoice", "submit documents", "upload documents", "email invoice". The invoice email most of the time will contain the domain of the logistics company.
-8. Return null for any fields that are not found in the context.
+1. The name of the logistics company.
+2. The load number for the load or shipment.
+3. The exact name and full address (street, city, state, zip, country) of the "PU" (pick-up location or shipper), not the carrier's address.
+4. The pick-up date and time. Please convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
+5. The exact name and full address (street, city, state, zip, country) of the "SO" (delivery location or consignee), not the carrier's address.
+6. The delivery date and time. Please convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
+7. The flat rate for the line haul or the cost of the load. Include only the numeric value and not the currency.
+8. The email address to submit delivery documents, proof of delivery (POD), or invoice for standard pay.
 
-Output: `;
+If any of these details cannot be found in the text, return null for that field in the JSON object.
+
+Please structure the parsed information as follows:
+
+{
+    "logistics_company": "<logistics_company>" or null,
+    "load_number": "<load_number>" or null,
+    "shipper": "<shipper>" or null,
+    "shipper_address": {
+        "street": "<street>" or null,
+        "city": "<city>" or null,
+        "state": "<state>" or null,
+        "zip": "<zip>" or null,
+        "country": "<country>" or null
+    },
+    "pickup_date": "<pickup_date>" or null,
+    "pickup_time": "<pickup_time>" or null,
+    "consignee": "<consignee>" or null,
+    "consignee_address": {
+        "street": "<street>" or null,
+        "city": "<city>" or null,
+        "state": "<state>" or null,
+        "zip": "<zip>" or null,
+        "country": "<country>" or null
+    },
+    "delivery_date": "<delivery_date>" or null,
+    "delivery_time": "<delivery_time>" or null,
+    "rate": <rate> or null,
+    "invoice_email": "<invoice_email>" or null
+}
+
+Ensure to maintain the structure and the order of the keys in the JSON object. Thank you.`;
 
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
@@ -118,7 +117,9 @@ Output: `;
                 return NextResponse.json(
                     {
                         code: 200,
-                        data: json,
+                        data: {
+                            load: json,
+                        },
                     },
                     { status: 200 },
                 );
