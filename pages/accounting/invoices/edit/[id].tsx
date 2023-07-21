@@ -57,10 +57,13 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
     useEffect(() => {
         const data = formHook.getValues() as ExpandedInvoice;
         const extraItems = data.extraItems;
-        const totalExtraItems =
-            extraItems?.reduce((acc, item) => acc + new Prisma.Decimal(item.amount).toNumber(), 0) || 0;
 
-        const total = totalExtraItems + new Prisma.Decimal(invoice.load.rate).toNumber();
+        const totalExtraItems =
+            (extraItems?.reduce((acc, item) => acc + new Prisma.Decimal(item.amount).toNumber() * 100, 0) || 0) / 100;
+
+        const totalRate = new Prisma.Decimal(invoice.load.rate).toNumber();
+
+        const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
     }, [watchFields]);
 

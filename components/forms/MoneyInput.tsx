@@ -1,19 +1,20 @@
 import classNames from 'classnames';
 import React, { ChangeEvent, ComponentProps } from 'react';
 
-const isValidMoney = (value: string): boolean => {
-    const regex = /^\d+(\.\d{1,2})?$/;
+const isValidMoney = (value: string, allowNegative = false): boolean => {
+    const regex = allowNegative ? /^-?\d+(\.\d{1,2})?$/ : /^\d+(\.\d{1,2})?$/;
     return regex.test(value);
 };
 
 type Props = {
     value: string;
+    allowNegative?: boolean;
 } & ComponentProps<'input'>;
 
-const MoneyInput: React.FC<Props> = ({ value, onChange, ...props }) => {
+const MoneyInput: React.FC<Props> = ({ value, allowNegative, onChange, ...props }) => {
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const newValue = event.target.value;
-        if (isValidMoney(newValue)) {
+        if (isValidMoney(newValue, allowNegative)) {
             event.target.value = newValue;
             onChange(event);
         }

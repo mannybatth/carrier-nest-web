@@ -58,6 +58,7 @@ const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, on
                                 <>
                                     <MoneyInput
                                         id={fieldId('amount')}
+                                        allowNegative={true}
                                         value={(value as Prisma.Decimal)?.toString() || ''}
                                         onChange={(e) => onChange(new Prisma.Decimal(e.target.value))}
                                     ></MoneyInput>
