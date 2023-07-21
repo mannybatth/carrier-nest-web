@@ -4,7 +4,7 @@ import { ParsedUrlQuery } from 'querystring';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
-import { deleteDocumentFromS3 } from './documents/[did]';
+import { deleteDocumentFromGCS } from './documents/[did]';
 
 export default handler;
 
@@ -208,7 +208,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         }
 
         const documentsToDelete = load.loadDocuments;
-        await Promise.all(documentsToDelete.map((document) => deleteDocumentFromS3(document)));
+        await Promise.all(documentsToDelete.map((document) => deleteDocumentFromGCS(document)));
 
         await prisma.load.delete({
             where: {
