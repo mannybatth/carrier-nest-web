@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingForm } from 'formidable';
 import { DocumentProcessorServiceClient, protos } from '@google-cloud/documentai';
-// import { Storage } from '@google-cloud/storage';
 import { promises as fs } from 'fs';
-// import { v4 as uuidv4 } from 'uuid';
 
 export const config = {
     api: {
@@ -11,27 +9,16 @@ export const config = {
     },
 };
 
-// const storage = new Storage();
-// const bucketName = process.env.GCP_TMP_BUCKET_NAME; // Replace with your GCP bucket name
-
-// async function uploadFile(localFilePath: string): Promise<{ gcsInputUri: string; uniqueFileName: string }> {
-//     const uniqueFileName = uuidv4(); // Generates a unique file name using UUID
-
-//     await storage.bucket(bucketName).upload(localFilePath, {
-//         destination: uniqueFileName,
-//         resumable: false,
-//     });
-
-//     return {
-//         gcsInputUri: `gs://${bucketName}/${uniqueFileName}`,
-//         uniqueFileName,
-//     };
-// }
-import serviceAccount from './carriernest-b2439132b52e.json';
-
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     const client = new DocumentProcessorServiceClient({
-        credentials: serviceAccount,
+        projectId: process.env.GCP_PROJECT_ID,
+        credentials: {
+            type: 'service_account',
+            private_key: process.env.GCP_PRIVATE_KEY,
+            client_email: process.env.GCP_CLIENT_EMAIL,
+            client_id: process.env.GCP_CLIENT_ID,
+            universe_domain: 'googleapis.com',
+        },
     });
 
     if (req.method === 'POST') {
@@ -47,9 +34,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             const localFilePath = data.files.file[0].filepath;
             const fileBuffer = await fs.readFile(localFilePath);
 
-            // const { gcsInputUri, uniqueFileName } = await uploadFile(localFilePath);
-
-            const parent = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
+            const parent = `projects/${process.env.GCP_OCR_PROJECT_ID}/locations/${process.env.GCP_OCR_LOCATION}/processors/${process.env.GCP_OCR_PROCESSOR_ID}`;
 
             const request: protos.google.cloud.documentai.v1.IProcessRequest = {
                 name: parent,
@@ -111,7 +96,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             }
 
             await fs.unlink(localFilePath); // delete the local file
-            // await storage.bucket(bucketName).file(uniqueFileName).delete(); // delete the file from GCS
 
             return res.status(200).json({ pages });
         } catch (error) {

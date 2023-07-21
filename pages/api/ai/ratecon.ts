@@ -34,8 +34,8 @@ export default async function POST(req: NextRequest) {
         });
 
         const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 1500,
-            chunkOverlap: 400,
+            chunkSize: 2000,
+            chunkOverlap: 300,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
@@ -94,7 +94,7 @@ Output: `;
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
             }),
-            vectordb.asRetriever(7),
+            vectordb.asRetriever(6),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',

@@ -14,7 +14,7 @@ import LoadFormStop from './LoadFormStop';
 
 type Props = {
     formHook: UseFormReturn<ExpandedLoad>;
-    openAddCustomerFromProp: boolean;
+    openAddCustomerFromProp?: boolean;
     setOpenAddCustomerFromProp?: React.Dispatch<React.SetStateAction<boolean>>;
     showMissingCustomerLabel?: boolean;
     setShowMissingCustomerLabel?: React.Dispatch<React.SetStateAction<boolean>>;
