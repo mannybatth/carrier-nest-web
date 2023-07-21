@@ -32,8 +32,11 @@ async function uploadFile(
         resumable: false,
     });
 
+    // Make file public
+    await storage.bucket(bucketName).file(uniqueFileName).makePublic();
+
     return {
-        gcsInputUri: `gs://${bucketName}/${uniqueFileName}`,
+        gcsInputUri: `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`,
         uniqueFileName,
     };
 }
