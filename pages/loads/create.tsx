@@ -16,12 +16,16 @@ import { getAllCustomers } from '../../lib/rest/customer';
 import { FileUploader } from 'react-drag-drop-files';
 import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
+import { fuzzySearch } from '../../lib/helpers/levenshtein';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
+    const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
+    const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
+    const [prefillName, setPrefillName] = React.useState(null);
 
     const submit = async (data: ExpandedLoad) => {
         console.log(data);
@@ -117,7 +121,7 @@ const CreateLoad: PageWithAuth = () => {
             ]);
 
             const ocrResult = await ocrResponse.json();
-            customersList = customersResponse.customers;
+            customersList = customersResponse?.customers;
 
             const documents = ocrResult.pages.map((pageText: string, index: number) => {
                 return {
@@ -145,11 +149,10 @@ const CreateLoad: PageWithAuth = () => {
 
             if (code !== 200) {
                 notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
-                return;
+            } else {
+                logisticsCompany = data?.load?.logistics_company;
+                applyAIOutputToForm(data?.load);
             }
-
-            logisticsCompany = data?.load?.logistics_company;
-            applyAIOutputToForm(data?.load);
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
@@ -157,20 +160,17 @@ const CreateLoad: PageWithAuth = () => {
         formHook.setValue('customer', null);
 
         try {
-            const customerNames = customersList.map((customer) => customer.name);
-            const response = await fetch(apiUrl + '/ai/query-customers', {
-                method: 'POST',
-                body: JSON.stringify({
-                    q: logisticsCompany,
-                    customers_list: customerNames,
-                }),
-            });
-            const { code, response: match }: { code: number; response: { text: string } } = await response.json();
+            if (logisticsCompany && customersList) {
+                const customerNames = customersList.map((customer) => customer.name);
 
-            if (code === 200 && match?.text) {
-                const matchCustomer = customersList.find((customer) => customer.name === match.text);
-                if (matchCustomer) {
-                    formHook.setValue('customer', matchCustomer);
+                const matchedIndex = fuzzySearch(logisticsCompany, customerNames);
+                if (matchedIndex === -1) {
+                    setPrefillName(logisticsCompany);
+                    setShowMissingCustomerLabel(true);
+                    setOpenAddCustomer(true);
+                } else {
+                    const matchedCustomer = customersList[matchedIndex];
+                    formHook.setValue('customer', matchedCustomer);
                 }
             }
         } catch (e) {
@@ -253,7 +253,15 @@ const CreateLoad: PageWithAuth = () => {
                     </FileUploader>
 
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <LoadForm formHook={formHook}></LoadForm>
+                        <LoadForm
+                            formHook={formHook}
+                            openAddCustomerFromProp={openAddCustomer}
+                            setOpenAddCustomerFromProp={setOpenAddCustomer}
+                            showMissingCustomerLabel={showMissingCustomerLabel}
+                            setShowMissingCustomerLabel={setShowMissingCustomerLabel}
+                            prefillName={prefillName}
+                            setPrefillName={setPrefillName}
+                        ></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>
                             <button

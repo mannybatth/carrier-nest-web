@@ -14,6 +14,12 @@ import LoadFormStop from './LoadFormStop';
 
 type Props = {
     formHook: UseFormReturn<ExpandedLoad>;
+    openAddCustomerFromProp: boolean;
+    setOpenAddCustomerFromProp?: React.Dispatch<React.SetStateAction<boolean>>;
+    showMissingCustomerLabel?: boolean;
+    setShowMissingCustomerLabel?: React.Dispatch<React.SetStateAction<boolean>>;
+    prefillName?: string;
+    setPrefillName?: React.Dispatch<React.SetStateAction<string>>;
 };
 
 const LoadForm: React.FC<Props> = ({
@@ -25,6 +31,12 @@ const LoadForm: React.FC<Props> = ({
         control,
         formState: { errors },
     },
+    openAddCustomerFromProp = false,
+    setOpenAddCustomerFromProp,
+    showMissingCustomerLabel,
+    setShowMissingCustomerLabel,
+    prefillName,
+    setPrefillName,
 }) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
@@ -66,8 +78,15 @@ const LoadForm: React.FC<Props> = ({
         <>
             <CreateCustomerModal
                 onCreate={onNewCustomerCreate}
-                show={openAddCustomer}
-                onClose={() => setOpenAddCustomer(false)}
+                show={openAddCustomer || openAddCustomerFromProp}
+                onClose={() => {
+                    setOpenAddCustomer(false);
+                    setOpenAddCustomerFromProp(false);
+                    setShowMissingCustomerLabel(false);
+                    setPrefillName(null);
+                }}
+                showMissingCustomerLabel={showMissingCustomerLabel}
+                prefillName={prefillName}
             ></CreateCustomerModal>
             <div className="relative mt-3 md:mt-0 md:col-span-2">
                 <div className="grid grid-cols-6 gap-6">

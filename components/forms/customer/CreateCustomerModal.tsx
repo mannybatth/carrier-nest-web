@@ -10,11 +10,19 @@ type Props = {
     show: boolean;
     onCreate: (customer: Customer) => void;
     onClose: (value: boolean) => void;
+    showMissingCustomerLabel?: boolean;
+    prefillName?: string;
 };
 
-const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }) => {
+const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose, showMissingCustomerLabel, prefillName }) => {
     const [loading, setLoading] = React.useState(false);
     const formHook = useForm<Customer>();
+
+    React.useEffect(() => {
+        if (prefillName) {
+            formHook.setValue('name', prefillName);
+        }
+    }, [prefillName]);
 
     const submit = async (data: Customer) => {
         setLoading(true);
@@ -76,6 +84,14 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose }) => {
                             <div className="block mb-4 mr-8">
                                 <h1 className="text-xl font-semibold text-gray-900">Create New Customer</h1>
                             </div>
+
+                            {showMissingCustomerLabel && (
+                                <div className="mb-4 mr-8">
+                                    <p className="text-sm text-gray-500">
+                                        The customer found doesnt exist, lets create it.
+                                    </p>
+                                </div>
+                            )}
 
                             <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
                                 <CustomerForm formHook={formHook} condensed></CustomerForm>

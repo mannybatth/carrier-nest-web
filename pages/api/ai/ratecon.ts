@@ -1,5 +1,5 @@
 import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { CharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RetrievalQAChain } from 'langchain/chains';
@@ -33,10 +33,9 @@ export default async function POST(req: NextRequest) {
             });
         });
 
-        const splitter = new CharacterTextSplitter({
-            separator: '\n',
-            chunkSize: 2000,
-            chunkOverlap: 500,
+        const splitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 1500,
+            chunkOverlap: 400,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
