@@ -1,8 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm } from 'formidable';
+import { IncomingForm, PersistentFile } from 'formidable';
 import { Storage } from '@google-cloud/storage';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 export const config = {
     api: {
@@ -17,10 +18,14 @@ const storage = new Storage({
         private_key: process.env.GCP_PRIVATE_KEY,
     },
 });
-const bucketName = process.env.GCP_TMP_BUCKET_NAME; // Replace with your GCP bucket name
 
-async function uploadFile(localFilePath: string): Promise<{ gcsInputUri: string; uniqueFileName: string }> {
-    const uniqueFileName = uuidv4(); // Generates a unique file name using UUID
+async function uploadFile(
+    localFilePath: string,
+    originalFileName: string,
+    bucketName: string,
+): Promise<{ gcsInputUri: string; uniqueFileName: string }> {
+    const extension = path.extname(originalFileName); // Extract the file extension
+    const uniqueFileName = `${uuidv4()}${extension}`; // Append the extension to the unique file name
 
     await storage.bucket(bucketName).upload(localFilePath, {
         destination: uniqueFileName,
@@ -44,14 +49,15 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                 });
             });
 
-            const localFilePath = data.files.file[0].filepath;
-            const fileBuffer = await fs.readFile(localFilePath);
+            const file: PersistentFile = data.files.file[0];
+            const localFilePath = file.filepath;
+            const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME;
 
-            const { gcsInputUri, uniqueFileName } = await uploadFile(localFilePath);
+            const { gcsInputUri, uniqueFileName } = await uploadFile(localFilePath, file.originalFilename, bucketName);
 
             await fs.unlink(localFilePath); // delete the local file
 
-            return res.status(200).json({ pages });
+            return res.status(200).json({ gcsInputUri, uniqueFileName });
         } catch (error) {
             console.error('Error during the Document AI process:', error);
             return res.status(500).json({ error: 'Error during the Document AI process.' });

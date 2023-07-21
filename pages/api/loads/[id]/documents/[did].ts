@@ -1,5 +1,5 @@
+import { Storage } from '@google-cloud/storage';
 import { LoadDocument } from '@prisma/client';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -53,7 +53,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        deleteDocumentFromS3(document);
+        deleteDocumentFromGCS(document);
 
         await prisma.loadDocument.delete({
             where: {
@@ -68,24 +68,18 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
-export const deleteDocumentFromS3 = async (document: LoadDocument): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        const client = new S3Client({
-            region: process.env.S3_UPLOAD_REGION,
-            credentials: {
-                accessKeyId: process.env.S3_UPLOAD_KEY,
-                secretAccessKey: process.env.S3_UPLOAD_SECRET,
-            },
-        });
-
-        const input = {
-            Bucket: process.env.S3_UPLOAD_BUCKET,
-            Key: document.fileKey,
-        };
-
-        const command = new DeleteObjectCommand(input);
-        client.send(command, function (err, data) {
-            resolve();
-        });
+export const deleteDocumentFromGCS = async (document: LoadDocument): Promise<void> => {
+    const storage = new Storage({
+        projectId: process.env.GCP_PROJECT_ID,
+        credentials: {
+            client_email: process.env.GCP_CLIENT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY,
+        },
     });
+
+    const bucket = storage.bucket(process.env.GCP_LOAD_DOCS_BUCKET_NAME);
+
+    const file = bucket.file(document.fileKey);
+
+    await file.delete();
 };

@@ -11,10 +11,9 @@ import {
 import { Driver, LoadDocument } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
-import { useS3Upload } from 'next-s3-upload';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
@@ -29,6 +28,7 @@ import { loadStatus } from '../../lib/load/load-utils';
 import { assignDriverToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
 import { formatValue } from 'react-currency-input-field';
+import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -176,13 +176,12 @@ type Props = {
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [load, setLoad] = useState<ExpandedLoad>();
-
-    const { FileInput, openFileDialog, uploadToS3, files } = useS3Upload();
-
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
     const router = useRouter();
+
+    let fileInput: HTMLInputElement;
 
     useEffect(() => {
         reloadLoad();
@@ -202,7 +201,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             notify({ title: 'Driver assigned', message: 'Driver assigned to load successfully' });
             reloadLoad();
         } catch (e) {
-            notify({ title: 'Error Assigning Driver', message: e.message });
+            notify({ title: 'Error Assigning Driver', message: e.messag, type: 'error' });
         }
     };
 
@@ -213,7 +212,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 notify({ title: 'Driver removed', message: 'Driver removed from load successfully' });
                 reloadLoad();
             } catch (e) {
-                notify({ title: 'Error removing driver', message: e.message });
+                notify({ title: 'Error removing driver', message: e.message, type: 'error' });
             }
         } else {
             setOpenSelectDriver(true);
@@ -228,14 +227,21 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         router.push('/loads');
     };
 
-    const handleFileChange = async (file: File) => {
+    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            console.log('No file selected.');
+            return;
+        }
+
         setDocsLoading(true);
         try {
-            const response = await uploadToS3(file);
-            if (response?.key) {
+            const response = await uploadFileToGCS(file);
+            if (response?.uniqueFileName) {
                 const simpleDoc: Partial<LoadDocument> = {
-                    fileKey: response.key,
-                    fileUrl: response.url,
+                    fileKey: response.uniqueFileName,
+                    fileUrl: response.gcsInputUri,
                     fileName: file.name,
                     fileType: file.type,
                     fileSize: file.size,
@@ -252,10 +258,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 }
                 notify({ title: 'Document uploaded', message: 'Document uploaded successfully' });
             } else {
-                notify({ title: 'Error uploading document', message: 'Upload response invalid' });
+                notify({ title: 'Error uploading document', message: 'Upload response invalid', type: 'error' });
             }
         } catch (e) {
-            notify({ title: 'Error uploading document', message: e.message });
+            notify({ title: 'Error uploading document', message: e.message, type: 'error' });
         }
         setDocsLoading(false);
     };
@@ -268,7 +274,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             setLoadDocuments(newLoadDocuments);
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
         } catch (e) {
-            notify({ title: 'Error deleting document', message: e.message });
+            notify({ title: 'Error deleting document', message: e.message, type: 'error' });
         }
         setDocsLoading(false);
     };
@@ -412,11 +418,16 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         <dt className="text-gray-500">Documents</dt>
                                                         <dd className="text-gray-900">
                                                             <div>
-                                                                <FileInput onChange={handleFileChange} />
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={handleFileChange}
+                                                                    style={{ display: 'none' }}
+                                                                    ref={(input) => (fileInput = input)}
+                                                                />
                                                                 <button
                                                                     type="button"
                                                                     className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={openFileDialog}
+                                                                    onClick={() => fileInput.click()}
                                                                     disabled={docsLoading}
                                                                 >
                                                                     <UploadIcon className="w-4 h-4 mr-1 text-gray-500"></UploadIcon>
@@ -426,13 +437,12 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             </div>
                                                         </dd>
                                                     </div>
-                                                    {(files.map((f) => f.progress < 100).filter((x) => x).length > 0 ||
-                                                        loadDocuments.length > 0) && (
+                                                    {loadDocuments.length > 0 && (
                                                         <ul
                                                             role="list"
                                                             className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
                                                         >
-                                                            {files.map((file, index) =>
+                                                            {/* {files.map((file, index) =>
                                                                 file.progress < 100 ? (
                                                                     <li
                                                                         key={`file-${index}`}
@@ -456,7 +466,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         </div>
                                                                     </li>
                                                                 ) : null,
-                                                            )}
+                                                            )} */}
                                                             {loadDocuments.map((doc, index) => (
                                                                 <li key={`doc-${index}`}>
                                                                     <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
@@ -490,11 +500,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             ))}
                                                         </ul>
                                                     )}
-                                                    {loadDocuments.length === 0 && (
+                                                    {/* {loadDocuments.length === 0 && (
                                                         <UploadDocsArea
                                                             handleFileChange={handleFileChange}
                                                         ></UploadDocsArea>
-                                                    )}
+                                                    )} */}
                                                 </div>
                                             </dl>
                                         </div>
