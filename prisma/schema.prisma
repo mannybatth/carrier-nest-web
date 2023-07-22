@@ -106,6 +106,7 @@ model Load {
     receiverId    String
     rate          Decimal
     distance      Int
+    routeEncoded  String?
     invoice       Invoice?
     carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     customer      Customer?      @relation(fields: [customerId], references: [id])
@@ -115,6 +116,7 @@ model Load {
     user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     loadDocuments LoadDocument[]
     stops         LoadStop[]
+    routeId       Int?
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -134,6 +136,8 @@ model LoadStop {
     time            String
     loadIdAsStop    String?
     stopIndex       Int          @default(0)
+    longitude       Float?
+    latitude        Float?
     loadsAsReceiver Load[]       @relation("receiver")
     loadsAsShipper  Load[]       @relation("shipper")
     loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])

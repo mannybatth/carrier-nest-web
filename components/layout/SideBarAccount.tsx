@@ -56,7 +56,7 @@ const SideBarAccount: React.FC<Props> = ({ defaultCarrier, carrierList }) => (
                                 </Link>
                             )}
                         </Menu.Item> */}
-                        <Menu.Item>
+                        {/* <Menu.Item>
                             {({ active }) => (
                                 <Link href={`/settings`}>
                                     <button
@@ -69,7 +69,7 @@ const SideBarAccount: React.FC<Props> = ({ defaultCarrier, carrierList }) => (
                                     </button>
                                 </Link>
                             )}
-                        </Menu.Item>
+                        </Menu.Item> */}
                         <Menu.Item>
                             {({ active }) => (
                                 <a

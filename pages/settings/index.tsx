@@ -96,7 +96,7 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Drivers</h1>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Settings</h1>
                 </div>
             }
         >

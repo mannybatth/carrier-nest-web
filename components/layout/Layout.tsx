@@ -7,6 +7,7 @@ import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
 import { useSession } from 'next-auth/react';
 import { getCarriers } from '../../lib/rest/carrier';
+import CreateNewButton from './CreateNewButton';
 
 export type Props = PropsWithChildren<{
     smHeaderComponent: JSX.Element;
@@ -114,6 +115,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         </div>
                         <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carrierList}></SideBarAccount>
                         <SideBarSearch></SideBarSearch>
+                        <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
                         <Navigation></Navigation>
                     </div>
                     <SideBarFooter></SideBarFooter>

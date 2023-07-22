@@ -86,6 +86,8 @@ export const getLoads = async ({
     const expandCustomer = expand?.includes('customer');
     const expandShipper = expand?.includes('shipper');
     const expandReceiver = expand?.includes('receiver');
+    const expandDriver = expand?.includes('driver');
+    const expandStops = expand?.includes('stops');
 
     const sortBy = query.sortBy as string;
     const sortDir = (query.sortDir as 'asc' | 'desc') || 'asc';
@@ -167,6 +169,8 @@ export const getLoads = async ({
                               date: true,
                               time: true,
                               stopIndex: true,
+                              longitude: true,
+                              latitude: true,
                           },
                       },
                   }
@@ -186,6 +190,39 @@ export const getLoads = async ({
                               date: true,
                               time: true,
                               stopIndex: true,
+                              longitude: true,
+                              latitude: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandDriver
+                ? {
+                      driver: {
+                          select: {
+                              id: true,
+                              name: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandStops
+                ? {
+                      stops: {
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              longitude: true,
+                              latitude: true,
                           },
                       },
                   }

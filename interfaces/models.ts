@@ -37,6 +37,8 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 date: true,
                 time: true,
                 stopIndex: true,
+                latitude: true,
+                longitude: true,
             },
         },
         receiver: {
@@ -52,6 +54,8 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 date: true,
                 time: true,
                 stopIndex: true,
+                latitude: true,
+                longitude: true,
             },
         },
         stops: {
@@ -67,6 +71,8 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 date: true,
                 time: true,
                 stopIndex: true,
+                latitude: true,
+                longitude: true,
             },
         },
         invoice: {
@@ -83,7 +89,12 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 lastPaymentAt: true,
             },
         },
-        driver: true,
+        driver: {
+            select: {
+                id: true,
+                name: true,
+            },
+        },
         loadDocuments: true,
     },
 });

@@ -29,6 +29,7 @@ import { assignDriverToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
 import { formatValue } from 'react-currency-input-field';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import Image from 'next/image';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -329,6 +330,18 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
 
+                    {load && load.routeEncoded && (
+                        <Image
+                            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
+                                load.routeEncoded,
+                            )})/auto/900x300?padding=50,50,50,50&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                            width="900"
+                            height="300"
+                            alt="Load Route"
+                            loading="lazy"
+                            className="w-full h-auto mb-3"
+                        ></Image>
+                    )}
                     <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
                         {load ? (
                             <>

@@ -43,7 +43,7 @@ export const getLocation = async ({
     }
 
     const params = new URLSearchParams({
-        access_token: process.env.MAPBOX_TOKEN,
+        access_token: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
         types: 'address',
         country: 'us,ca',
         proximity: 'ip',

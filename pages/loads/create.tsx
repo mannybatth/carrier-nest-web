@@ -17,6 +17,7 @@ import { FileUploader } from 'react-drag-drop-files';
 import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
+import { getGeocoding } from '../../lib/mapbox/searchGeo';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();

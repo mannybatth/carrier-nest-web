@@ -65,6 +65,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 date: loadData.shipper.date || '',
                 time: loadData.shipper.time || '',
                 stopIndex: loadData.shipper.stopIndex || 0,
+                longitude: loadData.shipper.longitude,
+                latitude: loadData.shipper.latitude,
                 user: {
                     connect: {
                         id: session.user.id,
@@ -82,6 +84,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 date: loadData.shipper.date || '',
                 time: loadData.shipper.time || '',
                 stopIndex: loadData.shipper.stopIndex || 0,
+                longitude: loadData.shipper.longitude,
+                latitude: loadData.shipper.latitude,
                 user: {
                     connect: {
                         id: session.user.id,
@@ -105,6 +109,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 date: loadData.receiver.date || '',
                 time: loadData.receiver.time || '',
                 stopIndex: loadData.receiver.stopIndex || 0,
+                longitude: loadData.receiver.longitude,
+                latitude: loadData.receiver.latitude,
                 user: {
                     connect: {
                         id: session.user.id,
@@ -122,6 +128,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 date: loadData.receiver.date || '',
                 time: loadData.receiver.time || '',
                 stopIndex: loadData.receiver.stopIndex || 0,
+                longitude: loadData.receiver.longitude,
+                latitude: loadData.receiver.latitude,
                 user: {
                     connect: {
                         id: session.user.id,
@@ -178,6 +186,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         },
                     })),
                 },
+                routeEncoded: loadData.routeEncoded || '',
             },
         });
 
@@ -247,13 +256,68 @@ export const getLoad = async ({
         include: {
             ...(expandCustomer ? { customer: true } : {}),
             ...(expandInvoice ? { invoice: true } : {}),
-            ...(expandShipper ? { shipper: true } : {}),
-            ...(expandReceiver ? { receiver: true } : {}),
+            ...(expandShipper
+                ? {
+                      shipper: {
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandReceiver
+                ? {
+                      receiver: {
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                          },
+                      },
+                  }
+                : {}),
             ...(expandStops
                 ? {
                       stops: {
                           orderBy: {
                               stopIndex: 'asc',
+                          },
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
                           },
                       },
                   }

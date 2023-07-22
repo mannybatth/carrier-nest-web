@@ -10,6 +10,7 @@ export const getLoadsExpanded = async ({
     limit,
     offset,
     currentOnly,
+    expand,
 }: {
     sort?: Sort;
     customerId?: string;
@@ -17,9 +18,10 @@ export const getLoadsExpanded = async ({
     limit?: number;
     offset?: number;
     currentOnly?: boolean;
+    expand?: string;
 } = {}): Promise<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams({
-        expand: 'customer,shipper,receiver',
+        expand: expand || 'customer,shipper,receiver',
     });
     if (sort && sort.key) {
         params.append('sortBy', sort.key);

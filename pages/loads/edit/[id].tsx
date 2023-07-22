@@ -13,6 +13,7 @@ import type { ExpandedLoad } from '../../../interfaces/models';
 import { updateLoad } from '../../../lib/rest/load';
 import { getLoad } from '../../api/loads/[id]';
 import { getSession } from 'next-auth/react';
+import { getGeocoding, getRouteEncoded } from '../../../lib/mapbox/searchGeo';
 
 type Props = {
     load: ExpandedLoad;
@@ -87,6 +88,56 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
         setLoading(true);
+
+        const shipperAddress =
+            loadData.shipper.street +
+            ', ' +
+            loadData.shipper.city +
+            ', ' +
+            loadData.shipper.state +
+            ' ' +
+            loadData.shipper.zip;
+        const receiverAddress =
+            loadData.receiver.street +
+            ', ' +
+            loadData.receiver.city +
+            ', ' +
+            loadData.receiver.state +
+            ' ' +
+            loadData.receiver.zip;
+        const shipperCoordinates = await getGeocoding(shipperAddress);
+        const receiverCoordinates = await getGeocoding(receiverAddress);
+        const stopsCoordinates = await Promise.all(
+            loadData.stops.map(async (stop) => {
+                const stopAddress = stop.street + ', ' + stop.city + ', ' + stop.state + ' ' + stop.zip;
+                return await getGeocoding(stopAddress);
+            }),
+        );
+
+        const routeEncoded = await getRouteEncoded([
+            [shipperCoordinates.longitude, shipperCoordinates.latitude],
+            ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
+            [receiverCoordinates.longitude, receiverCoordinates.latitude],
+        ]);
+
+        loadData.shipper = {
+            ...loadData.shipper,
+            longitude: shipperCoordinates.longitude,
+            latitude: shipperCoordinates.latitude,
+        };
+        loadData.receiver = {
+            ...loadData.receiver,
+            longitude: receiverCoordinates.longitude,
+            latitude: receiverCoordinates.latitude,
+        };
+        loadData.stops = loadData.stops.map((stop, index) => {
+            return {
+                ...stop,
+                longitude: stopsCoordinates[index].longitude,
+                latitude: stopsCoordinates[index].latitude,
+            };
+        });
+        loadData.routeEncoded = routeEncoded;
 
         const newLoad = await updateLoad(load.id, loadData);
         console.log('updated load', newLoad);
