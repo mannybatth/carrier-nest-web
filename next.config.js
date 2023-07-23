@@ -1,6 +1,5 @@
 module.exports = {
     images: {
-        unoptimized: true,
         remotePatterns: [
             {
                 protocol: 'https',
@@ -9,5 +8,6 @@ module.exports = {
                 pathname: '/styles/**',
             },
         ],
+        domains: ['api.mapbox.com'],
     },
 };
