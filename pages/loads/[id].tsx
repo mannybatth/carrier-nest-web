@@ -335,8 +335,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
                                 load.routeEncoded,
                             )})/auto/900x300?padding=50,50,50,50&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
-                            width="900"
-                            height="300"
+                            width={900}
+                            height={300}
                             alt="Load Route"
                             loading="lazy"
                             className="w-full h-auto mb-3"
