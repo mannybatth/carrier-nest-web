@@ -8,5 +8,6 @@ module.exports = {
                 pathname: '/styles/**',
             },
         ],
+        domains: ['api.mapbox.com'],
     },
 };
