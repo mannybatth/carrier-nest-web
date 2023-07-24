@@ -229,8 +229,8 @@ model InvoicePayment {
 model LoadDocument {
     id              String   @id @default(cuid())
     userId          String
-    loadId          String
-    loadIdForPodDoc String
+    loadId          String?
+    loadIdForPodDoc String?
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
     fileKey         String
