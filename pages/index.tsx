@@ -130,40 +130,36 @@ const Dashboard: PageWithAuth = () => {
                                                                             aria-hidden="true"
                                                                         />
                                                                         <div className="relative flex items-center space-x-3">
-                                                                            <>
-                                                                                <div className="relative px-1">
-                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                                        <TruckIcon
-                                                                                            className="w-5 h-5 text-green-800"
-                                                                                            aria-hidden="true"
-                                                                                        />
+                                                                            <div className="relative px-1">
+                                                                                <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
+                                                                                    <TruckIcon
+                                                                                        className="w-5 h-5 text-green-800"
+                                                                                        aria-hidden="true"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="text-xs text-gray-500">
+                                                                                    <span className="text-sm font-medium text-gray-900">
+                                                                                        {new Intl.DateTimeFormat(
+                                                                                            'en-US',
+                                                                                            {
+                                                                                                year: 'numeric',
+                                                                                                month: 'long',
+                                                                                                day: '2-digit',
+                                                                                            },
+                                                                                        ).format(
+                                                                                            new Date(load.shipper.date),
+                                                                                        )}
+                                                                                    </span>{' '}
+                                                                                    @ {load.shipper.time}
+                                                                                    <div>{load.shipper.name}</div>
+                                                                                    <div>
+                                                                                        {load.shipper.city},{' '}
+                                                                                        {load.shipper.state}
                                                                                     </div>
                                                                                 </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="text-xs text-gray-500">
-                                                                                        <span className="text-sm font-medium text-gray-900">
-                                                                                            {new Intl.DateTimeFormat(
-                                                                                                'en-US',
-                                                                                                {
-                                                                                                    year: 'numeric',
-                                                                                                    month: 'long',
-                                                                                                    day: '2-digit',
-                                                                                                },
-                                                                                            ).format(
-                                                                                                new Date(
-                                                                                                    load.shipper.date,
-                                                                                                ),
-                                                                                            )}
-                                                                                        </span>{' '}
-                                                                                        @ {load.shipper.time}
-                                                                                        <div>{load.shipper.name}</div>
-                                                                                        <div>
-                                                                                            {load.shipper.city},{' '}
-                                                                                            {load.shipper.state}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </li>
@@ -175,22 +171,20 @@ const Dashboard: PageWithAuth = () => {
                                                                                 aria-hidden="true"
                                                                             />
                                                                             <div className="relative flex items-center space-x-3">
-                                                                                <>
-                                                                                    <div className="relative px-1">
-                                                                                        <div className="flex items-center justify-center w-8 h-8 ">
-                                                                                            <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
+                                                                                <div className="relative px-1">
+                                                                                    <div className="flex items-center justify-center w-8 h-8 ">
+                                                                                        <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="text-xs text-gray-500">
+                                                                                        <div>
+                                                                                            {load.stops.length} stop
+                                                                                            {load.stops.length > 1 &&
+                                                                                                's'}
                                                                                         </div>
                                                                                     </div>
-                                                                                    <div className="flex-1 min-w-0">
-                                                                                        <div className="text-xs text-gray-500">
-                                                                                            <div>
-                                                                                                {load.stops.length} stop
-                                                                                                {load.stops.length >
-                                                                                                    1 && 's'}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </li>
@@ -198,42 +192,38 @@ const Dashboard: PageWithAuth = () => {
                                                                 <li>
                                                                     <div className="relative pb-8">
                                                                         <div className="relative flex items-center space-x-3">
-                                                                            <>
-                                                                                <div>
-                                                                                    <div className="relative px-1">
-                                                                                        <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                                            <LocationMarkerIcon
-                                                                                                className="w-5 h-5 text-red-800"
-                                                                                                aria-hidden="true"
-                                                                                            />
-                                                                                        </div>
+                                                                            <div className="relative px-1">
+                                                                                <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
+                                                                                    <LocationMarkerIcon
+                                                                                        className="w-5 h-5 text-red-800"
+                                                                                        aria-hidden="true"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="text-xs text-gray-500">
+                                                                                    <span className="text-sm font-medium text-gray-900">
+                                                                                        {new Intl.DateTimeFormat(
+                                                                                            'en-US',
+                                                                                            {
+                                                                                                year: 'numeric',
+                                                                                                month: 'long',
+                                                                                                day: '2-digit',
+                                                                                            },
+                                                                                        ).format(
+                                                                                            new Date(
+                                                                                                load.receiver.date,
+                                                                                            ),
+                                                                                        )}
+                                                                                    </span>{' '}
+                                                                                    @ {load.receiver.time}
+                                                                                    <div>{load.receiver.name}</div>
+                                                                                    <div>
+                                                                                        {load.receiver.city},{' '}
+                                                                                        {load.receiver.state}
                                                                                     </div>
                                                                                 </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="text-xs text-gray-500">
-                                                                                        <span className="text-sm font-medium text-gray-900">
-                                                                                            {new Intl.DateTimeFormat(
-                                                                                                'en-US',
-                                                                                                {
-                                                                                                    year: 'numeric',
-                                                                                                    month: 'long',
-                                                                                                    day: '2-digit',
-                                                                                                },
-                                                                                            ).format(
-                                                                                                new Date(
-                                                                                                    load.receiver.date,
-                                                                                                ),
-                                                                                            )}
-                                                                                        </span>{' '}
-                                                                                        @ {load.receiver.time}
-                                                                                        <div>{load.receiver.name}</div>
-                                                                                        <div>
-                                                                                            {load.receiver.city},{' '}
-                                                                                            {load.receiver.state}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </li>
