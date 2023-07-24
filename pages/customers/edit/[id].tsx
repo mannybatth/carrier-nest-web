@@ -62,7 +62,10 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
         formHook.setValue('city', customer.city);
         formHook.setValue('state', customer.state);
         formHook.setValue('zip', customer.zip);
-        formHook.setValue('country', customer.country);
+
+        if (customer.country) {
+            formHook.setValue('country', customer.country);
+        }
     }, [customer]);
 
     const submit = async (data: Customer) => {

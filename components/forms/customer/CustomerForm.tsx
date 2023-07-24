@@ -148,16 +148,14 @@ const CustomerForm: React.FC<Props> = ({
                                 rules={{ required: 'Country is required' }}
                                 name="country"
                                 defaultValue="US"
-                                render={({ field: { onChange, value }, fieldState: { error } }) => (
+                                render={({ field, fieldState: { error } }) => (
                                     <>
                                         <label htmlFor="country" className="block text-sm font-medium text-gray-700">
                                             Country
                                         </label>
                                         <select
-                                            id="country"
+                                            {...field}
                                             className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            value={value}
-                                            onChange={onChange}
                                         >
                                             {countryCodes.map((countryCode) => (
                                                 <option key={countryCode.code} value={countryCode.code}>

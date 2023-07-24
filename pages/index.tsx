@@ -129,7 +129,7 @@ const Dashboard: PageWithAuth = () => {
                                                                     </div>
                                                                 </dt>
                                                                 <dd className="text-gray-700">
-                                                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md">
+                                                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 uppercase bg-green-100 rounded-md">
                                                                         {loadStatus(load)}
                                                                     </span>
                                                                 </dd>

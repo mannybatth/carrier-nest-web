@@ -349,11 +349,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     <aside className="bg-white border-gray-200">
                                         <div className="pb-0 space-y-6 lg:pb-10">
                                             <dl className="border-gray-200 divide-y divide-gray-200">
-                                                <div className="flex justify-between py-3 text-sm font-medium">
+                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Reference #</dt>
                                                     <dd className="text-gray-900">{load.refNum}</dd>
                                                 </div>
-                                                <div className="flex justify-between py-3 text-sm font-medium">
+                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Status</dt>
                                                     <dd className="text-gray-900">
                                                         <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
@@ -361,7 +361,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         </span>
                                                     </dd>
                                                 </div>
-                                                <div className="flex justify-between py-3 text-sm font-medium">
+                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Customer</dt>
                                                     <dd className="text-gray-900">
                                                         {load.customer && (
@@ -371,7 +371,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         )}
                                                     </dd>
                                                 </div>
-                                                <div className="flex justify-between py-3 text-sm font-medium">
+                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Driver</dt>
                                                     <dd className="text-gray-900">
                                                         {load.driver ? (
@@ -385,7 +385,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         )}
                                                     </dd>
                                                 </div>
-                                                <div className="flex justify-between py-3 text-sm font-medium">
+                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Rate</dt>
                                                     <dd className="text-gray-900">
                                                         {formatValue({
@@ -398,7 +398,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                     </dd>
                                                 </div>
                                                 <div>
-                                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Invoice</dt>
                                                         <dd className="text-gray-900">
                                                             {load.invoice ? (
@@ -427,7 +427,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                     ) : null}
                                                 </div>
                                                 <div>
-                                                    <div className="flex justify-between py-3 text-sm font-medium">
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Documents</dt>
                                                         <dd className="text-gray-900">
                                                             <div>
