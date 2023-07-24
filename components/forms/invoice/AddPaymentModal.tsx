@@ -159,7 +159,11 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                                                 className="rounded-none rounded-l-md"
                                                                 value={(value as Prisma.Decimal)?.toString() || ''}
                                                                 onChange={(e) =>
-                                                                    onChange(new Prisma.Decimal(e.target.value))
+                                                                    onChange(
+                                                                        e.target.value
+                                                                            ? new Prisma.Decimal(e.target.value)
+                                                                            : '',
+                                                                    )
                                                                 }
                                                             ></MoneyInput>
                                                         </div>

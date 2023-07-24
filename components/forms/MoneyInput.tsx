@@ -14,6 +14,11 @@ type Props = {
 const MoneyInput: React.FC<Props> = ({ value, allowNegative, onChange, ...props }) => {
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const newValue = event.target.value;
+        if (!newValue) {
+            event.target.value = '';
+            onChange(event);
+            return;
+        }
         if (isValidMoney(newValue, allowNegative)) {
             event.target.value = newValue;
             onChange(event);

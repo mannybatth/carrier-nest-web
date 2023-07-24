@@ -199,7 +199,7 @@ const InvoiceForm: React.FC<Props> = ({
                                 appendItem({
                                     id: null,
                                     title: '',
-                                    amount: new Prisma.Decimal(0),
+                                    amount: null,
                                 });
                             }}
                         >
