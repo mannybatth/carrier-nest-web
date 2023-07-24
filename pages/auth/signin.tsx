@@ -1,8 +1,6 @@
-import { XCircleIcon } from '@heroicons/react/outline';
 import { NextPage } from 'next';
-import { getSession } from 'next-auth/react';
-import React, { PropsWithChildren } from 'react';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
+import React from 'react';
 
 type SignInErrorTypes =
     | 'Signin'
