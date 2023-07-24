@@ -102,7 +102,11 @@ const Dashboard: PageWithAuth = () => {
                                                     key={load.id}
                                                     className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80"
                                                 >
-                                                    <div onClick={() => router.push(`/loads/${load.id}`)}>
+                                                    <div
+                                                        onClick={() => {
+                                                            router.push(`/loads/${load.id}`);
+                                                        }}
+                                                    >
                                                         {load && load.routeEncoded && (
                                                             <Image
                                                                 src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
@@ -254,6 +258,9 @@ const Dashboard: PageWithAuth = () => {
                                                                             <Link
                                                                                 href={`/drivers/${load.driver.id}`}
                                                                                 className="font-medium"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                }}
                                                                             >
                                                                                 {load.driver?.name}
                                                                             </Link>
