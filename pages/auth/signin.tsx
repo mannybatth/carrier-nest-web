@@ -1,3 +1,4 @@
+import { XCircleIcon } from '@heroicons/react/solid';
 import { NextPage } from 'next';
 import { getSession, signIn } from 'next-auth/react';
 import React from 'react';
@@ -16,17 +17,19 @@ type SignInErrorTypes =
     | 'default';
 
 const errors: Record<SignInErrorTypes, string> = {
-    Signin: 'Try signing in with a different account.',
-    OAuthSignin: 'Try signing in with a different account.',
-    OAuthCallback: 'Try signing in with a different account.',
-    OAuthCreateAccount: 'Try signing in with a different account.',
-    EmailCreateAccount: 'Try signing in with a different account.',
-    Callback: 'Try signing in with a different account.',
-    OAuthAccountNotLinked: 'To confirm your identity, sign in with the same account you used originally.',
-    EmailSignin: 'The e-mail could not be sent.',
-    CredentialsSignin: 'Sign in failed. Check the details you provided are correct.',
-    SessionRequired: 'Please sign in to access this page.',
-    default: 'Unable to sign in.',
+    Signin: 'There was an error signing in with this account. Please try again.',
+    OAuthSignin: 'There was an error signing in with OAuth. Please try again.',
+    OAuthCallback: 'There was an error with the OAuth callback. Please try again.',
+    OAuthCreateAccount: 'There was an error creating a new OAuth account. Please try again.',
+    EmailCreateAccount:
+        'There was an error creating a new account with this email. Please check the email and try again.',
+    Callback: 'There was an error during the callback process. Please try again.',
+    OAuthAccountNotLinked:
+        'This OAuth account is not linked. To confirm your identity, sign in with the same account you used originally.',
+    EmailSignin: 'The sign-in email could not be sent. Please check your email and try again.',
+    CredentialsSignin: 'Sign in failed. Please check the details you provided are correct and try again.',
+    SessionRequired: 'A session is required to access this page. Please sign in.',
+    default: 'An unknown error occurred during sign in. Please try again.',
 };
 
 type Props = {
@@ -47,6 +50,27 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
         <div className="flex flex-col items-center justify-center h-screen bg-blue-500">
             <div className="w-full max-w-md p-6 mx-auto mt-8 bg-white rounded-lg shadow-lg">
                 <h2 className="mb-6 text-2xl font-bold text-center text-gray-800">Sign in to your account</h2>
+
+                {error && (
+                    <div className="p-4 mb-4 rounded-md bg-red-50">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <XCircleIcon className="w-5 h-5 text-red-400" aria-hidden="true" />
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    There were errors with your submission
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <ul role="list" className="pl-5 list-disc">
+                                        <li>{error}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <form className="mb-6 space-y-6" method="POST" onSubmit={handleSubmit}>
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
