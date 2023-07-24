@@ -13,14 +13,6 @@ export type SearchResult<T> = {
 /**
  * Load
  */
-export enum LoadStatus {
-    PENDING = 'pending',
-    COMPLETED = 'completed',
-    INVOICED = 'invoiced',
-    PAID = 'paid',
-    OVERDUE = 'overdue',
-}
-
 const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
     include: {
         customer: { select: { id: true, name: true } },
@@ -96,6 +88,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
             },
         },
         loadDocuments: true,
+        podDocuments: true,
     },
 });
 export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>>;
@@ -119,7 +112,6 @@ export enum UIInvoiceStatus {
     OVERDUE = 'overdue',
     PAID = 'paid',
 }
-
 const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
     include: {
         load: {

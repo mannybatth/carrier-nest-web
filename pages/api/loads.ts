@@ -1,4 +1,4 @@
-import { Load, Prisma } from '@prisma/client';
+import { Load, LoadStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
@@ -252,6 +252,7 @@ export const postLoads = async ({
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
                 distance: loadData.distance || 0,
+                status: LoadStatus.CREATED,
                 user: {
                     connect: {
                         id: session.user.id,
