@@ -6,8 +6,8 @@ import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
 import { useSession } from 'next-auth/react';
-import { getCarriers } from '../../lib/rest/carrier';
 import CreateNewButton from './CreateNewButton';
+import { useUserContext } from '../context/UserContext';
 
 export type Props = PropsWithChildren<{
     smHeaderComponent: JSX.Element;
@@ -16,19 +16,16 @@ export type Props = PropsWithChildren<{
 
 const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
     const { data: session } = useSession();
+    const [carriers] = useUserContext();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [defaultCarrier, setDefaultCarrier] = useState(null);
-    const [carrierList, setCarrierList] = useState(null);
 
     React.useEffect(() => {
         if (session?.user?.defaultCarrierId) {
-            getCarriers().then((carriers) => {
-                const defaultCarrier = carriers.find((carrier) => carrier.id === session.user.defaultCarrierId);
-                setDefaultCarrier(defaultCarrier);
-                setCarrierList(carriers);
-            });
+            const defaultCarrier = carriers.find((carrier) => carrier.id === session.user.defaultCarrierId);
+            setDefaultCarrier(defaultCarrier);
         }
-    }, [session]);
+    }, [session, carriers]);
 
     return (
         <div className={className}>
@@ -86,10 +83,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                         <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
                                     </button>
                                 </div>
-                                <SideBarAccount
-                                    defaultCarrier={defaultCarrier}
-                                    carrierList={carrierList}
-                                ></SideBarAccount>
+                                <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carriers}></SideBarAccount>
                                 <SideBarSearch></SideBarSearch>
                                 <Navigation></Navigation>
                             </div>
@@ -113,7 +107,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
                             </button>
                         </div>
-                        <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carrierList}></SideBarAccount>
+                        <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carriers}></SideBarAccount>
                         <SideBarSearch></SideBarSearch>
                         <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
                         <Navigation></Navigation>

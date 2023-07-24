@@ -1,9 +1,11 @@
-import { LocationMarkerIcon, StopIcon, TruckIcon } from '@heroicons/react/outline';
+import { LocationMarkerIcon, TruckIcon } from '@heroicons/react/outline';
+import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
+import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
@@ -11,9 +13,11 @@ import { loadStatus } from '../lib/load/load-utils';
 import { getLoadsExpanded } from '../lib/rest/load';
 
 const Dashboard: PageWithAuth = () => {
-    const { data: session } = useSession();
     const router = useRouter();
+    const { data: session } = useSession();
+    const [carriers] = useUserContext();
 
+    const [defaultCarrier, setDefaultCarrier] = React.useState<Carrier | null>(null);
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
@@ -21,6 +25,13 @@ const Dashboard: PageWithAuth = () => {
     React.useEffect(() => {
         reloadLoads({ limit: 10, offset: 0 });
     }, []);
+
+    React.useEffect(() => {
+        if (session) {
+            const defaultCarrier = carriers.find((carrier) => carrier.id === session.user?.defaultCarrierId) || null;
+            setDefaultCarrier(defaultCarrier);
+        }
+    }, [carriers]);
 
     const reloadLoads = async ({ limit, offset }: { limit: number; offset: number }) => {
         const { loads, metadata: metadataResponse } = await getLoadsExpanded({
@@ -43,7 +54,11 @@ const Dashboard: PageWithAuth = () => {
             <div className="py-2 mx-auto max-w-7xl">
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <h1 className="text-2xl text-gray-900">
-                        Welcome back <span className="font-semibold">{session?.user?.name}</span>!
+                        Welcome back
+                        <span className="font-semibold">
+                            &nbsp;{session?.user?.name ? session?.user?.name : defaultCarrier.name}
+                        </span>
+                        !
                     </h1>
 
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />

@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { PropsWithChildren } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { UserProvider } from '../components/context/UserContext';
 import Spinner from '../components/Spinner';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
@@ -64,7 +65,9 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
             </Head>
             {Component.authenticationEnabled ? (
                 <Auth {...pageProps}>
-                    <Component {...pageProps} />
+                    <UserProvider>
+                        <Component {...pageProps} />
+                    </UserProvider>
                 </Auth>
             ) : (
                 <Component {...pageProps} />

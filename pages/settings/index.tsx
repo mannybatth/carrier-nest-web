@@ -8,9 +8,10 @@ import { useForm } from 'react-hook-form';
 import Layout from '../../components/layout/Layout';
 import { PageWithAuth } from '../../interfaces/auth';
 import { useSession } from 'next-auth/react';
-import { getCarriers, resetCarriersState, updateCarrier } from '../../lib/rest/carrier';
+import { updateCarrier } from '../../lib/rest/carrier';
 import SettingsPageSkeleton from '../../components/skeletons/SettingsPageSkeleton';
 import { notify } from '../../components/Notification';
+import { useUserContext } from '../../components/context/UserContext';
 
 type Props = {
     //
@@ -18,11 +19,10 @@ type Props = {
 
 const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
     const { data: session } = useSession();
+    const [carriers, setCarriers] = useUserContext();
     const { register, handleSubmit, setValue, formState } = useForm<Carrier>();
     const router = useRouter();
 
-    const [loadingCarriers, setLoadingCarriers] = useState(true);
-    const [carriers, setCarriers] = useState<Carrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<Carrier | null>(null);
 
     const navigation = [
@@ -55,18 +55,11 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
 
     useEffect(() => {
         if (session) {
-            resetCarriersState();
-            getCarriers().then((carriers) => {
-                setLoadingCarriers(false);
-                setCarriers(carriers);
-
-                const defaultCarrier =
-                    carriers.find((carrier) => carrier.id === session.user?.defaultCarrierId) || null;
-                setDefaultCarrier(defaultCarrier);
-                applyCarrierToForm(defaultCarrier);
-            });
+            const defaultCarrier = carriers.find((carrier) => carrier.id === session.user?.defaultCarrierId) || null;
+            setDefaultCarrier(defaultCarrier);
+            applyCarrierToForm(defaultCarrier);
         }
-    }, [session]);
+    }, [session, carriers]);
 
     const applyCarrierToForm = (carrier: Carrier) => {
         if (carrier) {
@@ -87,9 +80,14 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
 
         notify({ title: 'Carrier updated', message: 'Carrier updated successfully' });
 
+        setCarriers((prevCarriers) => {
+            const index = prevCarriers.findIndex((carrier) => carrier.id === newCarrier.id);
+            const newCarriers = [...prevCarriers];
+            newCarriers[index] = newCarrier;
+            return newCarriers;
+        });
+
         setDefaultCarrier(newCarrier);
-        resetCarriersState();
-        getCarriers();
     };
 
     return (
