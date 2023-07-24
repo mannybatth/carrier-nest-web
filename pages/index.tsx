@@ -83,163 +83,170 @@ const Dashboard: PageWithAuth = () => {
                                     <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
                                         <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
                                             {loadsList.map((load) => (
-                                                <li
-                                                    key={load.id}
-                                                    className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80"
-                                                    onClick={() => {
-                                                        router.push(`/loads/${load.id}`);
-                                                    }}
-                                                >
-                                                    {load && load.routeEncoded && (
-                                                        <Image
-                                                            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
-                                                                load.routeEncoded,
-                                                            )})/auto/900x300?padding=50,50,50,50&access_token=${
-                                                                process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-                                                            }`}
-                                                            width={900}
-                                                            height={300}
-                                                            alt="Load Route"
-                                                            loading="lazy"
-                                                            className="w-full h-auto mb-1"
-                                                        ></Image>
-                                                    )}
-                                                    {!(load && load.routeEncoded) && (
-                                                        <div className="flex items-center p-6 border-b gap-x-4 border-gray-900/5 bg-gray-50"></div>
-                                                    )}
-                                                    <dl className="px-3 py-3 -my-3 text-sm leading-6 divide-y divide-gray-100">
-                                                        <div className="flex justify-between py-2 gap-x-4">
-                                                            <dt className="text-gray-500">
-                                                                <div className="text-xs">{load.refNum}</div>
-                                                                <div className="font-medium text-gray-900">
-                                                                    {load.customer.name}
-                                                                </div>
-                                                            </dt>
-                                                            <dd className="text-gray-700">
-                                                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md">
-                                                                    {loadStatus(load)}
-                                                                </span>
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex justify-between py-3 gap-x-4">
-                                                            <ul role="list" className="-mb-8">
-                                                                <li>
-                                                                    <div className="relative z-auto pb-3">
-                                                                        <span
-                                                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                                            aria-hidden="true"
-                                                                        />
-                                                                        <div className="relative flex items-center space-x-3">
-                                                                            <div className="relative px-1">
-                                                                                <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                                    <TruckIcon
-                                                                                        className="w-5 h-5 text-green-800"
-                                                                                        aria-hidden="true"
-                                                                                    />
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="text-xs text-gray-500">
-                                                                                    <span className="text-sm font-medium text-gray-900">
-                                                                                        {new Intl.DateTimeFormat(
-                                                                                            'en-US',
-                                                                                            {
-                                                                                                year: 'numeric',
-                                                                                                month: 'long',
-                                                                                                day: '2-digit',
-                                                                                            },
-                                                                                        ).format(
-                                                                                            new Date(load.shipper.date),
-                                                                                        )}
-                                                                                    </span>{' '}
-                                                                                    @ {load.shipper.time}
-                                                                                    <div>{load.shipper.name}</div>
-                                                                                    <div>
-                                                                                        {load.shipper.city},{' '}
-                                                                                        {load.shipper.state}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
+                                                <Link key={load.id} href={`/loads/${load.id}`}>
+                                                    <li className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80">
+                                                        {load && load.routeEncoded && (
+                                                            <Image
+                                                                src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
+                                                                    load.routeEncoded,
+                                                                )})/auto/900x300?padding=50,50,50,50&access_token=${
+                                                                    process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+                                                                }`}
+                                                                width={900}
+                                                                height={300}
+                                                                alt="Load Route"
+                                                                loading="lazy"
+                                                                className="w-full h-auto mb-1"
+                                                            ></Image>
+                                                        )}
+                                                        {!(load && load.routeEncoded) && (
+                                                            <div className="flex items-center p-6 border-b gap-x-4 border-gray-900/5 bg-gray-50"></div>
+                                                        )}
+                                                        <dl className="px-3 py-3 -my-3 text-sm leading-6 divide-y divide-gray-100">
+                                                            <div className="flex justify-between py-2 gap-x-4">
+                                                                <dt className="text-gray-500">
+                                                                    <div className="text-xs">{load.refNum}</div>
+                                                                    <div className="font-medium text-gray-900">
+                                                                        {load.customer.name}
                                                                     </div>
-                                                                </li>
-                                                                {load.stops.length > 0 && (
+                                                                </dt>
+                                                                <dd className="text-gray-700">
+                                                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md">
+                                                                        {loadStatus(load)}
+                                                                    </span>
+                                                                </dd>
+                                                            </div>
+                                                            <div className="flex justify-between py-3 gap-x-4">
+                                                                <ul role="list" className="-mb-8">
                                                                     <li>
-                                                                        <div className="relative pb-3">
+                                                                        <div className="relative z-auto pb-3">
                                                                             <span
                                                                                 className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
                                                                                 aria-hidden="true"
                                                                             />
                                                                             <div className="relative flex items-center space-x-3">
                                                                                 <div className="relative px-1">
-                                                                                    <div className="flex items-center justify-center w-8 h-8 ">
-                                                                                        <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
+                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
+                                                                                        <TruckIcon
+                                                                                            className="w-5 h-5 text-green-800"
+                                                                                            aria-hidden="true"
+                                                                                        />
                                                                                     </div>
                                                                                 </div>
                                                                                 <div className="flex-1 min-w-0">
                                                                                     <div className="text-xs text-gray-500">
+                                                                                        <span className="text-sm font-medium text-gray-900">
+                                                                                            {new Intl.DateTimeFormat(
+                                                                                                'en-US',
+                                                                                                {
+                                                                                                    year: 'numeric',
+                                                                                                    month: 'long',
+                                                                                                    day: '2-digit',
+                                                                                                },
+                                                                                            ).format(
+                                                                                                new Date(
+                                                                                                    load.shipper.date,
+                                                                                                ),
+                                                                                            )}
+                                                                                        </span>{' '}
+                                                                                        @ {load.shipper.time}
+                                                                                        <div>{load.shipper.name}</div>
                                                                                         <div>
-                                                                                            {load.stops.length} stop
-                                                                                            {load.stops.length > 1 &&
-                                                                                                's'}
+                                                                                            {load.shipper.city},{' '}
+                                                                                            {load.shipper.state}
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </li>
-                                                                )}
-                                                                <li>
-                                                                    <div className="relative pb-8">
-                                                                        <div className="relative flex items-center space-x-3">
-                                                                            <div className="relative px-1">
-                                                                                <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                                    <LocationMarkerIcon
-                                                                                        className="w-5 h-5 text-red-800"
-                                                                                        aria-hidden="true"
-                                                                                    />
+                                                                    {load.stops.length > 0 && (
+                                                                        <li>
+                                                                            <div className="relative pb-3">
+                                                                                <span
+                                                                                    className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                                <div className="relative flex items-center space-x-3">
+                                                                                    <div className="relative px-1">
+                                                                                        <div className="flex items-center justify-center w-8 h-8 ">
+                                                                                            <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <div className="text-xs text-gray-500">
+                                                                                            <div>
+                                                                                                {load.stops.length} stop
+                                                                                                {load.stops.length >
+                                                                                                    1 && 's'}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="text-xs text-gray-500">
-                                                                                    <span className="text-sm font-medium text-gray-900">
-                                                                                        {new Intl.DateTimeFormat(
-                                                                                            'en-US',
-                                                                                            {
-                                                                                                year: 'numeric',
-                                                                                                month: 'long',
-                                                                                                day: '2-digit',
-                                                                                            },
-                                                                                        ).format(
-                                                                                            new Date(
-                                                                                                load.receiver.date,
-                                                                                            ),
-                                                                                        )}
-                                                                                    </span>{' '}
-                                                                                    @ {load.receiver.time}
-                                                                                    <div>{load.receiver.name}</div>
-                                                                                    <div>
-                                                                                        {load.receiver.city},{' '}
-                                                                                        {load.receiver.state}
+                                                                        </li>
+                                                                    )}
+                                                                    <li>
+                                                                        <div className="relative pb-8">
+                                                                            <div className="relative flex items-center space-x-3">
+                                                                                <div className="relative px-1">
+                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
+                                                                                        <LocationMarkerIcon
+                                                                                            className="w-5 h-5 text-red-800"
+                                                                                            aria-hidden="true"
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="text-xs text-gray-500">
+                                                                                        <span className="text-sm font-medium text-gray-900">
+                                                                                            {new Intl.DateTimeFormat(
+                                                                                                'en-US',
+                                                                                                {
+                                                                                                    year: 'numeric',
+                                                                                                    month: 'long',
+                                                                                                    day: '2-digit',
+                                                                                                },
+                                                                                            ).format(
+                                                                                                new Date(
+                                                                                                    load.receiver.date,
+                                                                                                ),
+                                                                                            )}
+                                                                                        </span>{' '}
+                                                                                        @ {load.receiver.time}
+                                                                                        <div>{load.receiver.name}</div>
+                                                                                        <div>
+                                                                                            {load.receiver.city},{' '}
+                                                                                            {load.receiver.state}
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            <div className="flex justify-between py-3 gap-x-4">
+                                                                <dt className="">
+                                                                    <div className="text-xs text-gray-500">
+                                                                        Driver details
                                                                     </div>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                        <div className="flex justify-between py-3 gap-x-4">
-                                                            <dt className="">
-                                                                <div className="text-xs text-gray-500">
-                                                                    Driver details
-                                                                </div>
-                                                                <div>{load.driver?.name}</div>
-                                                            </dt>
-                                                            <dd className=""></dd>
-                                                        </div>
-                                                    </dl>
-                                                </li>
+                                                                    <div>
+                                                                        {load.driver && (
+                                                                            <Link
+                                                                                href={`/drivers/${load.driver.id}`}
+                                                                                className="font-medium"
+                                                                            >
+                                                                                {load.driver?.name}
+                                                                            </Link>
+                                                                        )}
+                                                                    </div>
+                                                                </dt>
+                                                                <dd className=""></dd>
+                                                            </div>
+                                                        </dl>
+                                                    </li>
+                                                </Link>
                                             ))}
                                         </ul>
                                     </div>
