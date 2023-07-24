@@ -27,7 +27,7 @@ export const loadStatus = (load: ExpandedLoad): UILoadStatus => {
         }
     }
 
-    if (load.podDocuments.length > 0) {
+    if (load.podDocuments?.length > 0) {
         return UILoadStatus.POD_READY;
     }
 
