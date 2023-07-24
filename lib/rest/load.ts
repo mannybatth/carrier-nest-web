@@ -44,7 +44,6 @@ export const getLoadsExpanded = async ({
     if (currentOnly) {
         params.append('currentOnly', '1');
     }
-    console.log(`${apiUrl}/loads?${params.toString()}`);
     const response = await fetch(apiUrl + '/loads?' + params.toString());
     const { data, errors }: JSONResponse<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> =
         await response.json();

@@ -22,6 +22,11 @@ const Dashboard: PageWithAuth = () => {
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
+    // Prefetch load pages
+    React.useEffect(() => {
+        router.prefetch(`/loads/[id]`);
+    }, [router]);
+
     // Get loads on page load
     React.useEffect(() => {
         reloadLoads({ limit: 10, offset: 0 });
@@ -93,8 +98,11 @@ const Dashboard: PageWithAuth = () => {
                                     <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
                                         <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
                                             {loadsList.map((load) => (
-                                                <Link key={load.id} href={`/loads/${load.id}`}>
-                                                    <li className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80">
+                                                <li
+                                                    key={load.id}
+                                                    className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80"
+                                                >
+                                                    <div onClick={() => router.push(`/loads/${load.id}`)}>
                                                         {load && load.routeEncoded && (
                                                             <Image
                                                                 src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
@@ -255,8 +263,8 @@ const Dashboard: PageWithAuth = () => {
                                                                 <dd className=""></dd>
                                                             </div>
                                                         </dl>
-                                                    </li>
-                                                </Link>
+                                                    </div>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>
