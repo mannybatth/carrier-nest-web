@@ -89,6 +89,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
         },
         loadDocuments: true,
         podDocuments: true,
+        rateconDocument: true,
     },
 });
 export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>>;

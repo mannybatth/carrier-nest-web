@@ -94,31 +94,32 @@ model Carrier {
 }
 
 model Load {
-    id            String         @id @default(cuid())
-    userId        String
-    customerId    String?
-    carrierId     String
-    driverId      String?
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
-    refNum        String
-    shipperId     String
-    receiverId    String
-    rate          Decimal
-    distance      Int
-    routeEncoded  String?
-    status        LoadStatus     @default(CREATED)
-    invoice       Invoice?
-    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    customer      Customer?      @relation(fields: [customerId], references: [id])
-    driver        Driver?        @relation(fields: [driverId], references: [id])
-    receiver      LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    shipper       LoadStop       @relation("shipper", fields: [shipperId], references: [id])
-    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    loadDocuments LoadDocument[] @relation("load")
-    podDocuments  LoadDocument[] @relation("loadForPodDoc")
-    stops         LoadStop[]
-    routeId       Int?
+    id              String         @id @default(cuid())
+    userId          String
+    customerId      String?
+    carrierId       String
+    driverId        String?
+    createdAt       DateTime       @default(now())
+    updatedAt       DateTime       @updatedAt
+    refNum          String
+    shipperId       String
+    receiverId      String
+    rate            Decimal
+    distance        Int
+    routeEncoded    String?
+    status          LoadStatus     @default(CREATED)
+    invoice         Invoice?
+    carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    customer        Customer?      @relation(fields: [customerId], references: [id])
+    driver          Driver?        @relation(fields: [driverId], references: [id])
+    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
+    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+    user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    loadDocuments   LoadDocument[] @relation("load")
+    rateconDocument LoadDocument?  @relation("loadForRatecon")
+    podDocuments    LoadDocument[] @relation("loadForPodDoc")
+    stops           LoadStop[]
+    routeId         Int?
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -227,20 +228,22 @@ model InvoicePayment {
 }
 
 model LoadDocument {
-    id              String   @id @default(cuid())
-    userId          String
-    loadId          String?
-    loadIdForPodDoc String?
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
-    fileKey         String
-    fileUrl         String
-    fileName        String
-    fileType        String
-    fileSize        Int
-    load            Load?    @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
-    loadForPodDoc   Load?    @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
-    user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id               String   @id @default(cuid())
+    userId           String
+    loadId           String?
+    loadIdForRatecon String?  @unique
+    loadIdForPodDoc  String?
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
+    fileKey          String
+    fileUrl          String
+    fileName         String
+    fileType         String
+    fileSize         Int
+    load             Load?    @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
+    loadForRateCon   Load?    @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
+    loadForPodDoc    Load?    @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
+    user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum LoadStopType {
