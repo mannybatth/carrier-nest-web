@@ -140,7 +140,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
         loadData.routeEncoded = routeEncoded;
 
         const newLoad = await updateLoad(load.id, loadData);
-        console.log('updated load', newLoad);
 
         setLoading(false);
 

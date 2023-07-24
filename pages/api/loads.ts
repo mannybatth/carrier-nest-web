@@ -279,6 +279,8 @@ export const postLoads = async ({
                         date: loadData.shipper.date || '',
                         time: loadData.shipper.time || '',
                         stopIndex: loadData.shipper.stopIndex || 0,
+                        longitude: loadData.shipper.longitude || 0,
+                        latitude: loadData.shipper.latitude || 0,
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -298,6 +300,8 @@ export const postLoads = async ({
                         date: loadData.receiver.date || '',
                         time: loadData.receiver.time || '',
                         stopIndex: loadData.receiver.stopIndex || 0,
+                        longitude: loadData.receiver.longitude || 0,
+                        latitude: loadData.receiver.latitude || 0,
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -317,6 +321,8 @@ export const postLoads = async ({
                         date: stop.date || '',
                         time: stop.time || '',
                         stopIndex: stop.stopIndex || 0,
+                        longitude: stop.longitude || 0,
+                        latitude: stop.latitude || 0,
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -324,6 +330,7 @@ export const postLoads = async ({
                         },
                     })),
                 },
+                routeEncoded: loadData.routeEncoded || '',
             },
         });
         return {
