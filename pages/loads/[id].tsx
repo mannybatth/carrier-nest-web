@@ -191,7 +191,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const reloadLoad = async () => {
         const load = await getLoadById(loadId);
         setLoad(load);
-        setLoadDocuments(load.loadDocuments);
+        setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
     };
 
     const onDriverSelect = async (driver: Driver) => {
@@ -202,7 +202,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             notify({ title: 'Driver assigned', message: 'Driver assigned to load successfully' });
             reloadLoad();
         } catch (e) {
-            notify({ title: 'Error Assigning Driver', message: e.messag, type: 'error' });
+            notify({ title: 'Error Assigning Driver', message: e.message, type: 'error' });
         }
     };
 

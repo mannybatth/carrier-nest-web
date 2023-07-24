@@ -330,6 +330,12 @@ export const getLoad = async ({
                               createdAt: 'desc',
                           },
                       },
+                      rateconDocument: true,
+                      podDocuments: {
+                          orderBy: {
+                              createdAt: 'desc',
+                          },
+                      },
                   }
                 : {}),
         },

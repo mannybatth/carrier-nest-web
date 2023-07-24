@@ -18,6 +18,7 @@ import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { getGeocoding, getRouteEncoded } from '../../lib/mapbox/searchGeo';
+import { PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -27,6 +28,7 @@ const CreateLoad: PageWithAuth = () => {
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
     const [prefillName, setPrefillName] = React.useState(null);
+    const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
 
     const submit = async (data: ExpandedLoad) => {
         data.shipper.type = LoadStopType.SHIPPER;
@@ -99,7 +101,7 @@ const CreateLoad: PageWithAuth = () => {
     const saveLoadData = async (loadData: ExpandedLoad) => {
         setLoading(true);
 
-        const newLoad = await createLoad(loadData);
+        const newLoad = await createLoad(loadData, currentRateconFile);
 
         setLoading(false);
 
@@ -206,6 +208,8 @@ const CreateLoad: PageWithAuth = () => {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
 
+        setCurrentRateconFile(file);
+
         formHook.setValue('customer', null);
 
         try {
@@ -300,6 +304,25 @@ const CreateLoad: PageWithAuth = () => {
                             </label>
                         </div>
                     </FileUploader>
+
+                    {currentRateconFile && (
+                        <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">
+                            <div className="flex items-center space-x-2">
+                                <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <span className="font-medium text-gray-600">
+                                    {currentRateconFile.name} ({currentRateconFile.size} bytes)
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                onClick={() => setCurrentRateconFile(null)}
+                            >
+                                <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon>
+                                Remove
+                            </button>
+                        </div>
+                    )}
 
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm

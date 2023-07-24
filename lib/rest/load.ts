@@ -2,6 +2,7 @@ import { Load, LoadDocument } from '@prisma/client';
 import { apiUrl } from '../../constants';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
+import { uploadFileToGCS } from './uploadFile';
 
 export const getLoadsExpanded = async ({
     sort,
@@ -67,7 +68,21 @@ export const getLoadById = async (id: string): Promise<ExpandedLoad> => {
     return data.load;
 };
 
-export const createLoad = async (load: ExpandedLoad) => {
+export const createLoad = async (load: ExpandedLoad, rateconFile?: File) => {
+    if (rateconFile) {
+        const uploadResponse = await uploadFileToGCS(rateconFile);
+        if (uploadResponse?.uniqueFileName) {
+            const simpleDoc: Partial<LoadDocument> = {
+                fileKey: uploadResponse.uniqueFileName,
+                fileUrl: uploadResponse.gcsInputUri,
+                fileName: rateconFile.name,
+                fileType: rateconFile.type,
+                fileSize: rateconFile.size,
+            };
+            load.rateconDocument = simpleDoc as LoadDocument;
+        }
+    }
+
     const response = await fetch(apiUrl + '/loads', {
         method: 'POST',
         headers: {

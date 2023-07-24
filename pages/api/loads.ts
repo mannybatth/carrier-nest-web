@@ -332,6 +332,24 @@ export const postLoads = async ({
                     })),
                 },
                 routeEncoded: loadData.routeEncoded || '',
+                ...(loadData.rateconDocument
+                    ? {
+                          rateconDocument: {
+                              create: {
+                                  fileKey: loadData.rateconDocument.fileKey || '',
+                                  fileUrl: loadData.rateconDocument.fileUrl || '',
+                                  fileName: loadData.rateconDocument.fileName || '',
+                                  fileType: loadData.rateconDocument.fileType || '',
+                                  fileSize: loadData.rateconDocument.fileSize || 0,
+                                  user: {
+                                      connect: {
+                                          id: session.user.id,
+                                      },
+                                  },
+                              },
+                          },
+                      }
+                    : {}),
             },
         });
         return {
