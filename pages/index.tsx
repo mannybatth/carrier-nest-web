@@ -1,4 +1,5 @@
 import { LocationMarkerIcon, TruckIcon } from '@heroicons/react/outline';
+import { PlusIcon } from '@heroicons/react/solid';
 import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -67,15 +68,24 @@ const Dashboard: PageWithAuth = () => {
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
-                                <div className="flex justify-center">
-                                    <Link href="/loads/create">
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        >
-                                            + Create Load
-                                        </button>
-                                    </Link>
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="p-6 mt-6 bg-white rounded shadow-md w-80">
+                                        <h1 className="mb-4 text-2xl font-bold text-center">Create a New Load</h1>
+                                        <p className="mb-6 text-center text-gray-600">
+                                            Click the button below to create a new load and get started.
+                                        </p>
+                                        <Link href="/loads/create">
+                                            <button
+                                                type="button"
+                                                className="flex w-full px-4 py-2 font-bold text-white transition-colors duration-200 ease-in-out bg-blue-600 rounded hover:bg-blue-700 focus:outline-none"
+                                            >
+                                                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+                                                <p className="w-full text-sm font-semibold text-center">
+                                                    Create New Load
+                                                </p>
+                                            </button>
+                                        </Link>
+                                    </div>
                                 </div>
                             ) : (
                                 <>
