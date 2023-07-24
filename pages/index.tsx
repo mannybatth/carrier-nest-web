@@ -48,7 +48,7 @@ const Dashboard: PageWithAuth = () => {
 
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+                <div className="px-0 md:px-8">
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
@@ -64,9 +64,9 @@ const Dashboard: PageWithAuth = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <h3 className="mb-2 font-bold">Todays Load Schedule</h3>
+                                    <h3 className="px-5 mb-2 font-bold md:px-0">Todays Load Schedule</h3>
                                     <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
-                                        <ul role="list" className="flex space-x-6 flex-nowrap">
+                                        <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
                                             {loadsList.map((load) => (
                                                 <li
                                                     key={load.id}
@@ -82,8 +82,8 @@ const Dashboard: PageWithAuth = () => {
                                                             )})/auto/900x300?padding=50,50,50,50&access_token=${
                                                                 process.env.NEXT_PUBLIC_MAPBOX_TOKEN
                                                             }`}
-                                                            width="900"
-                                                            height="300"
+                                                            width={900}
+                                                            height={300}
                                                             alt="Load Route"
                                                             loading="lazy"
                                                             className="w-full h-auto mb-1"

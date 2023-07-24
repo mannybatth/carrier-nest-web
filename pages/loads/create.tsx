@@ -17,7 +17,7 @@ import { FileUploader } from 'react-drag-drop-files';
 import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
-import { getGeocoding } from '../../lib/mapbox/searchGeo';
+import { getGeocoding, getRouteEncoded } from '../../lib/mapbox/searchGeo';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -29,8 +29,6 @@ const CreateLoad: PageWithAuth = () => {
     const [prefillName, setPrefillName] = React.useState(null);
 
     const submit = async (data: ExpandedLoad) => {
-        console.log(data);
-
         data.shipper.type = LoadStopType.SHIPPER;
         data.receiver.type = LoadStopType.RECEIVER;
 
@@ -44,6 +42,56 @@ const CreateLoad: PageWithAuth = () => {
             receiver: data.receiver,
             stops: data.stops,
         };
+
+        const shipperAddress =
+            loadData.shipper.street +
+            ', ' +
+            loadData.shipper.city +
+            ', ' +
+            loadData.shipper.state +
+            ' ' +
+            loadData.shipper.zip;
+        const receiverAddress =
+            loadData.receiver.street +
+            ', ' +
+            loadData.receiver.city +
+            ', ' +
+            loadData.receiver.state +
+            ' ' +
+            loadData.receiver.zip;
+        const shipperCoordinates = await getGeocoding(shipperAddress);
+        const receiverCoordinates = await getGeocoding(receiverAddress);
+        const stopsCoordinates = await Promise.all(
+            loadData.stops.map(async (stop) => {
+                const stopAddress = stop.street + ', ' + stop.city + ', ' + stop.state + ' ' + stop.zip;
+                return await getGeocoding(stopAddress);
+            }),
+        );
+
+        const routeEncoded = await getRouteEncoded([
+            [shipperCoordinates.longitude, shipperCoordinates.latitude],
+            ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
+            [receiverCoordinates.longitude, receiverCoordinates.latitude],
+        ]);
+
+        loadData.shipper = {
+            ...loadData.shipper,
+            longitude: shipperCoordinates.longitude,
+            latitude: shipperCoordinates.latitude,
+        };
+        loadData.receiver = {
+            ...loadData.receiver,
+            longitude: receiverCoordinates.longitude,
+            latitude: receiverCoordinates.latitude,
+        };
+        loadData.stops = loadData.stops.map((stop, index) => {
+            return {
+                ...stop,
+                longitude: stopsCoordinates[index].longitude,
+                latitude: stopsCoordinates[index].latitude,
+            };
+        });
+        loadData.routeEncoded = routeEncoded;
 
         await saveLoadData(loadData);
     };
