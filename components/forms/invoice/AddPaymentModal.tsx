@@ -110,10 +110,17 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                                     <div className="relative mt-1">
                                                         <input
                                                             onChange={(e) => {
-                                                                onChange(parseISO(e.target.value));
+                                                                if (!e.target.validity.badInput) {
+                                                                    onChange(parseISO(e.target.value));
+                                                                }
                                                             }}
-                                                            value={format(value, 'yyyy-MM-dd')}
+                                                            value={
+                                                                value && !isNaN(new Date(value).getTime())
+                                                                    ? format(new Date(value), 'yyyy-MM-dd')
+                                                                    : ''
+                                                            }
                                                             type="date"
+                                                            max="9999-12-31"
                                                             id="paidAt"
                                                             autoComplete="date"
                                                             className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
