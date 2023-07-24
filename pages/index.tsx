@@ -56,7 +56,7 @@ const Dashboard: PageWithAuth = () => {
                     <h1 className="text-2xl text-gray-900">
                         Welcome back
                         <span className="font-semibold">
-                            &nbsp;{session?.user?.name ? session?.user?.name : defaultCarrier.name}
+                            &nbsp;{session?.user?.name ? session?.user?.name : defaultCarrier?.name}
                         </span>
                         !
                     </h1>
