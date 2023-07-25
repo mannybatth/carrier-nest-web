@@ -1,12 +1,17 @@
 import { Customer, PrismaPromise } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth';
 import { JSONResponse, SearchResult } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
+import { authOptions } from '../auth/[...nextauth]';
 
-export async function customerSearch(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
+export async function customerSearch(
+    query: string,
+    carrierId: string,
+): Promise<SearchResult<{ id: string; name: string }>[]> {
     const [_, customers]: [unknown, SearchResult<{ id: string; name: string }>[]] = await prisma.$transaction([
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
-        prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" WHERE name % ${query} ORDER BY sim desc LIMIT 5`,
+        prisma.$queryRaw`SELECT id, name, similarity(name, ${query}) as sim FROM "Customer" WHERE name % ${query} AND "carrierId" = ${carrierId} ORDER BY sim DESC LIMIT 5`,
     ]);
     return customers.filter((c) => c.sim > 0).sort((a, b) => b.sim - a.sim);
 }
@@ -45,6 +50,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function search(query: string): Promise<SearchResult<{ id: string; name: string }>[]> {
-        return customerSearch(query);
+        const session = await getServerSession(req, res, authOptions);
+        return customerSearch(query, session.user.defaultCarrierId);
     }
 }

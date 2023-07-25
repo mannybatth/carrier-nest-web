@@ -1,14 +1,18 @@
 import { Load, PrismaPromise } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth';
 import { JSONResponse, SearchResult } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
+import { authOptions } from '../auth/[...nextauth]';
 
-export async function loadSearch(query: string): Promise<SearchResult<{ id: string; refNum: string }>[]> {
+export async function loadSearch(
+    query: string,
+    carrierId: string,
+): Promise<SearchResult<{ id: string; refNum: string }>[]> {
     const [_, loads]: [unknown, SearchResult<{ id: string; refNum: string }>[]] = await prisma.$transaction([
         prisma.$queryRaw`SET pg_trgm.similarity_threshold = 0.2`,
-        prisma.$queryRaw`SELECT id, "refNum", similarity("refNum", ${query}) as sim FROM "Load" WHERE "refNum" % ${query} ORDER BY sim desc LIMIT 5`,
+        prisma.$queryRaw`SELECT id, "refNum", similarity("refNum", ${query}) as sim FROM "Load" WHERE "refNum" % ${query} AND "carrierId" = ${carrierId} ORDER BY sim desc LIMIT 5`,
     ]);
-
     return loads.filter((c) => c.sim > 0);
 }
 
@@ -46,6 +50,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function search(query: string): Promise<SearchResult<{ id: string; refNum: string }>[]> {
-        return loadSearch(query);
+        const session = await getServerSession(req, res, authOptions);
+        return loadSearch(query, session.user.defaultCarrierId);
     }
 }

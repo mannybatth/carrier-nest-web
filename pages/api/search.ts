@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../interfaces/models';
+import { authOptions } from './auth/[...nextauth]';
 import { customerSearch } from './customers/search';
 import { driverSearch } from './drivers/search';
 import { loadSearch } from './loads/search';
@@ -18,10 +20,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _get() {
+        const session = await getServerSession(req, res, authOptions);
+
         const q = req.query.q as string;
-        const loads = await loadSearch(q);
-        const customers = await customerSearch(q);
-        const drivers = await driverSearch(q);
+        const loads = await loadSearch(q, session.user.defaultCarrierId);
+        const customers = await customerSearch(q, session.user.defaultCarrierId);
+        const drivers = await driverSearch(q, session.user.defaultCarrierId);
 
         return res.status(200).json({
             code: 200,
