@@ -82,7 +82,10 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
         const extraItems = data.extraItems;
 
         const totalExtraItems =
-            (extraItems?.reduce((acc, item) => acc + new Prisma.Decimal(item.amount).toNumber() * 100, 0) || 0) / 100;
+            (extraItems?.reduce(
+                (acc, item) => acc + (item.amount ? new Prisma.Decimal(item.amount).toNumber() : 0) * 100,
+                0,
+            ) || 0) / 100;
 
         const totalRate = new Prisma.Decimal(load.rate).toNumber();
 

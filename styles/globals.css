@@ -1,11 +1,6 @@
 @tailwind base;
 
 @layer base {
-    html,
-    body,
-    body > div:first-child {
-        @apply h-full text-zinc-800;
-    }
     h1 {
         @apply text-2xl;
     }
