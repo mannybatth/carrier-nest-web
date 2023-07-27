@@ -56,7 +56,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     }, [loadId]);
 
     const reloadLoad = async () => {
-        const load = await getLoadById(loadId);
+        const load = await getLoadById(loadId, 'driverId');
         setLoad(load);
         setLoadDocuments([...load.podDocuments].filter((ld) => ld));
     };

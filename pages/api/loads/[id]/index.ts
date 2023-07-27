@@ -239,6 +239,10 @@ export const getLoad = async ({
     session?: Session;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ load: ExpandedLoad }>> => {
+    /**
+     *  NOTE: THIS ENDPOINT IS OPEN TO ALL USERS IF THEY HAVE THE LOAD ID
+     */
+    const driverId = query.driverId as string;
     const expand = query.expand as string;
     const expandCustomer = expand?.includes('customer');
     const expandShipper = expand?.includes('shipper');
@@ -251,7 +255,7 @@ export const getLoad = async ({
     const load = await prisma.load.findFirst({
         where: {
             id: String(query.id),
-            carrierId: session.user.defaultCarrierId,
+            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),
