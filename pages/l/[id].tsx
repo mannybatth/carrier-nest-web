@@ -318,7 +318,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         <div className="flex flex-col justify-between space-y-4">
                             <div className="flex flex-col">
                                 <div className="relative flex">
-                                    <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 rounded-full -left-2 -top-2 bg-gray-50 ring-1 ring-inset ring-gray-500/10">
+                                    <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
                                         1
                                     </span>
                                     <div className="mr-3">
@@ -347,7 +347,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             {load.stops.map((stop, index) => (
                                 <div className="flex flex-col" key={index}>
                                     <div className="relative flex">
-                                        <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 rounded-full -left-2 -top-2 bg-gray-50 ring-1 ring-inset ring-gray-500/10">
+                                        <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
                                             {index + 2}
                                         </span>
                                         <div className="mr-3">
@@ -376,7 +376,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             ))}
                             <div className="flex flex-col">
                                 <div className="relative flex">
-                                    <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 rounded-full -left-2 -top-2 bg-gray-50 ring-1 ring-inset ring-gray-500/10">
+                                    <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
                                         {load.stops.length + 2}
                                     </span>
                                     <div className="mr-3">
