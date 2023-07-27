@@ -1,5 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import { LoadDocument } from '@prisma/client';
+import { Driver, LoadDocument } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -21,11 +21,29 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _delete() {
         const session = await getServerSession(req, res, authOptions);
+        const driverId = req.query.driverId as string;
+        let driver: Driver = null;
+
+        if (driverId) {
+            driver = await prisma.driver.findFirst({
+                where: {
+                    id: driverId,
+                },
+            });
+
+            if (!driver) {
+                return res.status(404).send({
+                    code: 404,
+                    errors: [{ message: 'Driver not found' }],
+                });
+            }
+        }
 
         const load = await prisma.load.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.defaultCarrierId,
+                ...(!driver && { carrierId: session.user.defaultCarrierId }),
+                ...(driver && { driverId: driver.id }),
             },
         });
 
@@ -37,12 +55,16 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         }
 
         const documentId = String(req.query.did);
+        const isPod = req.query.isPod === 'true';
+        const isRatecon = req.query.isRatecon === 'true';
 
         const document = await prisma.loadDocument.findFirst({
             where: {
                 id: documentId,
-                loadId: load.id,
-                userId: session.user.id,
+                ...(!(isPod || isRatecon) && { loadId: load.id }),
+                ...(isPod && { loadIdForPodDoc: load.id }),
+                ...(isRatecon && { loadIdForRatecon: load.id }),
+                ...(driver && { driverId: driver.id }),
             },
         });
 

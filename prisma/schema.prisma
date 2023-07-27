@@ -168,15 +168,16 @@ model Customer {
 }
 
 model Driver {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    name      String
-    email     String?
-    phone     String?
-    carrierId String
-    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    loads     Load[]
+    id            String         @id @default(cuid())
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    name          String
+    email         String?
+    phone         String?
+    carrierId     String
+    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    loads         Load[]
+    loadDocuments LoadDocument[]
 
     @@index([name, carrierId])
 }
@@ -229,7 +230,8 @@ model InvoicePayment {
 
 model LoadDocument {
     id               String   @id @default(cuid())
-    userId           String
+    userId           String?
+    driverId         String?
     loadId           String?
     loadIdForRatecon String?  @unique
     loadIdForPodDoc  String?
@@ -243,7 +245,8 @@ model LoadDocument {
     load             Load?    @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
     loadForRateCon   Load?    @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
     loadForPodDoc    Load?    @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
-    user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    driver           Driver?  @relation(fields: [driverId], references: [id])
 }
 
 enum LoadStopType {

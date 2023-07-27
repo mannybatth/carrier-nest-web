@@ -1,4 +1,4 @@
-import { LoadDocument } from '@prisma/client';
+import { Driver, LoadDocument } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -20,11 +20,29 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _post() {
         const session = await getServerSession(req, res, authOptions);
+        const driverId = req.query.driverId as string;
+        let driver: Driver = null;
+
+        if (driverId) {
+            driver = await prisma.driver.findFirst({
+                where: {
+                    id: driverId,
+                },
+            });
+
+            if (!driver) {
+                return res.status(404).send({
+                    code: 404,
+                    errors: [{ message: 'Driver not found' }],
+                });
+            }
+        }
 
         const load = await prisma.load.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.defaultCarrierId,
+                ...(!driver && { carrierId: session.user.defaultCarrierId }),
+                ...(driver && { driverId: driver.id }),
             },
         });
 
@@ -36,19 +54,47 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         }
 
         const docData = req.body as LoadDocument;
+        const isPod = req.query.isPod === 'true';
+        const isRatecon = req.query.isRatecon === 'true';
+        const isNormalDoc = !isPod && !isRatecon;
 
         const loadDocument = await prisma.loadDocument.create({
             data: {
-                load: {
-                    connect: {
-                        id: load.id,
+                ...(isNormalDoc && {
+                    load: {
+                        connect: {
+                            id: load.id,
+                        },
                     },
-                },
-                user: {
-                    connect: {
-                        id: session.user.id,
+                }),
+                ...(isPod && {
+                    loadForPodDoc: {
+                        connect: {
+                            id: load.id,
+                        },
                     },
-                },
+                }),
+                ...(isRatecon && {
+                    loadForRateCon: {
+                        connect: {
+                            id: load.id,
+                        },
+                    },
+                }),
+                ...(driver && {
+                    driver: {
+                        connect: {
+                            id: driver.id,
+                        },
+                    },
+                }),
+                ...(!driver && {
+                    user: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                }),
                 fileKey: docData.fileKey,
                 fileUrl: docData.fileUrl,
                 fileName: docData.fileName,

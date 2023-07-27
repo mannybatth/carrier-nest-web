@@ -270,7 +270,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const deleteLoadDocument = async (id: string) => {
         setDocsLoading(true);
         try {
-            await deleteLoadDocumentFromLoad(load.id, id);
+            await deleteLoadDocumentFromLoad(load.id, id, {
+                isPod: load.podDocuments.some((pod) => pod.id === id),
+                isRatecon: load.rateconDocument?.id === id,
+            });
             const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
             setLoadDocuments(newLoadDocuments);
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
