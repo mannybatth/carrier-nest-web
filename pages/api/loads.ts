@@ -139,6 +139,11 @@ export const getLoads = async ({
         ...(limit ? { take: limit } : { take: 10 }),
         ...(offset ? { skip: offset } : { skip: 0 }),
         include: {
+            podDocuments: {
+                select: {
+                    id: true,
+                },
+            },
             invoice: {
                 select: {
                     id: true,
