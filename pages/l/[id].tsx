@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
+import { LocationMarkerIcon, MapIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
 import { DotsVerticalIcon } from '@heroicons/react/solid';
 import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
@@ -332,15 +332,30 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             <div className="text-sm">{load.shipper.time}</div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase">
+                                    <div className="flex-1">
+                                        <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
                                             {load.shipper.name}
                                         </p>
-                                        <p className="text-sm text-gray-700">
+                                        <p className="text-sm text-gray-700 select-all">
                                             {load.shipper.street}
                                             <br />
                                             {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
                                         </p>
+                                    </div>
+                                    <div className="flex flex-none place-items-center ">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(
+                                                    `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                );
+                                            }}
+                                            disabled={docsLoading}
+                                        >
+                                            <LocationMarkerIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -361,15 +376,33 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <div className="text-sm">{stop.time}</div>
                                             </div>
                                         </div>
-                                        <div>
-                                            <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase">
+                                        <div className="flex-1">
+                                            <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
                                                 {stop.name}
                                             </p>
-                                            <p className="text-sm text-gray-700">
+                                            <p className="text-sm text-gray-700 select-all">
                                                 {stop.street}
                                                 <br />
                                                 {stop.city}, {stop.state} {stop.zip}
                                             </p>
+                                        </div>
+                                        <div className="flex flex-none place-items-center ">
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(
+                                                        `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                    );
+                                                }}
+                                                disabled={docsLoading}
+                                            >
+                                                <LocationMarkerIcon
+                                                    className="w-6 h-6 text-gray-400"
+                                                    aria-hidden="true"
+                                                />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -390,15 +423,30 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             <div className="text-sm">{load.receiver.time}</div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase">
+                                    <div className="flex-1">
+                                        <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
                                             {load.receiver.name}
                                         </p>
-                                        <p className="text-sm text-gray-700">
+                                        <p className="text-sm text-gray-700 select-all">
                                             {load.receiver.street}
                                             <br />
                                             {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
                                         </p>
+                                    </div>
+                                    <div className="flex flex-none place-items-center ">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(
+                                                    `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                );
+                                            }}
+                                            disabled={docsLoading}
+                                        >
+                                            <LocationMarkerIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
