@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
 import { authOptions } from '../../../auth/[...nextauth]';
+import Twilio from 'twilio';
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = Twilio(accountSid, authToken);
 
 export default handler;
 
@@ -36,7 +41,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const driverId = String(req.query.did);
 
-        if (!driverId) {
+        if (!driverId || driverId === 'null') {
             console.log('Remove assigned driver from load', load.id);
 
             const updatedLoad = await prisma.load.update({
@@ -78,6 +83,17 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             },
         });
+
+        // Send SMS to driver
+        const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}`;
+        const textMessage = `You have been assigned to a load: ${linkToLoad}`;
+        const message = await client.messages.create({
+            body: textMessage,
+            from: '+18883429736',
+            to: driver.phone,
+        });
+
+        console.log('SMS sent to driver', message.sid, textMessage);
 
         return res.status(200).json({
             code: 200,

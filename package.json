@@ -50,7 +50,8 @@
         "react-hot-toast": "^2.4.1",
         "react-markdown": "^8.0.7",
         "rxjs": "^7.5.4",
-        "safe-json-stringify": "^1.2.0"
+        "safe-json-stringify": "^1.2.0",
+        "twilio": "^4.14.1"
     },
     "devDependencies": {
         "@next/eslint-plugin-next": "^13.4.6",
