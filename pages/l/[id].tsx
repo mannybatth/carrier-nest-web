@@ -14,16 +14,18 @@ import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad, getLoadById, updateL
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 
 export async function getServerSideProps(context: NextPageContext) {
-    const { id } = context.query;
+    const { id, did } = context.query;
     return {
         props: {
             loadId: String(id),
+            driverId: String(did),
         },
     };
 }
 
 type Props = {
     loadId: string;
+    driverId: string;
 };
 
 const loadingSvg = (
@@ -42,7 +44,7 @@ const loadingSvg = (
     </svg>
 );
 
-const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
+const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
     const [load, setLoad] = useState<ExpandedLoad>();
     const [loadStatusLoading, setLoadStatusLoading] = useState(false);
 
@@ -56,7 +58,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     }, [loadId]);
 
     const reloadLoad = async () => {
-        const load = await getLoadById(loadId, 'driverId');
+        const load = await getLoadById(loadId, driverId);
         setLoad(load);
         setLoadDocuments([...load.podDocuments].filter((ld) => ld));
     };
@@ -108,7 +110,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     fileSize: file.size,
                 };
                 await addLoadDocumentToLoad(load.id, simpleDoc, {
-                    driverId: load.driverId,
+                    driverId: driverId,
                     isPod: true,
                 });
 
@@ -133,7 +135,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setDocsLoading(true);
         try {
             await deleteLoadDocumentFromLoad(load.id, id, {
-                driverId: load.driverId,
+                driverId: driverId,
                 isPod: true,
             });
             const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);

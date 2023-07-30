@@ -240,7 +240,7 @@ export const getLoad = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ load: ExpandedLoad }>> => {
     /**
-     *  NOTE: THIS ENDPOINT IS OPEN TO ALL USERS IF THEY HAVE THE LOAD ID
+     *  NOTE: THIS ENDPOINT IS OPEN TO ALL USERS IF THEY HAVE THE LOAD ID AND DRIVER ID
      */
     const driverId = query.driverId as string;
     const expand = query.expand as string;
@@ -256,6 +256,7 @@ export const getLoad = async ({
         where: {
             id: String(query.id),
             ...(!driverId && { carrierId: session.user.defaultCarrierId }),
+            ...(driverId && { drivers: { some: { id: driverId } } }),
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),
@@ -326,7 +327,7 @@ export const getLoad = async ({
                       },
                   }
                 : {}),
-            ...(expandDriver ? { driver: true } : {}),
+            ...(expandDriver ? { drivers: true } : {}),
             ...(expandDocuments
                 ? {
                       loadDocuments: {

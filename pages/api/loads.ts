@@ -199,7 +199,7 @@ export const getLoads = async ({
                 : {}),
             ...(expandDriver
                 ? {
-                      driver: {
+                      drivers: {
                           select: {
                               id: true,
                               name: true,

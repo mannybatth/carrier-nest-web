@@ -81,7 +81,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 lastPaymentAt: true,
             },
         },
-        driver: {
+        drivers: {
             select: {
                 id: true,
                 name: true,

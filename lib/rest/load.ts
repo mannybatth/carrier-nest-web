@@ -59,7 +59,7 @@ export const getLoadsExpanded = async ({
 export const getLoadById = async (id: string, driverId?: string): Promise<ExpandedLoad> => {
     const params = new URLSearchParams({
         expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
-        driverId,
+        ...(driverId ? { driverId } : {}),
     });
     const response = await fetch(apiUrl + '/loads/' + id + '?' + params.toString());
     const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();

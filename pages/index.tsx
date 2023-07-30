@@ -254,16 +254,23 @@ const Dashboard: PageWithAuth = () => {
                                                                         Driver details
                                                                     </div>
                                                                     <div>
-                                                                        {load.driver && (
-                                                                            <Link
-                                                                                href={`/drivers/${load.driver.id}`}
-                                                                                className="font-medium"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                }}
-                                                                            >
-                                                                                {load.driver?.name}
-                                                                            </Link>
+                                                                        {load.drivers?.length > 0 ? (
+                                                                            load.drivers.map((driver) => (
+                                                                                <Link
+                                                                                    href={`/drivers/${driver.id}`}
+                                                                                    className="font-medium"
+                                                                                    key={driver.id}
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                    }}
+                                                                                >
+                                                                                    {driver?.name}
+                                                                                </Link>
+                                                                            ))
+                                                                        ) : (
+                                                                            <div className="text-gray-400">
+                                                                                No driver assigned
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 </dt>

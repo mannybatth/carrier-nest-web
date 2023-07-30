@@ -35,7 +35,7 @@ type ActionsDropdownProps = {
     load: ExpandedLoad;
     disabled?: boolean;
     deleteLoad: (id: string) => void;
-    assignDriver: (remove?: boolean) => void;
+    assignDriver: () => void;
 };
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, deleteLoad, assignDriver }) => {
@@ -105,18 +105,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (load.driver) {
-                                            assignDriver(true);
-                                        } else {
-                                            assignDriver();
-                                        }
+                                        assignDriver();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    {load.driver ? 'Remove Driver From Load' : 'Assign Driver'}
+                                    Add/Remove Driver
                                 </a>
                             )}
                         </Menu.Item>
@@ -206,18 +202,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
-    const assignDriverAction = async (remove?: boolean) => {
-        if (remove) {
-            try {
-                await assignDriverToLoad(load.id, null);
-                notify({ title: 'Driver removed', message: 'Driver removed from load successfully' });
-                reloadLoad();
-            } catch (e) {
-                notify({ title: 'Error removing driver', message: e.message, type: 'error' });
-            }
-        } else {
-            setOpenSelectDriver(true);
-        }
+    const assignDriverAction = async () => {
+        setOpenSelectDriver(true);
     };
 
     const deleteLoad = async (id: string) => {
@@ -375,12 +361,18 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                     </dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Driver</dt>
+                                                    <dt className="text-gray-500">Drivers</dt>
                                                     <dd className="text-gray-900">
-                                                        {load.driver ? (
-                                                            <Link href={`/drivers/${load.driver.id}`} passHref>
-                                                                {load.driver.name}
-                                                            </Link>
+                                                        {load.drivers.length > 0 ? (
+                                                            load.drivers.map((driver) => (
+                                                                <Link
+                                                                    key={driver.id}
+                                                                    href={`/drivers/${driver.id}`}
+                                                                    passHref
+                                                                >
+                                                                    {driver.name}
+                                                                </Link>
+                                                            ))
                                                         ) : (
                                                             <a onClick={() => setOpenSelectDriver(true)}>
                                                                 Assign Driver
