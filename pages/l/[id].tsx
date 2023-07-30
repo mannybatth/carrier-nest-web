@@ -146,6 +146,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setDocsLoading(false);
     };
 
+    const openAddressInMaps = (address: string) => {
+        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`);
+    };
+
     return (
         <div className="max-w-4xl py-6 mx-auto">
             <div className="flex flex-col px-4">
@@ -348,8 +352,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                window.open(
-                                                    `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                openAddressInMaps(
+                                                    `${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
                                                 );
                                             }}
                                             disabled={docsLoading}
@@ -392,8 +396,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    window.open(
-                                                        `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                    openAddressInMaps(
+                                                        `${stop.street} ${stop.city} ${stop.state} ${stop.zip}`,
                                                     );
                                                 }}
                                                 disabled={docsLoading}
@@ -439,8 +443,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                window.open(
-                                                    `https://www.google.com/maps/search/?api=1&query=${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
+                                                openAddressInMaps(
+                                                    `${load.receiver.street} ${load.receiver.city} ${load.receiver.state} ${load.receiver.zip}`,
                                                 );
                                             }}
                                             disabled={docsLoading}
