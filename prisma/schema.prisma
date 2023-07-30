@@ -98,7 +98,6 @@ model Load {
     userId          String
     customerId      String?
     carrierId       String
-    driverId        String?
     createdAt       DateTime       @default(now())
     updatedAt       DateTime       @updatedAt
     refNum          String
@@ -111,7 +110,7 @@ model Load {
     invoice         Invoice?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     customer        Customer?      @relation(fields: [customerId], references: [id])
-    driver          Driver?        @relation(fields: [driverId], references: [id])
+    drivers         Driver[]       @relation("driverLoads")
     receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
     shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
     user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -176,8 +175,8 @@ model Driver {
     phone         String?
     carrierId     String
     carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    loads         Load[]
     loadDocuments LoadDocument[]
+    loads         Load[]         @relation("driverLoads")
 
     @@index([name, carrierId])
 }
