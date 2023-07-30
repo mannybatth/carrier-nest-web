@@ -108,14 +108,14 @@ export const deleteDriverById = async (id: string) => {
     return data.result;
 };
 
-export const assignDriverToLoad = async (loadId: string, driverId: string) => {
+export const assignDriversToLoad = async (loadId: string, driverIds: string[]) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            driverIds: [driverId],
+            driverIds: driverIds,
         }),
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();

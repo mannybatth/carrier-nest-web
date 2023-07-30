@@ -25,7 +25,7 @@ import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import { loadStatus } from '../../lib/load/load-utils';
-import { assignDriverToLoad } from '../../lib/rest/driver';
+import { assignDriversToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
 import { formatValue } from 'react-currency-input-field';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
@@ -190,15 +190,18 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
     };
 
-    const onDriverSelect = async (driver: Driver) => {
+    const onDriversListChange = async (drivers: Driver[]) => {
         setOpenSelectDriver(false);
 
         try {
-            await assignDriverToLoad(load.id, driver.id);
-            notify({ title: 'Driver assigned', message: 'Driver assigned to load successfully' });
+            await assignDriversToLoad(
+                load.id,
+                drivers.map((d) => d.id),
+            );
+            notify({ title: 'Drivers assigned', message: 'Drivers assigned to load successfully' });
             reloadLoad();
         } catch (e) {
-            notify({ title: 'Error Assigning Driver', message: e.message, type: 'error' });
+            notify({ title: 'Error Assigning Drivers', message: e.message, type: 'error' });
         }
     };
 
@@ -289,7 +292,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         >
             <>
                 <DriverSelectionModal
-                    onSelect={onDriverSelect}
+                    onDriversListChange={onDriversListChange}
                     show={openSelectDriver}
                     onClose={() => setOpenSelectDriver(false)}
                 ></DriverSelectionModal>

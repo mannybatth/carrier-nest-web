@@ -119,7 +119,7 @@ export const getLoads = async ({
         where: {
             carrierId: session.user.defaultCarrierId,
             ...(customerId ? { customerId } : null),
-            ...(driverId ? { driverId } : null),
+            ...(driverId ? { drivers: { some: { id: driverId } } } : null),
             ...(currentOnly ? { invoice: null } : {}),
         },
     });
@@ -130,7 +130,7 @@ export const getLoads = async ({
         where: {
             carrierId: session.user.defaultCarrierId,
             ...(customerId ? { customerId } : null),
-            ...(driverId ? { driverId } : null),
+            ...(driverId ? { drivers: { some: { id: driverId } } } : null),
             ...(currentOnly ? { invoice: null } : {}),
         },
         orderBy: buildOrderBy(sortBy, sortDir) || {

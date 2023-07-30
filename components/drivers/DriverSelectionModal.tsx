@@ -1,17 +1,17 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { UserCircleIcon } from '@heroicons/react/outline';
+import { TrashIcon, UserCircleIcon, XIcon } from '@heroicons/react/outline';
+import { UsersIcon } from '@heroicons/react/solid';
 import { Driver } from '@prisma/client';
 import React, { Fragment, useEffect } from 'react';
 import { getAllDrivers } from '../../lib/rest/driver';
-import Spinner from '../Spinner';
 
 type Props = {
     show: boolean;
-    onSelect: (driver: Driver) => void;
     onClose: (value: boolean) => void;
+    onDriversListChange: (drivers: Driver[]) => void;
 };
 
-const DriverSelectionModal: React.FC<Props> = ({ show, onSelect, onClose }) => {
+const DriverSelectionModal: React.FC<Props> = ({ show, onClose, onDriversListChange }: Props) => {
     const [drivers, setDrivers] = React.useState<Driver[] | null>(null);
 
     useEffect(() => {
@@ -29,91 +29,104 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onSelect, onClose }) => {
         onClose(value);
     };
 
+    const onRemoveDriver = (driver: Driver) => {
+        const newDrivers = drivers?.filter((d) => d.id !== driver.id);
+        setDrivers(newDrivers);
+    };
+
     return (
         <Transition.Root show={show} as={Fragment}>
-            <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={(value) => close(value)}>
-                <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
-                        <Dialog.Overlay className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" />
-                    </Transition.Child>
+            <Dialog as="div" className="relative z-10" onClose={(value) => close(value)}>
+                <div className="fixed inset-0" />
 
-                    {/* This element is to trick the browser into centering the modal contents. */}
-                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                        &#8203;
-                    </span>
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        enterTo="opacity-100 translate-y-0 sm:scale-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                        leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    >
-                        <div className="relative inline-block w-full px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                            <div className="block mb-4 mr-8">
-                                <h1 className="text-xl font-semibold text-gray-900">Select Driver</h1>
-                            </div>
-
-                            {drivers === null ? (
-                                <div className="text-center ">
-                                    <Spinner className="inline-block"></Spinner>
-                                </div>
-                            ) : (
-                                <div className="mt-4">
-                                    {drivers.map((driver) => (
-                                        <button
-                                            key={driver.id}
-                                            className="block w-full px-4 py-2 text-left transition-colors duration-200 bg-white hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
-                                            onClick={() => onSelect(driver)}
-                                        >
-                                            <div className="flex items-center">
-                                                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                                    <UserCircleIcon
-                                                        className="w-6 h-6 text-gray-500"
-                                                        aria-hidden="true"
+                <div className="fixed inset-0 overflow-hidden">
+                    <div className="absolute inset-0 overflow-hidden">
+                        <div className="fixed inset-y-0 right-0 flex max-w-full pl-10 pointer-events-none sm:pl-16">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="transform transition ease-in-out duration-500 sm:duration-700"
+                                enterFrom="translate-x-full"
+                                enterTo="translate-x-0"
+                                leave="transform transition ease-in-out duration-500 sm:duration-700"
+                                leaveFrom="translate-x-0"
+                                leaveTo="translate-x-full"
+                            >
+                                <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                    <div className="flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
+                                                Drivers Assigned to Load
+                                            </Dialog.Title>
+                                            <div className="flex items-center ml-3 h-7">
+                                                <button
+                                                    type="button"
+                                                    className="relative text-gray-400 bg-white rounded-md hover:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                                                    onClick={() => close(false)}
+                                                >
+                                                    <span className="absolute -inset-2.5" />
+                                                    <span className="sr-only">Close panel</span>
+                                                    <XIcon className="w-6 h-6" aria-hidden="true" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex mt-2 rounded-md shadow-sm">
+                                                <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                        <UsersIcon
+                                                            className="w-5 h-5 text-gray-400"
+                                                            aria-hidden="true"
+                                                        />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        id="driver-name"
+                                                        autoComplete="driver-name"
+                                                        className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                                                        placeholder="Search drivers to add to this load"
                                                     />
                                                 </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium leading-5 text-gray-900">
-                                                        {driver.name}
-                                                    </div>
-                                                    <div className="mt-1 text-sm font-medium leading-5 text-gray-500">
-                                                        {driver.email}
-                                                    </div>
-                                                </div>
                                             </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div className="absolute top-0 right-0 mt-4 mr-4">
-                                <button
-                                    type="button"
-                                    className="p-2 text-gray-400 rounded-md hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500"
-                                    onClick={() => close(false)}
-                                >
-                                    <svg className="w-6 h-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
+                                        </div>
+                                        <ul role="list" className="flex-1 overflow-y-auto divide-y divide-gray-200">
+                                            {drivers?.map((driver) => (
+                                                <li key={driver.id}>
+                                                    <div className="relative flex items-center px-4 py-6 group">
+                                                        <div className="relative flex items-center flex-1 min-w-0 space-x-4">
+                                                            <UserCircleIcon
+                                                                className="w-6 h-6 text-gray-500"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <div className="flex-1 truncate">
+                                                                <p className="text-sm font-medium text-gray-900 truncate">
+                                                                    {driver.name}
+                                                                </p>
+                                                                <p className="text-sm text-gray-500 truncate">
+                                                                    {driver.phone}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onRemoveDriver(driver);
+                                                                    }}
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
                         </div>
-                    </Transition.Child>
+                    </div>
                 </div>
             </Dialog>
         </Transition.Root>
