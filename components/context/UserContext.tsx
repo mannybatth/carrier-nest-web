@@ -3,7 +3,10 @@ import { useSession } from 'next-auth/react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCarriers } from '../../lib/rest/carrier';
 
-const UserContext = createContext<[Carrier[], React.Dispatch<React.SetStateAction<Carrier[]>> | undefined]>(undefined);
+const UserContext = createContext<[Carrier[], React.Dispatch<React.SetStateAction<Carrier[]>> | undefined]>([
+    [],
+    () => null,
+]);
 
 type UserProviderProps = {
     children: React.ReactNode;

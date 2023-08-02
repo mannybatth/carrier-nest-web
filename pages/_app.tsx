@@ -35,7 +35,7 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
 
     if (status === 'loading' || (status === 'authenticated' && !session?.user?.defaultCarrierId)) {
         return (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-screen">
                 <Spinner />
             </div>
         );
@@ -48,7 +48,7 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
     // Session is being fetched, or no user.
     // If no user, useEffect() will redirect.
     return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-screen">
             <Spinner />
         </div>
     );

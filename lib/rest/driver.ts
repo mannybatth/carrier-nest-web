@@ -44,6 +44,16 @@ export const getDriverById = async (id: string) => {
     return data.driver;
 };
 
+export const getDriversForLoadId = async (loadId: string) => {
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/drivers');
+    const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.drivers;
+};
+
 export const searchDriversByName = async (value: string) => {
     const response = await fetch(apiUrl + '/drivers/search?q=' + value);
     const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();

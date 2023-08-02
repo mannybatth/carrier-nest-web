@@ -85,6 +85,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
             select: {
                 id: true,
                 name: true,
+                phone: true,
             },
         },
         loadDocuments: true,

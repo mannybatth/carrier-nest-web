@@ -30,6 +30,7 @@ import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getL
 import { formatValue } from 'react-currency-input-field';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 import Image from 'next/image';
+import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -172,17 +173,13 @@ type Props = {
 };
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
-    const [load, setLoad] = useState<ExpandedLoad>();
+    const [load, setLoad] = useLoadContext();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
     const router = useRouter();
 
     let fileInput: HTMLInputElement;
-
-    useEffect(() => {
-        reloadLoad();
-    }, [loadId]);
 
     const reloadLoad = async () => {
         const load = await getLoadById(loadId);
@@ -191,18 +188,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const onDriversListChange = async (drivers: Driver[]) => {
-        setOpenSelectDriver(false);
-
-        try {
-            await assignDriversToLoad(
-                load.id,
-                drivers.map((d) => d.id),
-            );
-            notify({ title: 'Drivers assigned', message: 'Drivers assigned to load successfully' });
-            reloadLoad();
-        } catch (e) {
-            notify({ title: 'Error Assigning Drivers', message: e.message, type: 'error' });
-        }
+        reloadLoad();
     };
 
     const assignDriverAction = async () => {
@@ -656,4 +642,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
 LoadDetailsPage.authenticationEnabled = true;
 
-export default LoadDetailsPage;
+// Wrapper needed to load provider
+const LoadDetailsPageWrapper: PageWithAuth<Props> = ({ loadId }: Props) => {
+    return (
+        <LoadProvider loadId={loadId}>
+            <LoadDetailsPage loadId={loadId}></LoadDetailsPage>
+        </LoadProvider>
+    );
+};
+
+LoadDetailsPageWrapper.authenticationEnabled = true;
+
+export default LoadDetailsPageWrapper;
