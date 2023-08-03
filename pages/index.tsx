@@ -97,16 +97,12 @@ const Dashboard: PageWithAuth = () => {
                                     <h3 className="px-5 mb-2 font-bold md:px-0">Todays Load Schedule</h3>
                                     <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
                                         <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
-                                            {loadsList.map((load) => (
+                                            {loadsList.map((load, index) => (
                                                 <li
-                                                    key={load.id}
-                                                    className="overflow-hidden border border-gray-200 cursor-pointer rounded-xl w-80"
+                                                    key={index}
+                                                    className="overflow-hidden border border-gray-200 rounded-xl w-80"
                                                 >
-                                                    <div
-                                                        onClick={() => {
-                                                            router.push(`/loads/${load.id}`);
-                                                        }}
-                                                    >
+                                                    <Link href={`/loads/${load.id}`}>
                                                         {load && load.routeEncoded && (
                                                             <Image
                                                                 src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
@@ -124,7 +120,7 @@ const Dashboard: PageWithAuth = () => {
                                                         {!(load && load.routeEncoded) && (
                                                             <div className="flex items-center p-6 border-b gap-x-4 border-gray-900/5 bg-gray-50"></div>
                                                         )}
-                                                        <dl className="px-3 py-3 -my-3 text-sm leading-6 divide-y divide-gray-100">
+                                                        <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
                                                             <div className="flex justify-between py-2 gap-x-4">
                                                                 <dt className="text-gray-500">
                                                                     <div className="text-xs">{load.refNum}</div>
@@ -139,7 +135,7 @@ const Dashboard: PageWithAuth = () => {
                                                                 </dd>
                                                             </div>
                                                             <div className="flex justify-between py-3 gap-x-4">
-                                                                <ul role="list" className="-mb-8">
+                                                                <ul role="list" className="flex-1">
                                                                     <li>
                                                                         <div className="relative z-auto pb-3">
                                                                             <span
@@ -209,7 +205,7 @@ const Dashboard: PageWithAuth = () => {
                                                                         </li>
                                                                     )}
                                                                     <li>
-                                                                        <div className="relative pb-8">
+                                                                        <div className="relative pb-2">
                                                                             <div className="relative flex items-center space-x-3">
                                                                                 <div className="relative px-1">
                                                                                     <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
@@ -248,41 +244,43 @@ const Dashboard: PageWithAuth = () => {
                                                                     </li>
                                                                 </ul>
                                                             </div>
-                                                            <div className="flex justify-between py-3">
-                                                                <dt className="">
-                                                                    <div className="text-xs text-gray-500">
-                                                                        Driver details
-                                                                    </div>
-                                                                    <div>
-                                                                        {load.drivers?.length > 0 ? (
-                                                                            load.drivers.map((driver, index) => (
-                                                                                <>
-                                                                                    <Link
-                                                                                        href={`/drivers/${driver.id}`}
-                                                                                        className="font-medium"
-                                                                                        key={driver.id}
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                        }}
-                                                                                    >
-                                                                                        {driver?.name}
-                                                                                    </Link>
-                                                                                    {index < load.drivers.length - 1
-                                                                                        ? ', '
-                                                                                        : ''}
-                                                                                </>
-                                                                            ))
-                                                                        ) : (
-                                                                            <div className="text-gray-400">
-                                                                                No driver assigned
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </dt>
-                                                                <dd className=""></dd>
-                                                            </div>
                                                         </dl>
-                                                    </div>
+                                                    </Link>
+                                                    <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
+                                                        <div></div>
+                                                        <div className="flex justify-between py-3">
+                                                            <dt className="">
+                                                                <div className="text-xs text-gray-500">
+                                                                    Driver details
+                                                                </div>
+                                                                <div>
+                                                                    {load.drivers?.length > 0 ? (
+                                                                        load.drivers.map((driver, index) => (
+                                                                            <span key={driver.id}>
+                                                                                <Link
+                                                                                    href={`/drivers/${driver.id}`}
+                                                                                    className="font-medium"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                    }}
+                                                                                >
+                                                                                    {driver?.name}
+                                                                                </Link>
+                                                                                {index < load.drivers.length - 1
+                                                                                    ? ', '
+                                                                                    : ''}
+                                                                            </span>
+                                                                        ))
+                                                                    ) : (
+                                                                        <div className="text-gray-400">
+                                                                            No driver assigned
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </dt>
+                                                            <dd className=""></dd>
+                                                        </div>
+                                                    </dl>
                                                 </li>
                                             ))}
                                         </ul>
