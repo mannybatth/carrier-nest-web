@@ -203,6 +203,7 @@ export const getLoads = async ({
                           select: {
                               id: true,
                               name: true,
+                              phone: true,
                           },
                       },
                   }
