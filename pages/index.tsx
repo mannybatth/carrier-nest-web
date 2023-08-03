@@ -248,24 +248,29 @@ const Dashboard: PageWithAuth = () => {
                                                                     </li>
                                                                 </ul>
                                                             </div>
-                                                            <div className="flex justify-between py-3 gap-x-4">
+                                                            <div className="flex justify-between py-3">
                                                                 <dt className="">
                                                                     <div className="text-xs text-gray-500">
                                                                         Driver details
                                                                     </div>
                                                                     <div>
                                                                         {load.drivers?.length > 0 ? (
-                                                                            load.drivers.map((driver) => (
-                                                                                <Link
-                                                                                    href={`/drivers/${driver.id}`}
-                                                                                    className="font-medium"
-                                                                                    key={driver.id}
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                    }}
-                                                                                >
-                                                                                    {driver?.name}
-                                                                                </Link>
+                                                                            load.drivers.map((driver, index) => (
+                                                                                <>
+                                                                                    <Link
+                                                                                        href={`/drivers/${driver.id}`}
+                                                                                        className="font-medium"
+                                                                                        key={driver.id}
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                        }}
+                                                                                    >
+                                                                                        {driver?.name}
+                                                                                    </Link>
+                                                                                    {index < load.drivers.length - 1
+                                                                                        ? ', '
+                                                                                        : ''}
+                                                                                </>
                                                                             ))
                                                                         ) : (
                                                                             <div className="text-gray-400">
