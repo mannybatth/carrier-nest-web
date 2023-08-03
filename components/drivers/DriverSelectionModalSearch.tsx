@@ -165,20 +165,22 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close }: Props) =
                                 ))}
                             </ul>
                             {selectedDriverIds.length > 0 && (
-                                <div className="sticky p-2 bg-white border-t-[1px] space-x-3 flex">
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        onClick={saveSelectedDrivers}
-                                    >
-                                        Save ({selectedDriverIds.length})
-                                    </button>
-                                    <button
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        onClick={() => goBack()}
-                                    >
-                                        Cancel
-                                    </button>
+                                <div className="sticky py-2 bg-white border-t-[1px] flex sm:px-2">
+                                    <div className="space-x-3">
+                                        <button
+                                            type="button"
+                                            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            onClick={saveSelectedDrivers}
+                                        >
+                                            Save ({selectedDriverIds.length})
+                                        </button>
+                                        <button
+                                            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            onClick={() => goBack()}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
                                     <div className="flex-1" />
                                     <div className="flex items-center justify-center h-full">
                                         <input
