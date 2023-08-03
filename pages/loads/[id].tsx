@@ -8,29 +8,27 @@ import {
     TruckIcon,
     UploadIcon,
 } from '@heroicons/react/outline';
-import { Driver, LoadDocument } from '@prisma/client';
+import { LoadDocument } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
+import React, { ChangeEvent, Fragment, useState } from 'react';
+import { formatValue } from 'react-currency-input-field';
+import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
+import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { UploadDocsArea } from '../../components/loads/UploadDocsArea';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
-import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import { loadStatus } from '../../lib/load/load-utils';
-import { assignDriversToLoad } from '../../lib/rest/driver';
 import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
-import { formatValue } from 'react-currency-input-field';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import Image from 'next/image';
-import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -187,10 +185,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
     };
 
-    const onDriversListChange = async (drivers: Driver[]) => {
-        reloadLoad();
-    };
-
     const assignDriverAction = async () => {
         setOpenSelectDriver(true);
     };
@@ -278,7 +272,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         >
             <>
                 <DriverSelectionModal
-                    onDriversListChange={onDriversListChange}
                     show={openSelectDriver}
                     onClose={() => setOpenSelectDriver(false)}
                 ></DriverSelectionModal>
@@ -329,11 +322,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             <dl className="border-gray-200 divide-y divide-gray-200">
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Reference #</dt>
-                                                    <dd className="text-gray-900">{load.refNum}</dd>
+                                                    <dd className="text-right text-gray-900">{load.refNum}</dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Status</dt>
-                                                    <dd className="text-gray-900">
+                                                    <dd className="text-right text-gray-900">
                                                         <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
                                                             {loadStatus(load)}
                                                         </span>
@@ -341,7 +334,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Customer</dt>
-                                                    <dd className="text-gray-900">
+                                                    <dd className="text-right text-gray-900">
                                                         {load.customer && (
                                                             <Link href={`/customers/${load.customer.id}`}>
                                                                 {load.customer?.name}
@@ -351,16 +344,14 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Drivers</dt>
-                                                    <dd className="text-gray-900">
+                                                    <dd className="text-right text-gray-900">
                                                         {load.drivers.length > 0 ? (
                                                             load.drivers.map((driver) => (
-                                                                <Link
-                                                                    key={driver.id}
-                                                                    href={`/drivers/${driver.id}`}
-                                                                    passHref
-                                                                >
-                                                                    {driver.name}
-                                                                </Link>
+                                                                <div key={driver.id}>
+                                                                    <Link href={`/drivers/${driver.id}`} passHref>
+                                                                        {driver.name}
+                                                                    </Link>
+                                                                </div>
                                                             ))
                                                         ) : (
                                                             <a onClick={() => setOpenSelectDriver(true)}>
@@ -371,7 +362,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Rate</dt>
-                                                    <dd className="text-gray-900">
+                                                    <dd className="text-right text-gray-900">
                                                         {formatValue({
                                                             value: load.rate.toString(),
                                                             groupSeparator: ',',
@@ -384,7 +375,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <div>
                                                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Invoice</dt>
-                                                        <dd className="text-gray-900">
+                                                        <dd className="text-right text-gray-900">
                                                             {load.invoice ? (
                                                                 <Link
                                                                     href={`/accounting/invoices/${load.invoice.id}`}

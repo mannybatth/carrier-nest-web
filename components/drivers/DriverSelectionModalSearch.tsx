@@ -1,38 +1,46 @@
 import { Dialog } from '@headlessui/react';
 import { ArrowLeftIcon, UserCircleIcon, XIcon } from '@heroicons/react/outline';
-import { UsersIcon } from '@heroicons/react/solid';
 import { Driver } from '@prisma/client';
 import React, { useEffect } from 'react';
-import { getAllDrivers } from '../../lib/rest/driver';
+import { assignDriversToLoad, getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
+import { LoadingOverlay } from '../LoadingOverlay';
+import { notify } from '../Notification';
+import Spinner from '../Spinner';
 
 type Props = {
     goBack: () => void;
     close: (value: boolean) => void;
-    onDriversListChange: (drivers: Driver[]) => void;
 };
 
-const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, onDriversListChange }: Props) => {
+const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close }: Props) => {
     const [load, setLoad] = useLoadContext();
+
+    const [loadingAllDrivers, setLoadingAllDrivers] = React.useState<boolean>(false);
+    const [saveLoading, setSaveLoading] = React.useState<boolean>(false);
+
     const [allDrivers, setAllDrivers] = React.useState<Driver[]>([]);
+    const [availableDrivers, setAvailableDrivers] = React.useState<Driver[]>([]);
     const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
+    const [sendSMS, setSendSMS] = React.useState<boolean>(false);
 
     useEffect(() => {
         const loadDrivers = async () => {
+            setLoadingAllDrivers(true);
             const { drivers } = await getAllDrivers({
                 limit: 999,
                 offset: 0,
             });
+            setAllDrivers(drivers);
+
             const availableDrivers = drivers.filter((d) => !load.drivers?.find((ld) => ld.id === d.id));
-            setAllDrivers(availableDrivers);
+            setAvailableDrivers(availableDrivers);
+
+            setLoadingAllDrivers(false);
         };
 
         loadDrivers();
     }, [load]);
-
-    const doSearch = async (name: string) => {
-        //
-    };
 
     const handleCheckboxChange = (event) => {
         if (event.target.checked) {
@@ -42,26 +50,30 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, onDriversL
         }
     };
 
-    // const assignDrivers = async (drivers: Driver[]) => {
-    //     const newDrivers = [...(assignedDrivers || []), ...drivers];
+    const saveSelectedDrivers = async () => {
+        setSaveLoading(true);
+        const newDriverIds = [...selectedDriverIds, ...load.drivers.map((d) => d.id)];
+        const newDrivers = allDrivers.filter((d) => newDriverIds.includes(d.id));
 
-    //     try {
-    //         await assignDriversToLoad(
-    //             loadId,
-    //             newDrivers.map((d) => d.id),
-    //         );
+        try {
+            await assignDriversToLoad(load.id, selectedDriverIds, sendSMS);
+            setLoad((prev) => ({
+                ...prev,
+                drivers: newDrivers,
+            }));
+            setSelectedDriverIds([]);
+            goBack();
+            notify({ title: 'Drivers assigned', message: 'Drivers assigned to load successfully' });
+        } catch (e) {
+            notify({ title: 'Error Assigning Drivers', message: e.message, type: 'error' });
+        }
 
-    //         setAssignedDrivers(newDrivers);
-    //         onDriversListChange(newDrivers as Driver[]);
-    //         notify({ title: 'Drivers assigned', message: 'Drivers assigned to load successfully' });
-    //     } catch (e) {
-    //         notify({ title: 'Error Assigning Drivers', message: e.message, type: 'error' });
-    //     }
-    // };
+        setSaveLoading(false);
+    };
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-start space-x-4">
+        <div className="flex flex-col h-full space-y-4">
+            <div className="flex items-start flex-none space-x-4">
                 <button
                     type="button"
                     className="inline-flex items-center flex-none px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -74,7 +86,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, onDriversL
                     <span className="ml-1">Back</span>
                 </button>
                 <Dialog.Title className="flex-1 text-lg font-semibold leading-6 text-gray-900">
-                    Drivers Assigned to Load
+                    Add Drivers to Load
                 </Dialog.Title>
                 <div className="flex items-center ml-3 h-7">
                     <button
@@ -88,7 +100,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, onDriversL
                     </button>
                 </div>
             </div>
-            <div className="flex mt-2 rounded-md shadow-sm">
+            {/* <div className="flex flex-none mt-2 rounded-md shadow-sm">
                 <div className="relative flex items-stretch flex-grow focus-within:z-10">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <UsersIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
@@ -101,37 +113,100 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, onDriversL
                         placeholder="Search drivers to add to this load"
                     />
                 </div>
-            </div>
-            <ul role="list" className="flex-1 overflow-y-auto divide-y divide-gray-200">
-                {allDrivers?.map((driver) => (
-                    <li key={driver.id}>
-                        <div className="flex items-center space-x-4">
-                            <div className="flex-1">
-                                <label htmlFor={`driver-${driver.id}`}>
-                                    <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-pointer">
-                                        <UserCircleIcon className="w-6 h-6 text-gray-500" aria-hidden="true" />
-                                        <div className="flex-1 truncate">
-                                            <p className="text-sm font-medium text-gray-900 truncate">{driver.name}</p>
-                                            <p className="text-sm text-gray-500 truncate">{driver.phone}</p>
+            </div> */}
+            {loadingAllDrivers ? (
+                <div className="flex items-start justify-center flex-1 h-32">
+                    <div className="flex items-center mt-10 space-x-2 text-gray-500">
+                        <Spinner />
+                        <span>Loading drivers...</span>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {saveLoading && <LoadingOverlay />}
+
+                    {availableDrivers.length > 0 ? (
+                        <div className="flex flex-col flex-1 overflow-auto">
+                            <ul role="list" className="pb-4 overflow-y-auto divide-y divide-gray-200">
+                                {availableDrivers?.map((driver, index) => (
+                                    <li key={index}>
+                                        <div className="flex items-center space-x-4">
+                                            <div className="flex-1">
+                                                <label htmlFor={`driver-${index}`}>
+                                                    <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-pointer">
+                                                        <UserCircleIcon
+                                                            className="w-6 h-6 text-gray-500"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <div className="flex-1 truncate">
+                                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                                {driver.name}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 truncate">
+                                                                {driver.phone}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center h-6 pr-4">
+                                                <input
+                                                    id={`driver-${index}`}
+                                                    name={`driver-${index}`}
+                                                    type="checkbox"
+                                                    value={driver.id}
+                                                    checked={selectedDriverIds.includes(driver.id)}
+                                                    onChange={handleCheckboxChange}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                />
+                                            </div>
                                         </div>
+                                    </li>
+                                ))}
+                            </ul>
+                            {selectedDriverIds.length > 0 && (
+                                <div className="sticky p-2 bg-white border-t-[1px] space-x-3 flex">
+                                    <button
+                                        type="button"
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={saveSelectedDrivers}
+                                    >
+                                        Save ({selectedDriverIds.length})
+                                    </button>
+                                    <button
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={() => goBack()}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <div className="flex-1" />
+                                    <div className="flex items-center justify-center h-full pr-4">
+                                        <input
+                                            id={'sms-send'}
+                                            name={'sms-send'}
+                                            type="checkbox"
+                                            onChange={(e) => setSendSMS(e.target.checked)}
+                                            className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                        />
+                                        <label
+                                            htmlFor={'sms-send'}
+                                            className="text-sm font-medium text-gray-900 cursor-pointer"
+                                        >
+                                            Send SMS
+                                        </label>
                                     </div>
-                                </label>
-                            </div>
-                            <div className="flex items-center h-6 pr-4">
-                                <input
-                                    id={`driver-${driver.id}`}
-                                    name={`driver-${driver.id}`}
-                                    type="checkbox"
-                                    value={driver.id}
-                                    checked={selectedDriverIds.includes(driver.id)}
-                                    onChange={handleCheckboxChange}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex items-start justify-center flex-1 h-32">
+                            <div className="flex items-center mt-10 space-x-2 text-gray-500">
+                                <span>No drivers available to add</span>
                             </div>
                         </div>
-                    </li>
-                ))}
-            </ul>
+                    )}
+                </>
+            )}
         </div>
     );
 };

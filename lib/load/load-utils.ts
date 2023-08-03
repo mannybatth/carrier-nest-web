@@ -13,6 +13,12 @@ export enum UILoadStatus {
     OVERDUE = 'overdue', // invoice past due date
 }
 
+export const isDate24HrInThePast = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    return diff > 24 * 60 * 60 * 1000;
+};
+
 export const loadStatus = (load: ExpandedLoad): UILoadStatus => {
     if (load.invoice) {
         const inStatus = invoiceStatus(load.invoice);
@@ -32,7 +38,7 @@ export const loadStatus = (load: ExpandedLoad): UILoadStatus => {
     }
 
     const dropOffDate = new Date(load.receiver.date);
-    if (load.status === LoadStatus.DELIVERED || Date.now() > dropOffDate.getTime()) {
+    if (load.status === LoadStatus.DELIVERED || isDate24HrInThePast(dropOffDate)) {
         return UILoadStatus.DELIVERED;
     }
 

@@ -1,29 +1,32 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { UserCircleIcon, XIcon } from '@heroicons/react/outline';
 import { PlusIcon } from '@heroicons/react/solid';
-import { Driver } from '@prisma/client';
 import React, { Fragment } from 'react';
+import { removeDriverFromLoad } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
+import { LoadingOverlay } from '../LoadingOverlay';
 import DriverSelectionModalSearch from './DriverSelectionModalSearch';
 
 type Props = {
     show: boolean;
     onClose: (value: boolean) => void;
-    onDriversListChange: (drivers: Driver[]) => void;
 };
 
-const DriverSelectionModal: React.FC<Props> = ({ show, onClose, onDriversListChange }: Props) => {
+const DriverSelectionModal: React.FC<Props> = ({ show, onClose }: Props) => {
     const [load, setLoad] = useLoadContext();
     const [showSearch, setShowSearch] = React.useState(false);
+    const [saveLoading, setSaveLoading] = React.useState(false);
 
     const close = (value: boolean) => {
         onClose(value);
         setShowSearch(false);
     };
 
-    const onRemoveDriver = (driver: Partial<Driver>) => {
-        const newDrivers = load.drivers?.filter((d) => d.id !== driver.id);
-        setLoad({ ...load, drivers: newDrivers });
+    const onRemoveDriver = async (driverIdToRemove: string) => {
+        setSaveLoading(true);
+        await removeDriverFromLoad(load.id, driverIdToRemove);
+        setLoad((prev) => ({ ...prev, drivers: prev.drivers.filter((driver) => driver.id !== driverIdToRemove) }));
+        setSaveLoading(false);
     };
 
     return (
@@ -44,17 +47,17 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onClose, onDriversListCha
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
-                                    <div className="flex flex-col h-full px-5 py-6 space-y-4 overflow-y-scroll bg-white shadow-xl">
-                                        {showSearch ? (
-                                            <div>
-                                                <DriverSelectionModalSearch
-                                                    goBack={() => setShowSearch(false)}
-                                                    close={(value) => close(value)}
-                                                    onDriversListChange={onDriversListChange}
-                                                ></DriverSelectionModalSearch>
-                                            </div>
-                                        ) : (
-                                            <>
+                                    {showSearch ? (
+                                        <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
+                                            <DriverSelectionModalSearch
+                                                goBack={() => setShowSearch(false)}
+                                                close={(value) => close(value)}
+                                            ></DriverSelectionModalSearch>
+                                        </div>
+                                    ) : (
+                                        <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
+                                            {saveLoading && <LoadingOverlay />}
+                                            <div className="space-y-4">
                                                 <div className="flex items-start justify-between">
                                                     <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
                                                         Drivers Assigned to Load
@@ -109,7 +112,7 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onClose, onDriversListCha
                                                                             className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                onRemoveDriver(driver);
+                                                                                onRemoveDriver(driver.id);
                                                                             }}
                                                                         >
                                                                             Remove
@@ -120,9 +123,9 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onClose, onDriversListCha
                                                         </li>
                                                     ))}
                                                 </ul>
-                                            </>
-                                        )}
-                                    </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>
