@@ -17,6 +17,15 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onClose }: Props) => {
     const [showSearch, setShowSearch] = React.useState(false);
     const [saveLoading, setSaveLoading] = React.useState(false);
 
+    // If no drivers are assigned to the load, show the search modal
+    React.useEffect(() => {
+        if (show) {
+            if (load?.drivers?.length === 0) {
+                setShowSearch(true);
+            }
+        }
+    }, [show]);
+
     const close = (value: boolean) => {
         onClose(value);
         setShowSearch(false);
