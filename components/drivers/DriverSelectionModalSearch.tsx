@@ -180,7 +180,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close }: Props) =
                                         Cancel
                                     </button>
                                     <div className="flex-1" />
-                                    <div className="flex items-center justify-center h-full pr-4">
+                                    <div className="flex items-center justify-center h-full">
                                         <input
                                             id={'sms-send'}
                                             name={'sms-send'}
@@ -190,7 +190,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close }: Props) =
                                         />
                                         <label
                                             htmlFor={'sms-send'}
-                                            className="text-sm font-medium text-gray-900 cursor-pointer"
+                                            className="text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"
                                         >
                                             Send SMS
                                         </label>
