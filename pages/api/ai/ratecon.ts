@@ -34,66 +34,67 @@ export default async function POST(req: NextRequest) {
         });
 
         const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 2000,
-            chunkOverlap: 300,
+            chunkSize: 768,
+            chunkOverlap: 128,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
         const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
 
         const query = `
-I have a logistics rate confirmation document with details about a specific load. The text has been extracted using OCR. I need your help to accurately parse this information and structure it in a JSON format. Please be particularly attentive to the designations "PU" and "SO". "PU" refers to the pickup location, also known as the shipper's location, and "SO" refers to the delivery location, also known as the consignee's location. Ensure not to confuse these with the carrier's address.
+Please parse the given OCR-extracted text from a logistics rate confirmation document and structure it in a JSON format. Your focus should be on accurately identifying and categorizing the "PU" and "SO" locations, where "PU" refers to the pickup location or the shipper's location, and "SO" represents the delivery location or the consignee's location.
 
-Here are the details you need to extract:
+A single location might act as both a "PU" (shipper) and "SO" (consignee) at different points in time within a single shipment. Such occurrences should be recognized and treated as separate stops with their respective dates, times, and types ("PU" or "SO").
+
+You also need to accurately distinguish the base rate from the total carrier pay. The "rate" field should represent the total carrier pay and not the base rate. If there is any confusion between the two, assume the highest numeric value represents the total carrier pay.
+
+The following details need to be extracted:
 
 1. The name of the logistics company.
 2. The load number for the load or shipment.
-3. The exact name and full address (street, city, state, zip, country) of the "PU" (pick-up location or shipper), not the carrier's address.
-4. The pick-up date and time. Please convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
-5. The exact name and full address (street, city, state, zip, country) of the "SO" (delivery location or consignee), not the carrier's address.
-6. The delivery date and time. Please convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
-7. The flat rate for the line haul or the cost of the load. Include only the numeric value and not the currency.
-8. The email address to submit delivery documents, proof of delivery (POD), or invoice for standard pay.
+3. All the "PU" (pick-up locations or shippers), excluding the carrier's address. For each "PU", retrieve the exact name and full address (street, city, state, zip, country).
+4. The pick-up date and time for each "PU". Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
+5. All the "SO" (delivery locations or consignees), excluding the carrier's address. For each "SO", retrieve the exact name and full address (street, city, state, zip, country).
+6. The delivery date and time for each "SO". Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
+7. The total carrier pay for the load or shipment. Include only the numeric value and not the currency. If both a base rate and a total pay are mentioned, use the total pay.
+8. The email address for submitting delivery documents, proof of delivery (POD), or invoice for standard pay.
 
 If any of these details cannot be found in the text, return null for that field in the JSON object.
 
-Please structure the parsed information as follows:
+The structure of the parsed information should be as follows:
 
 {
     "logistics_company": "<logistics_company>" or null,
     "load_number": "<load_number>" or null,
-    "shipper": "<shipper>" or null,
-    "shipper_address": {
-        "street": "<street>" or null,
-        "city": "<city>" or null,
-        "state": "<state>" or null,
-        "zip": "<zip>" or null,
-        "country": "<country>" or null
-    },
-    "pickup_date": "<pickup_date>" or null,
-    "pickup_time": "<pickup_time>" or null,
-    "consignee": "<consignee>" or null,
-    "consignee_address": {
-        "street": "<street>" or null,
-        "city": "<city>" or null,
-        "state": "<state>" or null,
-        "zip": "<zip>" or null,
-        "country": "<country>" or null
-    },
-    "delivery_date": "<delivery_date>" or null,
-    "delivery_time": "<delivery_time>" or null,
-    "rate": <rate> or null,
+    "stops": [
+        {
+            "type": "<PU or SO>",
+            "name": "<name>" or null,
+            "address": {
+                "street": "<street>" or null,
+                "city": "<city>" or null,
+                "state": "<state>" or null,
+                "zip": "<zip>" or null,
+                "country": "<country>" or null
+            },
+            "date": "<date>" or null,
+            "time": "<time>" or null
+        },
+        ... (repeat this structure for each stop regardless if it appears multiple times)
+    ],
+    "rate": <total carrier pay> or null,
     "invoice_email": "<invoice_email>" or null
 }
 
-Ensure to maintain the structure and the order of the keys in the JSON object. Thank you.`;
+The "stops" field is an array of objects, where each object represents a stop (either a "PU" or "SO") with its respective details. Maintain the sequence of the stops as they appear in the original document. The type for each stop should correspond to its role as a "PU" or "SO" at that specific point in time within the shipment sequence. Thank you.`;
 
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
                 temperature: 0,
                 verbose: process.env.NODE_ENV === 'development',
+                openAIApiKey: process.env.OPENAI_API_KEY,
             }),
-            vectordb.asRetriever(6),
+            vectordb.asRetriever(14),
             {
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
