@@ -66,7 +66,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             const getBottomY = (block) => block.layout.boundingPoly.normalizedVertices[2].y;
 
             for (const page of document.pages) {
-                const blocks = [...page.lines];
+                const blocks = [...page.tokens];
 
                 blocks.sort((a, b) => {
                     const aTopY = getTopY(a);
