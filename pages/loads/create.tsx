@@ -194,6 +194,9 @@ const CreateLoad: PageWithAuth = () => {
 
             const response = await fetch(apiUrl + '/ai/ratecon', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(documents),
             });
             const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
