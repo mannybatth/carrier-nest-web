@@ -1,22 +1,107 @@
+import { RetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { Document } from 'langchain/document';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { RetrievalQAChain } from 'langchain/chains';
-import { Document } from 'langchain/document';
-import { NextRequest, NextResponse } from 'next/server';
 import { similarity } from 'ml-distance';
-import { FaissStore } from 'langchain/vectorstores/faiss';
+// import { NextRequest, NextResponse } from 'next/server';
+import { PromptTemplate } from 'langchain/prompts';
+import { ChainValues } from 'langchain/dist/schema';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { FaissStore } from 'langchain/vectorstores/faiss';
+import { HuggingFaceInferenceEmbeddings } from 'langchain/embeddings/hf';
+import { HNSWLib } from 'langchain/vectorstores/hnswlib';
 
-export const config = {
-    runtime: 'edge',
-};
+// export const config = {
+//     runtime: 'edge',
+// };
 
-export default async function POST(req: NextRequest) {
+// Parses the JSON response from a single QA chain call
+async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
+    const response = await chainCall;
+    const responseText = response.text;
     try {
-        const list = await req.json();
-        // const list = req.body as Document[];
+        // Parse the entire response text to a JSON object
+        const parsedResponse = JSON.parse(responseText);
+        // Return the parsed JSON object
+        return parsedResponse;
+    } catch (error) {
+        console.error(`Failed to parse JSON response: ${responseText}`);
+        return null;
+    }
+}
+
+const questions: string[] = [
+    `Who is the logistics company and what is the load number? The load number is a unique identifier for the load or shipment that is assigned by the logistics company. Make your best guess if you cannot find the exact answer.
+json scheme:
+{
+    "logistics_company": string or null,
+    "load_number": string or null,
+}`,
+
+    `Extract all pickup (PU) stops from the document. Pickup is the same as "shipper". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the pickup window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
+Do not return any stops that are not pickup stops. For example, if a stop is a delivery stop (SO), do not return it.
+json scheme:
+{
+    "pickup_stops": [
+        {
+            "type": "<PU>",
+            "name": string or null,
+            "address": {
+                "street": string or null,
+                "city": string or null,
+                "state": string or null,
+                "zip": number or null,
+                "country": string or null
+            },
+            "date": string or null,
+            "time": string or null
+        },
+        ... (repeat this structure for each stop regardless if it appears multiple times)
+    ],
+}`,
+
+    `Extract all delivery (SO) stops from the document. Delivery is the same as "consignee" and "receiver". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the delivery window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
+Do not return any stops that are not delivery stops. For example, if a stop is a pickup stop (PU), do not return it.
+json scheme:
+{
+    "delivery_stops": [
+        {
+            "type": "<SO>",
+            "name": string or null,
+            "address": {
+                "street": string or null,
+                "city": string or null,
+                "state": string or null,
+                "zip": number or null,
+                "country": string or null
+            },
+            "date": string or null,
+            "time": string or null
+        },
+        ... (repeat this structure for each stop regardless if it appears multiple times)
+    ],
+}`,
+
+    `What is the total carrier pay for the load or shipment? Include only the numeric value and not the currency.
+json scheme:
+{
+    "rate": number or null,
+}`,
+
+    `Which email(s) does the document instruct to send the invoice and supporting documents to? If multiple emails are provided, return all of them. If no emails are provided, return null.
+json scheme:
+{
+    "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
+}`,
+];
+
+// export default async function POST(req: NextRequest) {.
+export default async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+        // const list = await req.json();
+        const list = req.body as Document[];
 
         if (!Array.isArray(list)) {
             throw new Error('Invalid input. Expected an array.');
@@ -37,62 +122,34 @@ export default async function POST(req: NextRequest) {
             });
         });
 
+        // const modelName = 'sentence-transformers/all-MiniLM-L6-v2';
+        // const hfEmbeddings = new HuggingFaceInferenceEmbeddings({
+        //     model: modelName,
+        //     apiKey: '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',
+        // });
+
         const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 2000,
-            chunkOverlap: 300,
+            chunkSize: 1800,
+            chunkOverlap: 500,
         });
 
         const splitDocuments = await splitter.splitDocuments(documents);
-        const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings(), {
-            similarity: similarity.cosine,
+        const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
+        // const vectordb = await FaissStore.fromDocuments(splitDocuments, hfEmbeddings);
+        // const vectordb = await HNSWLib.fromDocuments(splitDocuments, new OpenAIEmbeddings());
+
+        const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load that the carrier signs to accept the rate. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly. If you cannot find an answer, return null for that field in the JSON object.
+
+{context}
+
+Human: {question}
+Assistant:
+`;
+
+        const prompt = new PromptTemplate({
+            template,
+            inputVariables: ['question', 'context'],
         });
-        // const vectordb = await FaissStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
-
-        const query = `
-Please parse the given OCR-extracted text from a rate confirmation document and structure it in a JSON format. Your focus should be on accurately identifying and categorizing the "PU" and "SO" locations, where "PU" refers to the pickup location or the shipper's location, and "SO" represents the delivery location, consignee's location, or receiver location.
-
-A single location might act as both a "PU" (shipper) and "SO" (consignee) at different points in time within a single shipment. Such occurrences should be recognized and treated as separate stops with their respective dates, times, and types ("PU" or "SO").
-You also need to accurately distinguish the base rate from the total carrier pay. The "rate" field should represent the total carrier pay and not the base rate. If there is any confusion between the two, assume the highest numeric value represents the total carrier pay.
-
-The following details need to be extracted:
-
-1. The name of the logistics company.
-2. The load confirmation number for the load or shipment.
-3. All the "PU" (pick-up locations or shippers), excluding the carrier's address. For each "PU", retrieve the exact name and full address (street, city, state, zip, country).
-4. The pick-up date and time for each "PU". Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
-5. All the "SO" (delivery locations or consignees), excluding the carrier's address. For each "SO", retrieve the exact name and full address (street, city, state, zip, country).
-6. The delivery date and time for each "SO". Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM.
-7. The total carrier pay for the load or shipment. Include only the numeric value and not the currency.
-8. "invoice_emails": All email addresses where the carrier needs to send invoice, proof of delivery (POD) or other delivery documents. Return emails for "standard pay" first. Also select the ones with keywords such as "billing", "invoice", "ab", "ap", or "accounting". If none of the email addresses meet these criteria, select the ones that appear most relevant to invoicing or payment purposes. Return all such email addresses as a list.
-
-If any of these details cannot be found in the text, return null for that field in the JSON object.
-
-The structure of the parsed information should be as follows:
-
-{
-    "logistics_company": "<logistics_company>" or null,
-    "load_number": "<load_number>" or null,
-    "stops": [
-        {
-            "type": "<PU or SO>",
-            "name": "<name>" or null,
-            "address": {
-                "street": "<street>" or null,
-                "city": "<city>" or null,
-                "state": "<state>" or null,
-                "zip": "<zip>" or null,
-                "country": "<country>" or null
-            },
-            "date": "<date>" or null,
-            "time": "<time>" or null
-        },
-        ... (repeat this structure for each stop regardless if it appears multiple times)
-    ],
-    "rate": <total carrier pay> or null,
-    "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
-}
-
-The "stops" field is an array of objects, where each object represents a stop (either a "PU" or "SO") with its respective appointment details. Maintain the sequence of the stops as they appear in the original document. The type for each stop should correspond to its role as a "PU" or "SO" at that specific point in time within the shipment sequence. Thank you.`;
 
         const qaChain = RetrievalQAChain.fromLLM(
             new ChatOpenAI({
@@ -101,82 +158,60 @@ The "stops" field is an array of objects, where each object represents a stop (e
                 openAIApiKey: process.env.OPENAI_API_KEY,
                 maxTokens: -1,
             }),
-            vectordb.asRetriever(5),
+            vectordb.asRetriever(4),
             {
+                prompt: prompt,
                 returnSourceDocuments: false,
                 verbose: process.env.NODE_ENV === 'development',
             },
         );
 
-        const result = await qaChain.call({
-            query: query,
-        });
-
-        if (typeof result.text === 'string') {
-            let jsonStr = result.text?.replace(/`/g, '');
-
-            // Remove the Output: prefix if it exists
-            if (jsonStr.startsWith('Output:')) {
-                jsonStr = jsonStr.slice('Output:'.length);
-            }
-
-            try {
-                const json = JSON.parse(jsonStr);
-                return NextResponse.json(
-                    {
-                        code: 200,
-                        data: {
-                            load: json,
-                        },
-                    },
-                    { status: 200 },
+        const responses = await Promise.all(
+            questions.map((question) => {
+                return parseQAChainResponse(
+                    qaChain.call({
+                        query: question,
+                    }),
                 );
-                // res.status(200).json({
-                //     code: 200,
-                //     data: {
-                //         load: json,
-                //     },
-                // });
-            } catch (error) {
-                return NextResponse.json(
-                    {
-                        code: 200,
-                        error: jsonStr,
-                    },
-                    { status: 200 },
-                );
-                // res.status(200).json({
-                //     code: 200,
-                //     error: jsonStr,
-                // });
-            }
-        } else {
-            return NextResponse.json(
-                {
-                    code: 200,
-                    data: result.text,
-                },
-                { status: 200 },
-            );
-            // res.status(200).json({
-            //     code: 200,
-            //     data: result.text,
-            // });
-        }
-    } catch (error) {
-        return NextResponse.json(
-            {
-                code: 400,
-                error: error.message,
-            },
-            { status: 400 },
+            }),
         );
-        // res.status(400).json({
-        //     code: 400,
-        //     error: error.message,
-        // });
+
+        const result = {
+            logistics_company: responses[0]?.logistics_company || null,
+            load_number: responses[0]?.load_number || null,
+            pickup_stops: responses[1]?.pickup_stops || null,
+            delivery_stops: responses[2]?.delivery_stops || null,
+            rate: responses[3]?.rate || null,
+            invoice_emails: responses[4]?.invoice_emails || null,
+        };
+
+        console.log(result);
+
+        // return NextResponse.json(
+        //     {
+        //         code: 200,
+        //         data: result,
+        //     },
+        //     { status: 200 },
+        // );
+        res.status(200).json({
+            code: 200,
+            data: result,
+        });
+    } catch (error) {
+        // return NextResponse.json(
+        //     {
+        //         code: 400,
+        //         error: error.message,
+        //     },
+        //     { status: 400 },
+        // );
+        res.status(400).json({
+            code: 400,
+            error: error.message,
+        });
     }
-}
+};
 
 function isValidItem(item: Document): boolean {
     if (typeof item.pageContent !== 'string') {
