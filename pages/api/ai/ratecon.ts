@@ -164,7 +164,7 @@ The "stops" field is an array of objects, where each object represents a stop (e
             // });
         }
     } catch (error) {
-        // return NextResponse.json(
+        return NextResponse.json(
             {
                 code: 400,
                 error: error.message,
@@ -176,7 +176,7 @@ The "stops" field is an array of objects, where each object represents a stop (e
         //     error: error.message,
         // });
     }
-};
+}
 
 function isValidItem(item: Document): boolean {
     if (typeof item.pageContent !== 'string') {
