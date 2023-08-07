@@ -14,7 +14,7 @@ import { NextPageContext } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { ChangeEvent, Fragment, useState } from 'react';
+import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
@@ -179,11 +179,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
     let fileInput: HTMLInputElement;
 
-    const reloadLoad = async () => {
-        const load = await getLoadById(loadId);
-        setLoad(load);
-        setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
-    };
+    useEffect(() => {
+        load &&
+            setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
+    }, [load]);
 
     const assignDriverAction = async () => {
         setOpenSelectDriver(true);
