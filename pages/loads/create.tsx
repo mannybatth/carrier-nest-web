@@ -243,6 +243,16 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
+        // Reset entire form
+        formHook.reset();
+
+        // Remove all stops
+        if (stopsFieldArray.fields.length > 0) {
+            stopsFieldArray.fields.forEach((_, index) => {
+                stopsFieldArray.remove(index);
+            });
+        }
+
         formHook.setValue('refNum', load.load_number);
         formHook.setValue('rate', load.rate ? new Prisma.Decimal(load.rate) : null);
 
