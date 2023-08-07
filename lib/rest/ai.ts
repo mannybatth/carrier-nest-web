@@ -8,16 +8,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 export interface AILoad {
     logistics_company: string;
     load_number: string;
-    shipper: string;
-    shipper_address: AIAddress;
-    pickup_date: string;
-    pickup_time: string;
-    consignee: string;
-    consignee_address: AIAddress;
-    delivery_date: string;
-    delivery_time: string;
+    stops: AIStop[];
     rate: string;
-    invoice_email: string;
+    invoice_emails: string[];
+}
+
+export interface AIStop {
+    type: 'PU' | 'SO';
+    name: string;
+    address: AIAddress;
+    date: string;
+    time: string;
 }
 
 export interface AIAddress {
@@ -114,18 +115,15 @@ export const parsePdf = async (byteArray: Uint8Array, file: File): Promise<AILoa
 
     const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
 
-    if (data?.load?.pickup_date) {
-        data.load.pickup_date = normalizeDateStr(data.load.pickup_date);
+    if (code !== 200) {
+        throw new Error('Failed to parse the document.');
     }
-    if (data?.load?.pickup_time) {
-        data.load.pickup_time = normalizeTimeStr(data.load.pickup_time);
-    }
-    if (data?.load?.delivery_date) {
-        data.load.delivery_date = normalizeDateStr(data.load.delivery_date);
-    }
-    if (data?.load?.delivery_time) {
-        data.load.delivery_time = normalizeTimeStr(data.load.delivery_time);
-    }
+
+    // normalize date and time
+    data.load.stops.forEach((stop) => {
+        stop.date = normalizeDateStr(stop.date);
+        stop.time = normalizeTimeStr(stop.time);
+    });
 
     return data?.load;
 };

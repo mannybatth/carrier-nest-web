@@ -1,7 +1,7 @@
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import { useRouter } from 'next/router';
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import startOfDay from 'date-fns/startOfDay';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -29,6 +29,8 @@ const CreateLoad: PageWithAuth = () => {
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
     const [prefillName, setPrefillName] = React.useState(null);
     const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
+
+    const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
     const submit = async (data: ExpandedLoad) => {
         data.shipper.type = LoadStopType.SHIPPER;
@@ -199,13 +201,13 @@ const CreateLoad: PageWithAuth = () => {
                 },
                 body: JSON.stringify(documents),
             });
-            const { code, data }: { code: number; data: { load: AILoad } } = await response.json();
+            const { code, data }: { code: number; data: AILoad } = await response.json();
 
             if (code !== 200) {
                 notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
             } else {
-                logisticsCompany = data?.load?.logistics_company;
-                applyAIOutputToForm(data?.load);
+                logisticsCompany = data?.logistics_company;
+                applyAIOutputToForm(data);
             }
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
@@ -243,20 +245,56 @@ const CreateLoad: PageWithAuth = () => {
 
         formHook.setValue('refNum', load.load_number);
         formHook.setValue('rate', load.rate ? new Prisma.Decimal(load.rate) : null);
-        formHook.setValue('shipper.name', load.shipper);
-        formHook.setValue('shipper.street', load.shipper_address?.street);
-        formHook.setValue('shipper.city', load.shipper_address?.city);
-        formHook.setValue('shipper.state', load.shipper_address?.state);
-        formHook.setValue('shipper.zip', load.shipper_address?.zip);
-        formHook.setValue('shipper.date', load.pickup_date ? startOfDay(parseDate(load.pickup_date)) : null);
-        formHook.setValue('shipper.time', load.pickup_time);
-        formHook.setValue('receiver.name', load.consignee);
-        formHook.setValue('receiver.street', load.consignee_address?.street);
-        formHook.setValue('receiver.city', load.consignee_address?.city);
-        formHook.setValue('receiver.state', load.consignee_address?.state);
-        formHook.setValue('receiver.zip', load.consignee_address?.zip);
-        formHook.setValue('receiver.date', load.delivery_date ? startOfDay(parseDate(load.delivery_date)) : null);
-        formHook.setValue('receiver.time', load.delivery_time);
+
+        // Select first PU stop as shipper
+        const shipperStop = load.stops.find((stop) => stop.type === 'PU');
+        if (shipperStop) {
+            formHook.setValue('shipper.name', shipperStop.name);
+            formHook.setValue('shipper.street', shipperStop.address.street);
+            formHook.setValue('shipper.city', shipperStop.address.city);
+            formHook.setValue('shipper.state', shipperStop.address.state);
+            formHook.setValue('shipper.zip', shipperStop.address.zip);
+            if (shipperStop.address.country) {
+                formHook.setValue('shipper.country', shipperStop.address.country);
+            }
+            formHook.setValue('shipper.date', startOfDay(parseDate(shipperStop.date)));
+            formHook.setValue('shipper.time', shipperStop.time);
+        }
+
+        // Select last SO stop as receiver
+        const receiverStop = load.stops.reverse().find((stop) => stop.type === 'SO');
+        if (receiverStop) {
+            formHook.setValue('receiver.name', receiverStop.name);
+            formHook.setValue('receiver.street', receiverStop.address.street);
+            formHook.setValue('receiver.city', receiverStop.address.city);
+            formHook.setValue('receiver.state', receiverStop.address.state);
+            formHook.setValue('receiver.zip', receiverStop.address.zip);
+            if (receiverStop.address.country) {
+                formHook.setValue('receiver.country', receiverStop.address.country);
+            }
+            formHook.setValue('receiver.date', startOfDay(parseDate(receiverStop.date)));
+            formHook.setValue('receiver.time', receiverStop.time);
+        }
+
+        // Select all stops in between as stops (filter out shipperStop and receiverStop from list by stop.name)
+        const stops = load.stops.filter((stop) => stop.name !== shipperStop.name && stop.name !== receiverStop.name);
+        stops.forEach((stop, index) => {
+            stopsFieldArray.append({
+                id: null,
+                type: LoadStopType.STOP,
+                name: stop.name,
+                street: stop.address.street,
+                city: stop.address.city,
+                state: stop.address.state,
+                zip: stop.address.zip,
+                ...(stop.address.country && { country: stop.address.country }),
+                date: startOfDay(parseDate(stop.date)),
+                time: stop.time,
+                stopIndex: index,
+                longitude: null,
+                latitude: null,
+            });
+        });
     };
 
     return (
@@ -336,6 +374,7 @@ const CreateLoad: PageWithAuth = () => {
                             setShowMissingCustomerLabel={setShowMissingCustomerLabel}
                             prefillName={prefillName}
                             setPrefillName={setPrefillName}
+                            parentStopsFieldArray={stopsFieldArray}
                         ></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>

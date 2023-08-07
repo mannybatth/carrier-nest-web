@@ -3,7 +3,7 @@ import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, UseFormReturn, FieldValues } from 'react-hook-form';
 import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { SearchCustomer, searchCustomersByName } from '../../../lib/rest/customer';
@@ -20,6 +20,7 @@ type Props = {
     setShowMissingCustomerLabel?: React.Dispatch<React.SetStateAction<boolean>>;
     prefillName?: string;
     setPrefillName?: React.Dispatch<React.SetStateAction<string>>;
+    parentStopsFieldArray?: ReturnType<typeof useFieldArray<Partial<ExpandedLoad>, 'stops', 'id'>>;
 };
 
 const LoadForm: React.FC<Props> = ({
@@ -37,6 +38,7 @@ const LoadForm: React.FC<Props> = ({
     setShowMissingCustomerLabel,
     prefillName,
     setPrefillName,
+    parentStopsFieldArray,
 }) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
@@ -45,7 +47,11 @@ const LoadForm: React.FC<Props> = ({
     const [customerSearchResults, setCustomerSearchResults] = React.useState<SearchCustomer[]>(null);
     const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
 
-    const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });
+    const {
+        fields: stopFields,
+        append: appendStop,
+        remove: removeStop,
+    } = parentStopsFieldArray || useFieldArray({ name: 'stops', control });
 
     useEffect(() => {
         if (!debouncedCustomerSearchTerm) {

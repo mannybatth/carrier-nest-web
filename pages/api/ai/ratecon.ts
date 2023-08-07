@@ -46,7 +46,7 @@ json scheme:
                 "street": string or null,
                 "city": string or null,
                 "state": string or null,
-                "zip": number or null,
+                "zip": string or null,
                 "country": string or null
             },
             "date": string or null,
