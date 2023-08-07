@@ -35,7 +35,7 @@ json scheme:
     "load_number": string or null,
 }`,
 
-    `Extract all stops (both pickup (PU) and delivery (SO)) from the document. Pickup is the same as "shipper" and delivery is the same as "consignee" or "receiver". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
+    `Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Pickup is the same as "shipper" and delivery is the same as "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
 json scheme:
 {
     "stops": [
@@ -147,8 +147,6 @@ Assistant:
             rate: responses[2]?.rate || null,
             invoice_emails: responses[3]?.invoice_emails || null,
         };
-
-        console.log(result);
 
         return NextResponse.json(
             {
