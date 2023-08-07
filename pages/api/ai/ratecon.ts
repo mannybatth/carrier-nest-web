@@ -1,17 +1,12 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { ChainValues } from 'langchain/dist/schema';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { PromptTemplate } from 'langchain/prompts';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { similarity } from 'ml-distance';
 import { NextRequest, NextResponse } from 'next/server';
-import { PromptTemplate } from 'langchain/prompts';
-import { ChainValues } from 'langchain/dist/schema';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { FaissStore } from 'langchain/vectorstores/faiss';
-import { HuggingFaceInferenceEmbeddings } from 'langchain/embeddings/hf';
-import { HNSWLib } from 'langchain/vectorstores/hnswlib';
 
 export const config = {
     runtime: 'edge',
@@ -74,8 +69,7 @@ json scheme:
 }`,
 ];
 
-export default async function POST(req: NextRequest) {.
-// export default async (req: NextApiRequest, res: NextApiResponse) => {
+export default async function POST(req: NextRequest) {
     try {
         const list = await req.json();
         // const list = req.body as Document[];
@@ -99,12 +93,6 @@ export default async function POST(req: NextRequest) {.
             });
         });
 
-        // const modelName = 'sentence-transformers/all-MiniLM-L6-v2';
-        // const hfEmbeddings = new HuggingFaceInferenceEmbeddings({
-        //     model: modelName,
-        //     apiKey: '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',
-        // });
-
         const splitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1800,
             chunkOverlap: 500,
@@ -112,8 +100,6 @@ export default async function POST(req: NextRequest) {.
 
         const splitDocuments = await splitter.splitDocuments(documents);
         const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
-        // const vectordb = await FaissStore.fromDocuments(splitDocuments, hfEmbeddings);
-        // const vectordb = await HNSWLib.fromDocuments(splitDocuments, new OpenAIEmbeddings());
 
         const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly.
 We only want to search the context for details about the load so ignore any text related to terms and conditions or other legal text.
@@ -171,10 +157,6 @@ Assistant:
             },
             { status: 200 },
         );
-        // res.status(200).json({
-        //     code: 200,
-        //     data: result,
-        // });
     } catch (error) {
         return NextResponse.json(
             {
@@ -183,12 +165,8 @@ Assistant:
             },
             { status: 400 },
         );
-        // res.status(400).json({
-        //     code: 400,
-        //     error: error.message,
-        // });
     }
-};
+}
 
 function isValidItem(item: Document): boolean {
     if (typeof item.pageContent !== 'string') {
