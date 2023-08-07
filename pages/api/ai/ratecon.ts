@@ -5,7 +5,7 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { similarity } from 'ml-distance';
-// import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PromptTemplate } from 'langchain/prompts';
 import { ChainValues } from 'langchain/dist/schema';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -13,9 +13,9 @@ import { FaissStore } from 'langchain/vectorstores/faiss';
 import { HuggingFaceInferenceEmbeddings } from 'langchain/embeddings/hf';
 import { HNSWLib } from 'langchain/vectorstores/hnswlib';
 
-// export const config = {
-//     runtime: 'edge',
-// };
+export const config = {
+    runtime: 'edge',
+};
 
 // Parses the JSON response from a single QA chain call
 async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
@@ -33,20 +33,19 @@ async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
 }
 
 const questions: string[] = [
-    `Who is the logistics company and what is the load number? The load number is a unique identifier for the load or shipment that is assigned by the logistics company. Make your best guess if you cannot find the exact answer.
+    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc,
 json scheme:
 {
     "logistics_company": string or null,
     "load_number": string or null,
 }`,
 
-    `Extract all pickup (PU) stops from the document. Pickup is the same as "shipper". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the pickup window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
-Do not return any stops that are not pickup stops. For example, if a stop is a delivery stop (SO), do not return it.
+    `Extract all stops (both pickup (PU) and delivery (SO)) from the document. Pickup is the same as "shipper" and delivery is the same as "consignee" or "receiver". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
 json scheme:
 {
-    "pickup_stops": [
+    "stops": [
         {
-            "type": "<PU>",
+            "type": "<PU>" or "<SO>",
             "name": string or null,
             "address": {
                 "street": string or null,
@@ -62,29 +61,7 @@ json scheme:
     ],
 }`,
 
-    `Extract all delivery (SO) stops from the document. Delivery is the same as "consignee" and "receiver". Return the stops in the order they appear in the document. For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the delivery window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
-Do not return any stops that are not delivery stops. For example, if a stop is a pickup stop (PU), do not return it.
-json scheme:
-{
-    "delivery_stops": [
-        {
-            "type": "<SO>",
-            "name": string or null,
-            "address": {
-                "street": string or null,
-                "city": string or null,
-                "state": string or null,
-                "zip": number or null,
-                "country": string or null
-            },
-            "date": string or null,
-            "time": string or null
-        },
-        ... (repeat this structure for each stop regardless if it appears multiple times)
-    ],
-}`,
-
-    `What is the total carrier pay for the load or shipment? Include only the numeric value and not the currency.
+    `What is the total pay for the load or shipment? It will be some dollar amount. Looks for labels similar to "total", "total cost". Include only the numeric value and not the currency.
 json scheme:
 {
     "rate": number or null,
@@ -97,11 +74,11 @@ json scheme:
 }`,
 ];
 
-// export default async function POST(req: NextRequest) {.
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+export default async function POST(req: NextRequest) {.
+// export default async (req: NextApiRequest, res: NextApiResponse) => {
     try {
-        // const list = await req.json();
-        const list = req.body as Document[];
+        const list = await req.json();
+        // const list = req.body as Document[];
 
         if (!Array.isArray(list)) {
             throw new Error('Invalid input. Expected an array.');
@@ -138,7 +115,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         // const vectordb = await FaissStore.fromDocuments(splitDocuments, hfEmbeddings);
         // const vectordb = await HNSWLib.fromDocuments(splitDocuments, new OpenAIEmbeddings());
 
-        const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load that the carrier signs to accept the rate. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly. If you cannot find an answer, return null for that field in the JSON object.
+        const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly.
+We only want to search the context for details about the load so ignore any text related to terms and conditions or other legal text.
 
 {context}
 
@@ -158,7 +136,7 @@ Assistant:
                 openAIApiKey: process.env.OPENAI_API_KEY,
                 maxTokens: -1,
             }),
-            vectordb.asRetriever(4),
+            vectordb.asRetriever(5),
             {
                 prompt: prompt,
                 returnSourceDocuments: false,
@@ -179,37 +157,36 @@ Assistant:
         const result = {
             logistics_company: responses[0]?.logistics_company || null,
             load_number: responses[0]?.load_number || null,
-            pickup_stops: responses[1]?.pickup_stops || null,
-            delivery_stops: responses[2]?.delivery_stops || null,
-            rate: responses[3]?.rate || null,
-            invoice_emails: responses[4]?.invoice_emails || null,
+            stops: responses[1]?.stops || null,
+            rate: responses[2]?.rate || null,
+            invoice_emails: responses[3]?.invoice_emails || null,
         };
 
         console.log(result);
 
-        // return NextResponse.json(
-        //     {
-        //         code: 200,
-        //         data: result,
-        //     },
-        //     { status: 200 },
-        // );
-        res.status(200).json({
-            code: 200,
-            data: result,
-        });
+        return NextResponse.json(
+            {
+                code: 200,
+                data: result,
+            },
+            { status: 200 },
+        );
+        // res.status(200).json({
+        //     code: 200,
+        //     data: result,
+        // });
     } catch (error) {
-        // return NextResponse.json(
-        //     {
-        //         code: 400,
-        //         error: error.message,
-        //     },
-        //     { status: 400 },
-        // );
-        res.status(400).json({
-            code: 400,
-            error: error.message,
-        });
+        return NextResponse.json(
+            {
+                code: 400,
+                error: error.message,
+            },
+            { status: 400 },
+        );
+        // res.status(400).json({
+        //     code: 400,
+        //     error: error.message,
+        // });
     }
 };
 
