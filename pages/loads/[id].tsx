@@ -21,6 +21,7 @@ import DriverSelectionModal from '../../components/drivers/DriverSelectionModal'
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
@@ -326,9 +327,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Status</dt>
                                                     <dd className="text-right text-gray-900">
-                                                        <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                                            {loadStatus(load)}
-                                                        </span>
+                                                        <LoadStatusBadge load={load} />
                                                     </dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">

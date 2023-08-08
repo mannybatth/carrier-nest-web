@@ -5,6 +5,7 @@ import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
+import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
@@ -179,9 +180,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
                                     </div>
                                 </div>
                                 <div>
-                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 uppercase bg-green-100 rounded-md">
-                                        {loadStatus(load)}
-                                    </span>
+                                    <LoadStatusBadge load={load} />
                                 </div>
                             </div>
                             <div className="flex space-x-3">

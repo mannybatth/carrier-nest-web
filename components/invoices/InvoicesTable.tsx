@@ -6,6 +6,7 @@ import { Sort } from '../../interfaces/table';
 import { invoiceStatus } from '../../lib/invoice/invoice-utils';
 import Table from '../Table';
 import { formatValue } from 'react-currency-input-field';
+import InvoiceStatusBadge from './InvoiceStatusBadge';
 
 type Props = {
     invoices: ExpandedInvoice[];
@@ -48,9 +49,7 @@ const InvoicesTable: React.FC<Props> = ({
                             ? {
                                   node: (
                                       <div className="text-xs leading-5 text-gray-900">
-                                          <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                              {invoiceStatus(invoice)}
-                                          </span>
+                                          <InvoiceStatusBadge invoice={invoice} />
                                       </div>
                                   ),
                               }

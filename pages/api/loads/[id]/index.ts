@@ -206,6 +206,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
             include: {
                 loadDocuments: true,
+                podDocuments: true,
+                rateconDocument: true,
             },
         });
 
@@ -216,7 +218,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const documentsToDelete = load.loadDocuments;
+        const documentsToDelete = [
+            ...(load.loadDocuments || []),
+            ...(load.podDocuments || []),
+            ...(load.rateconDocument ? [load.rateconDocument] : []),
+        ];
         await Promise.all(documentsToDelete.map((document) => deleteDocumentFromGCS(document)));
 
         await prisma.load.delete({

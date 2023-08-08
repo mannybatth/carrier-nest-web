@@ -19,6 +19,7 @@ import { ExpandedInvoice } from '../../../interfaces/models';
 import { withServerAuth } from '../../../lib/auth/server-auth';
 import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
+import InvoiceStatusBadge from '../../../components/invoices/InvoiceStatusBadge';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
@@ -323,9 +324,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                         <div className="flex justify-between py-2.5 text-sm font-medium">
                                             <dt className="text-gray-500">Status</dt>
                                             <dd className="text-gray-900">
-                                                <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                                    {invoiceStatus(invoice)}
-                                                </span>
+                                                <InvoiceStatusBadge invoice={invoice} />
                                             </dd>
                                         </div>
                                     </dl>

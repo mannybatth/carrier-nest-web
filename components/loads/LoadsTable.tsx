@@ -6,6 +6,7 @@ import { Sort } from '../../interfaces/table';
 import { loadStatus } from '../../lib/load/load-utils';
 import Table from '../Table';
 import { formatValue } from 'react-currency-input-field';
+import LoadStatusBadge from './LoadStatusBadge';
 
 type Props = {
     loads: ExpandedLoad[];
@@ -59,9 +60,7 @@ export const LoadsTable: React.FC<Props> = ({
                             ? {
                                   node: (
                                       <div className="text-xs leading-5 text-gray-900">
-                                          <span className="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 uppercase bg-green-100 rounded-full">
-                                              {loadStatus(load)}
-                                          </span>
+                                          <LoadStatusBadge load={load} />
                                       </div>
                                   ),
                               }

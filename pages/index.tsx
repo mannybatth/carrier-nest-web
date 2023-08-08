@@ -4,17 +4,16 @@ import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import React from 'react';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
+import LoadStatusBadge from '../components/loads/LoadStatusBadge';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
 import { loadStatus } from '../lib/load/load-utils';
-import { getLoadsExpanded } from '../lib/rest/load';
+import { getUpcomingLoads } from '../lib/rest/dashboard';
 
 const Dashboard: PageWithAuth = () => {
-    const router = useRouter();
     const { data: session } = useSession();
     const [carriers] = useUserContext();
 
@@ -22,14 +21,9 @@ const Dashboard: PageWithAuth = () => {
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
-    // Prefetch load pages
-    React.useEffect(() => {
-        router.prefetch(`/loads/[id]`);
-    }, [router]);
-
     // Get loads on page load
     React.useEffect(() => {
-        reloadLoads({ limit: 10, offset: 0 });
+        reloadLoads();
     }, []);
 
     React.useEffect(() => {
@@ -39,12 +33,8 @@ const Dashboard: PageWithAuth = () => {
         }
     }, [carriers]);
 
-    const reloadLoads = async ({ limit, offset }: { limit: number; offset: number }) => {
-        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            limit,
-            offset,
-            expand: 'customer,shipper,receiver,driver,stops',
-        });
+    const reloadLoads = async () => {
+        const loads = await getUpcomingLoads();
         setLoadsList(loads);
         setLoadsLoading(false);
     };
@@ -129,9 +119,7 @@ const Dashboard: PageWithAuth = () => {
                                                                     </div>
                                                                 </dt>
                                                                 <dd className="text-gray-700">
-                                                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 uppercase bg-green-100 rounded-md">
-                                                                        {loadStatus(load)}
-                                                                    </span>
+                                                                    <LoadStatusBadge load={load} />
                                                                 </dd>
                                                             </div>
                                                             <div className="flex justify-between py-3 gap-x-4">
