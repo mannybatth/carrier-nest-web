@@ -29,12 +29,22 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 carrierId: session.user.defaultCarrierId,
                 OR: [
                     {
-                        receiver: {
-                            date: {
-                                gte: start,
-                                lte: end,
+                        AND: [
+                            {
+                                shipper: {
+                                    date: {
+                                        lte: new Date(),
+                                    },
+                                },
                             },
-                        },
+                            {
+                                receiver: {
+                                    date: {
+                                        gte: new Date(),
+                                    },
+                                },
+                            },
+                        ],
                     },
                     {
                         shipper: {
