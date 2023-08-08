@@ -22,7 +22,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const session = await getServerSession(req, res, authOptions);
 
         const start = startOfDay(new Date());
-        const end = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+        const end = new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000);
 
         const loads = await prisma.load.findMany({
             where: {
@@ -55,6 +55,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         },
                     },
                 ],
+            },
+            orderBy: {
+                shipper: {
+                    date: 'asc',
+                },
             },
             include: {
                 customer: true,

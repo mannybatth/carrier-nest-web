@@ -76,12 +76,12 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
                                 <div className="flex px-3 pb-1">
                                     <div className="flex-1"></div>
-                                    <button
+                                    {/* <button
                                         type="button"
                                         className="inline-flex items-center justify-center w-6 h-6 rounded-md text-zinc-500 hover:bg-gray-200 active:bg-gray-300"
                                     >
                                         <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
-                                    </button>
+                                    </button> */}
                                 </div>
                                 <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carriers}></SideBarAccount>
                                 <SideBarSearch></SideBarSearch>
@@ -100,12 +100,12 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     <div className="flex flex-col flex-1 pt-3 pb-4 overflow-y-auto">
                         <div className="flex px-3 pb-1">
                             <div className="flex-1"></div>
-                            <button
+                            {/* <button
                                 type="button"
                                 className="inline-flex items-center justify-center w-6 h-6 rounded-md text-zinc-500 hover:bg-gray-200 active:bg-gray-300"
                             >
                                 <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
-                            </button>
+                            </button> */}
                         </div>
                         <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carriers}></SideBarAccount>
                         <SideBarSearch></SideBarSearch>
