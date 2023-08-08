@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
+import { formatValue } from 'react-currency-input-field';
 import { ExpandedLoad } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
-import { loadStatus } from '../../lib/load/load-utils';
 import Table from '../Table';
-import { formatValue } from 'react-currency-input-field';
 import LoadStatusBadge from './LoadStatusBadge';
 
 type Props = {

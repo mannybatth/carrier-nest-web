@@ -1,6 +1,6 @@
 import { Invoice, InvoiceStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Session, getServerSession } from 'next-auth';
+import { getServerSession, Session } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedInvoice, JSONResponse, UIInvoiceStatus } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';

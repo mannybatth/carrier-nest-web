@@ -10,7 +10,6 @@ import Layout from '../components/layout/Layout';
 import LoadStatusBadge from '../components/loads/LoadStatusBadge';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
-import { loadStatus } from '../lib/load/load-utils';
 import { getUpcomingLoads } from '../lib/rest/dashboard';
 
 const Dashboard: PageWithAuth = () => {

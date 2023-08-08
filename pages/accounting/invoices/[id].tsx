@@ -7,19 +7,19 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
-import { notify } from '../../../components/Notification';
 import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
 import { downloadInvoice } from '../../../components/invoices/invoicePdf';
+import InvoiceStatusBadge from '../../../components/invoices/InvoiceStatusBadge';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
+import { notify } from '../../../components/Notification';
 import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetailsSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { withServerAuth } from '../../../lib/auth/server-auth';
-import { invoiceStatus, invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
+import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
-import InvoiceStatusBadge from '../../../components/invoices/InvoiceStatusBadge';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;

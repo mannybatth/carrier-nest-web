@@ -1,9 +1,9 @@
 import { Load, LoadDocument, LoadStatus } from '@prisma/client';
+import { ParsedUrlQueryInput, stringify } from 'querystring';
 import { apiUrl } from '../../constants';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { uploadFileToGCS } from './uploadFile';
-import { ParsedUrlQueryInput, stringify } from 'querystring';
 
 export const getLoadsExpanded = async ({
     sort,

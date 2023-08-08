@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
+import { formatValue } from 'react-currency-input-field';
 import { ExpandedInvoice } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
-import { invoiceStatus } from '../../lib/invoice/invoice-utils';
 import Table from '../Table';
-import { formatValue } from 'react-currency-input-field';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
 
 type Props = {
