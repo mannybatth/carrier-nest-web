@@ -83,7 +83,7 @@ const Dashboard: PageWithAuth = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <h3 className="px-5 mb-2 font-bold md:px-0">Upcoming Loads</h3>
+                                    <h3 className="px-5 mb-2 font-bold md:px-0">Upcoming & In Progress Loads</h3>
                                     <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
                                         <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
                                             {loadsList.map((load, index) => (

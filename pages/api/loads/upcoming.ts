@@ -40,7 +40,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                             {
                                 receiver: {
                                     date: {
-                                        gte: new Date(),
+                                        gte: start,
                                     },
                                 },
                             },
