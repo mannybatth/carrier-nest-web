@@ -1,16 +1,54 @@
-import { LocationMarkerIcon, TruckIcon } from '@heroicons/react/outline';
+import { CurrencyDollarIcon, LocationMarkerIcon, TruckIcon } from '@heroicons/react/outline';
 import { PlusIcon } from '@heroicons/react/solid';
 import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import { formatValue } from 'react-currency-input-field';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
 import LoadStatusBadge from '../components/loads/LoadStatusBadge';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
-import { getUpcomingLoads } from '../lib/rest/dashboard';
+import { DashboardStats } from '../interfaces/stats';
+import { getDashboardStats, getUpcomingLoads } from '../lib/rest/dashboard';
+
+const StatBoxSkeleton = () => {
+    return (
+        <div className="overflow-hidden rounded-lg">
+            <div className="flex items-center">
+                <div className="bg-slate-200 w-full h-[88px] animate-pulse"></div>
+            </div>
+        </div>
+    );
+};
+
+const StatBox = (props: {
+    title: string;
+    value: string;
+    icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+}) => {
+    return (
+        <div className="overflow-hidden bg-white rounded-lg shadow">
+            <div className="p-5">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                        <props.icon className="w-6 h-6 text-gray-400" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 w-0 ml-5">
+                        <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">{props.title}</dt>
+                            <dd>
+                                <div className="text-lg font-medium text-gray-900">{props.value}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const Dashboard: PageWithAuth = () => {
     const { data: session } = useSession();
@@ -20,9 +58,13 @@ const Dashboard: PageWithAuth = () => {
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
+    const [loadingStats, setLoadingStats] = React.useState(true);
+    const [stats, setStats] = React.useState<DashboardStats>(null);
+
     // Get loads on page load
     React.useEffect(() => {
         reloadLoads();
+        getStats();
     }, []);
 
     React.useEffect(() => {
@@ -36,6 +78,12 @@ const Dashboard: PageWithAuth = () => {
         const loads = await getUpcomingLoads();
         setLoadsList(loads);
         setLoadsLoading(false);
+    };
+
+    const getStats = async () => {
+        const stats = await getDashboardStats();
+        setStats(stats);
+        setLoadingStats(false);
     };
 
     return (
@@ -290,6 +338,62 @@ const Dashboard: PageWithAuth = () => {
                             </ul>
                         </div>
                     )}
+
+                    <div className="px-5 mt-8 md:px-0">
+                        <h2 className="text-lg font-medium leading-6 text-gray-900">Last 30 Days</h2>
+                        <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {loadingStats ? (
+                                <>
+                                    <StatBoxSkeleton></StatBoxSkeleton>
+                                    <StatBoxSkeleton></StatBoxSkeleton>
+                                    <StatBoxSkeleton></StatBoxSkeleton>
+                                    <StatBoxSkeleton></StatBoxSkeleton>
+                                    <StatBoxSkeleton></StatBoxSkeleton>
+                                </>
+                            ) : (
+                                <>
+                                    {/* <StatBoxSkeleton></StatBoxSkeleton> */}
+                                    <StatBox
+                                        title={'Total Loads'}
+                                        value={`${stats.totalLoads}`}
+                                        icon={TruckIcon}
+                                    ></StatBox>
+                                    <StatBox
+                                        title={'Loads In Progress'}
+                                        value={`${stats.totalInProgress}`}
+                                        icon={TruckIcon}
+                                    ></StatBox>
+                                    <StatBox
+                                        title={'Loads Ready To Invoice'}
+                                        value={`${stats.totalReadyToInvoice}`}
+                                        icon={TruckIcon}
+                                    ></StatBox>
+                                    <StatBox
+                                        title={'Total Revenue'}
+                                        value={`${formatValue({
+                                            value: stats.totalRevenue.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}`}
+                                        icon={CurrencyDollarIcon}
+                                    ></StatBox>
+                                    <StatBox
+                                        title={'Total Paid'}
+                                        value={`${formatValue({
+                                            value: stats.totalPaid.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}`}
+                                        icon={CurrencyDollarIcon}
+                                    ></StatBox>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </Layout>

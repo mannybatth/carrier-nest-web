@@ -88,6 +88,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                     id: session.user.id,
                                 },
                             },
+                            carrierId: session.user.defaultCarrierId,
                         },
                     ],
                 },

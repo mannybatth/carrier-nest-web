@@ -220,6 +220,7 @@ model InvoicePayment {
     id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     userId    String
+    carrierId String?
     invoiceId String
     amount    Decimal
     paidAt    DateTime
@@ -229,6 +230,7 @@ model InvoicePayment {
 
 model LoadDocument {
     id               String   @id @default(cuid())
+    carrierId        String?
     userId           String?
     driverId         String?
     loadId           String?

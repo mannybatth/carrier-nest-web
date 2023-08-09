@@ -87,6 +87,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                             id: driver.id,
                         },
                     },
+                    carrierId: driver.carrierId,
                 }),
                 ...(!driver && {
                     user: {
@@ -94,6 +95,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                             id: session.user.id,
                         },
                     },
+                    carrierId: session.user.defaultCarrierId,
                 }),
                 fileKey: docData.fileKey,
                 fileUrl: docData.fileUrl,

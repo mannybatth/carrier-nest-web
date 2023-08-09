@@ -35,9 +35,9 @@ export const getInvoiceStats = async ({
 
     const now = new Date();
     const totalAmountPaidThisMonth = await prisma.invoicePayment.groupBy({
-        by: ['userId'],
+        by: ['carrierId'],
         where: {
-            userId: session.user.id,
+            carrierId: session.user.defaultCarrierId,
             paidAt: {
                 gte: new Date(now.getFullYear(), now.getMonth(), 1),
             },
@@ -48,9 +48,9 @@ export const getInvoiceStats = async ({
     });
 
     const totalAmountUnpaid = await prisma.invoice.groupBy({
-        by: ['userId'],
+        by: ['carrierId'],
         where: {
-            userId: session.user.id,
+            carrierId: session.user.defaultCarrierId,
             status: {
                 in: [InvoiceStatus.NOT_PAID, InvoiceStatus.PARTIALLY_PAID],
             },
@@ -61,9 +61,9 @@ export const getInvoiceStats = async ({
     });
 
     const totalAmountOverdue = await prisma.invoice.groupBy({
-        by: ['userId'],
+        by: ['carrierId'],
         where: {
-            userId: session.user.id,
+            carrierId: session.user.defaultCarrierId,
             dueDate: {
                 lt: new Date(),
             },
@@ -83,9 +83,12 @@ export const getInvoiceStats = async ({
     console.log('totalAmountUnpaid', totalAmountUnpaid);
     console.log('totalAmountOverdue', totalAmountOverdue);
 
-    const totalPaid = totalAmountPaidThisMonth.find((status) => status.userId === session.user.id)?._sum.amount;
-    const totalUnpaid = totalAmountUnpaid.find((status) => status.userId === session.user.id)?._sum.remainingAmount;
-    const totalOverdue = totalAmountOverdue.find((status) => status.userId === session.user.id)?._sum.remainingAmount;
+    const totalPaid = totalAmountPaidThisMonth.find((status) => status.carrierId === session.user.defaultCarrierId)
+        ?._sum.amount;
+    const totalUnpaid = totalAmountUnpaid.find((status) => status.carrierId === session.user.defaultCarrierId)?._sum
+        .remainingAmount;
+    const totalOverdue = totalAmountOverdue.find((status) => status.carrierId === session.user.defaultCarrierId)?._sum
+        .remainingAmount;
 
     return {
         code: 200,

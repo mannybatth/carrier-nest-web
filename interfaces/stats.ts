@@ -3,3 +3,11 @@ export interface AccountingStats {
     totalUnpaid: number;
     totalOverdue: number;
 }
+
+export interface DashboardStats {
+    totalLoads: number;
+    totalInProgress: number;
+    totalReadyToInvoice: number;
+    totalRevenue: number;
+    totalPaid: number;
+}

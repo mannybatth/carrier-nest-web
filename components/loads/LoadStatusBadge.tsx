@@ -42,14 +42,11 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
     }, [load]);
 
     return (
-        <>
-            <span className="hidden text-green-800 bg-green-100"></span>
-            <span
-                className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full`}
-            >
-                {status}
-            </span>
-        </>
+        <span
+            className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full`}
+        >
+            {status}
+        </span>
     );
 };
 
