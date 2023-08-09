@@ -353,11 +353,7 @@ const Dashboard: PageWithAuth = () => {
                             ) : (
                                 <>
                                     {/* <StatBoxSkeleton></StatBoxSkeleton> */}
-                                    <StatBox
-                                        title={'Total Loads'}
-                                        value={`${stats.totalLoads}`}
-                                        icon={TruckIcon}
-                                    ></StatBox>
+                                    <StatBox title={'Loads'} value={`${stats.totalLoads}`} icon={TruckIcon}></StatBox>
                                     <StatBox
                                         title={'Loads In Progress'}
                                         value={`${stats.totalInProgress}`}
@@ -369,7 +365,7 @@ const Dashboard: PageWithAuth = () => {
                                         icon={TruckIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Total Revenue'}
+                                        title={'Revenue'}
                                         value={`${formatValue({
                                             value: stats.totalRevenue.toString(),
                                             groupSeparator: ',',
@@ -380,7 +376,7 @@ const Dashboard: PageWithAuth = () => {
                                         icon={CurrencyDollarIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Total Paid'}
+                                        title={'Paid Amount'}
                                         value={`${formatValue({
                                             value: stats.totalPaid.toString(),
                                             groupSeparator: ',',
