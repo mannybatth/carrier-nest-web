@@ -353,7 +353,11 @@ const Dashboard: PageWithAuth = () => {
                             ) : (
                                 <>
                                     {/* <StatBoxSkeleton></StatBoxSkeleton> */}
-                                    <StatBox title={'Loads'} value={`${stats.totalLoads}`} icon={TruckIcon}></StatBox>
+                                    <StatBox
+                                        title={'Total Loads'}
+                                        value={`${stats.totalLoads}`}
+                                        icon={TruckIcon}
+                                    ></StatBox>
                                     <StatBox
                                         title={'Loads In Progress'}
                                         value={`${stats.totalInProgress}`}
