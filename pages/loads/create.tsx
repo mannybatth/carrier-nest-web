@@ -1,26 +1,44 @@
-import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
-import startOfDay from 'date-fns/startOfDay';
 import { useRouter } from 'next/router';
-import React from 'react';
-import { FileUploader } from 'react-drag-drop-files';
+import React, { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
+import startOfDay from 'date-fns/startOfDay';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
-import { apiUrl } from '../../constants';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
+import { createLoad, getLoadById } from '../../lib/rest/load';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { getAllCustomers } from '../../lib/rest/customer';
+import { FileUploader } from 'react-drag-drop-files';
+import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
-import { AILoad, calcPdfPageCount } from '../../lib/rest/ai';
-import { getAllCustomers } from '../../lib/rest/customer';
-import { createLoad } from '../../lib/rest/load';
+import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { withServerAuth } from '../../lib/auth/server-auth';
+import { NextPageContext } from 'next';
+import { calcPdfPageCount } from '../../lib/helpers/pdf';
+import { AILoad } from '../../interfaces/ai';
 
-const CreateLoad: PageWithAuth = () => {
+export async function getServerSideProps(context: NextPageContext) {
+    return withServerAuth(context, async (context) => {
+        const { copyLoadId } = context.query;
+        return {
+            props: {
+                copyLoadId: copyLoadId ? String(copyLoadId) : null,
+            },
+        };
+    });
+}
+
+type Props = {
+    copyLoadId: string;
+};
+
+const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
 
@@ -31,6 +49,33 @@ const CreateLoad: PageWithAuth = () => {
     const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
+
+    useEffect(() => {
+        if (!copyLoadId) {
+            return;
+        }
+        const copyLoad = async () => {
+            setLoading(true);
+            try {
+                const load = await getLoadById(copyLoadId);
+                if (!load) {
+                    setLoading(false);
+                    return;
+                }
+
+                formHook.setValue('customer', load.customer);
+                formHook.setValue('refNum', load.refNum);
+                formHook.setValue('rate', load.rate);
+                formHook.setValue('shipper', load.shipper);
+                formHook.setValue('receiver', load.receiver);
+                formHook.setValue('stops', load.stops);
+            } catch (error) {
+                notify({ title: 'Error', message: 'Error loading load data', type: 'error' });
+            }
+            setLoading(false);
+        };
+        copyLoad();
+    }, [copyLoadId]);
 
     const submit = async (data: ExpandedLoad) => {
         data.shipper.type = LoadStopType.SHIPPER;
@@ -249,7 +294,26 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         // Reset entire form
-        formHook.reset();
+        formHook.reset({
+            customer: null,
+            refNum: null,
+            rate: null,
+            shipper: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+            },
+            receiver: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+            },
+            stops: [],
+        });
 
         // Remove all stops
         if (stopsFieldArray.fields.length > 0) {
