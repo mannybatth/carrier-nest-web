@@ -1,6 +1,5 @@
 import { Listbox, Transition } from '@headlessui/react';
-import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
-import { Prisma } from '@prisma/client';
+import { CheckIcon, ChevronUpDownIcon, PlusSmallIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
@@ -110,7 +109,7 @@ const InvoiceForm: React.FC<Props> = ({
                                                     {invoiceTermOptions.find((option) => option.value === value)?.label}
                                                 </span>
                                                 <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                                                    <SelectorIcon
+                                                    <ChevronUpDownIcon
                                                         className="w-5 h-5 text-gray-400"
                                                         aria-hidden="true"
                                                     />
@@ -203,7 +202,7 @@ const InvoiceForm: React.FC<Props> = ({
                                 });
                             }}
                         >
-                            <PlusSmIcon className="-ml-1.5 mr-1 h-4 w-4 text-gray-400" aria-hidden="true" />
+                            <PlusSmallIcon className="-ml-1.5 mr-1 h-4 w-4 text-gray-400" aria-hidden="true" />
                             <span>Add Invoice Item</span>
                         </button>
                     </div>

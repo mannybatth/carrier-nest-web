@@ -1,4 +1,4 @@
-import { CurrencyDollarIcon, LocationMarkerIcon, TruckIcon } from '@heroicons/react/outline';
+import { CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/solid';
 import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
@@ -244,7 +244,7 @@ const Dashboard: PageWithAuth = () => {
                                                                             <div className="relative flex items-center space-x-3">
                                                                                 <div className="relative px-1">
                                                                                     <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                                        <LocationMarkerIcon
+                                                                                        <MapPinIcon
                                                                                             className="w-5 h-5 text-red-800"
                                                                                             aria-hidden="true"
                                                                                         />

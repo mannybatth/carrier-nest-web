@@ -18,7 +18,7 @@ import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
-import { PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
+import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();

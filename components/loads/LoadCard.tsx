@@ -1,4 +1,4 @@
-import { ArrowRightIcon, TruckIcon } from '@heroicons/react/outline';
+import { ArrowRightIcon, TruckIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 import { ExpandedLoad } from '../../interfaces/models';
 import { formatValue } from 'react-currency-input-field';

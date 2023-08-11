@@ -1,5 +1,5 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { ExclamationIcon, XIcon } from '@heroicons/react/outline';
+import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React, { Fragment } from 'react';
 
 type Props = {
@@ -50,12 +50,12 @@ const SaveLoadConfirmation: React.FC<Props> = ({ show, onSave, onClose }) => {
                                     onClick={() => close(false)}
                                 >
                                     <span className="sr-only">Close</span>
-                                    <XIcon className="w-6 h-6" aria-hidden="true" />
+                                    <XMarkIcon className="w-6 h-6" aria-hidden="true" />
                                 </button>
                             </div>
                             <div className="sm:flex sm:items-start">
                                 <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full bg-orange-50 sm:mx-0 sm:h-10 sm:w-10">
-                                    <ExclamationIcon className="w-6 h-6 text-yellow-600" aria-hidden="true" />
+                                    <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600" aria-hidden="true" />
                                 </div>
                                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                     <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">

@@ -1,5 +1,5 @@
 import { Combobox } from '@headlessui/react';
-import { CheckCircleIcon, ClockIcon, SelectorIcon } from '@heroicons/react/outline';
+import { CheckCircleIcon, ChevronUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { SearchIcon } from '@heroicons/react/solid';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
@@ -417,7 +417,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         }}
                                     />
                                     <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
-                                        <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                        <ChevronUpDownIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                     </Combobox.Button>
 
                                     {locationSearchTerm.length > 0 && (

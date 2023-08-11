@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, DotsVerticalIcon } from '@heroicons/react/outline';
+import { ChevronDownIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
@@ -455,7 +455,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                                                                             <span className="sr-only">
                                                                                 Open options
                                                                             </span>
-                                                                            <DotsVerticalIcon
+                                                                            <EllipsisVerticalIcon
                                                                                 className="w-6 h-6"
                                                                                 aria-hidden="true"
                                                                             />

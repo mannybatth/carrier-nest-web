@@ -3,10 +3,10 @@ import {
     ChevronDownIcon,
     CurrencyDollarIcon,
     InformationCircleIcon,
-    LocationMarkerIcon,
-    MailIcon,
+    MapPinIcon,
+    EnvelopeIcon,
     TruckIcon,
-} from '@heroicons/react/outline';
+} from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
@@ -298,7 +298,7 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
                                     </div>
                                     <div className="flex p-3">
                                         <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                            <MailIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                         </div>
                                         <div className="ml-3">
                                             <p className="text-sm font-medium text-gray-900">Contact Email</p>
@@ -328,7 +328,7 @@ const CustomerDetailsPage: PageWithAuth<Props> = ({
                                     </div>
                                     <div className="flex p-3">
                                         <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                            <LocationMarkerIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            <MapPinIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                         </div>
                                         <div className="ml-3">
                                             <p className="text-sm font-medium text-gray-900">Address</p>

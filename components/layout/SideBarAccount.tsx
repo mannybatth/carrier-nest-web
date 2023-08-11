@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from '@heroicons/react/solid';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { Carrier } from '@prisma/client';
 import classNames from 'classnames';
 import { signOut } from 'next-auth/react';

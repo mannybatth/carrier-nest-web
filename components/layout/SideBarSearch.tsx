@@ -1,5 +1,5 @@
 import { Combobox, Dialog, Transition } from '@headlessui/react';
-import { EmojiSadIcon, SearchIcon } from '@heroicons/react/outline';
+import { FaceFrownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Customer, Driver, Load } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
@@ -59,7 +59,7 @@ const SideBarSearch: React.FC = () => {
                     onClick={() => setOpen(true)}
                     className="flex items-center px-4 py-2 text-sm text-zinc-600 hover:bg-gray-200 hover:cursor-pointer hover:text-zinc-700 active:bg-gray-300 group"
                 >
-                    <SearchIcon className="flex-shrink-0 w-4 h-4 mr-3 text-slate-500 group-hover:text-slate-600" />
+                    <MagnifyingGlassIcon className="flex-shrink-0 w-4 h-4 mr-3 text-slate-500 group-hover:text-slate-600" />
                     Quick Find
                 </a>
             </div>
@@ -102,7 +102,7 @@ const SideBarSearch: React.FC = () => {
                             }}
                         >
                             <div className="relative">
-                                <SearchIcon
+                                <MagnifyingGlassIcon
                                     className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400"
                                     aria-hidden="true"
                                 />
@@ -167,7 +167,7 @@ const SideBarSearch: React.FC = () => {
 
                                     {searchResults?.length === 0 && (
                                         <div className="px-6 py-6 text-sm text-center border-t border-gray-100 sm:px-14">
-                                            <EmojiSadIcon
+                                            <FaceFrownIcon
                                                 className="w-6 h-6 mx-auto text-gray-400"
                                                 aria-hidden="true"
                                             />

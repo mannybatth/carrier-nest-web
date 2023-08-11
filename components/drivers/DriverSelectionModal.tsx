@@ -1,6 +1,5 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { UserCircleIcon, XIcon } from '@heroicons/react/outline';
-import { PlusIcon } from '@heroicons/react/solid';
+import { XMarkIcon, UserCircleIcon, PlusIcon } from '@heroicons/react/24/outline';
 import React, { Fragment } from 'react';
 import { removeDriverFromLoad } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
@@ -79,7 +78,7 @@ const DriverSelectionModal: React.FC<Props> = ({ show, onClose }: Props) => {
                                                         >
                                                             <span className="absolute -inset-2.5" />
                                                             <span className="sr-only">Close panel</span>
-                                                            <XIcon className="w-6 h-6" aria-hidden="true" />
+                                                            <XMarkIcon className="w-6 h-6" aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </div>

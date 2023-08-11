@@ -1,4 +1,4 @@
-import { PaperClipIcon } from '@heroicons/react/outline';
+import { PaperClipIcon } from '@heroicons/react/24/outline';
 import { Carrier, Customer } from '@prisma/client';
 import { Document, Page, pdf, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { useSession } from 'next-auth/react';

@@ -1,4 +1,4 @@
-import { PlusIcon } from '@heroicons/react/solid';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import React from 'react';
 
@@ -17,7 +17,7 @@ const CreateNewButton: React.FC<Props> = ({ className }) => {
                             className="flex w-full items-center gap-x-1.5 rounded-md bg-blue-600 px-3 py-2 text-white shadow-sm hover:bg-blue-700"
                         >
                             <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                            <p className="text-sm font-semibold text-center w-full">Create New Load</p>
+                            <p className="w-full text-sm font-semibold text-center">Create New Load</p>
                         </button>
                     </Link>
                 </div>

@@ -1,4 +1,4 @@
-import { CheckCircleIcon, XIcon } from '@heroicons/react/outline';
+import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 import toast from 'react-hot-toast';
 
@@ -22,7 +22,7 @@ export const notify = ({ title, message, type = 'success' }: Props) =>
                             {type === 'success' ? (
                                 <CheckCircleIcon className="w-6 h-6 text-green-400" aria-hidden="true" />
                             ) : (
-                                <XIcon className="w-6 h-6 text-red-400" aria-hidden="true" />
+                                <XMarkIcon className="w-6 h-6 text-red-400" aria-hidden="true" />
                             )}
                         </div>
                         <div className="ml-3 w-0 flex-1 pt-0.5">
@@ -35,7 +35,7 @@ export const notify = ({ title, message, type = 'success' }: Props) =>
                                 onClick={() => toast.dismiss(t.id)}
                             >
                                 <span className="sr-only">Close</span>
-                                <XIcon className="w-5 h-5" aria-hidden="true" />
+                                <XMarkIcon className="w-5 h-5" aria-hidden="true" />
                             </button>
                         </div>
                     </div>

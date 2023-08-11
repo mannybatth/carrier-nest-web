@@ -1,13 +1,13 @@
-import React, { Fragment, PropsWithChildren, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { ChevronDoubleLeftIcon, MenuIcon, XIcon } from '@heroicons/react/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useSession } from 'next-auth/react';
+import React, { Fragment, PropsWithChildren, useState } from 'react';
+import { useUserContext } from '../context/UserContext';
+import CreateNewButton from './CreateNewButton';
 import Navigation from './Navigation';
 import SideBarAccount from './SideBarAccount';
 import SideBarFooter from './SideBarFooter';
 import SideBarSearch from './SideBarSearch';
-import { useSession } from 'next-auth/react';
-import CreateNewButton from './CreateNewButton';
-import { useUserContext } from '../context/UserContext';
 
 export type Props = PropsWithChildren<{
     smHeaderComponent: JSX.Element;
@@ -69,7 +69,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                         onClick={() => setSidebarOpen(false)}
                                     >
                                         <span className="sr-only">Close sidebar</span>
-                                        <XIcon className="w-6 h-6 text-white" aria-hidden="true" />
+                                        <XMarkIcon className="w-6 h-6 text-white" aria-hidden="true" />
                                     </button>
                                 </div>
                             </Transition.Child>
@@ -124,7 +124,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         onClick={() => setSidebarOpen(true)}
                     >
                         <span className="sr-only">Open sidebar</span>
-                        <MenuIcon className="w-6 h-6" aria-hidden="true" />
+                        <Bars3Icon className="w-6 h-6" aria-hidden="true" />
                     </button>
                     <div className="flex-1 ml-1 mr-1">{smHeaderComponent}</div>
                 </div>

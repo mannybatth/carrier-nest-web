@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { LocationMarkerIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
+import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { DotsVerticalIcon } from '@heroicons/react/solid';
 import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
@@ -371,10 +371,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
                                                 }}
                                                 disabled={docsLoading}
                                             >
-                                                <LocationMarkerIcon
-                                                    className="w-6 h-6 text-gray-400"
-                                                    aria-hidden="true"
-                                                />
+                                                <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
                                             </button>
                                         </div>
                                     </div>
@@ -418,10 +415,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
                                                     }}
                                                     disabled={docsLoading}
                                                 >
-                                                    <LocationMarkerIcon
-                                                        className="w-6 h-6 text-gray-400"
-                                                        aria-hidden="true"
-                                                    />
+                                                    <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
                                                 </button>
                                             </div>
                                         </div>
@@ -465,10 +459,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
                                                 }}
                                                 disabled={docsLoading}
                                             >
-                                                <LocationMarkerIcon
-                                                    className="w-6 h-6 text-gray-400"
-                                                    aria-hidden="true"
-                                                />
+                                                <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
                                             </button>
                                         </div>
                                     </div>

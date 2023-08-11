@@ -1,5 +1,5 @@
 import { Dialog } from '@headlessui/react';
-import { ArrowLeftIcon, UserCircleIcon, XIcon } from '@heroicons/react/outline';
+import { ArrowLeftIcon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Driver } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { assignDriversToLoad, getAllDrivers } from '../../lib/rest/driver';
@@ -96,7 +96,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close }: Props) =
                     >
                         <span className="absolute -inset-2.5" />
                         <span className="sr-only">Close panel</span>
-                        <XIcon className="w-6 h-6" aria-hidden="true" />
+                        <XMarkIcon className="w-6 h-6" aria-hidden="true" />
                     </button>
                 </div>
             </div>

@@ -1,4 +1,4 @@
-import { DocumentAddIcon } from '@heroicons/react/outline';
+import { DocumentPlusIcon } from '@heroicons/react/24/outline';
 import React, { ChangeEvent } from 'react';
 
 type UploadDocsAreaProps = {
@@ -9,7 +9,7 @@ export const UploadDocsArea: React.FC<UploadDocsAreaProps> = ({ handleFileChange
         <div className="mt-1 sm:mt-0 sm:col-span-2">
             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                 <div className="space-y-1 text-center">
-                    <DocumentAddIcon className="w-12 h-12 mx-auto text-gray-400"></DocumentAddIcon>
+                    <DocumentPlusIcon className="w-12 h-12 mx-auto text-gray-400" />
                     <div className="inline text-sm text-gray-600">
                         {/* <FileInput onChange={handleFileChange} />
                         <a

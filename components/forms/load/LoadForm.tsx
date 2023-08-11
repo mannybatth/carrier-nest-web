@@ -1,9 +1,9 @@
 import { Combobox } from '@headlessui/react';
-import { CheckIcon, PlusSmIcon, SelectorIcon } from '@heroicons/react/outline';
+import { CheckIcon, ChevronUpDownIcon, PlusSmallIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import { Controller, useFieldArray, UseFormReturn, FieldValues } from 'react-hook-form';
+import { Controller, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { SearchCustomer, searchCustomersByName } from '../../../lib/rest/customer';
@@ -132,7 +132,7 @@ const LoadForm: React.FC<Props> = ({
                                             displayValue={(customer: Customer) => customer?.name || null}
                                         />
                                         <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
-                                            <SelectorIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                            <ChevronUpDownIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                         </Combobox.Button>
 
                                         {customerSearchTerm.length > 0 && (
@@ -287,7 +287,7 @@ const LoadForm: React.FC<Props> = ({
                                         });
                                     }}
                                 >
-                                    <PlusSmIcon className="-ml-1.5 mr-1 h-4 w-4 text-gray-400" aria-hidden="true" />
+                                    <PlusSmallIcon className="-ml-1.5 mr-1 h-4 w-4 text-gray-400" aria-hidden="true" />
                                     <span>Add Stop</span>
                                 </button>
                             </div>

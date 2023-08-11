@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ArrowSmDownIcon, ArrowSmUpIcon, DotsVerticalIcon } from '@heroicons/react/outline';
+import { ArrowSmallDownIcon, ArrowSmallUpIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import React, { Fragment, useEffect } from 'react';
 import { Sort } from '../interfaces/table';
@@ -60,9 +60,9 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, loading, empty
             sort?.key === key && (
                 <span className="ml-1">
                     {sort?.order === 'asc' ? (
-                        <ArrowSmUpIcon className="w-4 h-4" color="gray-600" />
+                        <ArrowSmallUpIcon className="w-4 h-4" color="gray-600" />
                     ) : (
-                        <ArrowSmDownIcon className="w-4 h-4" color="gray-600" rotate={180} />
+                        <ArrowSmallDownIcon className="w-4 h-4" color="gray-600" rotate={180} />
                     )}
                 </span>
             )
@@ -140,7 +140,7 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, loading, empty
                                                         className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     >
                                                         <span className="sr-only">Open options</span>
-                                                        <DotsVerticalIcon className="w-6 h-6" aria-hidden="true" />
+                                                        <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
                                                     </Menu.Button>
                                                 </div>
 

@@ -1,5 +1,5 @@
 // import { Dialog, Transition } from '@headlessui/react';
-// import { XIcon } from '@heroicons/react/outline';
+// import { XMarkIcon } from '@heroicons/react/24/outline';
 import React, { Fragment } from 'react';
 // import { LocationEntry, regionFromLocationEntry } from '../../interfaces/location';
 // import { AILoad } from '../../lib/rest/ai';
@@ -76,7 +76,7 @@ import React, { Fragment } from 'react';
 //                                     onClick={() => close(false)}
 //                                 >
 //                                     <span className="sr-only">Close</span>
-//                                     <XIcon className="w-6 h-6" aria-hidden="true" />
+//                                     <XMarkIcon className="w-6 h-6" aria-hidden="true" />
 //                                 </button>
 //                             </div>
 //                             <div className="sm:flex sm:items-start">

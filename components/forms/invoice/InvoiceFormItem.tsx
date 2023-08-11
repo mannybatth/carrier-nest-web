@@ -1,4 +1,4 @@
-import { XIcon } from '@heroicons/react/outline';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
 import React from 'react';
 import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
@@ -75,7 +75,7 @@ const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, on
                         onClick={onRemoveStop}
                     >
                         <span className="sr-only">Remove Invoice Item</span>
-                        <XIcon className="w-5 h-5" aria-hidden="true" />
+                        <XMarkIcon className="w-5 h-5" aria-hidden="true" />
                     </button>
                 </div>
             </div>
