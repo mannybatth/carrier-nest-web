@@ -15,26 +15,26 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
         const statusText = loadStatus(load);
         setStatus(statusText);
         if (statusText === UILoadStatus.BOOKED) {
-            setBgColor('bg-blue-100');
-            setTextColor('text-blue-900');
+            setBgColor('bg-slate-100');
+            setTextColor('text-slate-900');
         } else if (statusText === UILoadStatus.IN_PROGRESS) {
             setBgColor('bg-orange-100');
             setTextColor('text-orange-900');
         } else if (statusText === UILoadStatus.DELIVERED) {
-            setBgColor('bg-green-100');
-            setTextColor('text-green-800');
+            setBgColor('bg-cyan-100');
+            setTextColor('text-cyan-800');
         } else if (statusText === UILoadStatus.POD_READY) {
-            setBgColor('bg-red-100');
-            setTextColor('text-red-800');
+            setBgColor('bg-purple-100');
+            setTextColor('text-purple-800');
         } else if (statusText === UILoadStatus.INVOICED) {
             setBgColor('bg-purple-100');
             setTextColor('text-purple-800');
         } else if (statusText === UILoadStatus.PARTIALLY_PAID) {
-            setBgColor('bg-green-100');
-            setTextColor('text-green-800');
+            setBgColor('bg-lime-100');
+            setTextColor('text-lime-800');
         } else if (statusText === UILoadStatus.PAID) {
-            setBgColor('bg-green-100');
-            setTextColor('text-green-800');
+            setBgColor('bg-green-200');
+            setTextColor('text-green-900');
         } else if (statusText === UILoadStatus.OVERDUE) {
             setBgColor('bg-red-100');
             setTextColor('text-red-800');
