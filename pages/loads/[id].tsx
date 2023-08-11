@@ -457,6 +457,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             if (waypoints) {
                 searchParams.append('waypoints', waypoints);
             }
+            searchParams.append('travelmode', 'driving');
             const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
             window.open(url);
         }
