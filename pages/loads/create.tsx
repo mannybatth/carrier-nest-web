@@ -19,18 +19,15 @@ import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
 import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { NextPageContext } from 'next';
 
 export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { copyLoad } = context.query;
-        return {
-            props: {
-                copyLoadId: copyLoad ? String(copyLoad) : null,
-            },
-        };
-    });
+    const { copyLoadId } = context.query;
+    return {
+        props: {
+            copyLoadId: copyLoadId ? String(copyLoadId) : null,
+        },
+    };
 }
 
 type Props = {

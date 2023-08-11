@@ -487,7 +487,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const makeCopyOfLoadClicked = async () => {
-        router.push(`/loads/create?copyLoad=${load.id}`);
+        router.push(`/loads/create?copyLoadId=${load.id}`);
     };
 
     return (
