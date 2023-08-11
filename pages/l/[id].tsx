@@ -18,8 +18,8 @@ export async function getServerSideProps(context: NextPageContext) {
     const { id, did } = context.query;
     return {
         props: {
-            loadId: String(id),
-            driverId: String(did),
+            loadId: id ? String(id) : null,
+            driverId: did ? String(did) : null,
         },
     };
 }

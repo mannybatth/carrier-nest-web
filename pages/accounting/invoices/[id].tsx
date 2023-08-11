@@ -156,7 +156,7 @@ export async function getServerSideProps(context: NextPageContext) {
         const { id } = context.query;
         return {
             props: {
-                invoiceId: id,
+                invoiceId: id ? String(id) : null,
             },
         };
     });

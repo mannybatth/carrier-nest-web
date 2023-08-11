@@ -355,7 +355,7 @@ export async function getServerSideProps(context: NextPageContext) {
         const { id } = context.query;
         return {
             props: {
-                loadId: String(id),
+                loadId: id ? String(id) : null,
             },
         };
     });

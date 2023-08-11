@@ -27,7 +27,7 @@ export async function getServerSideProps(context: NextPageContext) {
         const { copyLoad } = context.query;
         return {
             props: {
-                copyLoadId: String(copyLoad),
+                copyLoadId: copyLoad ? String(copyLoad) : null,
             },
         };
     });
