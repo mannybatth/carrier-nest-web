@@ -168,7 +168,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
                 stops: {
                     deleteMany: {},
-                    create: loadData.stops.map((stop) => ({
+                    create: (loadData.stops || []).map((stop) => ({
                         type: stop.type,
                         name: stop.name,
                         street: stop.street || '',

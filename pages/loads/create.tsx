@@ -66,10 +66,12 @@ const CreateLoad: PageWithAuth = () => {
         const shipperCoordinates = await getGeocoding(shipperAddress);
         const receiverCoordinates = await getGeocoding(receiverAddress);
         const stopsCoordinates = await Promise.all(
-            loadData.stops.map(async (stop) => {
-                const stopAddress = stop.street + ', ' + stop.city + ', ' + stop.state + ' ' + stop.zip;
-                return await getGeocoding(stopAddress);
-            }),
+            loadData.stops && loadData.stops.length > 0
+                ? loadData.stops.map((stop) => {
+                      const stopAddress = stop.street + ', ' + stop.city + ', ' + stop.state + ' ' + stop.zip;
+                      return getGeocoding(stopAddress);
+                  })
+                : [],
         );
 
         const routeEncoded = await getRouteEncoded([
@@ -88,13 +90,15 @@ const CreateLoad: PageWithAuth = () => {
             longitude: receiverCoordinates.longitude,
             latitude: receiverCoordinates.latitude,
         };
-        loadData.stops = loadData.stops.map((stop, index) => {
-            return {
-                ...stop,
-                longitude: stopsCoordinates[index].longitude,
-                latitude: stopsCoordinates[index].latitude,
-            };
-        });
+        if (loadData.stops && loadData.stops.length > 0) {
+            loadData.stops = loadData.stops.map((stop, index) => {
+                return {
+                    ...stop,
+                    longitude: stopsCoordinates[index].longitude,
+                    latitude: stopsCoordinates[index].latitude,
+                };
+            });
+        }
         loadData.routeEncoded = routeEncoded;
 
         await saveLoadData(loadData);

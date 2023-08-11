@@ -112,7 +112,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    {load.invoice ? 'View Invoice' : 'Create Invoice'}
+                                    {load.invoice ? 'Go to Invoice' : 'Create Invoice'}
                                 </a>
                             )}
                         </Menu.Item>
@@ -235,7 +235,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     }}
                     disabled={disabled}
                 >
-                    {load?.invoice ? 'View Invoice' : 'Create Invoice'}
+                    {load?.invoice ? 'Go to Invoice' : 'Create Invoice'}
                 </button>
             </span>
 

@@ -312,27 +312,30 @@ export const postLoads = async ({
                         },
                     },
                 },
-                stops: {
-                    create: loadData.stops.map((stop) => ({
-                        type: stop.type,
-                        name: stop.name,
-                        street: stop.street || '',
-                        city: stop.city || '',
-                        state: stop.state || '',
-                        zip: stop.zip || '',
-                        country: stop.country || '',
-                        date: stop.date || '',
-                        time: stop.time || '',
-                        stopIndex: stop.stopIndex || 0,
-                        longitude: stop.longitude || 0,
-                        latitude: stop.latitude || 0,
-                        user: {
-                            connect: {
-                                id: session.user.id,
-                            },
+                ...(loadData.stops &&
+                    loadData.stops.length > 0 && {
+                        stops: {
+                            create: loadData.stops.map((stop) => ({
+                                type: stop.type,
+                                name: stop.name,
+                                street: stop.street || '',
+                                city: stop.city || '',
+                                state: stop.state || '',
+                                zip: stop.zip || '',
+                                country: stop.country || '',
+                                date: stop.date || '',
+                                time: stop.time || '',
+                                stopIndex: stop.stopIndex || 0,
+                                longitude: stop.longitude || 0,
+                                latitude: stop.latitude || 0,
+                                user: {
+                                    connect: {
+                                        id: session.user.id,
+                                    },
+                                },
+                            })),
                         },
-                    })),
-                },
+                    }),
                 routeEncoded: loadData.routeEncoded || '',
                 ...(loadData.rateconDocument
                     ? {
