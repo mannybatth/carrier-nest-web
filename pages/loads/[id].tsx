@@ -12,6 +12,7 @@ import {
 import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,7 +20,7 @@ import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
-import { createInvoicePdfBlob, DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
+import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
@@ -28,6 +29,9 @@ import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton'
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
+import { metersToMiles } from '../../lib/helpers/distance';
+import { secondsToReadable } from '../../lib/helpers/time';
+import { downloadAllDocsForLoad } from '../../lib/load/download-files';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 import {
     addLoadDocumentToLoad,
@@ -36,11 +40,6 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import { metersToMiles } from '../../lib/helpers/distance';
-import { secondsToReadable } from '../../lib/helpers/time';
-import { sanitize } from '../../lib/helpers/string';
-import { useSession } from 'next-auth/react';
-import { downloadAllDocsForLoad } from '../../lib/load/download-files';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -50,6 +49,7 @@ type ActionsDropdownProps = {
     createInvoiceClicked?: () => void;
     assignDriverClicked: () => void;
     downloadAllDocsClicked: () => void;
+    makeCopyOfLoadClicked: () => void;
     deleteLoadClicked: () => void;
 };
 
@@ -61,6 +61,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     createInvoiceClicked,
     assignDriverClicked,
     downloadAllDocsClicked,
+    makeCopyOfLoadClicked,
     deleteLoadClicked,
 }) => {
     return (
@@ -151,6 +152,24 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                     )}
                                 >
                                     Download All Docs
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div>
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        makeCopyOfLoadClicked();
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Make Copy of Load
                                 </a>
                             )}
                         </Menu.Item>
@@ -467,6 +486,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
     };
 
+    const makeCopyOfLoadClicked = async () => {
+        router.push(`/loads/create?copyLoad=${load.id}`);
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -488,10 +511,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 router.push(`/accounting/create-invoice/${load.id}`);
                             }}
                             assignDriverClicked={assignDriverAction}
+                            downloadAllDocsClicked={downloadAllDocs}
+                            makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                             deleteLoadClicked={() => {
                                 deleteLoad(load.id);
                             }}
-                            downloadAllDocsClicked={downloadAllDocs}
                         ></ActionsDropdown>
                     </div>
                 </div>
@@ -533,10 +557,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     router.push(`/accounting/create-invoice/${load.id}`);
                                 }}
                                 assignDriverClicked={assignDriverAction}
+                                downloadAllDocsClicked={downloadAllDocs}
+                                makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                                 deleteLoadClicked={() => {
                                     deleteLoad(load.id);
                                 }}
-                                downloadAllDocsClicked={downloadAllDocs}
                             ></ActionsDropdown>
                         </div>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
