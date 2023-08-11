@@ -1,39 +1,26 @@
+import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
-import { useRouter } from 'next/router';
-import React, { useEffect } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
 import startOfDay from 'date-fns/startOfDay';
+import { useRouter } from 'next/router';
+import React from 'react';
+import { FileUploader } from 'react-drag-drop-files';
+import { useFieldArray, useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
+import { apiUrl } from '../../constants';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
-import { createLoad, getLoadById } from '../../lib/rest/load';
-import { AILoad, calcPdfPageCount } from '../../lib/rest/ai';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { getAllCustomers } from '../../lib/rest/customer';
-import { FileUploader } from 'react-drag-drop-files';
-import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
-import { NextPageContext } from 'next';
+import { AILoad, calcPdfPageCount } from '../../lib/rest/ai';
+import { getAllCustomers } from '../../lib/rest/customer';
+import { createLoad } from '../../lib/rest/load';
 
-export async function getServerSideProps(context: NextPageContext) {
-    const { copyLoadId } = context.query;
-    return {
-        props: {
-            copyLoadId: copyLoadId ? String(copyLoadId) : null,
-        },
-    };
-}
-
-type Props = {
-    copyLoadId: string;
-};
-
-const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
+const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
 
@@ -44,33 +31,6 @@ const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
     const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
-
-    useEffect(() => {
-        if (!copyLoadId) {
-            return;
-        }
-        const copyLoad = async () => {
-            setLoading(true);
-            try {
-                const load = await getLoadById(copyLoadId);
-                if (!load) {
-                    setLoading(false);
-                    return;
-                }
-
-                formHook.setValue('customer', load.customer);
-                formHook.setValue('refNum', load.refNum);
-                formHook.setValue('rate', load.rate);
-                formHook.setValue('shipper', load.shipper);
-                formHook.setValue('receiver', load.receiver);
-                formHook.setValue('stops', load.stops);
-            } catch (error) {
-                notify({ title: 'Error', message: 'Error loading load data', type: 'error' });
-            }
-            setLoading(false);
-        };
-        copyLoad();
-    }, [copyLoadId]);
 
     const submit = async (data: ExpandedLoad) => {
         data.shipper.type = LoadStopType.SHIPPER;
@@ -404,7 +364,7 @@ const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
                     {currentRateconFile && (
                         <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">
                             <div className="flex items-center space-x-2">
-                                {/* <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" /> */}
+                                <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" />
                                 <span className="font-medium text-gray-600">
                                     {currentRateconFile.name} ({currentRateconFile.size} bytes)
                                 </span>
@@ -414,7 +374,7 @@ const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
                                 className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 onClick={() => setCurrentRateconFile(null)}
                             >
-                                {/* <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon> */}
+                                <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon>
                                 Remove
                             </button>
                         </div>
