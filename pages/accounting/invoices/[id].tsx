@@ -16,9 +16,10 @@ import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
 import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetailsSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { ExpandedInvoice } from '../../../interfaces/models';
+import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { withServerAuth } from '../../../lib/auth/server-auth';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
+import { downloadAllDocsForLoad } from '../../../lib/load/download-files';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
 
 type ActionsDropdownProps = {
@@ -26,9 +27,16 @@ type ActionsDropdownProps = {
     disabled?: boolean;
     downloadInvoice: () => void;
     deleteInvoice: (id: string) => void;
+    downloadAllDocs: () => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, downloadInvoice, deleteInvoice }) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
+    invoice,
+    disabled,
+    downloadInvoice,
+    deleteInvoice,
+    downloadAllDocs,
+}) => {
     const router = useRouter();
 
     return (
@@ -99,6 +107,22 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, do
                                     )}
                                 >
                                     Download Invoice
+                                </a>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        downloadAllDocs();
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Download All Docs
                                 </a>
                             )}
                         </Menu.Item>
@@ -197,6 +221,14 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
         );
     };
 
+    const downloadAllDocs = async () => {
+        const load = {
+            ...invoice.load,
+            invoice: invoice,
+        } as ExpandedLoad;
+        await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -216,6 +248,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             disabled={!invoice}
                             deleteInvoice={deleteInvoice}
                             downloadInvoice={downloadInvoiceClicked}
+                            downloadAllDocs={downloadAllDocs}
                         ></ActionsDropdown>
                     </div>
                 </div>
@@ -256,6 +289,7 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
                             disabled={!invoice}
                             deleteInvoice={deleteInvoice}
                             downloadInvoice={downloadInvoiceClicked}
+                            downloadAllDocs={downloadAllDocs}
                         ></ActionsDropdown>
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />

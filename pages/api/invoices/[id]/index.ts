@@ -159,6 +159,9 @@ export const getInvoice = async ({
                               shipper: true,
                               receiver: true,
                               stops: true,
+                              loadDocuments: true,
+                              podDocuments: true,
+                              rateconDocument: true,
                           },
                       },
                   }
