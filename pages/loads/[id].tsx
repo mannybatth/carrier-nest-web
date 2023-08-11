@@ -8,7 +8,7 @@ import {
     TruckIcon,
     UploadIcon,
 } from '@heroicons/react/outline';
-import { LoadDocument } from '@prisma/client';
+import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import Image from 'next/image';
@@ -27,20 +27,36 @@ import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton'
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
-import { loadStatus } from '../../lib/load/load-utils';
-import { addLoadDocumentToLoad, deleteLoadById, deleteLoadDocumentFromLoad, getLoadById } from '../../lib/rest/load';
+import { loadStatus, UILoadStatus } from '../../lib/load/load-utils';
+import {
+    addLoadDocumentToLoad,
+    deleteLoadById,
+    deleteLoadDocumentFromLoad,
+    updateLoadStatus,
+} from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
     disabled?: boolean;
-    deleteLoad: (id: string) => void;
-    assignDriver: () => void;
+    editLoadClicked?: () => void;
+    viewInvoiceClicked?: () => void;
+    createInvoiceClicked?: () => void;
+    assignDriverClicked: () => void;
+    downloadAllDocsClicked?: () => void;
+    deleteLoadClicked: () => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, deleteLoad, assignDriver }) => {
-    const router = useRouter();
-
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
+    load,
+    disabled,
+    editLoadClicked,
+    viewInvoiceClicked,
+    createInvoiceClicked,
+    assignDriverClicked,
+    downloadAllDocsClicked,
+    deleteLoadClicked,
+}) => {
     return (
         <Menu as="div" className="relative inline-block text-left">
             <div>
@@ -69,7 +85,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/loads/edit/${load.id}`);
+                                        editLoadClicked();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -86,9 +102,9 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (load.invoice) {
-                                            router.push(`/accounting/invoices/${load.invoice.id}`);
+                                            viewInvoiceClicked();
                                         } else {
-                                            router.push(`/accounting/create-invoice/${load.id}`);
+                                            createInvoiceClicked();
                                         }
                                     }}
                                     className={classNames(
@@ -105,7 +121,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        assignDriver();
+                                        assignDriverClicked();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -121,13 +137,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        downloadAllDocsClicked();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Download Docs
+                                    Download All Docs
                                 </a>
                             )}
                         </Menu.Item>
@@ -138,7 +155,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        deleteLoad(load.id);
+                                        deleteLoadClicked();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -153,6 +170,143 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ load, disabled, delet
                 </Menu.Items>
             </Transition>
         </Menu>
+    );
+};
+
+type ToolbarProps = {
+    className?: string;
+    load: ExpandedLoad;
+    disabled?: boolean;
+    editLoadClicked?: () => void;
+    viewInvoiceClicked?: () => void;
+    createInvoiceClicked?: () => void;
+    assignDriverClicked: () => void;
+    changeLoadStatus?: (newStatus: LoadStatus) => void;
+};
+
+const Toolbar: React.FC<ToolbarProps> = ({
+    className,
+    load,
+    disabled,
+    editLoadClicked,
+    viewInvoiceClicked,
+    createInvoiceClicked,
+    assignDriverClicked,
+    changeLoadStatus,
+}) => {
+    return (
+        <div className={`flex flex-row place-content-between ${className}`}>
+            <span className="inline-flex rounded-md shadow-sm isolate">
+                <button
+                    type="button"
+                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                    onClick={editLoadClicked}
+                    disabled={disabled}
+                >
+                    Edit Load
+                </button>
+                <button
+                    type="button"
+                    className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                    onClick={assignDriverClicked}
+                    disabled={disabled}
+                >
+                    Add/Remove Drivers
+                </button>
+                <button
+                    type="button"
+                    className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                    onClick={() => {
+                        if (load.invoice) {
+                            viewInvoiceClicked();
+                        } else {
+                            createInvoiceClicked();
+                        }
+                    }}
+                    disabled={disabled}
+                >
+                    {load?.invoice ? 'View Invoice' : 'Create Invoice'}
+                </button>
+            </span>
+
+            <span className="inline-flex rounded-md shadow-sm isolate">
+                {load && (
+                    <div className="inline-flex rounded-md shadow-sm">
+                        <button
+                            type="button"
+                            className="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 bg-white rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+                        >
+                            Status: {loadStatus(load).toUpperCase()}
+                        </button>
+                        <Menu as="div" className="relative block -ml-px">
+                            <Menu.Button className="relative inline-flex items-center px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
+                                <span className="sr-only">Open options</span>
+                                <ChevronDownIcon className="w-5 h-5" aria-hidden="true" />
+                            </Menu.Button>
+                            <Transition
+                                as={Fragment}
+                                enter="transition ease-out duration-100"
+                                enterFrom="transform opacity-0 scale-95"
+                                enterTo="transform opacity-100 scale-100"
+                                leave="transition ease-in duration-75"
+                                leaveFrom="transform opacity-100 scale-100"
+                                leaveTo="transform opacity-0 scale-95"
+                            >
+                                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                    <div className="py-1">
+                                        {loadStatus(load) !== UILoadStatus.BOOKED && (
+                                            <Menu.Item>
+                                                {({ active }) => (
+                                                    <a
+                                                        onClick={() => changeLoadStatus(LoadStatus.CREATED)}
+                                                        className={classNames(
+                                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                                            'block px-4 py-2 text-sm',
+                                                        )}
+                                                    >
+                                                        Change status to Booked
+                                                    </a>
+                                                )}
+                                            </Menu.Item>
+                                        )}
+                                        {loadStatus(load) !== UILoadStatus.IN_PROGRESS && (
+                                            <Menu.Item>
+                                                {({ active }) => (
+                                                    <a
+                                                        onClick={() => changeLoadStatus(LoadStatus.IN_PROGRESS)}
+                                                        className={classNames(
+                                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                                            'block px-4 py-2 text-sm',
+                                                        )}
+                                                    >
+                                                        Change status to In Progress
+                                                    </a>
+                                                )}
+                                            </Menu.Item>
+                                        )}
+                                        {loadStatus(load) !== UILoadStatus.DELIVERED && (
+                                            <Menu.Item>
+                                                {({ active }) => (
+                                                    <a
+                                                        onClick={() => changeLoadStatus(LoadStatus.DELIVERED)}
+                                                        className={classNames(
+                                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                                            'block px-4 py-2 text-sm',
+                                                        )}
+                                                    >
+                                                        Change status to Delivered
+                                                    </a>
+                                                )}
+                                            </Menu.Item>
+                                        )}
+                                    </div>
+                                </Menu.Items>
+                            </Transition>
+                        </Menu>
+                    </div>
+                )}
+            </span>
+        </div>
     );
 };
 
@@ -256,6 +410,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         window.open(document.fileUrl);
     };
 
+    const changeLoadStatus = async (newStatus: LoadStatus) => {
+        if (load) {
+            setLoad({ ...load, status: newStatus });
+            await updateLoadStatus(load.id, newStatus);
+        }
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -264,8 +425,21 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     <ActionsDropdown
                         load={load}
                         disabled={!load}
-                        deleteLoad={deleteLoad}
-                        assignDriver={assignDriverAction}
+                        editLoadClicked={() => {
+                            router.push(`/loads/edit/${load.id}`);
+                        }}
+                        viewInvoiceClicked={() => {
+                            if (load.invoice) {
+                                router.push(`/accounting/invoices/${load.invoice.id}`);
+                            }
+                        }}
+                        createInvoiceClicked={() => {
+                            router.push(`/accounting/create-invoice/${load.id}`);
+                        }}
+                        assignDriverClicked={assignDriverAction}
+                        deleteLoadClicked={() => {
+                            deleteLoad(load.id);
+                        }}
                     ></ActionsDropdown>
                 </div>
             }
@@ -288,18 +462,50 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             },
                         ]}
                     ></BreadCrumb>
-                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                    <div className="hidden px-5 mt-4 mb-3 md:block sm:px-6 md:px-8">
                         <div className="flex">
                             <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
                             <ActionsDropdown
                                 load={load}
                                 disabled={!load}
-                                deleteLoad={deleteLoad}
-                                assignDriver={assignDriverAction}
+                                editLoadClicked={() => {
+                                    router.push(`/loads/edit/${load.id}`);
+                                }}
+                                viewInvoiceClicked={() => {
+                                    if (load.invoice) {
+                                        router.push(`/accounting/invoices/${load.invoice.id}`);
+                                    }
+                                }}
+                                createInvoiceClicked={() => {
+                                    router.push(`/accounting/create-invoice/${load.id}`);
+                                }}
+                                assignDriverClicked={assignDriverAction}
+                                deleteLoadClicked={() => {
+                                    deleteLoad(load.id);
+                                }}
                             ></ActionsDropdown>
                         </div>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
+
+                    <Toolbar
+                        className="px-5 mb-3 sm:px-6 md:px-8"
+                        load={load}
+                        disabled={!load}
+                        editLoadClicked={() => {
+                            router.push(`/loads/edit/${load.id}`);
+                        }}
+                        viewInvoiceClicked={() => {
+                            if (load.invoice) {
+                                router.push(`/accounting/invoices/${load.invoice.id}`);
+                            }
+                        }}
+                        createInvoiceClicked={() => {
+                            router.push(`/accounting/create-invoice/${load.id}`);
+                        }}
+                        assignDriverClicked={assignDriverAction}
+                        changeLoadStatus={changeLoadStatus}
+                    ></Toolbar>
 
                     {load && load.routeEncoded && (
                         <Image
