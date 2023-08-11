@@ -206,7 +206,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     return (
         <div className={`flex flex-row place-content-between ${className}`}>
-            <span className="inline-flex rounded-md shadow-sm isolate">
+            <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
                 <button
                     type="button"
                     className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
@@ -254,7 +254,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                 Status: {loadStatusValue.toUpperCase()}
                             </button>
                             <Menu as="div" className="relative block -ml-px">
-                                <Menu.Button className="relative inline-flex items-center px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
+                                <Menu.Button className="relative inline-flex items-center h-full px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
                                     <span className="sr-only">Open options</span>
                                     <ChevronDownIcon className="w-5 h-5" aria-hidden="true" />
                                 </Menu.Button>
@@ -437,25 +437,27 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
-                    <ActionsDropdown
-                        load={load}
-                        disabled={!load}
-                        editLoadClicked={() => {
-                            router.push(`/loads/edit/${load.id}`);
-                        }}
-                        viewInvoiceClicked={() => {
-                            if (load.invoice) {
-                                router.push(`/accounting/invoices/${load.invoice.id}`);
-                            }
-                        }}
-                        createInvoiceClicked={() => {
-                            router.push(`/accounting/create-invoice/${load.id}`);
-                        }}
-                        assignDriverClicked={assignDriverAction}
-                        deleteLoadClicked={() => {
-                            deleteLoad(load.id);
-                        }}
-                    ></ActionsDropdown>
+                    <div className="flex flex-none space-x-2">
+                        <ActionsDropdown
+                            load={load}
+                            disabled={!load}
+                            editLoadClicked={() => {
+                                router.push(`/loads/edit/${load.id}`);
+                            }}
+                            viewInvoiceClicked={() => {
+                                if (load.invoice) {
+                                    router.push(`/accounting/invoices/${load.invoice.id}`);
+                                }
+                            }}
+                            createInvoiceClicked={() => {
+                                router.push(`/accounting/create-invoice/${load.id}`);
+                            }}
+                            assignDriverClicked={assignDriverAction}
+                            deleteLoadClicked={() => {
+                                deleteLoad(load.id);
+                            }}
+                        ></ActionsDropdown>
+                    </div>
                 </div>
             }
         >
