@@ -211,7 +211,6 @@ export const getInvoices = async ({
                               id: true,
                               refNum: true,
                               rate: true,
-                              distance: true,
                               customer: true,
                           },
                       },

@@ -17,7 +17,7 @@ import { FileUploader } from 'react-drag-drop-files';
 import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
-import { getGeocoding, getRouteEncoded } from '../../lib/mapbox/searchGeo';
+import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
 import { PaperClipIcon, TrashIcon } from '@heroicons/react/outline';
 
 const CreateLoad: PageWithAuth = () => {
@@ -40,7 +40,6 @@ const CreateLoad: PageWithAuth = () => {
             customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
-            distance: 0,
             customer: data.customer,
             shipper: data.shipper,
             receiver: data.receiver,
@@ -74,7 +73,7 @@ const CreateLoad: PageWithAuth = () => {
                 : [],
         );
 
-        const routeEncoded = await getRouteEncoded([
+        const { routeEncoded, distance, duration } = await getRouteForCoords([
             [shipperCoordinates.longitude, shipperCoordinates.latitude],
             ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
             [receiverCoordinates.longitude, receiverCoordinates.latitude],
@@ -100,6 +99,8 @@ const CreateLoad: PageWithAuth = () => {
             });
         }
         loadData.routeEncoded = routeEncoded;
+        loadData.routeDistance = distance;
+        loadData.routeDuration = duration;
 
         await saveLoadData(loadData);
     };
@@ -330,7 +331,7 @@ const CreateLoad: PageWithAuth = () => {
                     <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="relative px-5 mb-64 sm:px-6 md:px-8">
+                <div className="relative px-5 sm:px-6 md:px-8">
                     {loading && <LoadingOverlay />}
 
                     <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>

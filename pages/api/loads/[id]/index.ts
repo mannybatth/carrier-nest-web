@@ -145,7 +145,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             data: {
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
-                distance: loadData.distance || 0,
                 carrier: {
                     connect: {
                         id: session.user.defaultCarrierId,
@@ -187,6 +186,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     })),
                 },
                 routeEncoded: loadData.routeEncoded || '',
+                routeDistance: loadData.routeDistance || 0,
+                routeDuration: loadData.routeDuration || 0,
             },
         });
 

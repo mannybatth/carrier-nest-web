@@ -104,8 +104,9 @@ model Load {
     shipperId       String
     receiverId      String
     rate            Decimal
-    distance        Int
     routeEncoded    String?
+    routeDistance   Decimal?
+    routeDuration   Decimal?
     status          LoadStatus     @default(CREATED)
     invoice         Invoice?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)

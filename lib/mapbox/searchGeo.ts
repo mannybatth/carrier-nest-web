@@ -26,7 +26,7 @@ export async function getGeocoding(address: string): Promise<{
     };
 }
 
-export async function getRouteEncoded(coords: number[][]) {
+export async function getRouteForCoords(coords: number[][]) {
     const coordString = coords.map((coord) => `${coord[0]},${coord[1]}`).join(';');
     const response = await axios.get(`https://api.mapbox.com/directions/v5/mapbox/driving/${coordString}`, {
         params: {
@@ -42,7 +42,11 @@ export async function getRouteEncoded(coords: number[][]) {
     const coordinates = flipped(response.data.routes[0].geometry.coordinates);
     const routePolyline: string = polyline.encode(coordinates);
 
-    return routePolyline;
+    return {
+        routeEncoded: routePolyline,
+        distance: response.data.routes[0].distance,
+        duration: response.data.routes[0].duration,
+    };
 }
 
 function flipped(coords: number[][]) {

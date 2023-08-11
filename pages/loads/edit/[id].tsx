@@ -13,7 +13,7 @@ import type { ExpandedLoad } from '../../../interfaces/models';
 import { updateLoad } from '../../../lib/rest/load';
 import { getLoad } from '../../api/loads/[id]';
 import { getSession } from 'next-auth/react';
-import { getGeocoding, getRouteEncoded } from '../../../lib/mapbox/searchGeo';
+import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';
 
 type Props = {
     load: ExpandedLoad;
@@ -76,7 +76,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
-            distance: 0,
             customer: data.customer,
             shipper: data.shipper,
             receiver: data.receiver,
@@ -114,7 +113,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             }),
         );
 
-        const routeEncoded = await getRouteEncoded([
+        const { routeEncoded, distance, duration } = await getRouteForCoords([
             [shipperCoordinates.longitude, shipperCoordinates.latitude],
             ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
             [receiverCoordinates.longitude, receiverCoordinates.latitude],
@@ -138,6 +137,8 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
             };
         });
         loadData.routeEncoded = routeEncoded;
+        loadData.routeDistance = distance;
+        loadData.routeDuration = duration;
 
         const newLoad = await updateLoad(load.id, loadData);
 
@@ -172,7 +173,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
                     <h1 className="text-2xl font-semibold text-gray-900">Edit Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 mb-64 sm:px-6 md:px-8">
+                <div className="px-5 sm:px-6 md:px-8">
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">

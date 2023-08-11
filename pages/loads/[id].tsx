@@ -8,7 +8,7 @@ import {
     TruckIcon,
     UploadIcon,
 } from '@heroicons/react/outline';
-import { LoadDocument, LoadStatus } from '@prisma/client';
+import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
 import Image from 'next/image';
@@ -35,6 +35,8 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import { metersToMiles } from '../../lib/helpers/distance';
+import { secondsToReadable } from '../../lib/helpers/time';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -593,6 +595,27 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         })}
                                                     </dd>
                                                 </div>
+                                                {load.routeDistance && (
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">Route Distance</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {metersToMiles(
+                                                                new Prisma.Decimal(load.routeDistance).toNumber(),
+                                                            ).toFixed(2)}{' '}
+                                                            miles
+                                                        </dd>
+                                                    </div>
+                                                )}
+                                                {load.routeDuration && (
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">Travel Time</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {secondsToReadable(
+                                                                new Prisma.Decimal(load.routeDuration).toNumber(),
+                                                            )}
+                                                        </dd>
+                                                    </div>
+                                                )}
                                                 <div>
                                                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Invoice</dt>

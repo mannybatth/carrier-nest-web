@@ -253,7 +253,6 @@ export const postLoads = async ({
             data: {
                 refNum: loadData.refNum || '',
                 rate: loadData.rate || 0,
-                distance: loadData.distance || 0,
                 status: LoadStatus.CREATED,
                 user: {
                     connect: {
@@ -337,6 +336,8 @@ export const postLoads = async ({
                         },
                     }),
                 routeEncoded: loadData.routeEncoded || '',
+                routeDistance: loadData.routeDistance || 0,
+                routeDuration: loadData.routeDuration || 0,
                 ...(loadData.rateconDocument
                     ? {
                           rateconDocument: {
