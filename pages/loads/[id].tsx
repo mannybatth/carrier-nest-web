@@ -19,14 +19,14 @@ import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
-import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
+import { createInvoicePdfBlob, DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
+import { ExpandedLoad } from '../../interfaces/models';
 import { withServerAuth } from '../../lib/auth/server-auth';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 import {
@@ -38,15 +38,19 @@ import {
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
+import * as zip from '@zip.js/zip.js';
+import { sanitize } from '../../lib/helpers/string';
+import { useUserContext } from '../../components/context/UserContext';
+import { useSession } from 'next-auth/react';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
-    disabled?: boolean;
-    editLoadClicked?: () => void;
+    disabled: boolean;
+    editLoadClicked: () => void;
     viewInvoiceClicked?: () => void;
     createInvoiceClicked?: () => void;
     assignDriverClicked: () => void;
-    downloadAllDocsClicked?: () => void;
+    downloadAllDocsClicked: () => void;
     deleteLoadClicked: () => void;
 };
 
@@ -179,12 +183,12 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
 type ToolbarProps = {
     className?: string;
     load: ExpandedLoad;
-    disabled?: boolean;
-    editLoadClicked?: () => void;
+    disabled: boolean;
+    editLoadClicked: () => void;
     viewInvoiceClicked?: () => void;
     createInvoiceClicked?: () => void;
     assignDriverClicked: () => void;
-    changeLoadStatus?: (newStatus: LoadStatus) => void;
+    changeLoadStatus: (newStatus: LoadStatus) => void;
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -345,8 +349,9 @@ type Props = {
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [load, setLoad] = useLoadContext();
+    const { data: session } = useSession();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
-    const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>([]);
+    const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
     const router = useRouter();
 
@@ -388,7 +393,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     fileType: file.type,
                     fileSize: file.size,
                 };
-                const tempDocs = [simpleDoc, ...loadDocuments];
+                const tempDocs = [simpleDoc, ...loadDocuments] as LoadDocument[];
                 setLoadDocuments(tempDocs);
                 const newLoadDocument = await addLoadDocumentToLoad(load.id, simpleDoc);
 
@@ -424,7 +429,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setDocsLoading(false);
     };
 
-    const openDocument = (document: ExpandedLoadDocument) => {
+    const openDocument = (document: LoadDocument) => {
         window.open(document.fileUrl);
     };
 
@@ -458,6 +463,60 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
+    const downloadAllDocs = async () => {
+        if (!load) {
+            return;
+        }
+
+        const zipWriter = new zip.ZipWriter(new zip.BlobWriter('application/zip'), {
+            bufferedWrite: true,
+        });
+
+        const loadDocs = [...loadDocuments];
+
+        if (loadDocs.length === 0 && !load.invoice) {
+            return;
+        }
+
+        if (load.invoice) {
+            const invoiceBlob = await createInvoicePdfBlob(
+                session.user.defaultCarrierId,
+                load.invoice,
+                load.customer,
+                load,
+            );
+            await zipWriter.add(`invoice-${load.invoice.invoiceNum}.pdf`, new zip.BlobReader(invoiceBlob));
+        }
+
+        if (loadDocs.length > 0) {
+            const addBlobToZip = async (doc: LoadDocument) => {
+                const blob = await fetch(doc.fileUrl).then((r) => r.blob());
+                await zipWriter.add(doc.fileName, new zip.BlobReader(blob));
+            };
+            const promises = loadDocs.map((doc) => addBlobToZip(doc));
+            await Promise.all(promises);
+        }
+
+        const blob = await zipWriter.close();
+        // Use load reference number and customer name (if available) in the file name, format to a file name friendly string
+        const fileName = `${sanitize(load.refNum)}${load.customer?.name ? `-${sanitize(load.customer.name)}` : ''}`;
+
+        // Convert the blob to an Object URL
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary anchor element to initiate the download
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName; // specify the name of the zip file
+
+        // Append anchor to the body, click it to download, and then remove it
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -482,6 +541,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             deleteLoadClicked={() => {
                                 deleteLoad(load.id);
                             }}
+                            downloadAllDocsClicked={downloadAllDocs}
                         ></ActionsDropdown>
                     </div>
                 </div>
@@ -526,6 +586,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 deleteLoadClicked={() => {
                                     deleteLoad(load.id);
                                 }}
+                                downloadAllDocsClicked={downloadAllDocs}
                             ></ActionsDropdown>
                         </div>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />

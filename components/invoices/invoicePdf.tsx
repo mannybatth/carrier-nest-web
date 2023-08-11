@@ -366,6 +366,18 @@ export const DownloadInvoicePDFButton: React.FC<DownloadButtonProps> = ({
     );
 };
 
+export const createInvoicePdfBlob = async (
+    carrierId: string,
+    invoice: ExpandedInvoice,
+    customer: Partial<Customer>,
+    load: ExpandedLoad,
+) => {
+    const carrier = await getCarrierById(carrierId);
+    const blob = await pdf(<InvoicePDF carrier={carrier} invoice={invoice} customer={customer} load={load} />).toBlob();
+
+    return blob;
+};
+
 export const downloadInvoice = async (
     carrierId: string,
     invoice: ExpandedInvoice,
@@ -373,8 +385,7 @@ export const downloadInvoice = async (
     load: ExpandedLoad,
     fileName = 'invoice.pdf',
 ) => {
-    const carrier = await getCarrierById(carrierId);
-    const blob = await pdf(<InvoicePDF carrier={carrier} invoice={invoice} customer={customer} load={load} />).toBlob();
+    const blob = await createInvoicePdfBlob(carrierId, invoice, customer, load);
 
     const pdfUrl = window.URL.createObjectURL(blob);
     const tempLink = document.createElement('a');
