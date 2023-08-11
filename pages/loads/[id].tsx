@@ -1,13 +1,14 @@
 import { Menu, Transition } from '@headlessui/react';
 import {
+    ArrowTopRightOnSquareIcon,
+    ArrowUpTrayIcon,
     ChevronDownIcon,
-    LocationMarkerIcon,
+    MapPinIcon,
     PaperClipIcon,
     StopIcon,
     TrashIcon,
     TruckIcon,
-    UploadIcon,
-} from '@heroicons/react/outline';
+} from '@heroicons/react/24/outline';
 import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
@@ -434,6 +435,29 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
+    const openRouteInGoogleMaps = () => {
+        if (load) {
+            // origin is the load shipper address
+            const origin = `${load.shipper.latitude}, ${load.shipper.longitude}`;
+            // destination is the load receiver address
+            const destination = `${load.receiver.latitude}, ${load.receiver.longitude}`;
+            // waypoints are the load stops, separate by a pipe
+            const waypoints =
+                load.stops && load.stops.length > 0
+                    ? load.stops.map((stop) => `${stop.latitude}, ${stop.longitude}`).join('|')
+                    : null;
+            const searchParams = new URLSearchParams();
+            searchParams.append('api', '1');
+            searchParams.append('origin', origin);
+            searchParams.append('destination', destination);
+            if (waypoints) {
+                searchParams.append('waypoints', waypoints);
+            }
+            const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
+            window.open(url);
+        }
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -662,7 +686,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     onClick={() => fileInput.click()}
                                                                     disabled={docsLoading}
                                                                 >
-                                                                    <UploadIcon className="w-4 h-4 mr-1 text-gray-500"></UploadIcon>
+                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
                                                                     <span className="block md:hidden">Upload</span>
                                                                     <span className="hidden md:block">Upload Docs</span>
                                                                 </button>
@@ -765,14 +789,30 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="text-sm text-gray-500">
-                                                                        <span className="text-lg font-medium text-gray-900">
-                                                                            {new Intl.DateTimeFormat('en-US', {
-                                                                                year: 'numeric',
-                                                                                month: 'long',
-                                                                                day: '2-digit',
-                                                                            }).format(new Date(load.shipper.date))}
-                                                                        </span>{' '}
-                                                                        @ {load.shipper.time}
+                                                                        <div className="flex place-content-between">
+                                                                            <div>
+                                                                                <span className="text-lg font-medium text-gray-900">
+                                                                                    {new Intl.DateTimeFormat('en-US', {
+                                                                                        year: 'numeric',
+                                                                                        month: 'long',
+                                                                                        day: '2-digit',
+                                                                                    }).format(
+                                                                                        new Date(load.shipper.date),
+                                                                                    )}
+                                                                                </span>{' '}
+                                                                                @ {load.shipper.time}
+                                                                            </div>
+                                                                            <div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                    onClick={openRouteInGoogleMaps}
+                                                                                >
+                                                                                    Open Route
+                                                                                    <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
                                                                         <div>{load.shipper.name}</div>
                                                                         <div>{load.shipper.street}</div>
                                                                         <div>
@@ -831,7 +871,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 <div>
                                                                     <div className="relative px-1">
                                                                         <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                            <LocationMarkerIcon
+                                                                            <MapPinIcon
                                                                                 className="w-5 h-5 text-red-800"
                                                                                 aria-hidden="true"
                                                                             />

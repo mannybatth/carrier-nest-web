@@ -178,6 +178,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         date: stop.date || '',
                         time: stop.time || '',
                         stopIndex: stop.stopIndex || 0,
+                        longitude: stop.longitude,
+                        latitude: stop.latitude,
                         user: {
                             connect: {
                                 id: session.user.id,

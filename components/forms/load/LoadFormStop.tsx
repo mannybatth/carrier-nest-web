@@ -1,6 +1,6 @@
 import { Combobox } from '@headlessui/react';
 import { CheckCircleIcon, ChevronUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { SearchIcon } from '@heroicons/react/solid';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
 import format from 'date-fns/format';
@@ -393,7 +393,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                 <div className="flex items-center space-x-3">
                                     <Combobox.Label className="flex-1 block text-sm font-medium text-gray-700 ">
                                         Street Address{' '}
-                                        <SearchIcon className="inline-block w-4 h-4 text-gray-400" aria-hidden="true" />
+                                        <MagnifyingGlassIcon
+                                            className="inline-block w-4 h-4 text-gray-400"
+                                            aria-hidden="true"
+                                        />
                                     </Combobox.Label>
 
                                     {watchLongitude && watchLatitude && (
