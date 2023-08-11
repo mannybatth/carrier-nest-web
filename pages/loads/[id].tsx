@@ -835,8 +835,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     }).format(
                                                                                         new Date(load.shipper.date),
                                                                                     )}
-                                                                                </span>{' '}
-                                                                                @ {load.shipper.time}
+                                                                                </span>
+                                                                                {load.shipper.time && (
+                                                                                    <> @ {load.shipper.time}</>
+                                                                                )}
                                                                             </div>
                                                                             <div>
                                                                                 <button
@@ -886,8 +888,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     month: 'long',
                                                                                     day: '2-digit',
                                                                                 }).format(new Date(stop.date))}
-                                                                            </span>{' '}
-                                                                            @ {stop.time}
+                                                                            </span>
+                                                                            {stop.time && <> @ {stop.time}</>}
                                                                             <div>{stop.name}</div>
                                                                             <div>{stop.street}</div>
                                                                             <div>
@@ -922,8 +924,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                 month: 'long',
                                                                                 day: '2-digit',
                                                                             }).format(new Date(load.receiver.date))}
-                                                                        </span>{' '}
-                                                                        @ {load.receiver.time}
+                                                                        </span>
+                                                                        {load.receiver.time && (
+                                                                            <> @ {load.receiver.time}</>
+                                                                        )}
                                                                         <div>{load.receiver.name}</div>
                                                                         <div>{load.receiver.street}</div>
                                                                         <div>
