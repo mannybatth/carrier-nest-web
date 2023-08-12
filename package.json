@@ -40,6 +40,7 @@
         "next": "13.4.2",
         "next-auth": "^4.22.1",
         "nodemailer": "^6.7.2",
+        "pdfjs-dist": "^3.9.179",
         "prettier": "^2.5.1",
         "react": "^18.2.0",
         "react-currency-input-field": "^3.6.10",
