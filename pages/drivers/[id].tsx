@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -107,6 +108,10 @@ const DriverDetailsPage: PageWithAuth = () => {
     const [loadingLoads, setLoadingLoads] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
 
+    const [openDeleteDriverConfirmation, setOpenDeleteDriverConfirmation] = React.useState(false);
+    const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = React.useState(false);
+    const [loadIdToDelete, setLoadIdToDelete] = React.useState<string | null>(null);
+
     const [driver, setDriver] = React.useState<ExpandedDriver | null>(null);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
@@ -121,7 +126,9 @@ const DriverDetailsPage: PageWithAuth = () => {
     const router = useRouter();
 
     useEffect(() => {
-        reloadDriver();
+        if (driverId) {
+            reloadDriver();
+        }
     }, [driverId]);
 
     useEffect(() => {
@@ -223,107 +230,144 @@ const DriverDetailsPage: PageWithAuth = () => {
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">{driver?.name}</h1>
-                    <ActionsDropdown driver={driver} disabled={!driver} deleteDriver={deleteDriver}></ActionsDropdown>
+                    <ActionsDropdown
+                        driver={driver}
+                        disabled={!driver}
+                        deleteDriver={() => setOpenDeleteDriverConfirmation(true)}
+                    ></ActionsDropdown>
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <BreadCrumb
-                    className="sm:px-6 md:px-8"
-                    paths={[
-                        {
-                            label: 'Driver',
-                            href: '/drivers',
-                        },
-                        {
-                            label: driver ? `${driver.name}` : '',
-                        },
-                    ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{driver?.name}</h1>
-                        <ActionsDropdown
-                            driver={driver}
-                            disabled={!driver}
-                            deleteDriver={deleteDriver}
-                        ></ActionsDropdown>
+            <>
+                <SimpleDialog
+                    show={openDeleteDriverConfirmation}
+                    title="Delete driver"
+                    description="Are you sure you want to delete this driver?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => deleteDriver(driver.id)}
+                    secondaryButtonAction={() => setOpenDeleteDriverConfirmation(false)}
+                    onClose={() => setOpenDeleteDriverConfirmation(false)}
+                ></SimpleDialog>
+                <SimpleDialog
+                    show={openDeleteLoadConfirmation}
+                    title="Delete load"
+                    description="Are you sure you want to delete this load?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (loadIdToDelete) {
+                            deleteLoad(loadIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteLoadConfirmation(false);
+                        setLoadIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteLoadConfirmation(false);
+                        setLoadIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <div className="py-2 mx-auto max-w-7xl">
+                    <BreadCrumb
+                        className="sm:px-6 md:px-8"
+                        paths={[
+                            {
+                                label: 'Driver',
+                                href: '/drivers',
+                            },
+                            {
+                                label: driver ? `${driver.name}` : '',
+                            },
+                        ]}
+                    ></BreadCrumb>
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">{driver?.name}</h1>
+                            <ActionsDropdown
+                                driver={driver}
+                                disabled={!driver}
+                                deleteDriver={() => setOpenDeleteDriverConfirmation(true)}
+                            ></ActionsDropdown>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    <div className="grid grid-cols-12 gap-5">
-                        {driver ? (
-                            <div className="col-span-12">
-                                <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                            <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                    <div className="px-5 sm:px-6 md:px-8">
+                        <div className="grid grid-cols-12 gap-5">
+                            {driver ? (
+                                <div className="col-span-12">
+                                    <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                                <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Total Loads</p>
+                                                <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                            </div>
                                         </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                            <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                                <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Email</p>
+                                                <p className="text-sm text-gray-500">{driver.email}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                            <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Email</p>
-                                            <p className="text-sm text-gray-500">{driver.email}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                            <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Phone</p>
-                                            <p className="text-sm text-gray-500">{driver.phone}</p>
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Phone</p>
+                                                <p className="text-sm text-gray-500">{driver.phone}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
-                        )}
-
-                        <div className="col-span-12">
-                            <h3 className="mb-2">Loads Assigned to Driver</h3>
-                            {loadingLoads ? (
-                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                             ) : (
-                                <LoadsTable
-                                    loads={loadsList}
-                                    headers={[
-                                        'refNum',
-                                        'status',
-                                        'shipper.date',
-                                        'receiver.date',
-                                        'shipper.city',
-                                        'receiver.city',
-                                        'rate',
-                                    ]}
-                                    sort={sort}
-                                    changeSort={changeSort}
-                                    deleteLoad={deleteLoad}
-                                    loading={tableLoading}
-                                ></LoadsTable>
+                                <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
                             )}
 
-                            {loadsList.length !== 0 && !loadingLoads && (
-                                <Pagination
-                                    metadata={metadata}
-                                    loading={loadingLoads || tableLoading}
-                                    onPrevious={() => previousPage()}
-                                    onNext={() => nextPage()}
-                                ></Pagination>
-                            )}
+                            <div className="col-span-12">
+                                <h3 className="mb-2">Loads Assigned to Driver</h3>
+                                {loadingLoads ? (
+                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                                ) : (
+                                    <LoadsTable
+                                        loads={loadsList}
+                                        headers={[
+                                            'refNum',
+                                            'status',
+                                            'shipper.date',
+                                            'receiver.date',
+                                            'shipper.city',
+                                            'receiver.city',
+                                            'rate',
+                                        ]}
+                                        sort={sort}
+                                        changeSort={changeSort}
+                                        deleteLoad={(id: string) => {
+                                            setOpenDeleteLoadConfirmation(true);
+                                            setLoadIdToDelete(id);
+                                        }}
+                                        loading={tableLoading}
+                                    ></LoadsTable>
+                                )}
+
+                                {loadsList.length !== 0 && !loadingLoads && (
+                                    <Pagination
+                                        metadata={metadata}
+                                        loading={loadingLoads || tableLoading}
+                                        onPrevious={() => previousPage()}
+                                        onNext={() => nextPage()}
+                                    ></Pagination>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };

@@ -356,6 +356,7 @@ const LoadDetailsPage: PageWithAuth = () => {
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
+
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
     const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
@@ -371,15 +372,6 @@ const LoadDetailsPage: PageWithAuth = () => {
 
     const assignDriverAction = async () => {
         setOpenSelectDriver(true);
-    };
-
-    const showDeleteLoadConfirmation = () => {
-        setOpenDeleteLoadConfirmation(true);
-    };
-
-    const showDeleteDocumentConfirmation = (documentId: string) => {
-        setDocumentIdToDelete(documentId);
-        setOpenDeleteDocumentConfirmation(true);
     };
 
     const deleteLoad = async (id: string) => {
@@ -512,7 +504,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                             downloadAllDocsClicked={downloadAllDocs}
                             makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                             deleteLoadClicked={() => {
-                                showDeleteLoadConfirmation();
+                                setOpenDeleteLoadConfirmation(true);
                             }}
                         ></ActionsDropdown>
                     </div>
@@ -538,7 +530,11 @@ const LoadDetailsPage: PageWithAuth = () => {
                     title="Delete Document"
                     description="Are you sure you want to delete this document?"
                     primaryButtonText="Delete"
-                    primaryButtonAction={() => deleteLoadDocument(documentIdToDelete)}
+                    primaryButtonAction={() => {
+                        if (documentIdToDelete) {
+                            deleteLoadDocument(documentIdToDelete);
+                        }
+                    }}
                     secondaryButtonAction={() => {
                         setOpenDeleteDocumentConfirmation(false);
                         setDocumentIdToDelete(null);
@@ -582,7 +578,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                                 downloadAllDocsClicked={downloadAllDocs}
                                 makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                                 deleteLoadClicked={() => {
-                                    showDeleteLoadConfirmation();
+                                    setOpenDeleteLoadConfirmation(true);
                                 }}
                             ></ActionsDropdown>
                         </div>
@@ -802,8 +798,9 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                                                 className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
-                                                                                    showDeleteDocumentConfirmation(
-                                                                                        doc.id,
+                                                                                    setDocumentIdToDelete(doc.id);
+                                                                                    setOpenDeleteDocumentConfirmation(
+                                                                                        true,
                                                                                     );
                                                                                 }}
                                                                                 disabled={docsLoading}

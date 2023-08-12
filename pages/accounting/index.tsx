@@ -3,6 +3,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { formatValue } from 'react-currency-input-field';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -35,6 +36,9 @@ const AccountingPage: PageWithAuth = () => {
     const [loadingStats, setLoadingStats] = React.useState(true);
     const [loadingInvoices, setLoadingInvoices] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
+
+    const [openDeleteInvoiceConfirmation, setOpenDeleteInvoiceConfirmation] = React.useState(false);
+    const [invoiceIdToDelete, setInvoiceIdToDelete] = React.useState<string | null>(null);
 
     const [stats, setStats] = React.useState<AccountingStats>({
         totalPaid: 0,
@@ -152,178 +156,202 @@ const AccountingPage: PageWithAuth = () => {
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Accounting</h1>
+            <>
+                <SimpleDialog
+                    show={openDeleteInvoiceConfirmation}
+                    title="Delete Invoice"
+                    description="Are you sure you want to delete this invoice?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (invoiceIdToDelete) {
+                            deleteInvoice(invoiceIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteInvoiceConfirmation(false);
+                        setInvoiceIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteInvoiceConfirmation(false);
+                        setInvoiceIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <div className="py-2 mx-auto max-w-7xl">
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Accounting</h1>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="mb-6 px-7 sm:px-6 md:px-8">
-                    {loadingStats ? (
-                        <AccountingStatsSkeleton></AccountingStatsSkeleton>
-                    ) : (
-                        <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-3">
-                            <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
-                                <dt className="text-sm font-medium text-gray-500 truncate">Paid This Month</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    {formatValue({
-                                        value: stats.totalPaid.toString(),
-                                        groupSeparator: ',',
-                                        decimalSeparator: '.',
-                                        prefix: '$',
-                                        decimalScale: 2,
-                                    })}
-                                </dd>
-                            </div>
-                            <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
-                                <dt className="text-sm font-medium text-gray-500 truncate">Total Unpaid</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    {formatValue({
-                                        value: stats.totalUnpaid.toString(),
-                                        groupSeparator: ',',
-                                        decimalSeparator: '.',
-                                        prefix: '$',
-                                        decimalScale: 2,
-                                    })}
-                                </dd>
-                            </div>
-                            <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
-                                <dt className="text-sm font-medium text-gray-500 truncate">Total Overdue</dt>
-                                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                                    {formatValue({
-                                        value: stats.totalOverdue.toString(),
-                                        groupSeparator: ',',
-                                        decimalSeparator: '.',
-                                        prefix: '$',
-                                        decimalScale: 2,
-                                    })}
-                                </dd>
-                            </div>
-                        </dl>
-                    )}
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    <div className="items-center border-b border-gray-200 lg:space-x-4 lg:flex">
-                        <h2 className="mb-3 text-lg font-medium leading-6 text-gray-900 lg:mb-0 lg:flex-1">
-                            {isBrowsing ? 'All' : null}
-                            {!isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
-                            {withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'Partially Paid' : null}
-                            {withStatus === UIInvoiceStatus.OVERDUE ? 'Overdue' : null}
-                            {withStatus === UIInvoiceStatus.PAID ? 'Completed' : null} Invoices
-                        </h2>
-                        <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
-                            <a
-                                onClick={() => {
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { show: 'all' },
-                                    });
-                                }}
-                                className={classNames(
-                                    isBrowsing
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
-                                )}
-                                aria-current={isBrowsing ? 'page' : undefined}
-                            >
-                                Browse All
-                            </a>
-                            <a
-                                onClick={() => {
-                                    router.push({
-                                        pathname: router.pathname,
-                                    });
-                                }}
-                                className={classNames(
-                                    !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
-                                )}
-                                aria-current={
-                                    !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'page' : undefined
-                                }
-                            >
-                                Pending
-                            </a>
-                            <a
-                                onClick={() => {
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { status: UIInvoiceStatus.PARTIALLY_PAID },
-                                    });
-                                }}
-                                className={classNames(
-                                    withStatus === UIInvoiceStatus.PARTIALLY_PAID
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
-                                )}
-                                aria-current={withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'page' : undefined}
-                            >
-                                Partially Paid
-                            </a>
-                            <a
-                                onClick={() => {
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { status: UIInvoiceStatus.OVERDUE },
-                                    });
-                                }}
-                                className={classNames(
-                                    withStatus === UIInvoiceStatus.OVERDUE
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
-                                )}
-                                aria-current={withStatus === UIInvoiceStatus.OVERDUE ? 'page' : undefined}
-                            >
-                                Overdue Only
-                            </a>
-                            <a
-                                onClick={() => {
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { status: UIInvoiceStatus.PAID },
-                                    });
-                                }}
-                                className={classNames(
-                                    withStatus === UIInvoiceStatus.PAID
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
-                                )}
-                                aria-current={UIInvoiceStatus.PAID ? 'page' : undefined}
-                            >
-                                Completed
-                            </a>
-                        </nav>
-                    </div>
-                    <div className="py-2">
-                        {loadingInvoices ? (
-                            <LoadsTableSkeleton limit={lastInvoicesTableLimit} />
+                    <div className="mb-6 px-7 sm:px-6 md:px-8">
+                        {loadingStats ? (
+                            <AccountingStatsSkeleton></AccountingStatsSkeleton>
                         ) : (
-                            <InvoicesTable
-                                invoices={invoicesList}
-                                sort={sort}
-                                changeSort={changeSort}
-                                deleteInvoice={deleteInvoice}
-                                loading={tableLoading}
-                            />
+                            <dl className="grid grid-cols-1 gap-5 mt-5 sm:grid-cols-3">
+                                <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
+                                    <dt className="text-sm font-medium text-gray-500 truncate">Paid This Month</dt>
+                                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                        {formatValue({
+                                            value: stats.totalPaid.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}
+                                    </dd>
+                                </div>
+                                <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
+                                    <dt className="text-sm font-medium text-gray-500 truncate">Total Unpaid</dt>
+                                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                        {formatValue({
+                                            value: stats.totalUnpaid.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}
+                                    </dd>
+                                </div>
+                                <div className="px-4 py-2 overflow-hidden bg-white rounded-lg shadow sm:py-5">
+                                    <dt className="text-sm font-medium text-gray-500 truncate">Total Overdue</dt>
+                                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                                        {formatValue({
+                                            value: stats.totalOverdue.toString(),
+                                            groupSeparator: ',',
+                                            decimalSeparator: '.',
+                                            prefix: '$',
+                                            decimalScale: 2,
+                                        })}
+                                    </dd>
+                                </div>
+                            </dl>
                         )}
                     </div>
-                    {invoicesList.length !== 0 && !loadingInvoices && (
-                        <Pagination
-                            metadata={metadata}
-                            loading={loadingInvoices || tableLoading}
-                            onPrevious={() => previousPage()}
-                            onNext={() => nextPage()}
-                        ></Pagination>
-                    )}
+                    <div className="px-5 sm:px-6 md:px-8">
+                        <div className="items-center border-b border-gray-200 lg:space-x-4 lg:flex">
+                            <h2 className="mb-3 text-lg font-medium leading-6 text-gray-900 lg:mb-0 lg:flex-1">
+                                {isBrowsing ? 'All' : null}
+                                {!isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
+                                {withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'Partially Paid' : null}
+                                {withStatus === UIInvoiceStatus.OVERDUE ? 'Overdue' : null}
+                                {withStatus === UIInvoiceStatus.PAID ? 'Completed' : null} Invoices
+                            </h2>
+                            <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                            query: { show: 'all' },
+                                        });
+                                    }}
+                                    className={classNames(
+                                        isBrowsing
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={isBrowsing ? 'page' : undefined}
+                                >
+                                    Browse All
+                                </a>
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                        });
+                                    }}
+                                    className={classNames(
+                                        !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={
+                                        !isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'page' : undefined
+                                    }
+                                >
+                                    Pending
+                                </a>
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                            query: { status: UIInvoiceStatus.PARTIALLY_PAID },
+                                        });
+                                    }}
+                                    className={classNames(
+                                        withStatus === UIInvoiceStatus.PARTIALLY_PAID
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'page' : undefined}
+                                >
+                                    Partially Paid
+                                </a>
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                            query: { status: UIInvoiceStatus.OVERDUE },
+                                        });
+                                    }}
+                                    className={classNames(
+                                        withStatus === UIInvoiceStatus.OVERDUE
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={withStatus === UIInvoiceStatus.OVERDUE ? 'page' : undefined}
+                                >
+                                    Overdue Only
+                                </a>
+                                <a
+                                    onClick={() => {
+                                        router.push({
+                                            pathname: router.pathname,
+                                            query: { status: UIInvoiceStatus.PAID },
+                                        });
+                                    }}
+                                    className={classNames(
+                                        withStatus === UIInvoiceStatus.PAID
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-2 md:px-4 border-b-2 font-medium text-sm',
+                                    )}
+                                    aria-current={UIInvoiceStatus.PAID ? 'page' : undefined}
+                                >
+                                    Completed
+                                </a>
+                            </nav>
+                        </div>
+                        <div className="py-2">
+                            {loadingInvoices ? (
+                                <LoadsTableSkeleton limit={lastInvoicesTableLimit} />
+                            ) : (
+                                <InvoicesTable
+                                    invoices={invoicesList}
+                                    sort={sort}
+                                    changeSort={changeSort}
+                                    deleteInvoice={(id: string) => {
+                                        setOpenDeleteInvoiceConfirmation(true);
+                                        setInvoiceIdToDelete(id);
+                                    }}
+                                    loading={tableLoading}
+                                />
+                            )}
+                        </div>
+                        {invoicesList.length !== 0 && !loadingInvoices && (
+                            <Pagination
+                                metadata={metadata}
+                                loading={loadingInvoices || tableLoading}
+                                onPrevious={() => previousPage()}
+                                onNext={() => nextPage()}
+                            ></Pagination>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };

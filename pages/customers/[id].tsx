@@ -11,6 +11,7 @@ import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -114,6 +115,10 @@ const CustomerDetailsPage: PageWithAuth = () => {
     const [loadingLoads, setLoadingLoads] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
 
+    const [openDeleteCustomerConfirmation, setOpenDeleteCustomerConfirmation] = React.useState(false);
+    const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = React.useState(false);
+    const [loadIdToDelete, setLoadIdToDelete] = React.useState<string | null>(null);
+
     const [customer, setCustomer] = React.useState<ExpandedCustomer | null>(null);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
@@ -128,7 +133,9 @@ const CustomerDetailsPage: PageWithAuth = () => {
     const router = useRouter();
 
     useEffect(() => {
-        reloadCustomer();
+        if (customerId) {
+            reloadCustomer();
+        }
     }, [customerId]);
 
     useEffect(() => {
@@ -233,138 +240,176 @@ const CustomerDetailsPage: PageWithAuth = () => {
                     <ActionsDropdown
                         customer={customer}
                         disabled={!customer}
-                        deleteCustomer={deleteCustomer}
+                        deleteCustomer={() => setOpenDeleteCustomerConfirmation(true)}
                     ></ActionsDropdown>
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <BreadCrumb
-                    className="sm:px-6 md:px-8"
-                    paths={[
-                        {
-                            label: 'Customers',
-                            href: '/customers',
-                        },
-                        {
-                            label: customer ? `${customer.name}` : '',
-                        },
-                    ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">{customer?.name}</h1>
-                        <ActionsDropdown
-                            customer={customer}
-                            disabled={!customer}
-                            deleteCustomer={deleteCustomer}
-                        ></ActionsDropdown>
+            <>
+                <SimpleDialog
+                    show={openDeleteCustomerConfirmation}
+                    title="Delete customer"
+                    description="Are you sure you want to delete this customer?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => deleteCustomer(customer.id)}
+                    secondaryButtonAction={() => setOpenDeleteCustomerConfirmation(false)}
+                    onClose={() => setOpenDeleteCustomerConfirmation(false)}
+                ></SimpleDialog>
+                <SimpleDialog
+                    show={openDeleteLoadConfirmation}
+                    title="Delete load"
+                    description="Are you sure you want to delete this load?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (loadIdToDelete) {
+                            deleteLoad(loadIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteLoadConfirmation(false);
+                        setLoadIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteLoadConfirmation(false);
+                        setLoadIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <div className="py-2 mx-auto max-w-7xl">
+                    <BreadCrumb
+                        className="sm:px-6 md:px-8"
+                        paths={[
+                            {
+                                label: 'Customers',
+                                href: '/customers',
+                            },
+                            {
+                                label: customer ? `${customer.name}` : '',
+                            },
+                        ]}
+                    ></BreadCrumb>
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">{customer?.name}</h1>
+                            <ActionsDropdown
+                                customer={customer}
+                                disabled={!customer}
+                                deleteCustomer={() => setOpenDeleteCustomerConfirmation(true)}
+                            ></ActionsDropdown>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    <div className="grid grid-cols-12 gap-5">
-                        {customer ? (
-                            <div className="col-span-12">
-                                <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                            <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                    <div className="px-5 sm:px-6 md:px-8">
+                        <div className="grid grid-cols-12 gap-5">
+                            {customer ? (
+                                <div className="col-span-12">
+                                    <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                                <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Total Loads</p>
+                                                <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                            </div>
                                         </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Total Loads</p>
-                                            <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
+                                                <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Contact Email</p>
+                                                <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
-                                            <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                <CurrencyDollarIcon
+                                                    className="w-5 h-5 text-gray-500"
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Billing Email</p>
+                                                <p className="text-sm text-gray-500">{customer.billingEmail}</p>
+                                            </div>
                                         </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Contact Email</p>
-                                            <p className="text-sm text-gray-500">{customer.contactEmail}</p>
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                <InformationCircleIcon
+                                                    className="w-5 h-5 text-gray-500"
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    Payment Status Email
+                                                </p>
+                                                <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                            <CurrencyDollarIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Billing Email</p>
-                                            <p className="text-sm text-gray-500">{customer.billingEmail}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                            <InformationCircleIcon
-                                                className="w-5 h-5 text-gray-500"
-                                                aria-hidden="true"
-                                            />
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Payment Status Email</p>
-                                            <p className="text-sm text-gray-500">{customer.paymentStatusEmail}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex p-3">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                                            <MapPinIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Address</p>
-                                            <p className="text-sm text-gray-500">
-                                                {customer.street && (
-                                                    <>
-                                                        {customer.street} <br />
-                                                    </>
-                                                )}
-                                                {customer.city && customer.state
-                                                    ? `${customer.city}, ${customer.state}`
-                                                    : `${customer.city} ${customer.state}`}{' '}
-                                                {customer.zip}
-                                            </p>
+                                        <div className="flex p-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                <MapPinIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Address</p>
+                                                <p className="text-sm text-gray-500">
+                                                    {customer.street && (
+                                                        <>
+                                                            {customer.street} <br />
+                                                        </>
+                                                    )}
+                                                    {customer.city && customer.state
+                                                        ? `${customer.city}, ${customer.state}`
+                                                        : `${customer.city} ${customer.state}`}{' '}
+                                                    {customer.zip}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
-                        )}
-
-                        <div className="col-span-12">
-                            <h3 className="mb-2">Loads for Customer</h3>
-                            {loadingLoads ? (
-                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                             ) : (
-                                <LoadsTable
-                                    loads={loadsList}
-                                    headers={[
-                                        'refNum',
-                                        'status',
-                                        'shipper.date',
-                                        'receiver.date',
-                                        'shipper.city',
-                                        'receiver.city',
-                                        'rate',
-                                    ]}
-                                    sort={sort}
-                                    changeSort={changeSort}
-                                    deleteLoad={deleteLoad}
-                                    loading={tableLoading}
-                                ></LoadsTable>
+                                <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
                             )}
-                            {loadsList.length !== 0 && !loadingLoads && (
-                                <Pagination
-                                    metadata={metadata}
-                                    loading={loadingLoads || tableLoading}
-                                    onPrevious={() => previousPage()}
-                                    onNext={() => nextPage()}
-                                ></Pagination>
-                            )}
+
+                            <div className="col-span-12">
+                                <h3 className="mb-2">Loads for Customer</h3>
+                                {loadingLoads ? (
+                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                                ) : (
+                                    <LoadsTable
+                                        loads={loadsList}
+                                        headers={[
+                                            'refNum',
+                                            'status',
+                                            'shipper.date',
+                                            'receiver.date',
+                                            'shipper.city',
+                                            'receiver.city',
+                                            'rate',
+                                        ]}
+                                        sort={sort}
+                                        changeSort={changeSort}
+                                        deleteLoad={(id: string) => {
+                                            setOpenDeleteLoadConfirmation(true);
+                                            setLoadIdToDelete(id);
+                                        }}
+                                        loading={tableLoading}
+                                    ></LoadsTable>
+                                )}
+                                {loadsList.length !== 0 && !loadingLoads && (
+                                    <Pagination
+                                        metadata={metadata}
+                                        loading={loadingLoads || tableLoading}
+                                        onPrevious={() => previousPage()}
+                                        onNext={() => nextPage()}
+                                    ></Pagination>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };
