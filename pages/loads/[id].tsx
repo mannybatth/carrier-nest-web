@@ -19,6 +19,7 @@ import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -355,6 +356,10 @@ const LoadDetailsPage: PageWithAuth = () => {
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
+    const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
+    const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
+    const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
+
     const router = useRouter();
 
     let fileInput: HTMLInputElement;
@@ -366,6 +371,15 @@ const LoadDetailsPage: PageWithAuth = () => {
 
     const assignDriverAction = async () => {
         setOpenSelectDriver(true);
+    };
+
+    const showDeleteLoadConfirmation = () => {
+        setOpenDeleteLoadConfirmation(true);
+    };
+
+    const showDeleteDocumentConfirmation = (documentId: string) => {
+        setDocumentIdToDelete(documentId);
+        setOpenDeleteDocumentConfirmation(true);
     };
 
     const deleteLoad = async (id: string) => {
@@ -498,7 +512,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                             downloadAllDocsClicked={downloadAllDocs}
                             makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                             deleteLoadClicked={() => {
-                                deleteLoad(load.id);
+                                showDeleteLoadConfirmation();
                             }}
                         ></ActionsDropdown>
                     </div>
@@ -510,6 +524,30 @@ const LoadDetailsPage: PageWithAuth = () => {
                     show={openSelectDriver}
                     onClose={() => setOpenSelectDriver(false)}
                 ></DriverSelectionModal>
+                <SimpleDialog
+                    show={openDeleteLoadConfirmation}
+                    title="Delete Load"
+                    description="Are you sure you want to delete this load?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => deleteLoad(load.id)}
+                    secondaryButtonAction={() => setOpenDeleteLoadConfirmation(false)}
+                    onClose={() => setOpenDeleteLoadConfirmation(false)}
+                ></SimpleDialog>
+                <SimpleDialog
+                    show={openDeleteDocumentConfirmation}
+                    title="Delete Document"
+                    description="Are you sure you want to delete this document?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => deleteLoadDocument(documentIdToDelete)}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteDocumentConfirmation(false);
+                        setDocumentIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteDocumentConfirmation(false);
+                        setDocumentIdToDelete(null);
+                    }}
+                ></SimpleDialog>
                 <div className="max-w-4xl py-2 mx-auto">
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
@@ -544,7 +582,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                                 downloadAllDocsClicked={downloadAllDocs}
                                 makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                                 deleteLoadClicked={() => {
-                                    deleteLoad(load.id);
+                                    showDeleteLoadConfirmation();
                                 }}
                             ></ActionsDropdown>
                         </div>
@@ -764,7 +802,9 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                                                 className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
-                                                                                    deleteLoadDocument(doc.id);
+                                                                                    showDeleteDocumentConfirmation(
+                                                                                        doc.id,
+                                                                                    );
                                                                                 }}
                                                                                 disabled={docsLoading}
                                                                             >
