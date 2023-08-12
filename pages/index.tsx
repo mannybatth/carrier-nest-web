@@ -110,7 +110,7 @@ const Dashboard: PageWithAuth = () => {
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center">
+                                <div className="flex flex-col items-center justify-center pb-10">
                                     <div className="p-6 mt-6 bg-white rounded shadow-md w-80">
                                         <h1 className="mb-4 text-2xl font-bold text-center">Create a New Load</h1>
                                         <p className="mb-6 text-center text-gray-600">

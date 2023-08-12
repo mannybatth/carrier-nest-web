@@ -271,14 +271,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         loadStatusValue === UILoadStatus.IN_PROGRESS ||
                         loadStatusValue === UILoadStatus.DELIVERED ||
                         loadStatusValue === UILoadStatus.POD_READY) && (
-                        <div className="inline-flex rounded-md shadow-sm">
+                        <div className="relative inline-flex rounded-md shadow-sm">
                             <button
                                 type="button"
                                 className="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 bg-white rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
                             >
                                 Status: {loadStatusValue.toUpperCase()}
                             </button>
-                            <Menu as="div" className="relative block -ml-px">
+                            <Menu as="div" className="block -ml-px">
                                 <Menu.Button className="relative inline-flex items-center h-full px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
                                     <span className="sr-only">Open options</span>
                                     <ChevronDownIcon className="w-5 h-5" aria-hidden="true" />
@@ -292,7 +292,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                     leaveFrom="transform opacity-100 scale-100"
                                     leaveTo="transform opacity-0 scale-95"
                                 >
-                                    <Menu.Items className="absolute right-0 z-10 w-56 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                    <Menu.Items className="absolute left-0 z-10 w-56 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
                                         <div className="py-1">
                                             {loadStatusValue !== UILoadStatus.BOOKED && (
                                                 <Menu.Item>
