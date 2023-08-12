@@ -1,9 +1,8 @@
 import { Menu, Transition } from '@headlessui/react';
 import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { DotsVerticalIcon } from '@heroicons/react/solid';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
 import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
@@ -228,7 +227,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                     className="flex justify-center items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                                                 >
                                                     <span className="sr-only">Open options</span>
-                                                    <DotsVerticalIcon className="w-6 h-6" aria-hidden="true" />
+                                                    <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
                                                 </Menu.Button>
                                             </div>
 

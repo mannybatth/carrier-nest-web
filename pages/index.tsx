@@ -1,5 +1,5 @@
 import { CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
-import { PlusIcon } from '@heroicons/react/solid';
+import { PlusIcon } from '@heroicons/react/24/solid';
 import { Carrier } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';

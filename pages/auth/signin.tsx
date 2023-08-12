@@ -1,4 +1,4 @@
-import { XCircleIcon } from '@heroicons/react/solid';
+import { XCircleIcon } from '@heroicons/react/24/solid';
 import { NextPage } from 'next';
 import { getSession, signIn } from 'next-auth/react';
 import React from 'react';
