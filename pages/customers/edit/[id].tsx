@@ -88,12 +88,12 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
         const newCustomer = await updateCustomer(customer.id, customerData);
         console.log('updated customer', newCustomer);
 
-        setLoading(false);
-
         notify({ title: 'Customer updated', message: 'Customer updated successfully' });
 
         // Redirect to customer page
-        router.push(`/customers/${newCustomer.id}`);
+        await router.push(`/customers/${newCustomer.id}`);
+
+        setLoading(false);
     };
 
     return (

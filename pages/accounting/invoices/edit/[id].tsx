@@ -102,12 +102,12 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
         const newInvoice = await updateInvoice(invoice.id, invoiceData);
         console.log('updated invoice', newInvoice);
 
-        setLoading(false);
-
         notify({ title: 'Invoice updated', message: 'Invoice updated successfully' });
 
         // Redirect to invoice page
-        router.push(`/accounting/invoices/${newInvoice.id}`);
+        await router.push(`/accounting/invoices/${newInvoice.id}`);
+
+        setLoading(false);
     };
 
     return (

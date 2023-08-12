@@ -2,13 +2,13 @@ import { Menu, Transition } from '@headlessui/react';
 import {
     ChevronDownIcon,
     CurrencyDollarIcon,
+    EnvelopeIcon,
     InformationCircleIcon,
     MapPinIcon,
-    EnvelopeIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -20,7 +20,6 @@ import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsS
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedCustomer, ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteCustomerById, getCustomerById } from '../../lib/rest/customer';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
@@ -99,35 +98,16 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, disabled, d
     );
 };
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { query } = context;
-        const sort: Sort = sortFromQuery(query);
-
-        return {
-            props: {
-                customerId: String(query.id),
-                sort,
-                limit: Number(query.limit) || 10,
-                offset: Number(query.offset) || 0,
-            },
-        };
+const CustomerDetailsPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const sortProps = sortFromQuery({
+        sortBy: searchParams.get('sortBy'),
+        sortOrder: searchParams.get('sortOrder'),
     });
-}
+    const limitProp = Number(searchParams.get('limit')) || 10;
+    const offsetProp = Number(searchParams.get('offset')) || 0;
+    const customerId = searchParams.get('id') || '';
 
-type Props = {
-    customerId: string;
-    sort: Sort;
-    limit: number;
-    offset: number;
-};
-
-const CustomerDetailsPage: PageWithAuth<Props> = ({
-    customerId,
-    sort: sortProps,
-    limit: limitProp,
-    offset: offsetProp,
-}: Props) => {
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
     const [loadingCustomer, setLoadingCustomer] = React.useState(true);

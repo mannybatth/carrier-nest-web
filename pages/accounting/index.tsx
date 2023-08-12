@@ -1,7 +1,8 @@
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import { formatValue } from 'react-currency-input-field';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
@@ -12,46 +13,23 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedInvoice, UIInvoiceStatus } from '../../interfaces/models';
 import { AccountingStats } from '../../interfaces/stats';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteInvoiceById, getAccountingStats, getInvoicesExpanded } from '../../lib/rest/invoice';
 import { useLocalStorage } from '../../lib/useLocalStorage';
-import { formatValue } from 'react-currency-input-field';
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { query } = context;
-        const sort: Sort = sortFromQuery(query);
-        const withStatus = query.status ? (query.status as UIInvoiceStatus) : UIInvoiceStatus.NOT_PAID;
-        const isBrowsing = query.show === 'all';
-
-        return {
-            props: {
-                withStatus,
-                isBrowsing,
-                sort,
-                limit: Number(query.limit) || 10,
-                offset: Number(query.offset) || 0,
-            },
-        };
+const AccountingPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const sortProps = sortFromQuery({
+        sortBy: searchParams.get('sortBy'),
+        sortOrder: searchParams.get('sortOrder'),
     });
-}
+    const limitProp = Number(searchParams.get('limit')) || 10;
+    const offsetProp = Number(searchParams.get('offset')) || 0;
+    const isBrowsing = searchParams.get('show') === 'all';
+    const withStatus = searchParams.get('status')
+        ? (searchParams.get('status') as UIInvoiceStatus)
+        : UIInvoiceStatus.NOT_PAID;
 
-type Props = {
-    withStatus: UIInvoiceStatus;
-    isBrowsing: boolean;
-    sort: Sort;
-    limit: number;
-    offset: number;
-};
-
-const AccountingPage: PageWithAuth<Props> = ({
-    withStatus,
-    isBrowsing,
-    sort: sortProps,
-    limit: limitProp,
-    offset: offsetProp,
-}: Props) => {
     const [lastInvoicesTableLimit, setLastInvoicesTableLimit] = useLocalStorage('lastInvoicesTableLimit', limitProp);
 
     const [loadingStats, setLoadingStats] = React.useState(true);

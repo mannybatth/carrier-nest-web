@@ -11,10 +11,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
@@ -28,7 +28,6 @@ import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
 import { downloadAllDocsForLoad } from '../../lib/load/download-files';
@@ -350,22 +349,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     );
 };
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { id } = context.query;
-        return {
-            props: {
-                loadId: id ? String(id) : null,
-            },
-        };
-    });
-}
-
-type Props = {
-    loadId: string;
-};
-
-const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
+const LoadDetailsPage: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
     const { data: session } = useSession();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
@@ -958,7 +942,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 LoadDetailsPage.authenticationEnabled = true;
 
 // Wrapper needed to load provider
-const LoadDetailsPageWrapper: PageWithAuth<Props> = ({ loadId }: Props) => {
+const LoadDetailsPageWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const loadId = searchParams.get('id');
+
     return (
         <LoadProvider loadId={loadId}>
             <LoadDetailsPage loadId={loadId}></LoadDetailsPage>

@@ -64,6 +64,8 @@ const CreateLoad: PageWithAuth = () => {
     }, [copyLoadId]);
 
     const submit = async (data: ExpandedLoad) => {
+        setLoading(true);
+
         data.shipper.type = LoadStopType.SHIPPER;
         data.receiver.type = LoadStopType.RECEIVER;
 
@@ -137,16 +139,14 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
-        setLoading(true);
-
         const newLoad = await createLoad(loadData, currentRateconFile);
-
-        setLoading(false);
 
         notify({ title: 'New load created', message: 'New load created successfully' });
 
         // Redirect to load page
-        router.push(`/loads/${newLoad.id}`);
+        await router.push(`/loads/${newLoad.id}`);
+
+        setLoading(false);
     };
 
     const handleFileUpload = async (file: File) => {

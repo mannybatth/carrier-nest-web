@@ -35,12 +35,12 @@ const CreateCustomer: PageWithAuth = () => {
         const newCustomer = await createCustomer(customerData);
         console.log('new customer', newCustomer);
 
-        setLoading(false);
-
         notify({ title: 'New customer created', message: 'New customer created successfully' });
 
         // Redirect to customer page
-        router.push(`/customers/${newCustomer.id}`);
+        await router.push(`/customers/${newCustomer.id}`);
+
+        setLoading(false);
     };
 
     return (

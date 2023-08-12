@@ -74,12 +74,12 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
         const newDriver = await updateDriver(driver.id, driverData);
         console.log('updated driver', newDriver);
 
-        setLoading(false);
-
         notify({ title: 'Driver updated', message: 'Driver updated successfully' });
 
         // Redirect to driver page
-        router.push(`/drivers/${newDriver.id}`);
+        await router.push(`/drivers/${newDriver.id}`);
+
+        setLoading(false);
     };
 
     return (

@@ -115,13 +115,13 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
             const newInvoice = await createInvoice(invoiceData);
             console.log('new invoice', newInvoice);
 
-            setLoading(false);
             setLastDueNetDays(data.dueNetDays);
 
             notify({ title: 'New invoice created', message: 'New invoice created successfully' });
 
             // Redirect to invoice page
-            router.push(`/accounting/invoices/${newInvoice.id}`);
+            await router.push(`/accounting/invoices/${newInvoice.id}`);
+            setLoading(false);
         } catch (error) {
             setLoading(false);
             notify({ title: 'Error', message: 'Error creating invoice', type: 'error' });

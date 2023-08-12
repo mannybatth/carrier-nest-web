@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, EnvelopeIcon, PhoneIcon, TruckIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -13,7 +13,6 @@ import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsS
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriver, ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
@@ -92,35 +91,16 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, disabled, del
     );
 };
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { query } = context;
-        const sort: Sort = sortFromQuery(query);
-
-        return {
-            props: {
-                driverId: String(query.id),
-                sort,
-                limit: Number(query.limit) || 10,
-                offset: Number(query.offset) || 0,
-            },
-        };
+const DriverDetailsPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const sortProps = sortFromQuery({
+        sortBy: searchParams.get('sortBy'),
+        sortOrder: searchParams.get('sortOrder'),
     });
-}
+    const limitProp = Number(searchParams.get('limit')) || 10;
+    const offsetProp = Number(searchParams.get('offset')) || 0;
+    const driverId = searchParams.get('id') || '';
 
-type Props = {
-    driverId: string;
-    sort: Sort;
-    limit: number;
-    offset: number;
-};
-
-const DriverDetailsPage: PageWithAuth<Props> = ({
-    driverId,
-    sort: sortProps,
-    limit: limitProp,
-    offset: offsetProp,
-}: Props) => {
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
     const [loadingDriver, setLoadingDriver] = React.useState(true);

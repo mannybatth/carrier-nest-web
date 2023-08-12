@@ -29,12 +29,12 @@ const CreateDriver: PageWithAuth = () => {
         const newDriver = await createDriver(driverData);
         console.log('new driver', newDriver);
 
-        setLoading(false);
-
         notify({ title: 'New driver created', message: 'New driver created successfully' });
 
         // Redirect to driver page
-        router.push(`/drivers/${newDriver.id}`);
+        await router.push(`/drivers/${newDriver.id}`);
+
+        setLoading(false);
     };
 
     return (

@@ -14,6 +14,7 @@ import { updateLoad } from '../../../lib/rest/load';
 import { getLoad } from '../../api/loads/[id]';
 import { getSession } from 'next-auth/react';
 import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';
+import { LoadingOverlay } from '../../../components/LoadingOverlay';
 
 type Props = {
     load: ExpandedLoad;
@@ -142,12 +143,12 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
         const newLoad = await updateLoad(load.id, loadData);
 
-        setLoading(false);
-
         notify({ title: 'Load updated', message: 'Load updated successfully' });
 
         // Redirect to load page
-        router.push(`/loads/${newLoad.id}`);
+        await router.push(`/loads/${newLoad.id}`);
+
+        setLoading(false);
     };
 
     return (
@@ -173,7 +174,8 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
                     <h1 className="text-2xl font-semibold text-gray-900">Edit Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+                <div className="relative px-5 sm:px-6 md:px-8">
+                    {loading && <LoadingOverlay />}
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm formHook={formHook}></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
