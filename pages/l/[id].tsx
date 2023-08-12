@@ -4,6 +4,7 @@ import { DotsVerticalIcon } from '@heroicons/react/solid';
 import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { NextPageContext } from 'next';
+import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
@@ -13,21 +14,6 @@ import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad, getLoadById, updateLoadStatus } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-
-export async function getServerSideProps(context: NextPageContext) {
-    const { id, did } = context.query;
-    return {
-        props: {
-            loadId: id ? String(id) : null,
-            driverId: did ? String(did) : null,
-        },
-    };
-}
-
-type Props = {
-    loadId: string;
-    driverId: string;
-};
 
 const loadingSvg = (
     <svg
@@ -45,7 +31,11 @@ const loadingSvg = (
     </svg>
 );
 
-const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
+const LoadDetailsPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const loadId = searchParams.get('id');
+    const driverId = searchParams.get('did');
+
     const [load, setLoad] = useState<ExpandedLoad>();
     const [loadLoading, setLoadLoading] = useState(true);
     const [loadStatusLoading, setLoadStatusLoading] = useState(false);
@@ -57,8 +47,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId, driverId }: Props) => {
     let fileInput: HTMLInputElement;
 
     useEffect(() => {
-        reloadLoad();
-    }, [loadId]);
+        if (loadId && driverId) {
+            reloadLoad();
+        }
+    }, [loadId, driverId]);
 
     const reloadLoad = async () => {
         setLoadLoading(true);

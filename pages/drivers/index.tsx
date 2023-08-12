@@ -1,6 +1,6 @@
 import { Driver } from '@prisma/client';
-import { NextPageContext } from 'next';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
@@ -10,33 +10,19 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { query } = context;
-        const sort: Sort = sortFromQuery(query);
-
-        return {
-            props: {
-                sort,
-                limit: Number(query.limit) || 10,
-                offset: Number(query.offset) || 0,
-            },
-        };
+const DriversPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const sortProps = sortFromQuery({
+        sortBy: searchParams.get('sortBy'),
+        sortOrder: searchParams.get('sortOrder'),
     });
-}
+    const limitProp = Number(searchParams.get('limit')) || 20;
+    const offsetProp = Number(searchParams.get('offset')) || 0;
 
-type Props = {
-    sort: Sort;
-    limit: number;
-    offset: number;
-};
-
-const DriversPage: PageWithAuth<Props> = ({ sort: sortProps, limit: limitProp, offset: offsetProp }: Props) => {
     const [lastDriversTableLimit, setLastDriversTableLimit] = useLocalStorage('lastDriversTableLimit', limitProp);
 
     const [loadingDrivers, setLoadingDrivers] = React.useState(true);

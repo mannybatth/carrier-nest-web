@@ -1,6 +1,5 @@
-import classNames from 'classnames';
-import { NextPageContext } from 'next';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
@@ -10,41 +9,19 @@ import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { withServerAuth } from '../../lib/auth/server-auth';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { query } = context;
-        const sort: Sort = sortFromQuery(query);
-        const isBrowsing = query.show === 'all';
-
-        return {
-            props: {
-                sort,
-                isBrowsing,
-                limit: Number(query.limit) || 10,
-                offset: Number(query.offset) || 0,
-            },
-        };
+const LoadsPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const sortProps = sortFromQuery({
+        sortBy: searchParams.get('sortBy'),
+        sortOrder: searchParams.get('sortOrder'),
     });
-}
+    const limitProp = Number(searchParams.get('limit')) || 20;
+    const offsetProp = Number(searchParams.get('offset')) || 0;
 
-type Props = {
-    sort: Sort;
-    isBrowsing: boolean;
-    limit: number;
-    offset: number;
-};
-
-const LoadsPage: PageWithAuth<Props> = ({
-    sort: sortProps,
-    limit: limitProp,
-    offset: offsetProp,
-    isBrowsing,
-}: Props) => {
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
     const [loadingLoads, setLoadingLoads] = React.useState(true);
@@ -66,7 +43,7 @@ const LoadsPage: PageWithAuth<Props> = ({
         setLimit(limitProp);
         setOffset(offsetProp);
         reloadLoads({ sort, limit: limitProp, offset: offsetProp });
-    }, [isBrowsing, limitProp, offsetProp]);
+    }, [limitProp, offsetProp]);
 
     const changeSort = (sort: Sort) => {
         router.push(
@@ -98,7 +75,6 @@ const LoadsPage: PageWithAuth<Props> = ({
             limit,
             offset,
             sort,
-            currentOnly: !isBrowsing,
         });
         setLastLoadsTableLimit(loads.length !== 0 ? loads.length : lastLoadsTableLimit);
         setLoadsList(loads);
@@ -174,45 +150,6 @@ const LoadsPage: PageWithAuth<Props> = ({
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="px-5 sm:px-6 md:px-8">
-                    <div className="block">
-                        <div className="border-b border-gray-200">
-                            <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
-                                <a
-                                    onClick={() => {
-                                        router.push({
-                                            pathname: router.pathname,
-                                        });
-                                    }}
-                                    className={classNames(
-                                        !isBrowsing
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
-                                    )}
-                                    aria-current={!isBrowsing ? 'page' : undefined}
-                                >
-                                    Current Loads
-                                </a>
-                                <a
-                                    onClick={() => {
-                                        router.push({
-                                            pathname: router.pathname,
-                                            query: { show: 'all' },
-                                        });
-                                    }}
-                                    className={classNames(
-                                        isBrowsing
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                        'w-1/2 text-center md:text-left md:w-auto whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm',
-                                    )}
-                                    aria-current={isBrowsing ? 'page' : undefined}
-                                >
-                                    Browse All Loads
-                                </a>
-                            </nav>
-                        </div>
-                    </div>
                     <div className="py-2">
                         {loadingLoads ? (
                             <LoadsTableSkeleton limit={lastLoadsTableLimit} />
