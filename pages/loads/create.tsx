@@ -1,46 +1,32 @@
+import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
+import startOfDay from 'date-fns/startOfDay';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
+import { FileUploader } from 'react-drag-drop-files';
 import { useFieldArray, useForm } from 'react-hook-form';
-import startOfDay from 'date-fns/startOfDay';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
+import { apiUrl } from '../../constants';
+import { AILoad } from '../../interfaces/ai';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
-import { createLoad, getLoadById } from '../../lib/rest/load';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { getAllCustomers } from '../../lib/rest/customer';
-import { FileUploader } from 'react-drag-drop-files';
-import { apiUrl } from '../../constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
-import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
-import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { withServerAuth } from '../../lib/auth/server-auth';
-import { NextPageContext } from 'next';
 import { calcPdfPageCount } from '../../lib/helpers/pdf';
-import { AILoad } from '../../interfaces/ai';
+import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
+import { getAllCustomers } from '../../lib/rest/customer';
+import { createLoad, getLoadById } from '../../lib/rest/load';
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { copyLoadId } = context.query;
-        return {
-            props: {
-                copyLoadId: copyLoadId ? String(copyLoadId) : null,
-            },
-        };
-    });
-}
-
-type Props = {
-    copyLoadId: string;
-};
-
-const CreateLoad: PageWithAuth<Props> = ({ copyLoadId }: Props) => {
+const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const copyLoadId = searchParams.get('copyLoadId');
 
     const [loading, setLoading] = React.useState(false);
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
