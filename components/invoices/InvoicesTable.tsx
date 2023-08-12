@@ -47,7 +47,7 @@ const InvoicesTable: React.FC<Props> = ({
                         headers.includes('status')
                             ? {
                                   node: (
-                                      <div className="text-xs leading-5 text-gray-900">
+                                      <div className="text-xs leading-5 text-gray-900 whitespace-nowrap">
                                           <InvoiceStatusBadge invoice={invoice} />
                                       </div>
                                   ),

@@ -120,10 +120,7 @@ const Table: React.FC<Props> = ({ headers, rows, sort: sortProps, loading, empty
                                         }}
                                     >
                                         {row.items.map((item, index) => (
-                                            <td
-                                                key={`item-${rowIndex}-${index}`}
-                                                className="px-6 py-2 whitespace-no-wrap"
-                                            >
+                                            <td key={`item-${rowIndex}-${index}`} className="px-6 py-2">
                                                 {item.value ? (
                                                     <div className="text-sm leading-5 text-gray-900">{item.value}</div>
                                                 ) : (
