@@ -2,8 +2,8 @@ import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
-import { NextPageContext } from 'next';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
@@ -17,7 +17,6 @@ import { notify } from '../../../components/Notification';
 import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetailsSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
-import { withServerAuth } from '../../../lib/auth/server-auth';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { downloadAllDocsForLoad } from '../../../lib/load/download-files';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
@@ -151,22 +150,10 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     );
 };
 
-export async function getServerSideProps(context: NextPageContext) {
-    return withServerAuth(context, async (context) => {
-        const { id } = context.query;
-        return {
-            props: {
-                invoiceId: id ? String(id) : null,
-            },
-        };
-    });
-}
+const InvoiceDetailsPage: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const invoiceId = searchParams.get('id');
 
-type Props = {
-    invoiceId: string;
-};
-
-const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
     const { data: session } = useSession();
 
@@ -174,7 +161,9 @@ const InvoiceDetailsPage: PageWithAuth<Props> = ({ invoiceId }: Props) => {
     const router = useRouter();
 
     useEffect(() => {
-        reloadInvoice();
+        if (invoiceId) {
+            reloadInvoice();
+        }
     }, [invoiceId]);
 
     const reloadInvoice = async () => {
