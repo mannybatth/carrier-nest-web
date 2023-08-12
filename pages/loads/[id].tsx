@@ -645,7 +645,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                         <dd className="text-right text-gray-900">
                                                             {metersToMiles(
                                                                 new Prisma.Decimal(load.routeDistance).toNumber(),
-                                                            ).toFixed(2)}{' '}
+                                                            ).toFixed(0)}{' '}
                                                             miles
                                                         </dd>
                                                     </div>
