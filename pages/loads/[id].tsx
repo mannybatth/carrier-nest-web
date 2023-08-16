@@ -269,8 +269,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     !dropOffDatePassed &&
                     (loadStatusValue === UILoadStatus.BOOKED ||
                         loadStatusValue === UILoadStatus.IN_PROGRESS ||
-                        loadStatusValue === UILoadStatus.DELIVERED ||
-                        loadStatusValue === UILoadStatus.POD_READY) && (
+                        loadStatusValue === UILoadStatus.DELIVERED) && (
                         <div className="relative inline-flex rounded-md shadow-sm">
                             <button
                                 type="button"
