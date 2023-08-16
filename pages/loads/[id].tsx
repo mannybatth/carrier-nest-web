@@ -354,6 +354,7 @@ const LoadDetailsPage: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
     const { data: session } = useSession();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
+    const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
 
@@ -363,11 +364,15 @@ const LoadDetailsPage: PageWithAuth = () => {
 
     const router = useRouter();
 
-    let fileInput: HTMLInputElement;
+    let podFileInput: HTMLInputElement;
+    let docFileInput: HTMLInputElement;
 
     useEffect(() => {
-        load &&
-            setLoadDocuments([load.rateconDocument, ...load.podDocuments, ...load.loadDocuments].filter((ld) => ld));
+        if (!load) {
+            return;
+        }
+        setLoadDocuments([load.rateconDocument, ...load.loadDocuments].filter((ld) => ld));
+        setPodDocuments(load.podDocuments || []);
     }, [load]);
 
     const assignDriverAction = async () => {
@@ -382,7 +387,7 @@ const LoadDetailsPage: PageWithAuth = () => {
         router.push('/loads');
     };
 
-    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const handleUploadDocsChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
 
         if (!file) {
@@ -410,6 +415,7 @@ const LoadDetailsPage: PageWithAuth = () => {
                     const newLoadDocuments = [...tempDocs];
                     newLoadDocuments[index] = newLoadDocument;
                     setLoadDocuments(newLoadDocuments);
+                    setLoad({ ...load, loadDocuments: newLoadDocuments });
                 }
                 notify({ title: 'Document uploaded', message: 'Document uploaded successfully' });
             } else {
@@ -418,6 +424,50 @@ const LoadDetailsPage: PageWithAuth = () => {
         } catch (e) {
             notify({ title: 'Error uploading document', message: e.message, type: 'error' });
         }
+        event.target.value = '';
+        setDocsLoading(false);
+    };
+
+    const handleUploadPodsChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            console.log('No file selected.');
+            return;
+        }
+
+        setDocsLoading(true);
+        try {
+            const response = await uploadFileToGCS(file);
+            if (response?.uniqueFileName) {
+                const simpleDoc: Partial<LoadDocument> = {
+                    fileKey: response.uniqueFileName,
+                    fileUrl: response.gcsInputUri,
+                    fileName: file.name,
+                    fileType: file.type,
+                    fileSize: file.size,
+                };
+                const tempDocs = [simpleDoc, ...podDocuments] as LoadDocument[];
+                setPodDocuments(tempDocs);
+                const newPodDocument = await addLoadDocumentToLoad(load.id, simpleDoc, {
+                    isPod: true,
+                });
+
+                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
+                if (index !== -1) {
+                    const newPodDocuments = [...tempDocs];
+                    newPodDocuments[index] = newPodDocument;
+                    setPodDocuments(newPodDocuments);
+                    setLoad({ ...load, podDocuments: newPodDocuments });
+                }
+                notify({ title: 'POD uploaded', message: 'POD uploaded successfully' });
+            } else {
+                notify({ title: 'Error uploading POD', message: 'Upload response invalid', type: 'error' });
+            }
+        } catch (e) {
+            notify({ title: 'Error uploading POD', message: e.message, type: 'error' });
+        }
+        event.target.value = '';
         setDocsLoading(false);
     };
 
@@ -429,7 +479,10 @@ const LoadDetailsPage: PageWithAuth = () => {
                 isRatecon: load.rateconDocument?.id === id,
             });
             const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+            const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
             setLoadDocuments(newLoadDocuments);
+            setPodDocuments(newPodDocuments);
+            setLoad({ ...load, loadDocuments: newLoadDocuments, podDocuments: newPodDocuments });
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
         } catch (e) {
             notify({ title: 'Error deleting document', message: e.message, type: 'error' });
@@ -725,24 +778,90 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                 </div>
                                                 <div>
                                                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">PODs</dt>
+                                                        <dd className="text-gray-900">
+                                                            <div>
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={handleUploadPodsChange}
+                                                                    style={{ display: 'none' }}
+                                                                    ref={(input) => (podFileInput = input)}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                    onClick={() => podFileInput.click()}
+                                                                    disabled={docsLoading}
+                                                                >
+                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                                                    <span className="block md:hidden">Upload POD</span>
+                                                                    <span className="hidden md:block">Upload POD</span>
+                                                                </button>
+                                                            </div>
+                                                        </dd>
+                                                    </div>
+                                                    {podDocuments.length > 0 && (
+                                                        <ul
+                                                            role="list"
+                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                        >
+                                                            {podDocuments.map((doc, index) => (
+                                                                <li key={`pod-doc-${index}`}>
+                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                        <div
+                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                            onClick={() => openDocument(doc)}
+                                                                        >
+                                                                            <PaperClipIcon
+                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                            <span className="flex-1 w-0 ml-2 truncate">
+                                                                                {doc.fileName}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex-shrink-0 ml-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setDocumentIdToDelete(doc.id);
+                                                                                    setOpenDeleteDocumentConfirmation(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                disabled={docsLoading}
+                                                                            >
+                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Documents</dt>
                                                         <dd className="text-gray-900">
                                                             <div>
                                                                 <input
                                                                     type="file"
-                                                                    onChange={handleFileChange}
+                                                                    onChange={handleUploadDocsChange}
                                                                     style={{ display: 'none' }}
-                                                                    ref={(input) => (fileInput = input)}
+                                                                    ref={(input) => (docFileInput = input)}
                                                                 />
                                                                 <button
                                                                     type="button"
                                                                     className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={() => fileInput.click()}
+                                                                    onClick={() => docFileInput.click()}
                                                                     disabled={docsLoading}
                                                                 >
                                                                     <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
                                                                     <span className="block md:hidden">Upload</span>
-                                                                    <span className="hidden md:block">Upload Docs</span>
+                                                                    <span className="hidden md:block">Upload Doc</span>
                                                                 </button>
                                                             </div>
                                                         </dd>
@@ -752,31 +871,6 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                             role="list"
                                                             className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
                                                         >
-                                                            {/* {files.map((file, index) =>
-                                                                file.progress < 100 ? (
-                                                                    <li
-                                                                        key={`file-${index}`}
-                                                                        className="flex items-center justify-between py-2 pl-3 pr-4 text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                                                    >
-                                                                        <div className="flex items-center flex-1 w-0">
-                                                                            <PaperClipIcon
-                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {file.file.name}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex-shrink-0 ml-4">
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {file.progress < 100
-                                                                                    ? `${Math.round(file.progress)}%`
-                                                                                    : ''}
-                                                                            </span>
-                                                                        </div>
-                                                                    </li>
-                                                                ) : null,
-                                                            )} */}
                                                             {loadDocuments.map((doc, index) => (
                                                                 <li key={`doc-${index}`}>
                                                                     <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
@@ -813,11 +907,6 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                             ))}
                                                         </ul>
                                                     )}
-                                                    {/* {loadDocuments.length === 0 && (
-                                                        <UploadDocsArea
-                                                            handleFileChange={handleFileChange}
-                                                        ></UploadDocsArea>
-                                                    )} */}
                                                 </div>
                                             </dl>
                                         </div>

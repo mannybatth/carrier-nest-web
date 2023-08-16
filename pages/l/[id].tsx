@@ -304,19 +304,21 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                     />
                                                     <span className="flex-1 w-0 ml-2 truncate">{doc.fileName}</span>
                                                 </div>
-                                                <div className="flex-shrink-0 ml-2">
-                                                    <button
-                                                        type="button"
-                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            deleteLoadDocument(doc.id);
-                                                        }}
-                                                        disabled={docsLoading}
-                                                    >
-                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                    </button>
-                                                </div>
+                                                {doc.driverId === driverId && (
+                                                    <div className="flex-shrink-0 ml-2">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteLoadDocument(doc.id);
+                                                            }}
+                                                            disabled={docsLoading}
+                                                        >
+                                                            <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
