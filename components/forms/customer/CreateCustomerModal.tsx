@@ -1,6 +1,6 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Customer } from '@prisma/client';
-import React, { Fragment } from 'react';
+import React, { Fragment, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { createCustomer } from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
@@ -17,6 +17,7 @@ type Props = {
 const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose, showMissingCustomerLabel, prefillName }) => {
     const [loading, setLoading] = React.useState(false);
     const formHook = useForm<Customer>();
+    const formRef = useRef(null);
 
     React.useEffect(() => {
         if (prefillName) {
@@ -51,8 +52,29 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose, showMis
         onClose(value);
     };
 
+    const addSubmitListener = () => {
+        const form = formRef.current;
+        if (form) {
+            form.removeEventListener('submit', handleSubmit);
+            form.addEventListener('submit', handleSubmit);
+        }
+    };
+
+    const removeSubmitListener = () => {
+        const form = formRef.current;
+        if (form) {
+            form.removeEventListener('submit', handleSubmit);
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault(); // This will prevent the form's default submission behavior.
+        e.stopPropagation();
+        formHook.handleSubmit(submit)();
+    };
+
     return (
-        <Transition.Root show={show} as={Fragment}>
+        <Transition.Root show={show} as={Fragment} afterEnter={addSubmitListener} afterLeave={removeSubmitListener}>
             <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={(value) => close(value)}>
                 <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                     <Transition.Child
@@ -93,7 +115,7 @@ const CreateCustomerModal: React.FC<Props> = ({ show, onCreate, onClose, showMis
                                 </div>
                             )}
 
-                            <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
+                            <form ref={formRef} id="customer-form">
                                 <CustomerForm formHook={formHook} condensed></CustomerForm>
                                 <div className="mt-5 sm:mt-6">
                                     <button
