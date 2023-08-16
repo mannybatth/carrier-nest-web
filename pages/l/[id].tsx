@@ -7,7 +7,6 @@ import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
-import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
@@ -30,7 +29,44 @@ const loadingSvg = (
     </svg>
 );
 
-const LoadDetailsPage: PageWithAuth = () => {
+const DriverLoadDetailsPageSkeleton = () => {
+    return (
+        <div className="flex flex-col space-y-4">
+            <div className="flex items-start justify-between">
+                <div>
+                    <div className="w-40 h-5 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="w-20 h-5 mt-2 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div>
+                    <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+            </div>
+
+            <div className="flex space-x-3">
+                <div className="flex-grow flex h-10 justify-center animate-pulse items-center rounded-md bg-gray-200 px-3 py-2.5 text-sm font-semibold text-white shadow-sm"></div>
+            </div>
+
+            <div className="flex flex-col justify-between space-y-4">
+                <div className="flex flex-row space-x-4">
+                    <div className="w-20 h-[60px] p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex flex-col space-y-2">
+                        <div className="w-40 h-5 p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-20 h-8 p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+                <div className="flex flex-row space-x-4">
+                    <div className="w-20 h-[60px] p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex flex-col space-y-2">
+                        <div className="w-40 h-5 p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-20 h-8 p-2 text-base bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DriverLoadDetailsPage: PageWithAuth = () => {
     const searchParams = useSearchParams();
     const loadId = searchParams.get('id');
     const driverId = searchParams.get('did');
@@ -469,13 +505,15 @@ const LoadDetailsPage: PageWithAuth = () => {
                         </div>
                     )
                 ) : (
-                    <LoadDetailsSkeleton></LoadDetailsSkeleton>
+                    <div className="p-4 space-y-4 overflow-hidden border-2 rounded-lg">
+                        <DriverLoadDetailsPageSkeleton></DriverLoadDetailsPageSkeleton>
+                    </div>
                 )}
             </div>
         </div>
     );
 };
 
-LoadDetailsPage.authenticationEnabled = false;
+DriverLoadDetailsPage.authenticationEnabled = false;
 
-export default LoadDetailsPage;
+export default DriverLoadDetailsPage;
