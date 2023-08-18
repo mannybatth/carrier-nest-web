@@ -2,6 +2,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useSession } from 'next-auth/react';
 import React, { Fragment, PropsWithChildren, useState } from 'react';
+import { Tooltip } from 'react-tooltip';
 import { useUserContext } from '../context/UserContext';
 import CreateNewButton from './CreateNewButton';
 import Navigation from './Navigation';
@@ -29,6 +30,16 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
 
     return (
         <div className={className}>
+            <Tooltip
+                id="tooltip"
+                className="z-50 rounded-[12px] p-0"
+                style={{
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                }}
+            />
+
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <Dialog as="div" className="fixed inset-0 z-40 flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child

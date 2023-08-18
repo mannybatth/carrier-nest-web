@@ -49,6 +49,7 @@
         "react-hook-form": "^7.44.3",
         "react-hot-toast": "^2.4.1",
         "react-markdown": "^8.0.7",
+        "react-tooltip": "^5.21.1",
         "rxjs": "^7.5.4",
         "safe-json-stringify": "^1.2.0",
         "twilio": "^4.14.1"

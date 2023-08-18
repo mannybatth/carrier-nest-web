@@ -1,6 +1,7 @@
 import { Load } from '@prisma/client';
 import React from 'react';
 import { loadStatus, UILoadStatus } from '../../lib/load/load-utils';
+import { Tooltip } from 'react-tooltip';
 
 type Props = {
     load: Partial<Load>;
@@ -10,6 +11,7 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
     const [status, setStatus] = React.useState('');
     const [bgColor, setBgColor] = React.useState('bg-green-100');
     const [textColor, setTextColor] = React.useState('text-green-800');
+    const [tooltipText, setTooltipText] = React.useState('');
 
     React.useEffect(() => {
         const statusText = loadStatus(load);
@@ -41,12 +43,36 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
         }
     }, [load]);
 
+    React.useEffect(() => {
+        if (status === UILoadStatus.BOOKED) {
+            setTooltipText('Load is booked and ready to be picked up');
+        } else if (status === UILoadStatus.IN_PROGRESS) {
+            setTooltipText('Load has been picked up and is in transit');
+        } else if (status === UILoadStatus.DELIVERED) {
+            setTooltipText('Load has been delivered or is 24 hours after the delivery date');
+        } else if (status === UILoadStatus.POD_READY) {
+            setTooltipText('Proof of delivery has been uploaded');
+        } else if (status === UILoadStatus.INVOICED) {
+            setTooltipText('Invoice has been created');
+        } else if (status === UILoadStatus.PARTIALLY_PAID) {
+            setTooltipText('Partial payment has been made');
+        } else if (status === UILoadStatus.PAID) {
+            setTooltipText('Load has been paid in full');
+        } else if (status === UILoadStatus.OVERDUE) {
+            setTooltipText('Payments are overdue');
+        }
+    }, [status]);
+
     return (
-        <span
-            className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
-        >
-            {status}
-        </span>
+        <>
+            <span
+                data-tooltip-id="tooltip"
+                data-tooltip-content={tooltipText}
+                className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
+            >
+                {status}
+            </span>
+        </>
     );
 };
 
