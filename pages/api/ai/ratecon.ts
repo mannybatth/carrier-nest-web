@@ -28,7 +28,7 @@ async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
 }
 
 const questions: string[] = [
-    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc,
+    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number.
 json scheme:
 {
     "logistics_company": string or null,
@@ -40,7 +40,7 @@ json scheme:
 {
     "stops": [
         {
-            "type": "<PU>" or "<SO>",
+            "type": "PU" or "SO",
             "name": string or null,
             "address": {
                 "street": string or null,
@@ -56,7 +56,7 @@ json scheme:
     ],
 }`,
 
-    `What is the total pay for the load or shipment? It will be some dollar amount. Looks for labels similar to "total", "total cost". Include only the numeric value and not the currency.
+    `Extract the financial details from the document context related to the rate or total cost of the shipment or load. The information is likely located near terms like "Total", "Rate", or "Amount". Make sure to extract the total amount with additional payments included. Search specifically for a format that might resemble "$USD 3,700.00" or any similar numerical representation. Return the exact numeric value related to the rate or payment for the load. Ensure this information is returned in the provided JSON format.
 json scheme:
 {
     "rate": number or null,
