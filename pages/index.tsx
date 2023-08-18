@@ -359,17 +359,17 @@ const Dashboard: PageWithAuth = () => {
                                         icon={TruckIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Loads In Progress'}
+                                        title={'Loads in Progress'}
                                         value={`${stats.totalInProgress}`}
                                         icon={TruckIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Loads Ready To Invoice'}
+                                        title={'Loads Ready to Invoice'}
                                         value={`${stats.totalReadyToInvoice}`}
                                         icon={TruckIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Revenue'}
+                                        title={'Total Revenue'}
                                         value={`${formatValue({
                                             value: stats.totalRevenue.toString(),
                                             groupSeparator: ',',
@@ -380,7 +380,7 @@ const Dashboard: PageWithAuth = () => {
                                         icon={CurrencyDollarIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Paid Amount'}
+                                        title={'Payments Received'}
                                         value={`${formatValue({
                                             value: stats.totalPaid.toString(),
                                             groupSeparator: ',',

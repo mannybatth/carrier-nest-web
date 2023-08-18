@@ -348,8 +348,8 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                             ? invoice.load.customer.city + ', '
                                                             : null}
                                                         {invoice.load.customer.state
-                                                            ? invoice.load.customer.state
-                                                            : ' '}
+                                                            ? invoice.load.customer.state + ' '
+                                                            : null}
                                                         {invoice.load.customer.zip}
                                                     </div>
                                                 </dd>
