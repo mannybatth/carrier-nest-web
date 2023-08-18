@@ -10,6 +10,7 @@ const InvoiceStatusBadge: React.FC<Props> = ({ invoice }) => {
     const [status, setStatus] = React.useState('');
     const [bgColor, setBgColor] = React.useState('bg-green-100');
     const [textColor, setTextColor] = React.useState('text-green-800');
+    const [tooltipText, setTooltipText] = React.useState('');
 
     React.useEffect(() => {
         const statusText = invoiceStatus(invoice);
@@ -29,8 +30,22 @@ const InvoiceStatusBadge: React.FC<Props> = ({ invoice }) => {
         }
     }, [invoice]);
 
+    React.useEffect(() => {
+        if (status === UIInvoiceStatus.NOT_PAID) {
+            setTooltipText('Invoice created but not paid yet');
+        } else if (status === UIInvoiceStatus.PARTIALLY_PAID) {
+            setTooltipText('Partial payment has been made');
+        } else if (status === UIInvoiceStatus.PAID) {
+            setTooltipText('Invoice has been paid in full');
+        } else if (status === UIInvoiceStatus.OVERDUE) {
+            setTooltipText('Invoice is overdue');
+        }
+    }, [status]);
+
     return (
         <span
+            data-tooltip-id="tooltip"
+            data-tooltip-content={tooltipText}
             className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
         >
             {status}

@@ -1,7 +1,6 @@
 import { Load } from '@prisma/client';
 import React from 'react';
 import { loadStatus, UILoadStatus } from '../../lib/load/load-utils';
-import { Tooltip } from 'react-tooltip';
 
 type Props = {
     load: Partial<Load>;
@@ -64,15 +63,13 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
     }, [status]);
 
     return (
-        <>
-            <span
-                data-tooltip-id="tooltip"
-                data-tooltip-content={tooltipText}
-                className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
-            >
-                {status}
-            </span>
-        </>
+        <span
+            data-tooltip-id="tooltip"
+            data-tooltip-content={tooltipText}
+            className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
+        >
+            {status}
+        </span>
     );
 };
 
