@@ -340,7 +340,7 @@ const Dashboard: PageWithAuth = () => {
                     )}
 
                     <div className="px-5 mt-2 md:px-0">
-                        <h2 className="text-lg font-medium leading-6 text-gray-900">Last 30 Days</h2>
+                        <h2 className="text-lg font-bold leading-6 text-gray-900">Load Activity - Past 30 Days</h2>
                         <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3">
                             {loadingStats ? (
                                 <>
