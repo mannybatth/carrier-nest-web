@@ -237,9 +237,7 @@ const CustomerDetailsPage: PageWithAuth = () => {
         <Layout
             smHeaderComponent={
                 <div className="flex items-center space-x-1">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900 truncate">
-                        {customer?.name} {customer?.name}
-                    </h1>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900 truncate">{customer?.name}</h1>
                     <ActionsDropdown
                         className="whitespace-nowrap"
                         customer={customer}

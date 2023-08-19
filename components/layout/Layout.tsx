@@ -138,7 +138,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         <span className="sr-only">Open sidebar</span>
                         <Bars3Icon className="w-6 h-6" aria-hidden="true" />
                     </button>
-                    <div className="flex-1 ml-1 mr-1 truncate">{smHeaderComponent}</div>
+                    <div className="flex-1 ml-1 mr-1">{smHeaderComponent}</div>
                 </div>
 
                 <main className="flex-1 mb-64">{children}</main>
