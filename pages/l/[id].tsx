@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/react/24/solid';
-import { Carrier, LoadDocument, LoadStatus, Prisma } from '@prisma/client';
+import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';

@@ -27,16 +27,17 @@ import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
 type ActionsDropdownProps = {
+    className?: string;
     customer: ExpandedCustomer;
     disabled?: boolean;
     deleteCustomer: (id: string) => void;
 };
 
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ customer, disabled, deleteCustomer }) => {
+const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ className, customer, disabled, deleteCustomer }) => {
     const router = useRouter();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className={classNames('relative inline-block text-left', className)}>
             <div>
                 <Menu.Button
                     className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
@@ -235,9 +236,12 @@ const CustomerDetailsPage: PageWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={
-                <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{customer?.name}</h1>
+                <div className="flex items-center space-x-1">
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900 truncate">
+                        {customer?.name} {customer?.name}
+                    </h1>
                     <ActionsDropdown
+                        className="whitespace-nowrap"
                         customer={customer}
                         disabled={!customer}
                         deleteCustomer={() => setOpenDeleteCustomerConfirmation(true)}
@@ -302,7 +306,7 @@ const CustomerDetailsPage: PageWithAuth = () => {
                         <div className="grid grid-cols-12 gap-5">
                             {customer ? (
                                 <div className="col-span-12">
-                                    <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+                                    <div role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                                         <div className="flex p-3">
                                             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
                                                 <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
