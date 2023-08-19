@@ -295,8 +295,11 @@ const DriverDetailsPage: PageWithAuth = () => {
                         <div className="grid grid-cols-12 gap-5">
                             {driver ? (
                                 <div className="col-span-12">
-                                    <div role="list" className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-                                        <div className="flex p-3">
+                                    <div
+                                        role="list"
+                                        className="grid grid-cols-1 gap-6 py-2 sm:grid-cols-2 lg:grid-cols-4"
+                                    >
+                                        <div className="flex">
                                             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
                                                 <TruckIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                             </div>
@@ -305,7 +308,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                                                 <p className="text-sm text-gray-500">{metadata?.total || '--'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex p-3">
+                                        <div className="flex">
                                             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ">
                                                 <EnvelopeIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                             </div>
@@ -314,7 +317,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                                                 <p className="text-sm text-gray-500">{driver.email}</p>
                                             </div>
                                         </div>
-                                        <div className="flex p-3">
+                                        <div className="flex">
                                             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
                                                 <PhoneIcon className="w-5 h-5 text-gray-500" aria-hidden="true" />
                                             </div>
