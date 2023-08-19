@@ -24,12 +24,20 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _patch() {
         const session = await getServerSession(req, res, authOptions);
+        const { driverIds = [], sendSMS } = req.body as { driverIds: string[]; sendSMS: boolean };
 
         const load = await prisma.load.findFirst({
             where: {
                 id: String(req.query.id),
                 carrierId: session.user.defaultCarrierId,
             },
+            include: sendSMS
+                ? {
+                      customer: true,
+                      shipper: true,
+                      receiver: true,
+                  }
+                : undefined,
         });
 
         if (!load) {
@@ -39,7 +47,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const { driverIds = [], sendSMS } = req.body as { driverIds: string[]; sendSMS: boolean };
         const drivers = await prisma.driver.findMany({
             where: {
                 id: {
@@ -74,9 +81,17 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 if (!driver.phone) {
                     continue;
                 }
-
                 const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
-                const textMessage = `You have been assigned to a load: ${linkToLoad}`;
+                const textMessage = `You have been assigned to a load!
+
+${load.customer.name}
+${load.shipper.city}, ${load.shipper.state} to ${load.receiver.city}, ${load.receiver.state}
+${new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+}).format(new Date(load.shipper.date))}
+
+View Load: ${linkToLoad}`;
                 const message = await client.messages.create({
                     body: textMessage,
                     from: '+18883429736',
