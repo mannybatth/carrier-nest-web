@@ -325,18 +325,21 @@ const Dashboard: PageWithAuth = () => {
                         </>
                     )}
                     {loadsLoading && (
-                        <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
-                            <ul role="list" className="flex space-x-6 flex-nowrap">
-                                {[...Array(10)].map((_, index) => (
-                                    <li
-                                        key={index}
-                                        className="overflow-hidden cursor-pointer rounded-xl w-80 h-96 animate-pulse"
-                                    >
-                                        <div className="w-full h-full bg-slate-200"></div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                        <>
+                            <h3 className="px-5 mb-2 font-bold md:px-0">Upcoming & In Progress Loads</h3>
+                            <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
+                                <ul role="list" className="flex px-5 space-x-6 flex-nowrap">
+                                    {[...Array(10)].map((_, index) => (
+                                        <li
+                                            key={index}
+                                            className="overflow-hidden cursor-pointer rounded-xl w-80 h-96 animate-pulse"
+                                        >
+                                            <div className="w-full h-full bg-slate-200"></div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </>
                     )}
 
                     <div className="px-5 mt-2 md:px-0">
