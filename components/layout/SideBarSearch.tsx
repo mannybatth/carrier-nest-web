@@ -3,7 +3,7 @@ import { FaceFrownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { Customer, Driver, Load } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
-import React, { Fragment, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../interfaces/models';
 import { useDebounce } from '../../lib/debounce';
 import { search } from '../../lib/rest/search';
@@ -20,7 +20,7 @@ const SideBarSearch: React.FC = () => {
         React.useState<[string, SearchResult<Load>[] | SearchResult<Customer>[] | SearchResult<Driver>[]][]>(null);
     const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (open) {
             setTimeout(() => {
                 searchInputRef?.current?.focus();
