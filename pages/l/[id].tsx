@@ -1,6 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 import { LoadDocument, LoadStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
@@ -190,10 +190,45 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
         window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`);
     };
 
+    const openRouteInGoogleMaps = () => {
+        if (load) {
+            // origin is the load shipper address
+            const origin = `${load.shipper.latitude}, ${load.shipper.longitude}`;
+            // destination is the load receiver address
+            const destination = `${load.receiver.latitude}, ${load.receiver.longitude}`;
+            // waypoints are the load stops, separate by a pipe
+            const waypoints =
+                load.stops && load.stops.length > 0
+                    ? load.stops.map((stop) => `${stop.latitude}, ${stop.longitude}`).join('|')
+                    : null;
+            const searchParams = new URLSearchParams();
+            searchParams.append('api', '1');
+            searchParams.append('origin', origin);
+            searchParams.append('destination', destination);
+            if (waypoints) {
+                searchParams.append('waypoints', waypoints);
+            }
+            searchParams.append('travelmode', 'driving');
+            const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
+            window.open(url);
+        }
+    };
+
     return (
         <div className="max-w-4xl py-6 mx-auto">
-            <div className="flex flex-col px-4">
-                <h4 className="mb-2 font-semibold">Your Loads</h4>
+            <div className="flex flex-col px-4 space-y-2">
+                <div className="flex flex-row">
+                    <h3 className="font-semibold">Your Assigned Load</h3>
+                    <div className="flex-1"></div>
+                    <button
+                        type="button"
+                        className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        onClick={openRouteInGoogleMaps}
+                    >
+                        Get Directions
+                        <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                    </button>
+                </div>
 
                 {!loadLoading ? (
                     load ? (
