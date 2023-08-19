@@ -96,6 +96,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 </div>
                                 <SideBarAccount defaultCarrier={defaultCarrier} carrierList={carriers}></SideBarAccount>
                                 <SideBarSearch></SideBarSearch>
+                                <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
                                 <Navigation></Navigation>
                             </div>
                             <SideBarFooter></SideBarFooter>

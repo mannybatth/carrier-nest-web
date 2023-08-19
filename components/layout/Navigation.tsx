@@ -1,5 +1,4 @@
 import {
-    // CogIcon,
     CurrencyDollarIcon,
     HomeIcon,
     IdentificationIcon,
@@ -17,7 +16,6 @@ const navigation = [
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
     { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
-    // { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 
 const Navigation: React.FC = () => {

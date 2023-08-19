@@ -3,7 +3,7 @@ import { FaceFrownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { Customer, Driver, Load } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../interfaces/models';
 import { useDebounce } from '../../lib/debounce';
 import { search } from '../../lib/rest/search';
@@ -12,12 +12,19 @@ import Spinner from '../Spinner';
 const SideBarSearch: React.FC = () => {
     const [open, setOpen] = useState(false);
     const router = useRouter();
+    const searchInputRef = useRef(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] =
         React.useState<[string, SearchResult<Load>[] | SearchResult<Customer>[] | SearchResult<Driver>[]][]>(null);
     const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+
+    useEffect(() => {
+        if (open && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [open]);
 
     useEffect(() => {
         if (!debouncedSearchTerm) {
@@ -107,6 +114,7 @@ const SideBarSearch: React.FC = () => {
                                     aria-hidden="true"
                                 />
                                 <Combobox.Input
+                                    ref={searchInputRef}
                                     className="w-full h-12 pr-4 text-gray-800 placeholder-gray-400 bg-transparent border-0 pl-11 focus:ring-0 sm:text-sm"
                                     placeholder="Search for a load, customer, or driver"
                                     autoComplete="off"
