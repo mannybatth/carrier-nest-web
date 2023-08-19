@@ -21,8 +21,10 @@ const SideBarSearch: React.FC = () => {
     const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
 
     useEffect(() => {
-        if (open && searchInputRef.current) {
-            searchInputRef.current.focus();
+        if (open) {
+            setTimeout(() => {
+                searchInputRef?.current?.focus();
+            }, 100);
         }
     }, [open]);
 
