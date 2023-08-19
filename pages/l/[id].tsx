@@ -535,7 +535,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     <div className="text-sm">
                                         {load.routeDistance && (
                                             <div>
-                                                Route Distance:{' '}
+                                                Distance:{' '}
                                                 {metersToMiles(
                                                     new Prisma.Decimal(load.routeDistance).toNumber(),
                                                 ).toFixed(0)}{' '}
@@ -550,10 +550,10 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                         )}
                                     </div>
                                     <div className="flex-1"></div>
-                                    <div>
+                                    <div className="flex-none">
                                         <button
                                             type="button"
-                                            className="inline-flex items-center justify-center w-full h-8 px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                             onClick={openRouteInGoogleMaps}
                                         >
                                             Get Directions
