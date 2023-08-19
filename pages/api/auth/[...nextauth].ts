@@ -54,6 +54,9 @@ export const authOptions: NextAuthOptions = {
             return session;
         },
     },
+    session: {
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+    },
     events: {
         signIn: async ({ user, account, profile, isNewUser }) => {
             console.log('signIn user:', user);
