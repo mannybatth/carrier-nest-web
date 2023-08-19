@@ -86,18 +86,18 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 ${load.customer.name}
 ${load.shipper.city}, ${load.shipper.state} to ${load.receiver.city}, ${load.receiver.state}
-${new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: '2-digit',
-}).format(new Date(load.shipper.date))}
+Pick up: ${new Intl.DateTimeFormat('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                }).format(new Date(load.shipper.date))} at ${load.shipper.time}
 
 View Load: ${linkToLoad}`;
-                const message = await client.messages.create({
+
+                await client.messages.create({
                     body: textMessage,
                     from: '+18883429736',
                     to: driver.phone,
                 });
-                console.log('SMS to driver', driver.phone, message.sid, textMessage);
             }
         }
 
