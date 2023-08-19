@@ -117,6 +117,7 @@ const SideBarSearch: React.FC = () => {
                                 />
                                 <Combobox.Input
                                     ref={searchInputRef}
+                                    autoFocus
                                     className="w-full h-12 pr-4 text-gray-800 placeholder-gray-400 bg-transparent border-0 pl-11 focus:ring-0 sm:text-sm"
                                     placeholder="Search for a load, customer, or driver"
                                     autoComplete="off"
