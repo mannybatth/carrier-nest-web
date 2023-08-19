@@ -260,6 +260,7 @@ export const getLoad = async ({
     const expandInvoice = expand?.includes('invoice');
     const expandDriver = expand?.includes('driver');
     const expandDocuments = expand?.includes('documents');
+    const expandCarrier = expand?.includes('carrier');
 
     const load = await prisma.load.findFirst({
         where: {
@@ -269,6 +270,7 @@ export const getLoad = async ({
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),
+            ...(expandCarrier ? { carrier: true } : {}),
             ...(expandInvoice ? { invoice: true } : {}),
             ...(expandShipper
                 ? {

@@ -16,6 +16,7 @@ export type SearchResult<T> = {
 const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
     include: {
         customer: { select: { id: true, name: true } },
+        carrier: { select: { id: true, name: true } },
         shipper: {
             select: {
                 id: true,

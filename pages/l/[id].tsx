@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/react/24/solid';
-import { LoadDocument, LoadStatus } from '@prisma/client';
+import { Carrier, LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
@@ -9,6 +9,8 @@ import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
+import { metersToMiles } from '../../lib/helpers/distance';
+import { secondsToReadable } from '../../lib/helpers/time';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad, getLoadById, updateLoadStatus } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
@@ -91,7 +93,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
         setLoadLoading(true);
 
         try {
-            const load = await getLoadById(loadId, driverId);
+            const load = await getLoadById(loadId, driverId, true);
             setLoad(load);
             setLoadDocuments([...load.podDocuments].filter((ld) => ld));
             setDropOffDatePassed(isDate24HrInThePast(new Date(load.receiver.date)));
@@ -216,23 +218,20 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     return (
         <div className="max-w-4xl py-6 mx-auto">
+            <h1 className="px-4 mb-2 text-2xl font-semibold text-center text-gray-900">
+                {load?.carrier?.name || (
+                    <span className="inline-block w-48 h-6 bg-gray-200 rounded animate-pulse"></span>
+                )}
+            </h1>
             <div className="flex flex-col px-4 space-y-2">
                 <div className="flex flex-row">
                     <h3 className="font-semibold">Your Assigned Load</h3>
                     <div className="flex-1"></div>
-                    <button
-                        type="button"
-                        className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        onClick={openRouteInGoogleMaps}
-                    >
-                        Get Directions
-                        <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
-                    </button>
                 </div>
 
                 {!loadLoading ? (
                     load ? (
-                        <div className="p-4 space-y-4 overflow-hidden border-2 rounded-lg">
+                        <div className="p-4 space-y-5 overflow-hidden border-2 rounded-lg">
                             <div className="flex items-start justify-between">
                                 <div>
                                     <div className="text-base font-semibold uppercase">{load.customer?.name}</div>
@@ -245,8 +244,8 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     <LoadStatusBadge load={load} />
                                 </div>
                             </div>
-                            <div className="flex space-x-3">
-                                {loadStatus(load) === UILoadStatus.BOOKED && (
+                            {loadStatus(load) === UILoadStatus.BOOKED && (
+                                <div className="flex space-x-3">
                                     <button
                                         type="button"
                                         className="flex-grow flex justify-center items-center rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
@@ -256,8 +255,10 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                         {loadStatusLoading && loadingSvg}
                                         {!loadStatusLoading && 'Begin Work'}
                                     </button>
-                                )}
-                                {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
+                                </div>
+                            )}
+                            {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
+                                <div className="flex space-x-3">
                                     <button
                                         type="button"
                                         className="flex-grow flex justify-center items-center rounded-md bg-green-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
@@ -267,10 +268,12 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                         {loadStatusLoading && loadingSvg}
                                         {!loadStatusLoading && 'Set as Delivered'}
                                     </button>
-                                )}
-                                {(loadStatus(load) === UILoadStatus.DELIVERED ||
-                                    loadStatus(load) === UILoadStatus.POD_READY) && (
-                                    <>
+                                </div>
+                            )}
+                            {(loadStatus(load) === UILoadStatus.DELIVERED ||
+                                loadStatus(load) === UILoadStatus.POD_READY) && (
+                                <>
+                                    <div className="flex space-x-3">
                                         <button
                                             type="button"
                                             className="flex-grow flex justify-center items-center rounded-md bg-purple-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
@@ -286,79 +289,79 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                             style={{ display: 'none' }}
                                             ref={(input) => (fileInput = input)}
                                         />
-                                    </>
-                                )}
-                                {!dropOffDatePassed &&
-                                    (loadStatus(load) === UILoadStatus.IN_PROGRESS ||
-                                        loadStatus(load) === UILoadStatus.DELIVERED) && (
-                                        <Menu as="div" className="relative inline-block text-left">
-                                            <div>
-                                                <Menu.Button
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="flex justify-center items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                                                >
-                                                    <span className="sr-only">Open options</span>
-                                                    <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
-                                                </Menu.Button>
-                                            </div>
-
-                                            <Transition
-                                                as={Fragment}
-                                                enter="transition ease-out duration-100"
-                                                enterFrom="transform opacity-0 scale-95"
-                                                enterTo="transform opacity-100 scale-100"
-                                                leave="transition ease-in duration-75"
-                                                leaveFrom="transform opacity-100 scale-100"
-                                                leaveTo="transform opacity-0 scale-95"
+                                    </div>
+                                </>
+                            )}
+                            {!dropOffDatePassed &&
+                                (loadStatus(load) === UILoadStatus.IN_PROGRESS ||
+                                    loadStatus(load) === UILoadStatus.DELIVERED) && (
+                                    <Menu as="div" className="relative inline-block text-left">
+                                        <div>
+                                            <Menu.Button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex justify-center items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                                             >
-                                                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                    <div className="py-1">
-                                                        {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
-                                                            <Menu.Item>
-                                                                {({ active }) => (
-                                                                    <a
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            stopWork();
-                                                                        }}
-                                                                        className={classNames(
-                                                                            active
-                                                                                ? 'bg-gray-100 text-gray-900'
-                                                                                : 'text-gray-700',
-                                                                            'block px-4 py-2 text-sm',
-                                                                        )}
-                                                                    >
-                                                                        Change to Not In Progress
-                                                                    </a>
-                                                                )}
-                                                            </Menu.Item>
-                                                        )}
-                                                        {loadStatus(load) === UILoadStatus.DELIVERED && (
-                                                            <Menu.Item>
-                                                                {({ active }) => (
-                                                                    <a
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            beginWork();
-                                                                        }}
-                                                                        className={classNames(
-                                                                            active
-                                                                                ? 'bg-gray-100 text-gray-900'
-                                                                                : 'text-gray-700',
-                                                                            'block px-4 py-2 text-sm',
-                                                                        )}
-                                                                    >
-                                                                        Change to Not Delivered
-                                                                    </a>
-                                                                )}
-                                                            </Menu.Item>
-                                                        )}
-                                                    </div>
-                                                </Menu.Items>
-                                            </Transition>
-                                        </Menu>
-                                    )}
-                            </div>
+                                                <span className="sr-only">Open options</span>
+                                                <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
+                                            </Menu.Button>
+                                        </div>
+
+                                        <Transition
+                                            as={Fragment}
+                                            enter="transition ease-out duration-100"
+                                            enterFrom="transform opacity-0 scale-95"
+                                            enterTo="transform opacity-100 scale-100"
+                                            leave="transition ease-in duration-75"
+                                            leaveFrom="transform opacity-100 scale-100"
+                                            leaveTo="transform opacity-0 scale-95"
+                                        >
+                                            <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                <div className="py-1">
+                                                    {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <a
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        stopWork();
+                                                                    }}
+                                                                    className={classNames(
+                                                                        active
+                                                                            ? 'bg-gray-100 text-gray-900'
+                                                                            : 'text-gray-700',
+                                                                        'block px-4 py-2 text-sm',
+                                                                    )}
+                                                                >
+                                                                    Change to Not In Progress
+                                                                </a>
+                                                            )}
+                                                        </Menu.Item>
+                                                    )}
+                                                    {loadStatus(load) === UILoadStatus.DELIVERED && (
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <a
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        beginWork();
+                                                                    }}
+                                                                    className={classNames(
+                                                                        active
+                                                                            ? 'bg-gray-100 text-gray-900'
+                                                                            : 'text-gray-700',
+                                                                        'block px-4 py-2 text-sm',
+                                                                    )}
+                                                                >
+                                                                    Change to Not Delivered
+                                                                </a>
+                                                            )}
+                                                        </Menu.Item>
+                                                    )}
+                                                </div>
+                                            </Menu.Items>
+                                        </Transition>
+                                    </Menu>
+                                )}
 
                             {loadDocuments.length > 0 && (
                                 <div className="flex flex-col space-y-2">
@@ -526,6 +529,36 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                 <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-row space-x-2">
+                                    <div className="text-sm">
+                                        {load.routeDistance && (
+                                            <div>
+                                                Route Distance:{' '}
+                                                {metersToMiles(
+                                                    new Prisma.Decimal(load.routeDistance).toNumber(),
+                                                ).toFixed(0)}{' '}
+                                                miles
+                                            </div>
+                                        )}
+                                        {load.routeDuration && (
+                                            <div>
+                                                Travel Time:{' '}
+                                                {secondsToReadable(new Prisma.Decimal(load.routeDuration).toNumber())}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1"></div>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center w-full h-8 px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            onClick={openRouteInGoogleMaps}
+                                        >
+                                            Get Directions
+                                            <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
