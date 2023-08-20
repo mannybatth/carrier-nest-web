@@ -6,6 +6,25 @@ import { PaginationMetadata } from '../../interfaces/table';
 import { loadStatusToUIStatus } from '../../lib/load/load-utils';
 import { getLoadActivity } from '../../lib/rest/load';
 
+const LoadActivityLogSkeleton: React.FC = () => {
+    return (
+        <div className="space-y-2 animate-pulse">
+            <div className="flex justify-between text-sm font-medium ">
+                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+            </div>
+            <div className="flex justify-between text-sm font-medium">
+                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+            </div>
+            <div className="flex justify-between text-sm font-medium">
+                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+            </div>
+        </div>
+    );
+};
+
 type Props = {
     className?: string;
     loadId: string;
@@ -16,7 +35,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [moreLoading, setMoreLoading] = useState(false);
 
-    const [limit, setLimit] = React.useState(5);
+    const [limit, setLimit] = React.useState(10);
     const [offset, setOffset] = React.useState(0);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>({
         total: 0,
@@ -59,7 +78,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
     return (
         <div className={classNames(className, 'flex flex-col')}>
             {initialLoading ? (
-                <div>Loading...</div>
+                <LoadActivityLogSkeleton></LoadActivityLogSkeleton>
             ) : (
                 activity && (
                     <div className="flow-root">
