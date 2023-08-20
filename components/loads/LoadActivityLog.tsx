@@ -106,6 +106,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                             <>
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
                                                         activityItem.actorDriver?.name ||
                                                         activityItem.actorDriverName}
                                                 </span>{' '}
@@ -132,7 +133,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                             <div className="flex justify-center mt-4">
                                 <button
                                     type="button"
-                                    className="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     onClick={() => {
                                         setOffset(metadata.next.offset);
                                         fetchActivity({ limit, offset: metadata.next.offset });
