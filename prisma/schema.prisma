@@ -56,6 +56,7 @@ model User {
     stops            LoadStop[]
     sessions         Session[]
     carriers         Carrier[]
+    loadActivity     LoadActivity[]   @relation("actorUser")
 
     @@index([name, email, defaultCarrierId])
 }
@@ -120,6 +121,7 @@ model Load {
     podDocuments    LoadDocument[] @relation("loadForPodDoc")
     stops           LoadStop[]
     routeId         Int?
+    activity        LoadActivity[]
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -168,16 +170,18 @@ model Customer {
 }
 
 model Driver {
-    id            String         @id @default(cuid())
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
-    name          String
-    email         String?
-    phone         String?
-    carrierId     String
-    carrier       Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    loadDocuments LoadDocument[]
-    loads         Load[]         @relation("driverLoads")
+    id             String         @id @default(cuid())
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+    name           String
+    email          String?
+    phone          String?
+    carrierId      String
+    carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    loadDocuments  LoadDocument[]
+    loads          Load[]         @relation("driverLoads")
+    actorActivity  LoadActivity[] @relation("actorDriver")
+    actionActivity LoadActivity[] @relation("actionDriver")
 
     @@index([name, carrierId])
 }
@@ -230,25 +234,50 @@ model InvoicePayment {
 }
 
 model LoadDocument {
-    id               String   @id @default(cuid())
+    id               String         @id @default(cuid())
     carrierId        String?
     userId           String?
     driverId         String?
     loadId           String?
-    loadIdForRatecon String?  @unique
+    loadIdForRatecon String?        @unique
     loadIdForPodDoc  String?
-    createdAt        DateTime @default(now())
-    updatedAt        DateTime @updatedAt
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
     fileKey          String
     fileUrl          String
     fileName         String
     fileType         String
     fileSize         Int
-    load             Load?    @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
-    loadForRateCon   Load?    @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
-    loadForPodDoc    Load?    @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
-    user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    driver           Driver?  @relation(fields: [driverId], references: [id])
+    load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
+    loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
+    loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
+    user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    driver           Driver?        @relation(fields: [driverId], references: [id])
+    activity         LoadActivity[] @relation("actionDocument")
+}
+
+model LoadActivity {
+    id                     String             @id @default(cuid())
+    createdAt              DateTime           @default(now())
+    loadId                 String
+    carrierId              String
+    actorUserId            String?
+    actorDriverId          String?
+    actorDriverName        String?
+    action                 LoadActivityAction
+    fromStatus             LoadStatus
+    toStatus               LoadStatus
+    actionDocumentId       String?
+    actionDocumentFileName String?
+    actionDriverId         String?
+    actionDriverName       String?
+    longitude              Float?
+    latitude               Float?
+    load                   Load               @relation(fields: [loadId], references: [id])
+    actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
+    actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
+    actionDocument         LoadDocument?      @relation("actionDocument", fields: [actionDocumentId], references: [id])
+    actionDriver           Driver?            @relation("actionDriver", fields: [actionDriverId], references: [id])
 }
 
 enum LoadStopType {
@@ -268,4 +297,14 @@ enum InvoiceStatus {
     NOT_PAID
     PARTIALLY_PAID
     PAID
+}
+
+enum LoadActivityAction {
+    CHANGE_STATUS
+    UPLOAD_POD
+    REMOVE_POD
+    UPLOAD_DOCUMENT
+    REMOVE_DOCUMENT
+    ASSIGN_DRIVER
+    UNASSIGN_DRIVER
 }
