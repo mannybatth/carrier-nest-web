@@ -120,7 +120,6 @@ model Load {
     rateconDocument LoadDocument?  @relation("loadForRatecon")
     podDocuments    LoadDocument[] @relation("loadForPodDoc")
     stops           LoadStop[]
-    routeId         Int?
     activity        LoadActivity[]
 
     @@index([refNum, carrierId, userId, customerId])
