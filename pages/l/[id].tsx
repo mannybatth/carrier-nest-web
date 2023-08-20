@@ -105,7 +105,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const beginWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.IN_PROGRESS);
+        const response = await updateLoadStatus(loadId, LoadStatus.IN_PROGRESS, driverId);
         if (response) {
             await reloadLoad();
         }
@@ -114,7 +114,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const stopWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.CREATED);
+        const response = await updateLoadStatus(loadId, LoadStatus.CREATED, driverId);
         if (response) {
             await reloadLoad();
         }
@@ -123,7 +123,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const completeWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.DELIVERED);
+        const response = await updateLoadStatus(loadId, LoadStatus.DELIVERED, driverId);
         if (response) {
             await reloadLoad();
         }
