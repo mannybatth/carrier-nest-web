@@ -63,6 +63,11 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
             ) : (
                 activity && (
                     <div className="flow-root">
+                        {activity.length === 0 && (
+                            <div className="flex items-center justify-center h-6 text-sm text-gray-500">
+                                No activity yet
+                            </div>
+                        )}
                         <ul role="list" className="space-y-4">
                             {activity.map((activityItem, activityItemIdx) => (
                                 <li key={activityItem.id} className="relative flex gap-x-2">

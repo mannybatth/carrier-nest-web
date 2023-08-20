@@ -920,8 +920,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                 <div className="col-span-8 space-y-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
                                     <div className="mt-4 space-y-3">
-                                        <div className="flex flex-row justify-between">
-                                            <h3>Load Route</h3>
+                                        <div className="flex flex-row justify-between pb-2 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
+                                                Load Route
+                                            </h3>
 
                                             <button
                                                 type="button"
@@ -1061,7 +1063,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         </div>
                                     </div>
                                     <div className="mt-4 space-y-3">
-                                        <h3>Recent Activity</h3>
+                                        <div className="pb-2 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
+                                                Recent Activity
+                                            </h3>
+                                        </div>
                                         <LoadActivityLog loadId={loadId}></LoadActivityLog>
                                     </div>
                                 </div>
