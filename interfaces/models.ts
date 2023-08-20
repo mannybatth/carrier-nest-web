@@ -162,3 +162,17 @@ const expandedLoadDocument = Prisma.validator<Prisma.LoadDocumentArgs>()({
     },
 });
 export type ExpandedLoadDocument = Partial<Prisma.LoadDocumentGetPayload<typeof expandedLoadDocument>>;
+
+/**
+ * LoadActivity
+ */
+const expandedLoadActivity = Prisma.validator<Prisma.LoadActivityArgs>()({
+    include: {
+        load: true,
+        actorUser: true,
+        actorDriver: true,
+        actionDocument: true,
+        actionDriver: true,
+    },
+});
+export type ExpandedLoadActivity = Partial<Prisma.LoadActivityGetPayload<typeof expandedLoadActivity>>;

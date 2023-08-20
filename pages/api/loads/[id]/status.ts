@@ -1,8 +1,9 @@
-import { LoadStatus } from '@prisma/client';
+import { Driver, Load, LoadActivityAction, LoadStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { ParsedUrlQuery } from 'querystring';
+import { getServerSession, Session } from 'next-auth';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
+import { authOptions } from '../../auth/[...nextauth]';
 
 export default handler;
 
@@ -18,13 +19,42 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _patch() {
-        // Patch to upload status of a load
-        const { id } = req.query as ParsedUrlQuery;
-        const { status } = req.body as { status: LoadStatus };
+        const { id } = req.query;
+        const { status, driverId } = req.body as { status: LoadStatus; driverId?: string };
 
-        const load = await prisma.load.findUnique({
-            where: { id: id as string },
-        });
+        let load: Load;
+        let session: Session;
+        let driver: Driver;
+
+        if (driverId) {
+            const [_load, _driver] = await Promise.all([
+                prisma.load.findFirst({
+                    where: {
+                        id: id as string,
+                        drivers: {
+                            some: {
+                                id: driverId,
+                            },
+                        },
+                    },
+                }),
+                prisma.driver.findFirst({
+                    where: {
+                        id: driverId,
+                    },
+                }),
+            ]);
+            load = _load;
+            driver = _driver;
+        } else {
+            session = await getServerSession(req, res, authOptions);
+            load = await prisma.load.findFirst({
+                where: {
+                    id: id as string,
+                    carrierId: session.user.defaultCarrierId,
+                },
+            });
+        }
 
         if (!load) {
             return res.status(404).json({
@@ -33,9 +63,25 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
+        const fromStatus = load.status;
+        const toStatus = status;
+
         const updatedLoad = await prisma.load.update({
             where: { id: id as string },
             data: { status },
+        });
+
+        await prisma.loadActivity.create({
+            data: {
+                loadId: updatedLoad.id,
+                carrierId: updatedLoad.carrierId,
+                action: LoadActivityAction.CHANGE_STATUS,
+                ...(!driverId ? { actorUserId: session.user.id } : {}),
+                ...(driverId ? { actorDriverId: driverId } : {}),
+                ...(driverId ? { actorDriverName: driver?.name } : {}),
+                fromStatus,
+                toStatus,
+            },
         });
 
         return res.status(200).json({

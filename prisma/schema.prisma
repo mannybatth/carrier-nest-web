@@ -272,7 +272,7 @@ model LoadActivity {
     actionDriverName       String?
     longitude              Float?
     latitude               Float?
-    load                   Load               @relation(fields: [loadId], references: [id])
+    load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
     actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
     actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
     actionDocument         LoadDocument?      @relation("actionDocument", fields: [actionDocumentId], references: [id])

@@ -1,7 +1,7 @@
 import { Load, LoadDocument, LoadStatus } from '@prisma/client';
 import { ParsedUrlQueryInput, stringify } from 'querystring';
 import { apiUrl } from '../../constants';
-import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadActivity, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { uploadFileToGCS } from './uploadFile';
 
@@ -170,13 +170,13 @@ export const deleteLoadDocumentFromLoad = async (
     return data.result;
 };
 
-export const updateLoadStatus = async (loadId: string, status: LoadStatus) => {
+export const updateLoadStatus = async (loadId: string, status: LoadStatus, driverId?: string) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/status', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...(driverId ? { driverId } : {}) }),
     });
     const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
 
@@ -184,4 +184,16 @@ export const updateLoadStatus = async (loadId: string, status: LoadStatus) => {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data.load;
+};
+
+export const getLoadActivity = async (loadId: string, query?: ParsedUrlQueryInput) => {
+    const params = query ? stringify(query) : '';
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/activity?' + params);
+    const { data, errors }: JSONResponse<{ activity: ExpandedLoadActivity[]; metadata: PaginationMetadata }> =
+        await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data;
 };

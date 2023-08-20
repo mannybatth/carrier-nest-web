@@ -24,11 +24,12 @@ import DriverSelectionModal from '../../components/drivers/DriverSelectionModal'
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
+import LoadActivityLog from '../../components/loads/LoadActivityLog';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadActivity } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
 import { downloadAllDocsForLoad } from '../../lib/load/download-files';
@@ -37,6 +38,7 @@ import {
     addLoadDocumentToLoad,
     deleteLoadById,
     deleteLoadDocumentFromLoad,
+    getLoadActivity,
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
@@ -349,7 +351,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
     );
 };
 
-const LoadDetailsPage: PageWithAuth = () => {
+type Props = {
+    loadId: string;
+};
+
+const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [load, setLoad] = useLoadContext();
     const { data: session } = useSession();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
@@ -912,8 +918,20 @@ const LoadDetailsPage: PageWithAuth = () => {
                                     </aside>
                                 </div>
 
-                                <div className="col-span-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
-                                    <div className="mt-4">
+                                <div className="col-span-8 space-y-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
+                                    <div className="mt-4 space-y-3">
+                                        <div className="flex flex-row justify-between">
+                                            <h3>Load Route</h3>
+
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                onClick={openRouteInGoogleMaps}
+                                            >
+                                                Get Directions
+                                                <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                                            </button>
+                                        </div>
                                         <div className="flow-root">
                                             <ul role="list" className="-mb-8">
                                                 <li>
@@ -948,16 +966,6 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                                                 {load.shipper.time && (
                                                                                     <> @ {load.shipper.time}</>
                                                                                 )}
-                                                                            </div>
-                                                                            <div>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                    onClick={openRouteInGoogleMaps}
-                                                                                >
-                                                                                    Get Directions
-                                                                                    <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
-                                                                                </button>
                                                                             </div>
                                                                         </div>
                                                                         <div>{load.shipper.name}</div>
@@ -1051,6 +1059,10 @@ const LoadDetailsPage: PageWithAuth = () => {
                                                 </li>
                                             </ul>
                                         </div>
+                                    </div>
+                                    <div className="mt-4 space-y-3">
+                                        <h3>Recent Activity</h3>
+                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
                                     </div>
                                 </div>
                             </>

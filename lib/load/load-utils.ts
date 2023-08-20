@@ -19,6 +19,19 @@ export const isDate24HrInThePast = (date: Date) => {
     return diff > 24 * 60 * 60 * 1000;
 };
 
+export const loadStatusToUIStatus = (status: LoadStatus): UILoadStatus => {
+    switch (status) {
+        case LoadStatus.CREATED:
+            return UILoadStatus.BOOKED;
+        case LoadStatus.IN_PROGRESS:
+            return UILoadStatus.IN_PROGRESS;
+        case LoadStatus.DELIVERED:
+            return UILoadStatus.DELIVERED;
+        case LoadStatus.POD_READY:
+            return UILoadStatus.POD_READY;
+    }
+};
+
 export const loadStatus = (load: ExpandedLoad): UILoadStatus => {
     if (load.invoice) {
         const inStatus = invoiceStatus(load.invoice);
