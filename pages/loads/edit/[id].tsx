@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import safeJsonStringify from 'safe-json-stringify';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
@@ -54,6 +54,12 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
     const [loading, setLoading] = React.useState(false);
     const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
+
+    const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
+    const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
+    const [prefillName, setPrefillName] = React.useState(null);
+
+    const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
     useEffect(() => {
         if (!load) {
@@ -177,7 +183,16 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
                 <div className="relative px-5 sm:px-6 md:px-8">
                     {loading && <LoadingOverlay />}
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <LoadForm formHook={formHook}></LoadForm>
+                        <LoadForm
+                            formHook={formHook}
+                            openAddCustomerFromProp={openAddCustomer}
+                            setOpenAddCustomerFromProp={setOpenAddCustomer}
+                            showMissingCustomerLabel={showMissingCustomerLabel}
+                            setShowMissingCustomerLabel={setShowMissingCustomerLabel}
+                            prefillName={prefillName}
+                            setPrefillName={setPrefillName}
+                            parentStopsFieldArray={stopsFieldArray}
+                        ></LoadForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                             <div className="flex-1"></div>
                             <button
