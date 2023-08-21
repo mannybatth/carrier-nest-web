@@ -486,13 +486,12 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             });
             if (isRatecon) {
                 const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
-                setLoadDocuments(newLoadDocuments);
-                setLoad({ ...load, rateconDocument: null });
+                setLoad({ ...load, loadDocuments: newLoadDocuments, rateconDocument: null });
             } else {
-                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+                const newLoadDocuments = loadDocuments.filter(
+                    (ld) => ld.id !== id && ld.id !== load.rateconDocument?.id,
+                );
                 const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
-                setLoadDocuments(newLoadDocuments);
-                setPodDocuments(newPodDocuments);
                 setLoad({ ...load, loadDocuments: newLoadDocuments, podDocuments: newPodDocuments });
             }
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
