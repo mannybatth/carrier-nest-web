@@ -35,7 +35,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [moreLoading, setMoreLoading] = useState(false);
 
-    const [limit, setLimit] = React.useState(10);
+    const [limit, setLimit] = React.useState(8);
     const [offset, setOffset] = React.useState(0);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>({
         total: 0,

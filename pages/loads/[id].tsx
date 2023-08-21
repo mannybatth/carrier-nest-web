@@ -479,15 +479,22 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const deleteLoadDocument = async (id: string) => {
         setDocsLoading(true);
         try {
+            const isRatecon = load.rateconDocument?.id === id;
             await deleteLoadDocumentFromLoad(load.id, id, {
                 isPod: load.podDocuments.some((pod) => pod.id === id),
-                isRatecon: load.rateconDocument?.id === id,
+                isRatecon,
             });
-            const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
-            const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
-            setLoadDocuments(newLoadDocuments);
-            setPodDocuments(newPodDocuments);
-            setLoad({ ...load, loadDocuments: newLoadDocuments, podDocuments: newPodDocuments });
+            if (isRatecon) {
+                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+                setLoadDocuments(newLoadDocuments);
+                setLoad({ ...load, rateconDocument: null });
+            } else {
+                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+                const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
+                setLoadDocuments(newLoadDocuments);
+                setPodDocuments(newPodDocuments);
+                setLoad({ ...load, loadDocuments: newLoadDocuments, podDocuments: newPodDocuments });
+            }
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
         } catch (e) {
             notify({ title: 'Error deleting document', message: e.message, type: 'error' });
