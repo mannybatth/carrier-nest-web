@@ -4,6 +4,7 @@ import { JSONResponse } from '../../../../../interfaces/models';
 import prisma from '../../../../../lib/prisma';
 import { authOptions } from '../../../auth/[...nextauth]';
 import Twilio from 'twilio';
+import { LoadActivityAction } from '@prisma/client';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -74,6 +75,31 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             },
         });
+
+        for (const driver of drivers) {
+            await prisma.loadActivity.create({
+                data: {
+                    load: {
+                        connect: {
+                            id: load.id,
+                        },
+                    },
+                    carrierId: load.carrierId,
+                    action: LoadActivityAction.ASSIGN_DRIVER,
+                    actorUser: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                    actionDriver: {
+                        connect: {
+                            id: driver.id,
+                        },
+                    },
+                    actionDriverName: driver.name,
+                },
+            });
+        }
 
         // Send SMS to driver
         if (sendSMS) {

@@ -73,12 +73,32 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         await prisma.loadActivity.create({
             data: {
-                loadId: updatedLoad.id,
+                load: {
+                    connect: {
+                        id: updatedLoad.id,
+                    },
+                },
                 carrierId: updatedLoad.carrierId,
                 action: LoadActivityAction.CHANGE_STATUS,
-                ...(!driverId ? { actorUserId: session.user.id } : {}),
-                ...(driverId ? { actorDriverId: driverId } : {}),
-                ...(driverId ? { actorDriverName: driver?.name } : {}),
+                ...(session
+                    ? {
+                          actorUser: {
+                              connect: {
+                                  id: session.user.id,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driverId
+                    ? {
+                          actorDriver: {
+                              connect: {
+                                  id: driverId,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driver ? { actorDriverName: driver?.name } : {}),
                 fromStatus,
                 toStatus,
             },

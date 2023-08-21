@@ -116,6 +116,96 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 </span>
                                             </>
                                         )}
+
+                                        {activityItem.action === LoadActivityAction.UPLOAD_DOCUMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                uploaded a document{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.UPLOAD_POD && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                uploaded a POD{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.REMOVE_DOCUMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                removed a document{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.REMOVE_POD && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                removed a POD{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.ASSIGN_DRIVER && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                assigned{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDriver?.name || activityItem.actionDriverName}
+                                                </span>{' '}
+                                                to the load
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.UNASSIGN_DRIVER && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                unassigned{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDriver?.name || activityItem.actionDriverName}
+                                                </span>{' '}
+                                                from the load
+                                            </>
+                                        )}
                                     </p>
                                     <span className="flex-none py-0.5 text-xs leading-5 text-gray-500">
                                         {new Intl.DateTimeFormat('en-US', {

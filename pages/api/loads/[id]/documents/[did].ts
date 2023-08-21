@@ -1,5 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import { Driver, LoadDocument } from '@prisma/client';
+import { Driver, LoadActivityAction, LoadDocument } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -80,6 +80,38 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         await prisma.loadDocument.delete({
             where: {
                 id: documentId,
+            },
+        });
+
+        await prisma.loadActivity.create({
+            data: {
+                load: {
+                    connect: {
+                        id: load.id,
+                    },
+                },
+                carrierId: load.carrierId,
+                action: isPod ? LoadActivityAction.REMOVE_POD : LoadActivityAction.REMOVE_DOCUMENT,
+                ...(!driver
+                    ? {
+                          actorUser: {
+                              connect: {
+                                  id: session.user.id,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driverId
+                    ? {
+                          actorDriver: {
+                              connect: {
+                                  id: driverId,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driver ? { actorDriverName: driver?.name } : {}),
+                actionDocumentFileName: document.fileName,
             },
         });
 

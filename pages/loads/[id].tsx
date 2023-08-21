@@ -1065,7 +1065,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     <div className="mt-4 space-y-3">
                                         <div className="pb-2 border-b border-gray-200">
                                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                                Recent Activity
+                                                Load Activity
                                             </h3>
                                         </div>
                                         <LoadActivityLog loadId={loadId}></LoadActivityLog>

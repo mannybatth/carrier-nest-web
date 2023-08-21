@@ -1,4 +1,4 @@
-import { Driver, LoadDocument } from '@prisma/client';
+import { Driver, LoadActivityAction, LoadDocument } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -102,6 +102,43 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 fileName: docData.fileName,
                 fileType: docData.fileType,
                 fileSize: docData.fileSize,
+            },
+        });
+
+        await prisma.loadActivity.create({
+            data: {
+                load: {
+                    connect: {
+                        id: load.id,
+                    },
+                },
+                carrierId: load.carrierId,
+                action: isPod ? LoadActivityAction.UPLOAD_POD : LoadActivityAction.UPLOAD_DOCUMENT,
+                ...(!driver
+                    ? {
+                          actorUser: {
+                              connect: {
+                                  id: session.user.id,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driverId
+                    ? {
+                          actorDriver: {
+                              connect: {
+                                  id: driverId,
+                              },
+                          },
+                      }
+                    : {}),
+                ...(driver ? { actorDriverName: driver?.name } : {}),
+                actionDocument: {
+                    connect: {
+                        id: loadDocument.id,
+                    },
+                },
+                actionDocumentFileName: loadDocument.fileName,
             },
         });
 

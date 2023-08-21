@@ -1,3 +1,4 @@
+import { LoadActivityAction } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../../../../interfaces/models';
@@ -59,6 +60,29 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 drivers: {
                     disconnect: [{ id: driverId }],
                 },
+            },
+        });
+
+        await prisma.loadActivity.create({
+            data: {
+                load: {
+                    connect: {
+                        id: load.id,
+                    },
+                },
+                carrierId: load.carrierId,
+                action: LoadActivityAction.UNASSIGN_DRIVER,
+                actorUser: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+                actionDriver: {
+                    connect: {
+                        id: driver.id,
+                    },
+                },
+                actionDriverName: driver.name,
             },
         });
 

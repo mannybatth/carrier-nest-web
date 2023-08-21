@@ -264,8 +264,8 @@ model LoadActivity {
     actorDriverId          String?
     actorDriverName        String?
     action                 LoadActivityAction
-    fromStatus             LoadStatus
-    toStatus               LoadStatus
+    fromStatus             LoadStatus?
+    toStatus               LoadStatus?
     actionDocumentId       String?
     actionDocumentFileName String?
     actionDriverId         String?
