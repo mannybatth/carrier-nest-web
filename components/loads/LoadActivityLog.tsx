@@ -10,16 +10,16 @@ const LoadActivityLogSkeleton: React.FC = () => {
     return (
         <div className="space-y-2 animate-pulse">
             <div className="flex justify-between text-sm font-medium ">
-                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
-                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-8/12 h-6 rounded bg-slate-100"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-100"></div>
             </div>
             <div className="flex justify-between text-sm font-medium">
-                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
-                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-8/12 h-6 rounded bg-slate-100"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-100"></div>
             </div>
             <div className="flex justify-between text-sm font-medium">
-                <div className="block w-8/12 h-6 rounded bg-slate-200"></div>
-                <div className="block w-3/12 h-6 rounded bg-slate-200"></div>
+                <div className="block w-8/12 h-6 rounded bg-slate-100"></div>
+                <div className="block w-3/12 h-6 rounded bg-slate-100"></div>
             </div>
         </div>
     );
