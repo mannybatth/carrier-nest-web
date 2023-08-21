@@ -120,6 +120,8 @@ const LoadsPage: PageWithAuth = () => {
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
         reloadLoads({ sort, limit, offset, useTableLoading: true });
+
+        setLoadIdToDelete(null);
     };
 
     return (

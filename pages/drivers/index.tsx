@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -27,6 +28,9 @@ const DriversPage: PageWithAuth = () => {
 
     const [loadingDrivers, setLoadingDrivers] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
+
+    const [openDeleteDriverConfirmation, setOpenDeleteDriverConfirmation] = React.useState(false);
+    const [driverIdToDelete, setDriverIdToDelete] = React.useState<string | null>(null);
 
     const [driversList, setDriversList] = React.useState<Driver[]>([]);
 
@@ -117,6 +121,8 @@ const DriversPage: PageWithAuth = () => {
 
         notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
         reloadDrivers({ sort, limit, offset, useTableLoading: true });
+
+        setDriverIdToDelete(null);
     };
 
     return (
@@ -135,44 +141,68 @@ const DriversPage: PageWithAuth = () => {
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Drivers</h1>
-                        <Link href="/drivers/create">
-                            <button
-                                type="button"
-                                className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                + Create Driver
-                            </button>
-                        </Link>
+            <>
+                <SimpleDialog
+                    show={openDeleteDriverConfirmation}
+                    title="Delete Driver"
+                    description="Are you sure you want to delete this driver?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (driverIdToDelete) {
+                            deleteDriver(driverIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteDriverConfirmation(false);
+                        setDriverIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteDriverConfirmation(false);
+                        setDriverIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <div className="py-2 mx-auto max-w-7xl">
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Drivers</h1>
+                            <Link href="/drivers/create">
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    + Create Driver
+                                </button>
+                            </Link>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    {loadingDrivers ? (
-                        <CustomersTableSkeleton limit={lastDriversTableLimit} />
-                    ) : (
-                        <DriversTable
-                            drivers={driversList}
-                            sort={sort}
-                            changeSort={changeSort}
-                            deleteDriver={deleteDriver}
-                            loading={tableLoading}
-                        />
-                    )}
+                    <div className="px-5 sm:px-6 md:px-8">
+                        {loadingDrivers ? (
+                            <CustomersTableSkeleton limit={lastDriversTableLimit} />
+                        ) : (
+                            <DriversTable
+                                drivers={driversList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteDriver={(id: string) => {
+                                    setOpenDeleteDriverConfirmation(true);
+                                    setDriverIdToDelete(id);
+                                }}
+                                loading={tableLoading}
+                            />
+                        )}
 
-                    {driversList.length !== 0 && !loadingDrivers && (
-                        <Pagination
-                            metadata={metadata}
-                            loading={loadingDrivers || tableLoading}
-                            onPrevious={() => previousPage()}
-                            onNext={() => nextPage()}
-                        ></Pagination>
-                    )}
+                        {driversList.length !== 0 && !loadingDrivers && (
+                            <Pagination
+                                metadata={metadata}
+                                loading={loadingDrivers || tableLoading}
+                                onPrevious={() => previousPage()}
+                                onNext={() => nextPage()}
+                            ></Pagination>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };

@@ -272,7 +272,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                         className="sm:px-6 md:px-8"
                         paths={[
                             {
-                                label: 'Driver',
+                                label: 'Drivers',
                                 href: '/drivers',
                             },
                             {
