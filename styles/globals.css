@@ -1,6 +1,10 @@
 @tailwind base;
 
 @layer base {
+    html.h-full body,
+    html.h-full body > div:first-child {
+        height: 100%; /* Use for full screen landing pages */
+    }
     h1 {
         @apply text-2xl;
     }
