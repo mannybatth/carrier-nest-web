@@ -1,29 +1,46 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const VerifyRequest: React.FC = () => {
-    return (
-        <div className="flex flex-col min-h-full py-20 sm:px-6 lg:px-8 bg-gray-50">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <img
-                    className="w-auto h-12 mx-auto"
-                    src="https://tailwindui.com/img/logos/workflow-mark-blue-600.svg"
-                    alt="Workflow"
-                />
-                <h2 className="mt-6 text-3xl font-extrabold text-center text-gray-900">Check your email</h2>
-            </div>
+    useEffect(() => {
+        document.documentElement.classList.add('h-full');
+        return () => {
+            document.documentElement.classList.remove('h-full');
+        };
+    }, []);
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="px-4 py-8 space-y-6 text-center bg-white shadow sm:rounded-lg sm:px-10">
-                    <p>A sign in link has been sent to your email address.</p>
+    return (
+        <div className="flex flex-1 min-h-full">
+            <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+                <div className="w-full max-w-sm mx-auto lg:w-96">
                     <div>
-                        <Link href="/auth/signin">
-                            <button className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Return to sign in
-                            </button>
-                        </Link>
+                        <Image
+                            src="/logo_truck.svg"
+                            alt="Logo"
+                            width={100}
+                            height={72}
+                            className="w-[100px] mb-4"
+                        ></Image>
+                        <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+                            Check your email
+                        </h2>
+                    </div>
+
+                    <div className="mt-5 space-y-4">
+                        <p className="text-base leading-6">A sign in link has been sent to your email address.</p>
+                        <div>
+                            <Link href="/auth/signin">
+                                <button className="flex w-full justify-center rounded-md bg-orange-800 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-orange-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-800">
+                                    Return to sign in
+                                </button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
+            </div>
+            <div className="relative flex-1 hidden w-0 lg:block">
+                <img className="absolute inset-0 object-cover w-full h-full" src="/cover.png" alt="" />
             </div>
         </div>
     );
