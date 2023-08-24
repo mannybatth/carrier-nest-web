@@ -1,9 +1,10 @@
 import { Driver } from '@prisma/client';
-import { NextPageContext } from 'next';
+import { DriverProvider, useDriverContext } from 'components/context/DriverContext';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import safeJsonStringify from 'safe-json-stringify';
 import DriverForm from '../../../components/forms/driver/DriverForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
@@ -11,43 +12,14 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedDriver } from '../../../interfaces/models';
 import { updateDriver } from '../../../lib/rest/driver';
-import { getDriver } from '../../api/drivers/[id]';
-import { getSession } from 'next-auth/react';
 
-type Props = {
-    driver: Driver;
-};
+const EditDriver: PageWithAuth = () => {
+    const [driver, setDriver] = useDriverContext();
 
-export async function getServerSideProps(context: NextPageContext) {
-    const session = await getSession(context);
-    const { data } = await getDriver({
-        session,
-        query: {
-            id: context.query.id,
-        },
-    });
-    if (!data?.driver) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/drivers',
-            },
-        };
-    }
-
-    return {
-        props: {
-            driver: JSON.parse(safeJsonStringify(data.driver)),
-        },
-    };
-}
-
-const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
     const formHook = useForm<Driver>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
-    const [driver, setDriver] = React.useState<Driver>(driverProp);
 
     useEffect(() => {
         if (!driver) {
@@ -72,7 +44,6 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
         };
 
         const newDriver = await updateDriver(driver.id, driverData);
-        console.log('updated driver', newDriver);
 
         notify({ title: 'Driver updated', message: 'Driver updated successfully' });
 
@@ -93,8 +64,8 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
                             href: '/drivers',
                         },
                         {
-                            label: `${driver.name}`,
-                            href: `/drivers/${driver.id}`,
+                            label: driver ? `${driver.name}` : '',
+                            href: driver ? `/drivers/${driver.id}` : '',
                         },
                         {
                             label: 'Edit Driver',
@@ -105,7 +76,8 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
                     <h1 className="text-2xl font-semibold text-gray-900">Edit Driver</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+                <div className="relative px-5 sm:px-6 md:px-8">
+                    {(loading || !driver) && <LoadingOverlay />}
                     <form id="driver-form" onSubmit={formHook.handleSubmit(submit)}>
                         <DriverForm formHook={formHook}></DriverForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
@@ -126,4 +98,17 @@ const EditDriver: PageWithAuth<Props> = ({ driver: driverProp }: Props) => {
 
 EditDriver.authenticationEnabled = true;
 
-export default EditDriver;
+const EditDriverWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const driverId = searchParams.get('id');
+
+    return (
+        <DriverProvider driverId={driverId}>
+            <EditDriver></EditDriver>
+        </DriverProvider>
+    );
+};
+
+EditDriverWrapper.authenticationEnabled = true;
+
+export default EditDriverWrapper;

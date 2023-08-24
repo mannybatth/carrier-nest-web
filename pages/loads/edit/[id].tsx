@@ -1,59 +1,26 @@
 import { Prisma } from '@prisma/client';
-import { NextPageContext } from 'next';
+import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
-import safeJsonStringify from 'safe-json-stringify';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
+import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
-import { updateLoad } from '../../../lib/rest/load';
-import { getLoad } from '../../api/loads/[id]';
-import { getSession } from 'next-auth/react';
 import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';
-import { LoadingOverlay } from '../../../components/LoadingOverlay';
+import { updateLoad } from '../../../lib/rest/load';
 
-type Props = {
-    load: ExpandedLoad;
-};
-
-export async function getServerSideProps(context: NextPageContext) {
-    const session = await getSession(context);
-    const { data } = await getLoad({
-        session,
-        query: {
-            id: context.query.id,
-            expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
-        },
-    });
-
-    if (!data?.load) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/loads',
-            },
-        };
-    }
-
-    return {
-        props: {
-            load: JSON.parse(safeJsonStringify(data.load)),
-        },
-    };
-}
-
-const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
-    const formHook = useForm<ExpandedLoad>({
-        defaultValues: loadProp,
-    });
+const EditLoad: PageWithAuth = () => {
+    const [load, setLoad] = useLoadContext();
     const router = useRouter();
 
+    const formHook = useForm<ExpandedLoad>();
+
     const [loading, setLoading] = React.useState(false);
-    const [load, setLoad] = React.useState<ExpandedLoad>(loadProp);
 
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
@@ -76,7 +43,6 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {
-        console.log('prop load', loadProp);
         console.log('data to save', data);
 
         const loadData: ExpandedLoad = {
@@ -168,8 +134,8 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
                             href: '/loads',
                         },
                         {
-                            label: `# ${load.refNum}`,
-                            href: `/loads/${load.id}`,
+                            label: load ? `# ${load.refNum}` : '',
+                            href: load ? `/loads/${load.id}` : '',
                         },
                         {
                             label: 'Edit Load',
@@ -181,7 +147,7 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {loading && <LoadingOverlay />}
+                    {(loading || !load) && <LoadingOverlay />}
                     <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LoadForm
                             formHook={formHook}
@@ -211,4 +177,17 @@ const EditLoad: PageWithAuth<Props> = ({ load: loadProp }: Props) => {
 
 EditLoad.authenticationEnabled = true;
 
-export default EditLoad;
+const EditLoadPageWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const loadId = searchParams.get('id');
+
+    return (
+        <LoadProvider loadId={loadId}>
+            <EditLoad></EditLoad>
+        </LoadProvider>
+    );
+};
+
+EditLoadPageWrapper.authenticationEnabled = true;
+
+export default EditLoadPageWrapper;

@@ -133,7 +133,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
-export const getInvoice = async ({
+const getInvoice = async ({
     session,
     query,
 }: {

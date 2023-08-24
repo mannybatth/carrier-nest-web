@@ -24,7 +24,7 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
             const load = await getLoadById(loadId);
             setLoad(load);
         } catch (error) {
-            console.error('Failed to fetch carriers:', error);
+            console.error('Failed to fetch load:', error);
         }
     };
 

@@ -1,52 +1,24 @@
 import { Customer } from '@prisma/client';
-import { NextPageContext } from 'next';
+import { CustomerProvider, useCustomerContext } from 'components/context/CustomerContext';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import safeJsonStringify from 'safe-json-stringify';
 import CustomerForm from '../../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { updateCustomer } from '../../../lib/rest/customer';
-import { getCustomer } from '../../api/customers/[id]';
-import { getSession } from 'next-auth/react';
 
-type Props = {
-    customer: Customer;
-};
+const EditCustomer: PageWithAuth = () => {
+    const [customer, setCustomer] = useCustomerContext();
 
-export async function getServerSideProps(context: NextPageContext) {
-    const session = await getSession(context);
-    const { data } = await getCustomer({
-        session,
-        query: {
-            id: context.query.id,
-        },
-    });
-    if (!data?.customer) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/customers',
-            },
-        };
-    }
-
-    return {
-        props: {
-            customer: JSON.parse(safeJsonStringify(data.customer)),
-        },
-    };
-}
-
-const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) => {
     const formHook = useForm<Customer>();
     const router = useRouter();
 
     const [loading, setLoading] = React.useState(false);
-    const [customer, setCustomer] = React.useState<Customer>(customerProp);
 
     useEffect(() => {
         if (!customer) {
@@ -107,8 +79,8 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
                             href: '/customers',
                         },
                         {
-                            label: `${customer.name}`,
-                            href: `/customers/${customer.id}`,
+                            label: customer ? `${customer.name}` : '',
+                            href: customer ? `/customers/${customer.id}` : '',
                         },
                         {
                             label: 'Edit Customer',
@@ -119,7 +91,8 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
                     <h1 className="text-2xl font-semibold text-gray-900">Edit Customer</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 sm:px-6 md:px-8">
+                <div className="relative px-5 sm:px-6 md:px-8">
+                    {(loading || !customer) && <LoadingOverlay />}
                     <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
                         <CustomerForm formHook={formHook}></CustomerForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
@@ -140,4 +113,17 @@ const EditCustomer: PageWithAuth<Props> = ({ customer: customerProp }: Props) =>
 
 EditCustomer.authenticationEnabled = true;
 
-export default EditCustomer;
+const EditCustomerWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const customerId = searchParams.get('id');
+
+    return (
+        <CustomerProvider customerId={customerId}>
+            <EditCustomer></EditCustomer>
+        </CustomerProvider>
+    );
+};
+
+EditCustomerWrapper.authenticationEnabled = true;
+
+export default EditCustomerWrapper;

@@ -98,7 +98,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
-export const getDriver = async ({
+const getDriver = async ({
     session,
     query,
 }: {

@@ -241,7 +241,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
-export const getLoad = async ({
+const getLoad = async ({
     session,
     query,
 }: {

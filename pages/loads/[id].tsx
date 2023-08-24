@@ -29,7 +29,7 @@ import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, ExpandedLoadActivity } from '../../interfaces/models';
+import { ExpandedLoad } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
 import { downloadAllDocsForLoad } from '../../lib/load/download-files';
@@ -38,7 +38,6 @@ import {
     addLoadDocumentToLoad,
     deleteLoadById,
     deleteLoadDocumentFromLoad,
-    getLoadActivity,
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
@@ -1090,7 +1089,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
 LoadDetailsPage.authenticationEnabled = true;
 
-// Wrapper needed to load provider
 const LoadDetailsPageWrapper: PageWithAuth = () => {
     const searchParams = useSearchParams();
     const loadId = searchParams.get('id');

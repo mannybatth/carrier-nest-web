@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 }
 
-export async function getNextInvoiceNum(carrierId: string): Promise<number> {
+async function getNextInvoiceNum(carrierId: string): Promise<number> {
     const lastInvoice = await prisma.invoice.findFirst({
         where: {
             carrierId,

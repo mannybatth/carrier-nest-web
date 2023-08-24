@@ -1,68 +1,26 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
-import { NextPageContext } from 'next';
+import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import safeJsonStringify from 'safe-json-stringify';
 import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
-import { createInvoice } from '../../../lib/rest/invoice';
+import { ExpandedInvoice } from '../../../interfaces/models';
+import { createInvoice, getNextInvoiceNum } from '../../../lib/rest/invoice';
 import { useLocalStorage } from '../../../lib/useLocalStorage';
-import { getLoad } from '../../api/loads/[id]';
-import { getSession } from 'next-auth/react';
-import { getNextInvoiceNum } from '../../api/invoices/next-invoice-num';
-
-export async function getServerSideProps(context: NextPageContext) {
-    const session = await getSession(context);
-    const promise = Promise.all([
-        getLoad({
-            session,
-            query: {
-                id: context.query.id,
-                expand: 'customer,shipper,receiver,stops,invoice,driver,documents',
-            },
-        }),
-        getNextInvoiceNum(session.user.defaultCarrierId),
-    ]);
-    const [{ data }, nextInvoiceNum] = await promise;
-
-    if (!data?.load) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/accounting',
-            },
-        };
-    }
-
-    if (data.load.invoice) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: `/accounting/invoices/${data.load.invoice.id}`,
-            },
-        };
-    }
-
-    return {
-        props: {
-            load: JSON.parse(safeJsonStringify(data.load)),
-            nextInvoiceNum,
-        },
-    };
-}
 
 type Props = {
-    load: ExpandedLoad;
     nextInvoiceNum: number;
 };
 
-const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
+const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
+    const [load, setLoad] = useLoadContext();
     const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
 
     const formHook = useForm<ExpandedInvoice>();
@@ -74,7 +32,9 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
     const watchFields = useWatch({ control: formHook.control, name: 'extraItems' });
 
     useEffect(() => {
-        formHook.setValue('invoiceNum', nextInvoiceNum);
+        if (nextInvoiceNum) {
+            formHook.setValue('invoiceNum', nextInvoiceNum);
+        }
     }, [nextInvoiceNum]);
 
     useEffect(() => {
@@ -87,7 +47,7 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
                 0,
             ) || 0) / 100;
 
-        const totalRate = new Prisma.Decimal(load.rate).toNumber();
+        const totalRate = load ? new Prisma.Decimal(load.rate).toNumber() : 0;
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
@@ -155,29 +115,33 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
                     </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 space-y-6 sm:px-6 md:px-8">
-                    <LoadCard load={load} />
+                <div className="relative px-5 sm:px-6 md:px-8">
+                    {(loading || !load) && <LoadingOverlay />}
 
-                    <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <InvoiceForm formHook={formHook}></InvoiceForm>
+                    <div className="pt-1 space-y-6">
+                        {load && <LoadCard load={load} />}
 
-                        <div className="w-full mt-5 ml-auto sm:w-1/2 lg:w-1/3">
-                            <div className="flex justify-between mb-4">
-                                <div className="font-medium">Total</div>
-                                <div>${total}</div>
+                        <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
+                            <InvoiceForm formHook={formHook}></InvoiceForm>
+
+                            <div className="w-full mt-5 ml-auto sm:w-1/2 lg:w-1/3">
+                                <div className="flex justify-between mb-4">
+                                    <div className="font-medium">Total</div>
+                                    <div>${total}</div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                            >
-                                Create Invoice
-                            </button>
-                        </div>
-                    </form>
+                            <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                <div className="flex-1"></div>
+                                <button
+                                    type="submit"
+                                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                >
+                                    Create Invoice
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </Layout>
@@ -186,4 +150,24 @@ const CreateInvoice: PageWithAuth = ({ load, nextInvoiceNum }: Props) => {
 
 CreateInvoice.authenticationEnabled = true;
 
-export default CreateInvoice;
+const CreateInvoiceWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const loadId = searchParams.get('id');
+    const [nextInvoiceNum, setNextInvoiceNum] = React.useState<number>(null);
+
+    React.useEffect(() => {
+        getNextInvoiceNum().then((num) => {
+            setNextInvoiceNum(num);
+        });
+    });
+
+    return (
+        <LoadProvider loadId={loadId}>
+            <CreateInvoice nextInvoiceNum={nextInvoiceNum}></CreateInvoice>
+        </LoadProvider>
+    );
+};
+
+CreateInvoiceWrapper.authenticationEnabled = true;
+
+export default CreateInvoiceWrapper;

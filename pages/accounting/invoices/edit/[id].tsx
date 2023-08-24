@@ -1,9 +1,10 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
-import { NextPageContext } from 'next';
+import { InvoiceProvider, useInvoiceContext } from 'components/context/InvoiceContext';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import safeJsonStringify from 'safe-json-stringify';
 import InvoiceForm from '../../../../components/forms/invoice/InvoiceForm';
 import BreadCrumb from '../../../../components/layout/BreadCrumb';
 import Layout from '../../../../components/layout/Layout';
@@ -12,40 +13,10 @@ import { notify } from '../../../../components/Notification';
 import { PageWithAuth } from '../../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../../interfaces/models';
 import { updateInvoice } from '../../../../lib/rest/invoice';
-import { getInvoice } from '../../../api/invoices/[id]';
-import { getSession } from 'next-auth/react';
 
-export async function getServerSideProps(context: NextPageContext) {
-    const session = await getSession(context);
-    const { data } = await getInvoice({
-        session,
-        query: {
-            id: context.query.id,
-            expand: 'load,extraItems,payments',
-        },
-    });
+const EditInvoicePage: PageWithAuth = () => {
+    const [invoice, setInvoice] = useInvoiceContext();
 
-    if (!data?.invoice) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/accounting',
-            },
-        };
-    }
-
-    return {
-        props: {
-            invoice: JSON.parse(safeJsonStringify(data.invoice)),
-        },
-    };
-}
-
-type Props = {
-    invoice: ExpandedInvoice;
-};
-
-const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
     const formHook = useForm<ExpandedInvoice>();
     const router = useRouter();
 
@@ -64,7 +35,7 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
                 0,
             ) || 0) / 100;
 
-        const totalRate = new Prisma.Decimal(invoice.load.rate).toNumber();
+        const totalRate = invoice ? new Prisma.Decimal(invoice.load.rate).toNumber() : 0;
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
@@ -121,8 +92,8 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
                             href: '/accounting',
                         },
                         {
-                            label: `# ${invoice?.invoiceNum ?? ''}`,
-                            href: `/accounting/invoices/${invoice.id}`,
+                            label: invoice ? `# ${invoice?.invoiceNum ?? ''}` : '',
+                            href: invoice ? `/accounting/invoices/${invoice.id}` : '',
                         },
                         {
                             label: 'Edit Invoice',
@@ -133,8 +104,10 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
                     <h1 className="flex-1 text-2xl font-semibold text-gray-900">Edit Invoice</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-5 space-y-6 sm:px-6 md:px-8">
-                    <LoadCard load={invoice.load} />
+                <div className="relative px-5 space-y-6 sm:px-6 md:px-8">
+                    {(loading || !invoice) && <LoadingOverlay />}
+
+                    {invoice && <LoadCard load={invoice.load} />}
 
                     <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
                         <InvoiceForm formHook={formHook}></InvoiceForm>
@@ -164,4 +137,17 @@ const EditInvoicePage: PageWithAuth<Props> = ({ invoice }: Props) => {
 
 EditInvoicePage.authenticationEnabled = true;
 
-export default EditInvoicePage;
+const EditInvoicePageWrapper: PageWithAuth = () => {
+    const searchParams = useSearchParams();
+    const invoiceId = searchParams.get('id');
+
+    return (
+        <InvoiceProvider invoiceId={invoiceId}>
+            <EditInvoicePage></EditInvoicePage>
+        </InvoiceProvider>
+    );
+};
+
+EditInvoicePageWrapper.authenticationEnabled = true;
+
+export default EditInvoicePageWrapper;
