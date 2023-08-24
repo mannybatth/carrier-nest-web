@@ -177,6 +177,9 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     };
 
     const addPayment = () => {
+        if (!invoice) {
+            return;
+        }
         setOpenAddPayment(true);
     };
 
@@ -320,10 +323,11 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
 
-                    <div className="fixed bottom-0 left-0 right-0 flex px-5 py-3 bg-white sm:hidden">
+                    <div className="fixed bottom-0 left-0 right-0 z-10 flex px-5 py-3 bg-white sm:hidden">
                         <button
                             type="button"
                             onClick={addPayment}
+                            disabled={!invoice}
                             className="flex-1 inline-flex justify-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                         >
                             + Add Payment
