@@ -35,7 +35,7 @@ json scheme:
     "load_number": string or null,
 }`,
 
-    `Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Pickup is the same as "shipper" and delivery is the same as "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). Also for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
+    `Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Remember, a pickup is synonymous with "shipper", and delivery is equivalent to "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). If you encounter abbreviations near the address or date, consider them as potential stop names. If you are having trouble finding the stop "name", scan text near the address and date and try your best to match with a business name (could be an abbreviation). Also, for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
 json scheme:
 {
     "stops": [
@@ -71,18 +71,34 @@ json scheme:
 
 export default async function POST(req: NextRequest) {
     try {
-        const list = await req.json();
+        const {
+            documentsInBlocks,
+            documentsInLines,
+        }: {
+            documentsInBlocks: Document[];
+            documentsInLines: Document[];
+        } = await req.json();
         // const list = req.body as Document[];
 
-        if (!Array.isArray(list)) {
+        if (!Array.isArray(documentsInBlocks)) {
             throw new Error('Invalid input. Expected an array.');
         }
 
-        if (list.length === 0) {
+        if (documentsInBlocks.length === 0) {
             throw new Error('Invalid input. Expected an array with at least one item.');
         }
 
-        const documents: Document[] = list.map((item) => {
+        const blockDocuments: Document[] = documentsInBlocks.map((item) => {
+            if (!isValidItem(item)) {
+                throw new Error('Invalid item in the list.');
+            }
+
+            return new Document({
+                pageContent: item.pageContent,
+                metadata: item.metadata,
+            });
+        });
+        const lineDocuments: Document[] = documentsInLines.map((item) => {
             if (!isValidItem(item)) {
                 throw new Error('Invalid item in the list.');
             }
@@ -93,59 +109,49 @@ export default async function POST(req: NextRequest) {
             });
         });
 
-        const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 1800,
-            chunkOverlap: 500,
-        });
+        const responses = await runAI(blockDocuments);
 
-        const splitDocuments = await splitter.splitDocuments(documents);
-        const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
+        const logistics_company = responses[0]?.logistics_company || null;
+        let load_number = responses[0]?.load_number || null;
+        let stops = responses[1]?.stops || null;
+        const rate = responses[2]?.rate || null;
+        const invoice_emails = responses[3]?.invoice_emails || null;
 
-        const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly.
-We only want to search the context for details about the load so ignore any text related to terms and conditions or other legal text.
+        // If the AI fails to find the stops, try again with the line documents
+        const needRetryOnStops =
+            !stops ||
+            stops?.length === 0 ||
+            stops?.some((stop) => {
+                return !stop?.name || !stop?.address?.street || !stop?.address?.city || !stop?.address?.state;
+            });
+        const needRetryOnLoadNumber = !load_number;
 
-{context}
+        if (needRetryOnStops || needRetryOnLoadNumber) {
+            const questionsList = [];
+            if (needRetryOnLoadNumber) {
+                questionsList.push(questions[0]);
+            }
+            if (needRetryOnStops) {
+                questionsList.push(questions[1]);
+            }
+            const responses = await runAI(lineDocuments, questionsList);
 
-Human: {question}
-Assistant:
-`;
-
-        const prompt = new PromptTemplate({
-            template,
-            inputVariables: ['question', 'context'],
-        });
-
-        const qaChain = RetrievalQAChain.fromLLM(
-            new ChatOpenAI({
-                temperature: 0,
-                verbose: process.env.NODE_ENV === 'development',
-                openAIApiKey: process.env.OPENAI_API_KEY,
-                maxTokens: -1,
-            }),
-            vectordb.asRetriever(5),
-            {
-                prompt: prompt,
-                returnSourceDocuments: false,
-                verbose: process.env.NODE_ENV === 'development',
-            },
-        );
-
-        const responses = await Promise.all(
-            questions.map((question) => {
-                return parseQAChainResponse(
-                    qaChain.call({
-                        query: question,
-                    }),
-                );
-            }),
-        );
+            if (needRetryOnStops && needRetryOnLoadNumber) {
+                load_number = responses[0]?.load_number || null;
+                stops = responses[1]?.stops || null;
+            } else if (needRetryOnStops) {
+                stops = responses[0]?.stops || null;
+            } else if (needRetryOnLoadNumber) {
+                load_number = responses[0]?.load_number || null;
+            }
+        }
 
         const result = {
-            logistics_company: responses[0]?.logistics_company || null,
-            load_number: responses[0]?.load_number || null,
-            stops: responses[1]?.stops || null,
-            rate: responses[2]?.rate || null,
-            invoice_emails: responses[3]?.invoice_emails || null,
+            logistics_company,
+            load_number,
+            stops,
+            rate,
+            invoice_emails,
         };
 
         return NextResponse.json(
@@ -176,4 +182,55 @@ function isValidItem(item: Document): boolean {
     }
 
     return true;
+}
+
+async function runAI(documents: Document[], onlyQuestions: string[] = null) {
+    const splitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 1800,
+        chunkOverlap: 500,
+    });
+
+    const splitDocuments = await splitter.splitDocuments(documents);
+    const vectordb = await MemoryVectorStore.fromDocuments(splitDocuments, new OpenAIEmbeddings());
+
+    const template = `Your job is to extract data from the given document context and return it in a JSON format. The document will always be a rate confirmation for a load. Return all answers in the JSON scheme that is provided in the question. Your answer should match the JSON scheme exactly.
+We only want to search the context for details about the load so ignore any text related to terms and conditions or other legal text.
+
+{context}
+
+Human: {question}
+Assistant:
+`;
+
+    const prompt = new PromptTemplate({
+        template,
+        inputVariables: ['question', 'context'],
+    });
+
+    const qaChain = RetrievalQAChain.fromLLM(
+        new ChatOpenAI({
+            temperature: 0,
+            verbose: process.env.NODE_ENV === 'development',
+            openAIApiKey: process.env.OPENAI_API_KEY,
+            maxTokens: -1,
+        }),
+        vectordb.asRetriever(5),
+        {
+            prompt: prompt,
+            returnSourceDocuments: false,
+            verbose: process.env.NODE_ENV === 'development',
+        },
+    );
+
+    const listOfQuestions = onlyQuestions || questions;
+    const responses = await Promise.all(
+        listOfQuestions.map((question) => {
+            return parseQAChainResponse(
+                qaChain.call({
+                    query: question,
+                }),
+            );
+        }),
+    );
+    return responses;
 }

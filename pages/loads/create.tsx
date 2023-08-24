@@ -212,30 +212,52 @@ const CreateLoad: PageWithAuth = () => {
             const ocrResult = await ocrResponse.json();
             customersList = customersResponse?.customers;
 
-            const documents = ocrResult.pages.map((pageText: string, index: number) => {
-                return {
-                    pageContent: pageText,
-                    metadata: {
-                        source: 'blob',
-                        blobType: file.type,
-                        pdf: {
-                            info: metadata?.info,
-                            metadata: metadata?.metadata,
-                            totalPages: numOfPages,
+            const [documentsInBlocks, documentsInLines] = await Promise.all([
+                ocrResult.blocks.map((pageText: string, index: number) => {
+                    return {
+                        pageContent: pageText,
+                        metadata: {
+                            source: 'blob',
+                            blobType: file.type,
+                            pdf: {
+                                info: metadata?.info,
+                                metadata: metadata?.metadata,
+                                totalPages: numOfPages,
+                            },
+                            loc: {
+                                pageNumber: index,
+                            },
                         },
-                        loc: {
-                            pageNumber: index,
+                    };
+                }),
+                ocrResult.lines.map((pageText: string, index: number) => {
+                    return {
+                        pageContent: pageText,
+                        metadata: {
+                            source: 'blob',
+                            blobType: file.type,
+                            pdf: {
+                                info: metadata?.info,
+                                metadata: metadata?.metadata,
+                                totalPages: numOfPages,
+                            },
+                            loc: {
+                                pageNumber: index,
+                            },
                         },
-                    },
-                };
-            });
+                    };
+                }),
+            ]);
 
             const response = await fetch(apiUrl + '/ai/ratecon', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(documents),
+                body: JSON.stringify({
+                    documentsInBlocks,
+                    documentsInLines,
+                }),
             });
             const { code, data }: { code: number; data: AILoad } = await response.json();
 
