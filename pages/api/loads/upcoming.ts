@@ -58,7 +58,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
             orderBy: {
                 shipper: {
-                    date: 'asc',
+                    date: 'desc',
                 },
             },
             include: {
