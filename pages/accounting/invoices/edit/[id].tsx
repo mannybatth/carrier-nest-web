@@ -104,31 +104,33 @@ const EditInvoicePage: PageWithAuth = () => {
                     <h1 className="flex-1 text-2xl font-semibold text-gray-900">Edit Invoice</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="relative px-5 space-y-6 sm:px-6 md:px-8">
+                <div className="relative px-5 sm:px-6 md:px-8">
                     {(loading || !invoice) && <LoadingOverlay />}
 
-                    {invoice && <LoadCard load={invoice.load} />}
+                    <div className="pt-1 space-y-6">
+                        {invoice && <LoadCard load={invoice.load} />}
 
-                    <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <InvoiceForm formHook={formHook}></InvoiceForm>
+                        <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
+                            <InvoiceForm formHook={formHook}></InvoiceForm>
 
-                        <div className="w-full mt-5 ml-auto sm:w-1/2 lg:w-1/3">
-                            <div className="flex justify-between mb-4">
-                                <div className="font-medium">Total</div>
-                                <div>${total}</div>
+                            <div className="w-full mt-5 ml-auto sm:w-1/2 lg:w-1/3">
+                                <div className="flex justify-between mb-4">
+                                    <div className="font-medium">Total</div>
+                                    <div>${total}</div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                            >
-                                Save Invoice
-                            </button>
-                        </div>
-                    </form>
+                            <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                <div className="flex-1"></div>
+                                <button
+                                    type="submit"
+                                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                >
+                                    Save Invoice
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </Layout>
