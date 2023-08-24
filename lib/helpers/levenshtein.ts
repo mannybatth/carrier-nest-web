@@ -1,6 +1,4 @@
-// import { Searcher } from 'fast-fuzzy';
-
-function cleanString(str) {
+function cleanString(str: string) {
     // Remove non-alphanumeric characters and extra spaces
     return str
         .replace(/[^a-zA-Z0-9\s]+/g, '')
@@ -8,27 +6,33 @@ function cleanString(str) {
         .toLowerCase();
 }
 
-export function fuzzySearch(query, customers) {
+function calculateThreshold(queryLength: number) {
+    const base = 0.6;
+    const lengthAdjustment = queryLength < 5 ? -0.2 : -0.01; // Tightening the threshold further
+    return base + lengthAdjustment * queryLength;
+}
+
+export function fuzzySearch(query: string, searchList: string[]) {
     const normalizedQuery = cleanString(query);
 
-    // First, try partial matching
-    for (let i = 0; i < customers.length; i++) {
-        const normalizedCustomer = cleanString(customers[i]);
-        if (normalizedCustomer.includes(normalizedQuery)) {
+    // Step 1: Check for substring matches
+    for (let i = 0; i < searchList.length; i++) {
+        const normalizedCustomer = cleanString(searchList[i]);
+        if (normalizedCustomer.includes(normalizedQuery) || normalizedQuery.includes(normalizedCustomer)) {
             return i;
         }
     }
 
-    // Weighted token-based matching
+    // Step 2: Weighted token-based matching
     let bestMatchIndex = -1;
     let minWeightedDistance = Infinity;
 
     const queryTokens = normalizedQuery.split(' ');
 
-    for (let i = 0; i < customers.length; i++) {
-        const normalizedCustomer = cleanString(customers[i]);
-
+    for (let i = 0; i < searchList.length; i++) {
+        const normalizedCustomer = cleanString(searchList[i]);
         let weightedDistance = 0;
+
         for (const token of queryTokens) {
             const distance = levenshtein(token, normalizedCustomer);
             weightedDistance += distance / (token.length + 1);
@@ -40,8 +44,7 @@ export function fuzzySearch(query, customers) {
         }
     }
 
-    // Use a dynamic threshold based on the number of tokens in the query
-    const threshold = queryTokens.length * 0.6; // Adjusted threshold
+    const threshold = calculateThreshold(normalizedQuery.length);
     if (minWeightedDistance > threshold) {
         return -1;
     }
@@ -49,7 +52,7 @@ export function fuzzySearch(query, customers) {
     return bestMatchIndex;
 }
 
-function levenshtein(str1, str2) {
+function levenshtein(str1: string, str2: string) {
     // If either string is empty, return the length of the other string
     if (str1.length === 0) return str2.length;
     if (str2.length === 0) return str1.length;
