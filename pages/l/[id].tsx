@@ -114,14 +114,21 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         setFetchingLocation(false);
-                        resolve({
-                            longitude: position.coords.longitude,
-                            latitude: position.coords.latitude,
-                        });
+                        if (!position || !position.coords) {
+                            resolve({
+                                longitude: null,
+                                latitude: null,
+                            });
+                        } else {
+                            resolve({
+                                longitude: position.coords.longitude,
+                                latitude: position.coords.latitude,
+                            });
+                        }
                     },
                     (error) => {
                         setFetchingLocation(false);
-                        return Promise.resolve({
+                        resolve({
                             longitude: null,
                             latitude: null,
                         });
