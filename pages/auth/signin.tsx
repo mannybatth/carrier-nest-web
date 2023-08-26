@@ -217,7 +217,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                 <img
                     className="absolute inset-0 object-cover w-full h-full"
                     style={{ objectPosition: '40% 50%' }}
-                    src="/cover.png"
+                    src="/cover.jpg"
                     alt=""
                 />
             </div>
