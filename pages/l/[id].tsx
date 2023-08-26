@@ -75,6 +75,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const [load, setLoad] = useState<ExpandedLoad>();
     const [loadLoading, setLoadLoading] = useState(true);
+    const [fetchingLocation, setFetchingLocation] = useState(false);
     const [loadStatusLoading, setLoadStatusLoading] = useState(false);
 
     const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>([]);
@@ -103,9 +104,39 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
         setLoadLoading(false);
     };
 
+    const getDeviceLocation = (): Promise<{
+        longitude: number | null;
+        latitude: number | null;
+    }> => {
+        if (navigator.geolocation) {
+            return new Promise((resolve, reject) => {
+                setFetchingLocation(true);
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setFetchingLocation(false);
+                        resolve({
+                            longitude: position.coords.longitude,
+                            latitude: position.coords.latitude,
+                        });
+                    },
+                    (error) => {
+                        setFetchingLocation(false);
+                        reject(error);
+                    },
+                );
+            });
+        } else {
+            return Promise.resolve({
+                longitude: null,
+                latitude: null,
+            });
+        }
+    };
+
     const beginWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.IN_PROGRESS, driverId);
+        const { longitude, latitude } = await getDeviceLocation();
+        const response = await updateLoadStatus(loadId, LoadStatus.IN_PROGRESS, { driverId, longitude, latitude });
         if (response) {
             await reloadLoad();
         }
@@ -114,7 +145,8 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const stopWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.CREATED, driverId);
+        const { longitude, latitude } = await getDeviceLocation();
+        const response = await updateLoadStatus(loadId, LoadStatus.CREATED, { driverId, longitude, latitude });
         if (response) {
             await reloadLoad();
         }
@@ -123,7 +155,8 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
     const completeWork = async () => {
         setLoadStatusLoading(true);
-        const response = await updateLoadStatus(loadId, LoadStatus.DELIVERED, driverId);
+        const { longitude, latitude } = await getDeviceLocation();
+        const response = await updateLoadStatus(loadId, LoadStatus.DELIVERED, { driverId, longitude, latitude });
         if (response) {
             await reloadLoad();
         }
@@ -140,18 +173,21 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
 
         setDocsLoading(true);
         try {
-            const response = await uploadFileToGCS(file);
-            if (response?.uniqueFileName) {
+            const [uploadResponse, locationResponse] = await Promise.all([uploadFileToGCS(file), getDeviceLocation()]);
+            if (uploadResponse?.uniqueFileName) {
                 const simpleDoc: Partial<LoadDocument> = {
-                    fileKey: response.uniqueFileName,
-                    fileUrl: response.gcsInputUri,
+                    fileKey: uploadResponse.uniqueFileName,
+                    fileUrl: uploadResponse.gcsInputUri,
                     fileName: file.name,
                     fileType: file.type,
                     fileSize: file.size,
                 };
+                const { longitude, latitude } = locationResponse;
                 await addLoadDocumentToLoad(load.id, simpleDoc, {
                     driverId: driverId,
                     isPod: true,
+                    longitude,
+                    latitude,
                 });
 
                 reloadLoad();
@@ -253,6 +289,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     >
                                         {loadStatusLoading && loadingSvg}
                                         {!loadStatusLoading && 'Begin Work'}
+                                        {fetchingLocation && 'Fetching Location...'}
                                     </button>
                                 )}
                                 {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
@@ -264,6 +301,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     >
                                         {loadStatusLoading && loadingSvg}
                                         {!loadStatusLoading && 'Set as Delivered'}
+                                        {fetchingLocation && 'Fetching Location...'}
                                     </button>
                                 )}
                                 {(loadStatus(load) === UILoadStatus.DELIVERED ||
@@ -277,6 +315,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                         >
                                             {(docsLoading || loadStatusLoading) && loadingSvg}
                                             {!(docsLoading || loadStatusLoading) && 'Upload POD'}
+                                            {fetchingLocation && 'Fetching Location...'}
                                         </button>
                                         <input
                                             type="file"

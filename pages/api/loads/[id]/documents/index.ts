@@ -20,7 +20,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _post() {
         const session = await getServerSession(req, res, authOptions);
-        const driverId = req.query.driverId as string;
+        const driverId = req.body.driverId as string;
         let driver: Driver = null;
 
         if (driverId) {
@@ -53,9 +53,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const docData = req.body as LoadDocument;
-        const isPod = req.query.isPod === 'true';
-        const isRatecon = req.query.isRatecon === 'true';
+        const docData = req.body.loadDocument as LoadDocument;
+        const isPod = req.body.isPod === true;
+        const isRatecon = req.body.isRatecon === true;
         const isNormalDoc = !isPod && !isRatecon;
 
         const loadDocument = await prisma.loadDocument.create({
@@ -105,6 +105,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
 
+        const longitude = req.body?.longitude as number;
+        const latitude = req.body?.latitude as number;
+
         await prisma.loadActivity.create({
             data: {
                 load: {
@@ -139,6 +142,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                 },
                 actionDocumentFileName: loadDocument.fileName,
+                ...(longitude ? { longitude } : {}),
+                ...(latitude ? { latitude } : {}),
             },
         });
 

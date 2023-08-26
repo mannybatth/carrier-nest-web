@@ -135,15 +135,14 @@ export const deleteLoadById = async (id: string) => {
 export const addLoadDocumentToLoad = async (
     loadId: string,
     loadDocument: Partial<LoadDocument>,
-    query?: ParsedUrlQueryInput,
+    extras: { driverId?: string; isPod?: boolean; longitude?: number; latitude?: number } = {},
 ) => {
-    const params = query ? stringify(query) : '';
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/documents?' + params, {
+    const response = await fetch(apiUrl + '/loads/' + loadId + '/documents', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(loadDocument),
+        body: JSON.stringify({ loadDocument, ...extras }),
     });
     const { data, errors }: JSONResponse<{ loadDocument: LoadDocument }> = await response.json();
 
@@ -170,13 +169,17 @@ export const deleteLoadDocumentFromLoad = async (
     return data.result;
 };
 
-export const updateLoadStatus = async (loadId: string, status: LoadStatus, driverId?: string) => {
+export const updateLoadStatus = async (
+    loadId: string,
+    status: LoadStatus,
+    extras: { driverId?: string; longitude?: number; latitude?: number } = {},
+) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/status', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status, ...(driverId ? { driverId } : {}) }),
+        body: JSON.stringify({ status, ...extras }),
     });
     const { data, errors }: JSONResponse<{ load: ExpandedLoad }> = await response.json();
 

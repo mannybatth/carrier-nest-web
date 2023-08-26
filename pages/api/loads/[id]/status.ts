@@ -20,7 +20,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _patch() {
         const { id } = req.query;
-        const { status, driverId } = req.body as { status: LoadStatus; driverId?: string };
+        const { status, driverId, longitude, latitude } = req.body as {
+            status: LoadStatus;
+            driverId?: string;
+            longitude?: number;
+            latitude?: number;
+        };
 
         let load: Load;
         let session: Session;
@@ -101,6 +106,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 ...(driver ? { actorDriverName: driver?.name } : {}),
                 fromStatus,
                 toStatus,
+                ...(longitude ? { longitude } : {}),
+                ...(latitude ? { latitude } : {}),
             },
         });
 

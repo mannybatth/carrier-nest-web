@@ -75,6 +75,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
         }
     };
 
+    const openCoordinatesInGoogleMaps = (longitude: number, latitude: number) => {
+        window.open(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`, '_blank');
+    };
+
     return (
         <div className={classNames(className, 'flex flex-col')}>
             {initialLoading ? (
@@ -114,6 +118,21 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 <span className="font-medium text-gray-900">
                                                     {loadStatusToUIStatus(activityItem.toStatus).toUpperCase()}
                                                 </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
                                             </>
                                         )}
 
@@ -130,6 +149,21 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                     {activityItem.actionDocument?.fileName ||
                                                         activityItem.actionDocumentFileName}
                                                 </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
                                             </>
                                         )}
 
@@ -146,6 +180,21 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                     {activityItem.actionDocument?.fileName ||
                                                         activityItem.actionDocumentFileName}
                                                 </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
                                             </>
                                         )}
 
