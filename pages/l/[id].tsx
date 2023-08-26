@@ -121,7 +121,10 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                     },
                     (error) => {
                         setFetchingLocation(false);
-                        reject(error);
+                        return Promise.resolve({
+                            longitude: null,
+                            latitude: null,
+                        });
                     },
                 );
             });
