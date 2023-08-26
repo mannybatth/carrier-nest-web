@@ -216,8 +216,8 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
             <div className="relative flex-1 hidden w-0 lg:block">
                 <img
                     className="absolute inset-0 object-cover w-full h-full"
-                    style={{ objectPosition: '70% 50%' }}
-                    src="/cover.png"
+                    style={{ objectPosition: '40% 50%' }}
+                    src="/cover2.png"
                     alt=""
                 />
             </div>
