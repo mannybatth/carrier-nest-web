@@ -128,7 +128,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                     },
                     (error) => {
                         setFetchingLocation(false);
-                        notify({ title: 'Unable to get location', message: error.message, type: 'error' });
+                        // notify({ title: 'Unable to get location', message: error.message, type: 'error' });
                         resolve({
                             longitude: null,
                             latitude: null,
