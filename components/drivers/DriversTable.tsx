@@ -40,9 +40,7 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                     },
                 ],
             }))}
-            onRowClick={(id, index) => {
-                router.push(`/drivers/${id}`);
-            }}
+            rowLink={(id) => `/drivers/${id}`}
             sort={sort}
             changeSort={changeSort}
             emptyState={

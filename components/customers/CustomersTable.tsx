@@ -46,9 +46,7 @@ const CustomersTable: React.FC<Props> = ({ customers, sort, loading, changeSort,
                     },
                 ],
             }))}
-            onRowClick={(id, index) => {
-                router.push(`/customers/${id}`);
-            }}
+            rowLink={(id) => `/customers/${id}`}
             sort={sort}
             changeSort={changeSort}
             emptyState={

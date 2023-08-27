@@ -154,9 +154,7 @@ export const LoadsTable: React.FC<Props> = ({
                     },
                 ],
             }))}
-            onRowClick={(id, index) => {
-                router.push(`/loads/${id}`);
-            }}
+            rowLink={(id) => `/loads/${id}`}
             sort={sort}
             changeSort={changeSort}
             emptyState={
