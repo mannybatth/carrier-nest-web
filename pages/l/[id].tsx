@@ -99,7 +99,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
             setLoadDocuments([...load.podDocuments].filter((ld) => ld));
             setDropOffDatePassed(isDate24HrInThePast(new Date(load.receiver.date)));
         } catch (e) {
-            notify({ title: 'Error loading load', message: e.message, type: 'error' });
+            notify({ title: 'Load does not exist', message: e.message, type: 'error' });
         }
         setLoadLoading(false);
     };
