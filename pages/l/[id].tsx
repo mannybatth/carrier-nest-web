@@ -197,7 +197,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: uploadResponse.uniqueFileName,
                     fileUrl: uploadResponse.gcsInputUri,
-                    fileName: file.name,
+                    fileName: uploadResponse.originalFileName,
                     fileType: file.type,
                     fileSize: file.size,
                 };

@@ -25,7 +25,7 @@ type InvoicePDFProps = {
 
 export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, customer, load }) => (
     <Document>
-        <Page style={styles.body}>
+        <Page size={[612, 792]} style={styles.body}>
             <View style={{ backgroundColor: '#497BA0', height: 8, marginBottom: 14 }}></View>
 
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 30 }}>

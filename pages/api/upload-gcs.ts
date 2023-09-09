@@ -4,6 +4,7 @@ import { Storage } from '@google-cloud/storage';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import sharp from 'sharp';
 
 export const config = {
     api: {
@@ -19,13 +20,38 @@ const storage = new Storage({
     },
 });
 
+const commonImageFormats = ['.jpg', '.jpeg', '.gif', '.png', '.bmp', '.tiff', '.tif', '.webp', '.heif', '.heic'];
+
+async function convertToJPG(inputPath: string, outputPath: string): Promise<void> {
+    await sharp(inputPath).jpeg().toFile(outputPath);
+}
+
 async function uploadFile(
     localFilePath: string,
     originalFileName: string,
     bucketName: string,
-): Promise<{ gcsInputUri: string; uniqueFileName: string }> {
-    const extension = path.extname(originalFileName); // Extract the file extension
-    const uniqueFileName = `${uuidv4()}${extension}`; // Append the extension to the unique file name
+): Promise<{ gcsInputUri: string; uniqueFileName: string; originalFileName: string }> {
+    const extension = path.extname(originalFileName).toLowerCase();
+    let uniqueFileName = `${uuidv4()}${extension}`; // Default to original file extension
+
+    if (
+        commonImageFormats.includes(extension) &&
+        extension !== '.jpg' &&
+        extension !== '.jpeg' &&
+        extension !== '.png'
+    ) {
+        // Convert the image to jpg
+        const jpgFilePath = localFilePath + '.jpg';
+        try {
+            await convertToJPG(localFilePath, jpgFilePath);
+            await fs.unlink(localFilePath); // Delete the original file
+            localFilePath = jpgFilePath; // Set the new file path for upload
+            uniqueFileName = `${uuidv4()}.jpg`; // Update the filename to have a .jpg extension
+            originalFileName = `${path.basename(originalFileName, extension)}.jpg`; // Update the filename to have a .jpg extension
+        } catch (error) {
+            console.error('Error converting to JPG:', error);
+        }
+    }
 
     await storage.bucket(bucketName).upload(localFilePath, {
         destination: uniqueFileName,
@@ -35,9 +61,12 @@ async function uploadFile(
     // Make file public
     await storage.bucket(bucketName).file(uniqueFileName).makePublic();
 
+    await fs.unlink(localFilePath); // Delete the converted or original file after upload
+
     return {
         gcsInputUri: `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`,
         uniqueFileName,
+        originalFileName,
     };
 }
 
@@ -56,14 +85,16 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             const localFilePath = file.filepath;
             const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME;
 
-            const { gcsInputUri, uniqueFileName } = await uploadFile(localFilePath, file.originalFilename, bucketName);
+            const { gcsInputUri, uniqueFileName, originalFileName } = await uploadFile(
+                localFilePath,
+                file.originalFilename,
+                bucketName,
+            );
 
-            await fs.unlink(localFilePath); // delete the local file
-
-            return res.status(200).json({ gcsInputUri, uniqueFileName });
+            return res.status(200).json({ gcsInputUri, uniqueFileName, originalFileName });
         } catch (error) {
-            console.error('Error during the Document AI process:', error);
-            return res.status(500).json({ error: 'Error during the Document AI process.' });
+            console.error('Error during the Uploading to GCS:', error);
+            return res.status(500).json({ error: 'Error during the Uploading to GCS.' });
         }
     } else {
         res.setHeader('Allow', ['POST']);

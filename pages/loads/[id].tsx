@@ -406,7 +406,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.uniqueFileName,
                     fileUrl: response.gcsInputUri,
-                    fileName: file.name,
+                    fileName: response.originalFileName,
                     fileType: file.type,
                     fileSize: file.size,
                 };
@@ -447,7 +447,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.uniqueFileName,
                     fileUrl: response.gcsInputUri,
-                    fileName: file.name,
+                    fileName: response.originalFileName,
                     fileType: file.type,
                     fileSize: file.size,
                 };

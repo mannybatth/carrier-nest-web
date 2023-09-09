@@ -1,24 +1,36 @@
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-import workerSrc from 'pdfjs-dist/build/pdf.worker.entry';
+import { PDFDocument } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-
-// NOTE: Do not import this in a serverless function. Canvas dependency from pdfjs will cause it to fail.
 export const calcPdfPageCount = async (
     byteArray: Uint8Array,
 ): Promise<{
     totalPages: number;
-    metadata: pdfjsLib.Metadata;
+    metadata: {
+        title?: string;
+        author?: string;
+        subject?: string;
+        creator?: string;
+        producer?: string;
+        creationDate?: Date;
+        modificationDate?: Date;
+    };
 }> => {
-    const pdf = await pdfjsLib.getDocument({
-        data: byteArray,
-        useWorkerFetch: false,
-        isEvalSupported: false,
-        useSystemFonts: true,
-    }).promise;
+    const pdf = await PDFDocument.load(byteArray);
+    const totalPages = pdf.getPageCount();
+
+    // pdf-lib does not support all the metadata fields pdfjs-dist supports.
+    // Here we are only fetching what's available.
+    const metadata = {
+        title: pdf.getTitle(),
+        author: pdf.getAuthor(),
+        subject: pdf.getSubject(),
+        creator: pdf.getCreator(),
+        producer: pdf.getProducer(),
+        creationDate: pdf.getCreationDate(),
+        modificationDate: pdf.getModificationDate(),
+    };
 
     return {
-        totalPages: pdf.numPages,
-        metadata: await pdf.getMetadata(),
+        totalPages,
+        metadata,
     };
 };

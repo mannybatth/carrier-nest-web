@@ -156,8 +156,17 @@ const CreateLoad: PageWithAuth = () => {
 
         setLoading(true);
 
-        let metadata = null;
+        let metadata: {
+            title?: string;
+            author?: string;
+            subject?: string;
+            creator?: string;
+            producer?: string;
+            creationDate?: Date;
+            modificationDate?: Date;
+        } = null;
         let numOfPages = 0;
+
         try {
             await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -220,8 +229,7 @@ const CreateLoad: PageWithAuth = () => {
                             source: 'blob',
                             blobType: file.type,
                             pdf: {
-                                info: metadata?.info,
-                                metadata: metadata?.metadata,
+                                metadata: metadata,
                                 totalPages: numOfPages,
                             },
                             loc: {
@@ -237,8 +245,7 @@ const CreateLoad: PageWithAuth = () => {
                             source: 'blob',
                             blobType: file.type,
                             pdf: {
-                                info: metadata?.info,
-                                metadata: metadata?.metadata,
+                                metadata: metadata,
                                 totalPages: numOfPages,
                             },
                             loc: {

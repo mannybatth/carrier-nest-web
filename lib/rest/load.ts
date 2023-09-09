@@ -81,7 +81,7 @@ export const createLoad = async (load: ExpandedLoad, rateconFile?: File) => {
             const simpleDoc: Partial<LoadDocument> = {
                 fileKey: uploadResponse.uniqueFileName,
                 fileUrl: uploadResponse.gcsInputUri,
-                fileName: rateconFile.name,
+                fileName: uploadResponse.originalFileName,
                 fileType: rateconFile.type,
                 fileSize: rateconFile.size,
             };
