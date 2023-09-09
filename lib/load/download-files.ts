@@ -5,6 +5,51 @@ import { LoadDocument } from '@prisma/client';
 import { sanitize } from '../helpers/string';
 import { PDFDocument, PDFImage } from 'pdf-lib';
 
+const commonImageFormats = ['jpg', 'jpeg', 'gif', 'png', 'bmp', 'tiff', 'tif', 'webp', 'heif', 'heic', 'avif'];
+
+const isContentTypeImage = (contentType: string) => {
+    return commonImageFormats.some((format) => contentType.includes(format));
+};
+
+const convertToJPEG = async (arrayBuffer: ArrayBuffer) => {
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    const img = document.createElement('img');
+
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const jpegBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+            resolve(blob);
+        }, 'image/jpeg');
+    });
+
+    const jpegArrayBuffer = await jpegBlob.arrayBuffer();
+    return jpegArrayBuffer;
+};
+
+let heic2anyModule;
+async function convertHeicToJpeg(arrayBuffer: ArrayBuffer, contentType: string) {
+    if (!heic2anyModule) {
+        heic2anyModule = await import('heic2any');
+    }
+    const heicBlob = new Blob([arrayBuffer], { type: contentType });
+    const jpegBlob = await heic2anyModule.default({ blob: heicBlob, toType: 'image/jpeg', quality: 0.8 });
+    const jpegArrayBuffer = await jpegBlob.arrayBuffer();
+    return jpegArrayBuffer;
+}
+
 export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: string) => {
     if (!load) {
         return;
@@ -14,7 +59,9 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
         bufferedWrite: true,
     });
 
-    const loadDocs = [load.rateconDocument, ...load.loadDocuments, ...load.podDocuments].filter((ld) => ld);
+    const loadDocs: LoadDocument[] = [load.rateconDocument, ...load.loadDocuments, ...load.podDocuments].filter(
+        (ld) => ld,
+    );
 
     if (loadDocs.length === 0 && !load.invoice) {
         return;
@@ -39,13 +86,20 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
             for (const page of pages) {
                 combinedPDFDoc.addPage(page);
             }
-        } else if ((contentType === 'image/jpeg' && isValidJPEG(arrayBuffer)) || contentType === 'image/png') {
+        } else if (isContentTypeImage(contentType)) {
             try {
                 let image: PDFImage;
                 if (contentType === 'image/jpeg') {
                     image = await combinedPDFDoc.embedJpg(arrayBuffer);
                 } else if (contentType === 'image/png') {
                     image = await combinedPDFDoc.embedPng(arrayBuffer);
+                } else if (contentType === 'image/heic' || contentType === 'image/heif') {
+                    const jpegArrayBuffer = await convertHeicToJpeg(arrayBuffer, contentType);
+                    image = await combinedPDFDoc.embedJpg(jpegArrayBuffer);
+                } else {
+                    // Convert to JPEG
+                    const jpegArrayBuffer = isValidJPEG(arrayBuffer) ? arrayBuffer : await convertToJPEG(arrayBuffer);
+                    image = await combinedPDFDoc.embedJpg(jpegArrayBuffer);
                 }
 
                 const imageAspectRatio = image.height / image.width;
@@ -75,16 +129,19 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
     }
 
     if (loadDocs.length > 0) {
-        const addBlobToZip = async (doc: LoadDocument) => {
-            const response = await fetch(doc.fileUrl);
-            const blob = await response.blob();
+        // Parallel fetching of documents
+        const fetchPromises = loadDocs.map((doc) => fetch(doc.fileUrl));
+        const responses = await Promise.all(fetchPromises);
+        const responseBlobs = await Promise.all(responses.map((response) => response.blob()));
 
+        // Add fetched blobs to ZIP and the combined PDF in parallel
+        const addBlobsPromises = responseBlobs.map(async (blob, index) => {
+            const doc = loadDocs[index];
             await zipWriter.add(doc.fileName, new zip.BlobReader(blob));
             await addBlobToCombinedPdf(blob);
-        };
-        for (const doc of loadDocs) {
-            await addBlobToZip(doc);
-        }
+        });
+
+        await Promise.all(addBlobsPromises);
     }
 
     // Serialize the combinedPDFDoc and add it to the zip

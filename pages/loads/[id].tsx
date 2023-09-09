@@ -41,6 +41,7 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import { LoadingOverlay } from 'components/LoadingOverlay';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -361,6 +362,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
+    const [downloadingDocs, setDownloadingDocs] = useState(false);
 
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
@@ -536,7 +538,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const downloadAllDocs = async () => {
+        setDownloadingDocs(true);
         await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
+        setDownloadingDocs(false);
     };
 
     const makeCopyOfLoadClicked = async () => {
@@ -607,7 +611,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         setDocumentIdToDelete(null);
                     }}
                 ></SimpleDialog>
-                <div className="max-w-4xl py-2 mx-auto">
+                <div className="relative max-w-4xl py-2 mx-auto">
+                    {downloadingDocs && <LoadingOverlay />}
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
                         paths={[

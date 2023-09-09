@@ -21,6 +21,7 @@ import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
 import { downloadAllDocsForLoad } from '../../../lib/load/download-files';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
+import { LoadingOverlay } from 'components/LoadingOverlay';
 
 type ActionsDropdownProps = {
     invoice: ExpandedInvoice;
@@ -161,6 +162,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     const [openDeleteInvoiceConfirmation, setOpenDeleteInvoiceConfirmation] = React.useState(false);
     const [openDeletePaymentConfirmation, setOpenDeletePaymentConfirmation] = React.useState(false);
     const [paymentIdToDelete, setPaymentIdToDelete] = React.useState<string | null>(null);
+    const [downloadingDocs, setDownloadingDocs] = useState(false);
 
     const [openAddPayment, setOpenAddPayment] = useState(false);
     const router = useRouter();
@@ -219,11 +221,13 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     };
 
     const downloadAllDocs = async () => {
+        setDownloadingDocs(true);
         const load = {
             ...invoice.load,
             invoice: invoice,
         } as ExpandedLoad;
         await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
+        setDownloadingDocs(false);
     };
 
     return (
@@ -280,7 +284,8 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                         setPaymentIdToDelete(null);
                     }}
                 ></SimpleDialog>
-                <div className="max-w-4xl py-2 mx-auto">
+                <div className="relative max-w-4xl py-2 mx-auto">
+                    {downloadingDocs && <LoadingOverlay />}
                     <AddPaymentModal
                         onCreate={onNewPaymentCreate}
                         show={openAddPayment}
