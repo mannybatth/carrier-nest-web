@@ -19,7 +19,7 @@ import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetails
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
 import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
-import { downloadAllDocsForLoad } from '../../../lib/load/download-files';
+import { downloadCombinedPDFForLoad } from '../../../lib/load/download-files';
 import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 
@@ -28,7 +28,7 @@ type ActionsDropdownProps = {
     disabled?: boolean;
     downloadInvoice: () => void;
     deleteInvoice: (id: string) => void;
-    downloadAllDocs: () => void;
+    downloadCombinedPDF: () => void;
 };
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
@@ -36,7 +36,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     disabled,
     downloadInvoice,
     deleteInvoice,
-    downloadAllDocs,
+    downloadCombinedPDF,
 }) => {
     const router = useRouter();
 
@@ -116,14 +116,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        downloadAllDocs();
+                                        downloadCombinedPDF();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Download All Docs
+                                    Download Combined PDF
                                 </a>
                             )}
                         </Menu.Item>
@@ -220,13 +220,13 @@ const InvoiceDetailsPage: PageWithAuth = () => {
         );
     };
 
-    const downloadAllDocs = async () => {
+    const downloadCombinedPDF = async () => {
         setDownloadingDocs(true);
         const load = {
             ...invoice.load,
             invoice: invoice,
         } as ExpandedLoad;
-        await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
+        await downloadCombinedPDFForLoad(load, session.user.defaultCarrierId);
         setDownloadingDocs(false);
     };
 
@@ -249,7 +249,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                             disabled={!invoice}
                             deleteInvoice={() => setOpenDeleteInvoiceConfirmation(true)}
                             downloadInvoice={downloadInvoiceClicked}
-                            downloadAllDocs={downloadAllDocs}
+                            downloadCombinedPDF={downloadCombinedPDF}
                         ></ActionsDropdown>
                     </div>
                 </div>
@@ -322,7 +322,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                 disabled={!invoice}
                                 deleteInvoice={() => setOpenDeleteInvoiceConfirmation(true)}
                                 downloadInvoice={downloadInvoiceClicked}
-                                downloadAllDocs={downloadAllDocs}
+                                downloadCombinedPDF={downloadCombinedPDF}
                             ></ActionsDropdown>
                         </div>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />

@@ -32,7 +32,7 @@ import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
-import { downloadAllDocsForLoad } from '../../lib/load/download-files';
+import { downloadCombinedPDFForLoad } from '../../lib/load/download-files';
 import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 import {
     addLoadDocumentToLoad,
@@ -50,7 +50,7 @@ type ActionsDropdownProps = {
     viewInvoiceClicked?: () => void;
     createInvoiceClicked?: () => void;
     assignDriverClicked: () => void;
-    downloadAllDocsClicked: () => void;
+    downloadCombinedPDF: () => void;
     makeCopyOfLoadClicked: () => void;
     deleteLoadClicked: () => void;
 };
@@ -62,7 +62,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     viewInvoiceClicked,
     createInvoiceClicked,
     assignDriverClicked,
-    downloadAllDocsClicked,
+    downloadCombinedPDF,
     makeCopyOfLoadClicked,
     deleteLoadClicked,
 }) => {
@@ -146,14 +146,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        downloadAllDocsClicked();
+                                        downloadCombinedPDF();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Download All Docs
+                                    Download Combined PDF
                                 </a>
                             )}
                         </Menu.Item>
@@ -537,9 +537,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
-    const downloadAllDocs = async () => {
+    const downloadCombinedPDF = async () => {
         setDownloadingDocs(true);
-        await downloadAllDocsForLoad(load, session.user.defaultCarrierId);
+        await downloadCombinedPDFForLoad(load, session.user.defaultCarrierId);
         setDownloadingDocs(false);
     };
 
@@ -568,7 +568,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 router.push(`/accounting/create-invoice/${load.id}`);
                             }}
                             assignDriverClicked={assignDriverAction}
-                            downloadAllDocsClicked={downloadAllDocs}
+                            downloadCombinedPDF={downloadCombinedPDF}
                             makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                             deleteLoadClicked={() => {
                                 setOpenDeleteLoadConfirmation(true);
@@ -643,7 +643,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     router.push(`/accounting/create-invoice/${load.id}`);
                                 }}
                                 assignDriverClicked={assignDriverAction}
-                                downloadAllDocsClicked={downloadAllDocs}
+                                downloadCombinedPDF={downloadCombinedPDF}
                                 makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                                 deleteLoadClicked={() => {
                                     setOpenDeleteLoadConfirmation(true);
