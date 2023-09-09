@@ -111,30 +111,38 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
         if (navigator.geolocation) {
             return new Promise((resolve, reject) => {
                 setFetchingLocation(true);
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        setFetchingLocation(false);
-                        if (!position || !position.coords) {
+                try {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            setFetchingLocation(false);
+                            if (!position || !position.coords) {
+                                resolve({
+                                    longitude: null,
+                                    latitude: null,
+                                });
+                            } else {
+                                resolve({
+                                    longitude: position.coords.longitude,
+                                    latitude: position.coords.latitude,
+                                });
+                            }
+                        },
+                        (error) => {
+                            setFetchingLocation(false);
+                            // notify({ title: 'Unable to get location', message: error.message, type: 'error' });
                             resolve({
                                 longitude: null,
                                 latitude: null,
                             });
-                        } else {
-                            resolve({
-                                longitude: position.coords.longitude,
-                                latitude: position.coords.latitude,
-                            });
-                        }
-                    },
-                    (error) => {
-                        setFetchingLocation(false);
-                        // notify({ title: 'Unable to get location', message: error.message, type: 'error' });
-                        resolve({
-                            longitude: null,
-                            latitude: null,
-                        });
-                    },
-                );
+                        },
+                    );
+                } catch (e) {
+                    setFetchingLocation(false);
+                    resolve({
+                        longitude: null,
+                        latitude: null,
+                    });
+                }
             });
         } else {
             return Promise.resolve({
