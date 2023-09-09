@@ -67,7 +67,10 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
         return;
     }
 
-    const combinedPDFDoc = await PDFDocument.create();
+    let combinedPDFDoc: PDFDocument | null = null;
+    if (loadDocs.length + (load.invoice ? 1 : 0) > 1) {
+        combinedPDFDoc = await PDFDocument.create();
+    }
 
     const isValidJPEG = (arrayBuffer: ArrayBuffer) => {
         const arr = new Uint8Array(arrayBuffer.slice(0, 2));
@@ -75,6 +78,10 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
     };
 
     const addBlobToCombinedPdf = async (blob: Blob) => {
+        if (!combinedPDFDoc) {
+            return;
+        }
+
         const arrayBuffer = await blob.arrayBuffer();
         const contentType = blob.type;
 
@@ -144,11 +151,14 @@ export const downloadAllDocsForLoad = async (load: ExpandedLoad, carrierId: stri
         await Promise.all(addBlobsPromises);
     }
 
-    // Serialize the combinedPDFDoc and add it to the zip
-    const combinedPdfBytes = await combinedPDFDoc.save();
-    const combinedPdfBlob = new Blob([combinedPdfBytes], { type: 'application/pdf' });
     const fileName = `${load.customer?.name ? `${sanitize(load.customer.name)}_` : ''}${sanitize(load.refNum)}`;
-    await zipWriter.add(`${fileName}.pdf`, new zip.BlobReader(combinedPdfBlob));
+
+    if (combinedPDFDoc) {
+        // Serialize the combinedPDFDoc and add it to the zip
+        const combinedPdfBytes = await combinedPDFDoc.save();
+        const combinedPdfBlob = new Blob([combinedPdfBytes], { type: 'application/pdf' });
+        await zipWriter.add(`${fileName}.pdf`, new zip.BlobReader(combinedPdfBlob));
+    }
 
     const blob = await zipWriter.close();
     const url = URL.createObjectURL(blob);
