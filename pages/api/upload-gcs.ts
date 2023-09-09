@@ -4,7 +4,6 @@ import { Storage } from '@google-cloud/storage';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
-import sharp from 'sharp';
 
 export const config = {
     api: {
@@ -20,38 +19,13 @@ const storage = new Storage({
     },
 });
 
-const commonImageFormats = ['.jpg', '.jpeg', '.gif', '.png', '.bmp', '.tiff', '.tif', '.webp', '.heif', '.heic'];
-
-async function convertToJPG(inputPath: string, outputPath: string): Promise<void> {
-    await sharp(inputPath).jpeg().toFile(outputPath);
-}
-
 async function uploadFile(
     localFilePath: string,
     originalFileName: string,
     bucketName: string,
 ): Promise<{ gcsInputUri: string; uniqueFileName: string; originalFileName: string }> {
     const extension = path.extname(originalFileName).toLowerCase();
-    let uniqueFileName = `${uuidv4()}${extension}`; // Default to original file extension
-
-    if (
-        commonImageFormats.includes(extension) &&
-        extension !== '.jpg' &&
-        extension !== '.jpeg' &&
-        extension !== '.png'
-    ) {
-        // Convert the image to jpg
-        const jpgFilePath = localFilePath + '.jpg';
-        try {
-            await convertToJPG(localFilePath, jpgFilePath);
-            await fs.unlink(localFilePath); // Delete the original file
-            localFilePath = jpgFilePath; // Set the new file path for upload
-            uniqueFileName = `${uuidv4()}.jpg`; // Update the filename to have a .jpg extension
-            originalFileName = `${path.basename(originalFileName, extension)}.jpg`; // Update the filename to have a .jpg extension
-        } catch (error) {
-            console.error('Error converting to JPG:', error);
-        }
-    }
+    const uniqueFileName = `${uuidv4()}${extension}`; // Default to original file extension
 
     await storage.bucket(bucketName).upload(localFilePath, {
         destination: uniqueFileName,
