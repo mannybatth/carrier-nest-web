@@ -10,6 +10,11 @@ import { UserProvider } from '../components/context/UserContext';
 import Spinner from '../components/Spinner';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
+import { Prisma } from '@prisma/client';
+
+Prisma.Decimal.prototype.toJSON = function () {
+    return this.toNumber();
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;

@@ -39,7 +39,7 @@ const EditInvoicePage: PageWithAuth = () => {
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
-    }, [watchFields]);
+    }, [watchFields, invoice]);
 
     useEffect(() => {
         if (!invoice) {

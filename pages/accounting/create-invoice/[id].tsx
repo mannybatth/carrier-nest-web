@@ -51,7 +51,7 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
-    }, [watchFields]);
+    }, [watchFields, load]);
 
     const submit = async (data: ExpandedInvoice) => {
         console.log('submit', data);
