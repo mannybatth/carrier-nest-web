@@ -19,11 +19,11 @@ const InvoiceStatusBadge: React.FC<Props> = ({ invoice }) => {
             setBgColor('bg-purple-100');
             setTextColor('text-purple-800');
         } else if (statusText === UIInvoiceStatus.PARTIALLY_PAID) {
-            setBgColor('bg-green-100');
-            setTextColor('text-green-800');
+            setBgColor('bg-lime-100');
+            setTextColor('text-lime-800');
         } else if (statusText === UIInvoiceStatus.PAID) {
-            setBgColor('bg-green-100');
-            setTextColor('text-green-800');
+            setBgColor('bg-green-200');
+            setTextColor('text-green-900');
         } else if (statusText === UIInvoiceStatus.OVERDUE) {
             setBgColor('bg-red-100');
             setTextColor('text-red-800');
