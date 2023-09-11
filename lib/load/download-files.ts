@@ -64,6 +64,8 @@ const addBlobToCombinedPdf = async (blob: Blob, combinedPDFDoc: PDFDocument) => 
     const contentType = blob.type;
 
     const pdfWidth = 612; // default width of a PDF page (8.5 x 72 points/inch)
+    const margin = 36; // 0.5 inch margins on each side
+    const drawableWidth = pdfWidth - 2 * margin;
 
     if (contentType === 'application/pdf') {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
@@ -88,17 +90,17 @@ const addBlobToCombinedPdf = async (blob: Blob, combinedPDFDoc: PDFDocument) => 
             }
 
             const imageAspectRatio = image.height / image.width;
-            let scaledWidth = pdfWidth;
-            let scaledHeight = pdfWidth * imageAspectRatio;
+            let scaledWidth = drawableWidth;
+            let scaledHeight = drawableWidth * imageAspectRatio;
 
-            // Check if the image width is less than 612
-            if (image.width < pdfWidth) {
+            // Check if the image width with margins is less than 612
+            if (image.width + 2 * margin < pdfWidth) {
                 scaledWidth = image.width;
                 scaledHeight = image.height;
             }
 
-            const page = combinedPDFDoc.addPage([scaledWidth, scaledHeight]);
-            page.drawImage(image, { x: 0, y: 0, width: scaledWidth, height: scaledHeight });
+            const page = combinedPDFDoc.addPage([pdfWidth, scaledHeight + 2 * margin]);
+            page.drawImage(image, { x: margin, y: margin, width: scaledWidth, height: scaledHeight });
         } catch (error) {
             console.error(`Error embedding ${contentType}:`, error);
         }
