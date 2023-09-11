@@ -63,7 +63,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         dueDate.setDate(dueDate.getDate() + invoiceData.dueNetDays);
 
         const paidAmount = invoice.payments.reduce((acc, payment) => acc.add(payment.amount), new Prisma.Decimal(0));
-        let remainingAmount = invoice.totalAmount.sub(paidAmount);
+        let remainingAmount = new Prisma.Decimal(invoiceData.totalAmount).sub(paidAmount);
 
         // No negative value allowed
         if (remainingAmount.isNegative()) {
