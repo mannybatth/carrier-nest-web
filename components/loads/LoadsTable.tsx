@@ -40,7 +40,7 @@ export const LoadsTable: React.FC<Props> = ({
         <Table
             loading={loading}
             headers={[
-                ...[headers.includes('refNum') ? { key: 'refNum', title: 'Reference #' } : null],
+                ...[headers.includes('refNum') ? { key: 'refNum', title: 'Load/Order #' } : null],
                 ...[headers.includes('customer.name') ? { key: 'customer.name', title: 'Customer' } : null],
                 ...[headers.includes('status') ? { key: 'status', title: 'Status' } : null],
                 ...[headers.includes('shipper.date') ? { key: 'shipper.date', title: 'Pickup' } : null],

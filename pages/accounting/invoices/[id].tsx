@@ -378,7 +378,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                 </dd>
                                             </div>
                                             <div className="flex justify-between py-2.5 text-sm font-medium">
-                                                <dt className="text-gray-500">Reference #</dt>
+                                                <dt className="text-gray-500">Load/Order #</dt>
                                                 <dd className="text-gray-900">{invoice.load.refNum}</dd>
                                             </div>
                                             <div className="flex justify-between py-2.5 text-sm font-medium">

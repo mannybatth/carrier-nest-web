@@ -290,7 +290,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                 <div>
                                     <div className="text-base font-semibold uppercase">{load.customer?.name}</div>
                                     <div className="space-x-2">
-                                        <span className="text-sm font-semibold text-slate-400">Reference #:</span>
+                                        <span className="text-sm font-semibold text-slate-400">Load/Order #:</span>
                                         <span className="text-sm font-semibold">{load.refNum}</span>
                                     </div>
                                 </div>

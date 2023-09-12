@@ -207,10 +207,10 @@ const LoadForm: React.FC<Props> = ({
 
                     <div className="col-span-6 sm:col-span-3">
                         <label htmlFor="reference-num" className="block text-sm font-medium text-gray-700">
-                            Reference #
+                            Load/Order #
                         </label>
                         <input
-                            {...register('refNum', { required: 'Reference # is required' })}
+                            {...register('refNum', { required: 'Load/Order # is required' })}
                             type="text"
                             id="reference-num"
                             autoComplete="reference-num"

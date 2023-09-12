@@ -692,7 +692,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         <div className="pb-0 space-y-6 lg:pb-10">
                                             <dl className="border-gray-200 divide-y divide-gray-200">
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Reference #</dt>
+                                                    <dt className="text-gray-500">Load/Order #</dt>
                                                     <dd className="text-right text-gray-900">{load.refNum}</dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
