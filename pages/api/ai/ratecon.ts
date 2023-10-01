@@ -139,17 +139,18 @@ const generateLineBasedQuestions = (stopsCount: number) => {
 
 1. PO Numbers:
 - Capture sequences of digits immediately after labels such as "PO", "PO Number", "PO #", "PO No", "PO Num", and its immediate variants.
-- If multiple number sequences are detected following the label, prioritize the one closest to the label.
-- Exclude any sequences associated with terms like "Ref", "Reference", "Pickup", "Phone", "Tel", "Telephone", "Mobile", "Contact", "Truck", "TRK", and formats similar to phone numbers (e.g., (XXX) XXX-XXXX).
+- If none of these labels are found, try searching for the label "Pro" or "Pro #".
 - If a stop lacks a clear PO Number label or sequence, consider it as null. If no appropriate label is found, consider it as null.
+- Exclude any sequences associated with terms like "Ref", "Reference", "Pickup", "Phone", "Tel", "Telephone", "Mobile", "Contact", "Truck", "TRK", and formats similar to phone numbers (e.g., (XXX) XXX-XXXX).
 - Ignore any sequences or number that is a pickup number or phone number.
+- Only extract sequences that have one of the recommended labels.
 
 2. Pickup Numbers:
 - Extract sequences of digits specifically linked to labels such as "Pickup", "Pickup Number", "Pickup #", "PU Number", "PU #", "PU Num", "PU".
 - If no numbers are associated with pickup details, set the value to null.
 
 3. Reference Numbers:
-- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num". At least one number should be present in the sequence.
+- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num", "Shipper ID". At least one number should be present in the sequence.
 - For each detected reference, if multiple sequences are detected, consolidate them into a comma-separated series and include the labels inside the series.
 - Ensure that sequences detected for a single stop are grouped appropriately.
 - Ignore any sequences or number that is a po number, PU number, pickup number, or phone number.
@@ -329,23 +330,29 @@ function removeMatchingValues(data: LogisticsData) {
         return streetNumbers.includes(value) || stopNames.includes(value);
     };
 
-    // Check and set to null if match found
+    // Helper function to convert "null" string to actual null and check for matching values
+    const processValue = (value: string | null): string | null => {
+        if (value === 'null') return null;
+        return isMatchingValue(value) ? null : value;
+    };
+
+    // Specific function for reference numbers to ensure they contain at least one digit
+    const processReferenceValue = (value: string | null): string | null => {
+        const processed = processValue(value);
+        if (!/\d/.test(processed || '')) return null;
+        return processed;
+    };
+
     for (const key in data.po_numbers) {
-        if (isMatchingValue(data.po_numbers[key])) {
-            data.po_numbers[key] = null;
-        }
+        data.po_numbers[key] = processValue(data.po_numbers[key]);
     }
 
     for (const key in data.pickup_numbers) {
-        if (isMatchingValue(data.pickup_numbers[key])) {
-            data.pickup_numbers[key] = null;
-        }
+        data.pickup_numbers[key] = processValue(data.pickup_numbers[key]);
     }
 
     for (const key in data.reference_numbers) {
-        if (isMatchingValue(data.reference_numbers[key])) {
-            data.reference_numbers[key] = null;
-        }
+        data.reference_numbers[key] = processReferenceValue(data.reference_numbers[key]);
     }
 }
 
