@@ -1,6 +1,5 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { OpenAI } from 'langchain/llms/openai';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { ChainValues } from 'langchain/dist/schema';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
@@ -8,6 +7,29 @@ import { PromptTemplate } from 'langchain/prompts';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { NextRequest, NextResponse } from 'next/server';
+
+interface LogisticsData {
+    logistics_company: string;
+    load_number: string;
+    stops: {
+        type: string;
+        name: string;
+        address: {
+            street: string;
+            city: string;
+            state: string;
+            zip: string;
+            country: string;
+        };
+        date: string;
+        time: string;
+    }[];
+    rate: number;
+    invoice_emails: string[];
+    po_numbers: { [key: string]: string | null };
+    pickup_numbers: { [key: string]: string | null };
+    reference_numbers: { [key: string]: string | null };
+}
 
 export const config = {
     runtime: 'edge',
@@ -29,15 +51,15 @@ async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
 }
 
 const blockBasedQuestions: string[] = [
-    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number.
-json scheme:
+    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number. Handle OCR inconsistencies and adapt to document nuances. The label might be found after the load/order number so try your best to find the correct load number.
+JSON scheme:
 {
     "logistics_company": string or null,
     "load_number": string or null,
 }`,
 
     `Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Remember, a pickup is synonymous with "shipper", and delivery is equivalent to "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). If you encounter abbreviations near the address or date, consider them as potential stop names. If you are having trouble finding the stop "name", scan text near the address and date and try your best to match with a business name (could be an abbreviation). Also, for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
-json scheme:
+JSON scheme:
 {
     "stops": [
         {
@@ -57,14 +79,14 @@ json scheme:
     ],
 }`,
 
-    `Extract the financial details from the document context related to the rate or total cost of the shipment or load. The information is likely located near terms like "Total", "Rate", or "Amount". Make sure to extract the total amount with additional payments included. Search specifically for a format that might resemble "$USD 3,700.00" or any similar numerical representation. Return the exact numeric value related to the rate or payment for the load. Ensure this information is returned in the provided JSON format.
-json scheme:
+    `From the document, extract financial details pertinent to the rate of the shipment or load. Specifically, hone in on the total rate or payment, which could be proximate to terms like "Total", "Rate", "Amount", and "Total Carrier Payment". Be sure to secure the cumulative total, inclusive of all supplementary fees. Seek formats resembling "$USD 3,700.00" or similar numeric configurations. Return only the precise monetary figure associated with the rate or payment for the shipment. Do not include the currency symbol or any other text. If no rate or payment is provided, return null.
+JSON Schema:
 {
-    "rate": number or null,
+    "rate": "numerical value or null"
 }`,
 
     `Which email(s) does the document instruct to send the invoice and supporting documents to? If multiple emails are provided, return all of them. If no emails are provided, return null.
-json scheme:
+JSON scheme:
 {
     "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
 }`,
@@ -114,17 +136,28 @@ const generateLineBasedQuestions = (stopsCount: number) => {
     // There will be ${stopsCount} stops in this context document.`);
 
     questions.push(`Using OCR data from a rate confirmation document:
-1. PO Numbers: Identify sequences of digits associated with PO numbers, ensuring you differentiate from other numbers.
-2. Pickup Numbers: Extract numbers that are unmistakably related to pickup details. Search for definitive labels that indicate a pickup number: "Pickup Number", "Pickup #", "PU Number", "PU #", "PU Num", "PU", "Pickup". Exclude numbers that are in the vicinity of, or labeled with, words like "Phone", "Tel", "Telephone", "Mobile", "Contact", or any format similar to phone numbers such as (XXX) XXX-XXXX. If the number sequence looks like an address (e.g., includes terms like "Rd", "St", "Ave", or is followed by a city/state name), ignore it as well. Extract only the precise text right after the pickup label, ensuring there's no interference from adjacent details.
-3. Reference Numbers: Capture numbers that match common reference patterns and group them by their respective stops. If you find labels similar to "Reference Number", "Ref #", "Ref No", "Ref Num", "Ref", "Reference", or "Reference #", capture exactly the text that follows the label.
 
-Remember, this document has ${stopsCount} stops, hinted by terms like "Shipper", "Receiver", "Consignee" etc.
+1. PO Numbers:
+- Capture sequences of digits immediately after labels such as "PO", "PO Number", "PO #", "PO No", "PO Num", and its immediate variants.
+- If multiple number sequences are detected following the label, prioritize the one closest to the label.
+- Exclude any sequences associated with terms like "Ref", "Reference", "Pickup", "Phone", "Tel", "Telephone", "Mobile", "Contact", "Truck", "TRK", and formats similar to phone numbers (e.g., (XXX) XXX-XXXX).
+- If a stop lacks a clear PO Number label or sequence, consider it as null. If no appropriate label is found, consider it as null.
 
-Return the output in JSON format as follows:
+2. Pickup Numbers:
+- Extract sequences of digits specifically linked to labels such as "Pickup", "Pickup Number", "Pickup #", "PU Number", "PU #", "PU Num", "PU".
+- If no numbers are associated with pickup details, set the value to null.
+
+3. Reference Numbers:
+- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num".
+- For each detected reference, if multiple sequences are detected, consolidate them into a comma-separated series and include the labels inside the series.
+- Ensure that sequences detected for a single stop are grouped appropriately.
+- Ignore any sequences or number that is a po number, pickup number, or phone number.
+
+Considering the document has ${stopsCount} stops, format the output in JSON as:
 {
     "po_numbers": {
-        "stop1": "PO number(s) or null",
-        "stop2": "PO number(s) or null",
+        "stop1": "PO number or null",
+        "stop2": "PO number or null",
         ...
     },
     "pickup_numbers": {
@@ -133,13 +166,13 @@ Return the output in JSON format as follows:
         ...
     },
     "reference_numbers": {
-        "stop1": "Reference number 1, Reference number 2, ...",
-        "stop2": "Reference number 1, Reference number 2, ...",
+        "stop1": "Reference series or null",
+        "stop2": "Reference series or null",
         ...
     }
 }
 
-Handle OCR inconsistencies and adapt to document nuances.`);
+Ensure high precision and accuracy in OCR data extraction, accounting for any inconsistencies and variations in the document structure.`);
 
     return questions;
 };
@@ -184,35 +217,29 @@ export default async function POST(req: NextRequest) {
         const stopsCount = blockBasedResponses[1]?.stops?.length;
         const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
         const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
-            chunkSize: 3200,
-            chunkOverlap: 500,
-            numberOfChunks: 4,
+            chunkSize: 4000,
+            chunkOverlap: 700,
+            numberOfChunks: 3,
             maxTokens: 750,
         });
 
         const load_number = blockBasedResponses[0]?.load_number || null;
         const po_numbers = lineBasedResponses[0]?.po_numbers || [];
-        // const uniquePoNumbers = Array.from(new Set(po_numbers));
         const pickup_numbers = lineBasedResponses[0]?.pickup_numbers || [];
-        // const uniquePickupNumbers = Array.from(new Set(pickup_numbers));
         const reference_numbers = lineBasedResponses[0]?.reference_numbers || [];
-        // const stop_details = (lineBasedResponses[2]?.stop_details || []).map((stopDetail) => {
-        //     return {
-        //         ...stopDetail,
-        //         reference_numbers: Array.from(new Set(stopDetail.reference_numbers)),
-        //     };
-        // });
 
-        const result = {
+        const result: LogisticsData = {
             logistics_company: blockBasedResponses[0]?.logistics_company,
             load_number,
             stops: blockBasedResponses[1]?.stops,
-            rate: blockBasedResponses[2]?.rate,
+            rate: convertRateToNumber(blockBasedResponses[2]?.rate),
             invoice_emails: blockBasedResponses[3]?.invoice_emails,
             po_numbers: po_numbers,
             pickup_numbers: pickup_numbers,
             reference_numbers,
         };
+
+        removeMatchingValues(result);
 
         return NextResponse.json(
             {
@@ -277,14 +304,57 @@ function isValidItem(item: Document): boolean {
     return true;
 }
 
+function convertRateToNumber(rate: string | number): number {
+    if (typeof rate === 'string') {
+        // Remove commas and parse the string as a float
+        return parseFloat(rate.replace(/[$,]/g, ''));
+    }
+    return rate;
+}
+
+function removeMatchingValues(data: LogisticsData) {
+    const { stops } = data;
+
+    // Extract street numbers and names from the stops
+    const streetNumbers = stops
+        .map((stop) => (stop.address.street ? stop.address.street.split(' ')[0] : null))
+        .filter(Boolean) as string[];
+    const stopNames = stops.map((stop) => stop.name);
+
+    // Function to check if a value matches street number, or stop name
+    const isMatchingValue = (value: string | null): boolean => {
+        if (!value) return false; // If it's already null, no need to check further
+        return streetNumbers.includes(value) || stopNames.includes(value);
+    };
+
+    // Check and set to null if match found
+    for (const key in data.po_numbers) {
+        if (isMatchingValue(data.po_numbers[key])) {
+            data.po_numbers[key] = null;
+        }
+    }
+
+    for (const key in data.pickup_numbers) {
+        if (isMatchingValue(data.pickup_numbers[key])) {
+            data.pickup_numbers[key] = null;
+        }
+    }
+
+    for (const key in data.reference_numbers) {
+        if (isMatchingValue(data.reference_numbers[key])) {
+            data.reference_numbers[key] = null;
+        }
+    }
+}
+
 async function runAI(
     documents: Document[],
     questionsToRun: string[],
     config: { chunkSize: number; chunkOverlap: number; numberOfChunks: number; maxTokens: number } = {
-        chunkSize: 2048,
-        chunkOverlap: 512,
+        chunkSize: 2000,
+        chunkOverlap: 500,
         numberOfChunks: 6,
-        maxTokens: 500,
+        maxTokens: -1,
     },
 ) {
     const splitter = new RecursiveCharacterTextSplitter({
