@@ -281,10 +281,10 @@ async function runAI(
     documents: Document[],
     questionsToRun: string[],
     config: { chunkSize: number; chunkOverlap: number; numberOfChunks: number; maxTokens: number } = {
-        chunkSize: 2600,
-        chunkOverlap: 600,
+        chunkSize: 2048,
+        chunkOverlap: 512,
         numberOfChunks: 6,
-        maxTokens: 600,
+        maxTokens: 500,
     },
 ) {
     const splitter = new RecursiveCharacterTextSplitter({
