@@ -142,16 +142,17 @@ const generateLineBasedQuestions = (stopsCount: number) => {
 - If multiple number sequences are detected following the label, prioritize the one closest to the label.
 - Exclude any sequences associated with terms like "Ref", "Reference", "Pickup", "Phone", "Tel", "Telephone", "Mobile", "Contact", "Truck", "TRK", and formats similar to phone numbers (e.g., (XXX) XXX-XXXX).
 - If a stop lacks a clear PO Number label or sequence, consider it as null. If no appropriate label is found, consider it as null.
+- Ignore any sequences or number that is a pickup number or phone number.
 
 2. Pickup Numbers:
 - Extract sequences of digits specifically linked to labels such as "Pickup", "Pickup Number", "Pickup #", "PU Number", "PU #", "PU Num", "PU".
 - If no numbers are associated with pickup details, set the value to null.
 
 3. Reference Numbers:
-- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num".
+- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num". At least one number should be present in the sequence.
 - For each detected reference, if multiple sequences are detected, consolidate them into a comma-separated series and include the labels inside the series.
 - Ensure that sequences detected for a single stop are grouped appropriately.
-- Ignore any sequences or number that is a po number, pickup number, or phone number.
+- Ignore any sequences or number that is a po number, PU number, pickup number, or phone number.
 
 Considering the document has ${stopsCount} stops, format the output in JSON as:
 {
@@ -307,7 +308,8 @@ function isValidItem(item: Document): boolean {
 function convertRateToNumber(rate: string | number): number {
     if (typeof rate === 'string') {
         // Remove commas and parse the string as a float
-        return parseFloat(rate.replace(/[$,]/g, ''));
+        const amount = rate.replace(/[^0-9.]/g, '');
+        return parseFloat(amount);
     }
     return rate;
 }
