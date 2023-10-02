@@ -151,8 +151,8 @@ Given the document contains ${stopsCount} stops, present the extracted data in t
         ...
     },
     "reference_numbers": {
-        "stop1": "Full text of reference series or null",
-        "stop2": "Full text of reference series or null",
+        "stop1": "Reference number or full series with labels or null",
+        "stop2": "Reference number or full series with labels or null",
         ...
     }
 }
@@ -162,9 +162,9 @@ Guidelines:
 1. OCR: Account for OCR discrepancies. Emphasize context.
 
 2. PO Numbers:
-    - Extraction: Seek sequences around labels like "PO", "PO Number", "PO #".
-    - Caution: Bypass distant label-number pairs or those related to "Ref Numbers:", "BOL#", "ORDER:", "Pro".
-    - Fallback: Opt for 'null' if unsure.
+    - Capture Technique: Scan for sequences associated with labels such as "PO", "PO Number", or "PO #".
+    - Filtering Steps: Avoid extracting numbers that are far from their labels or those affiliated with terms like "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
+    - Default Action: If clarity is lacking, revert to 'null'.
 
 3. Pickup Numbers:
     - Primary: Glean from labels akin to "Pickup", "PU", "Pickup #".
