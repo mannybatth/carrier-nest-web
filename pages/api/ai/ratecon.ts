@@ -151,8 +151,8 @@ Given the document contains ${stopsCount} stops, present the extracted data in t
         ...
     },
     "reference_numbers": {
-        "stop1": "Reference number or full series with labels or null",
-        "stop2": "Reference number or full series with labels or null",
+        "stop1": "Single or multiple reference numbers including their labels or null",
+        "stop2": "Single or multiple reference numbers including their labels or null",
         ...
     }
 }
@@ -172,10 +172,11 @@ Guidelines:
     - Caution: Prioritize closely linked label-number combos. Avoid those proximate to "Ref", "Reference", or in phone formats.
     - Fallback: Resort to 'null' when clarity lacks.
 
-4. Reference Numbers:
-    - Capture Method: When you spot labels like "Reference", "Ref Numbers", or "Shipper ID", start capturing the subsequent details. This includes all characters, numbers, colons, commas, and spaces. Continue until you hit a clear separation, a different label, or the line's end. The goal is to mirror the sequence as it appears after the label.
-    - Aggregation Technique: In cases with multiple references at one stop, combine them into one string, using commas as separators. Avoid using commas to denote line changes or breaks.
-    - Filtering Steps: Bypass sequences resembling "PO", "PU", "pickup", or standard phone number layouts. Specifically, discard sequences that appear as phone numbers or are flagged by terms like "Phone", "Tel", or "Contact". Also, avoid extended unrelated text.
+Reference Numbers:
+    - Initiate Capture: Only start capturing sequences if they directly follow the labels like "Reference", "Ref Numbers", "Shipper ID". Do not capture addresses or any sequences that don't start with these labels.
+    - Sequence Details: After detecting the appropriate label, capture characters, numbers, colons, and commas. Continue extraction until encountering a distinct separation (e.g., a newline or a different, unrelated label).
+    - Aggregation: If there are multiple references at one stop, concatenate them with commas. Commas should not represent line changes or breaks.
+    - Filter Out: Ignore sequences that hint at address details, such as city names, states, or zip codes. Also, avoid sequences resembling "PO", "PU", "pickup", or standard phone numbers. Especially disregard sequences marked by terms like "Phone", "Tel", or "Contact".
 
 Precision: Rely on context and positioning. When facing ambiguity, pivot to 'null'.`);
 
