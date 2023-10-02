@@ -1,5 +1,6 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { OpenAI } from 'langchain/llms/openai';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { ChainValues } from 'langchain/dist/schema';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
@@ -51,7 +52,7 @@ async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
 }
 
 const blockBasedQuestions: string[] = [
-    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number. Handle OCR inconsistencies and adapt to document nuances. The label might be found after the load/order number so try your best to find the correct load number.
+    `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number.
 JSON scheme:
 {
     "logistics_company": string or null,
@@ -135,27 +136,9 @@ const generateLineBasedQuestions = (stopsCount: number) => {
     // Stops or locations might be indicated by terms such as "SHIPPER", "RECEIVER", or any other similar terms.x
     // There will be ${stopsCount} stops in this context document.`);
 
-    questions.push(`Using OCR data from a rate confirmation document:
+    questions.push(`Objective: Extract specific sequences from a rate confirmation document using OCR.
 
-1. PO Numbers:
-- Capture sequences of digits immediately after labels such as "PO", "PO Number", "PO #", "PO No", "PO Num", and its immediate variants.
-- If none of these labels are found, try searching for the label "Pro" or "Pro #".
-- If a stop lacks a clear PO Number label or sequence, consider it as null. If no appropriate label is found, consider it as null.
-- Exclude any sequences associated with terms like "Ref", "Reference", "Pickup", "Phone", "Tel", "Telephone", "Mobile", "Contact", "Truck", "TRK", and formats similar to phone numbers (e.g., (XXX) XXX-XXXX).
-- Ignore any sequences or number that is a pickup number or phone number.
-- Only extract sequences that have one of the recommended labels.
-
-2. Pickup Numbers:
-- Extract sequences of digits specifically linked to labels such as "Pickup", "Pickup Number", "Pickup #", "PU Number", "PU #", "PU Num", "PU".
-- If no numbers are associated with pickup details, set the value to null.
-
-3. Reference Numbers:
-- Identify and capture sequences of alphanumeric characters after labels such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num", "Shipper ID". At least one number should be present in the sequence.
-- For each detected reference, if multiple sequences are detected, consolidate them into a comma-separated series and include the labels inside the series.
-- Ensure that sequences detected for a single stop are grouped appropriately.
-- Ignore any sequences or number that is a po number, PU number, pickup number, or phone number.
-
-Considering the document has ${stopsCount} stops, format the output in JSON as:
+Given the document contains ${stopsCount} stops, present the extracted data in the following valid JSON:
 {
     "po_numbers": {
         "stop1": "PO number or null",
@@ -174,7 +157,28 @@ Considering the document has ${stopsCount} stops, format the output in JSON as:
     }
 }
 
-Ensure high precision and accuracy in OCR data extraction, accounting for any inconsistencies and variations in the document structure.`);
+Guidelines:
+
+1. OCR Adaptability: Anticipate inconsistencies in OCR outcomes. Cater for common misinterpretations and lean towards context-focused extraction.
+
+2. PO Numbers:
+    - Direct Extraction: Limit attention to sequences in close proximity to labels such as "PO", "PO Number", "PO #", and variants like "P0", "P.O.", "P-O".
+    - Distance Prudence: Stay wary of labels and numbers separated by significant gaps or that span across different lines.
+    - Strict Divergence: Steer clear from sequences close to tags like "Ref Numbers:", "BOL#", "ORDER:", "Pro", and their permutations.
+    - Fallback: In unclear situations, yield 'null'.
+
+3. Pickup Numbers:
+    - Prime Source: Pull sequences that trail immediately after Pickup indicators, adjusting for OCR disparities.
+    - Secondary Insight: If an evident pickup number eludes detection, turn attention to sequences bordering the "Pro" label.
+    - Distance Prudence: Assert that the label and number remain tightly coupled. Hesitation should arise from wide separations or if they branch into distinct lines.
+    - Fallback: Prioritize 'null' in dubious scenarios.
+
+4. Reference Numbers:
+    - Identified Labels: Cull sequences that tail directly after familiar reference indicators such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num", and "Shipper ID". The output should reflect the sequence directly, devoid of prefixes or unwarranted descriptors.
+    - Focused Extraction: Maintain the extraction to recognized labels and their succeeding numbers. Sidestep verbose explanations or unrelated sequences.
+    - Aggregation: At stops with multiple references, concatenate them, ensuring each label associates directly with its number.
+
+Precision: Hone the extraction process to capture exact matches by minding the surrounding environment and sequence positioning. In instances of potential ambiguity, default to 'null'.`);
 
     return questions;
 };
@@ -223,6 +227,7 @@ export default async function POST(req: NextRequest) {
             chunkOverlap: 700,
             numberOfChunks: 3,
             maxTokens: 750,
+            useInstruct: true,
         });
 
         const load_number = blockBasedResponses[0]?.load_number || null;
@@ -359,11 +364,18 @@ function removeMatchingValues(data: LogisticsData) {
 async function runAI(
     documents: Document[],
     questionsToRun: string[],
-    config: { chunkSize: number; chunkOverlap: number; numberOfChunks: number; maxTokens: number } = {
-        chunkSize: 2000,
+    config: {
+        chunkSize: number;
+        chunkOverlap: number;
+        numberOfChunks: number;
+        maxTokens: number;
+        useInstruct: boolean;
+    } = {
+        chunkSize: 2400,
         chunkOverlap: 500,
         numberOfChunks: 6,
         maxTokens: -1,
+        useInstruct: false,
     },
 ) {
     const splitter = new RecursiveCharacterTextSplitter({
@@ -389,13 +401,20 @@ Assistant:
     });
 
     const qaChain = RetrievalQAChain.fromLLM(
-        new OpenAI({
-            modelName: 'gpt-3.5-turbo-instruct',
-            temperature: 0,
-            verbose: process.env.NODE_ENV === 'development',
-            openAIApiKey: process.env.OPENAI_API_KEY,
-            maxTokens: config.maxTokens,
-        }),
+        config.useInstruct
+            ? new OpenAI({
+                  modelName: 'gpt-3.5-turbo-instruct',
+                  temperature: 0,
+                  verbose: process.env.NODE_ENV === 'development',
+                  openAIApiKey: process.env.OPENAI_API_KEY,
+                  maxTokens: config.maxTokens,
+              })
+            : new ChatOpenAI({
+                  temperature: 0,
+                  verbose: process.env.NODE_ENV === 'development',
+                  openAIApiKey: process.env.OPENAI_API_KEY,
+                  maxTokens: config.maxTokens,
+              }),
         vectordb.asRetriever(config.numberOfChunks),
         {
             prompt: prompt,
