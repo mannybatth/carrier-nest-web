@@ -151,8 +151,8 @@ Given the document contains ${stopsCount} stops, present the extracted data in t
         ...
     },
     "reference_numbers": {
-        "stop1": "Reference series or null",
-        "stop2": "Reference series or null",
+        "stop1": "Full text of reference series or null",
+        "stop2": "Full text of reference series or null",
         ...
     }
 }
@@ -173,9 +173,9 @@ Guidelines:
     - Fallback: Resort to 'null' when clarity lacks.
 
 4. Reference Numbers:
-    - Extraction: After encountering labels like "Reference", "Ref Numbers", and similar, capture the entire sequence of characters, numbers, and symbols (including colons, commas, and whitespace) until a discernible break, new label, or end of line is reached. The goal is to preserve the exact structure and content following the label.
-    - Consolidation: For multi-references at a stop, integrate them into a cohesive comma-separated string.
-    - Caution: Sideline sequences resembling "PO", "PU", "pickup", or phone formats.
+    - Extraction Guidelines: When labels like "Reference", "Ref Numbers", or "Shipper ID" are detected, begin capturing the full sequence, retaining all characters, numbers, colons, commas, and spaces. This capture should continue until there's a clear gap, a different label is encountered, or the line ends. Aim to maintain the sequence's original structure as found right after the identified label.
+    - Consolidation Approach: For stops with more than one reference, compile them into a single string separated by commas. Do not use commas to represent new lines or breaks.
+    - Filtering Criteria: Exclude sequences that might be mistaken for "PO", "PU", "pickup", or typical phone number patterns. Also, omit lengthy narratives or sequences not related to reference numbers.
 
 Precision: Rely on context and positioning. When facing ambiguity, pivot to 'null'.`);
 
