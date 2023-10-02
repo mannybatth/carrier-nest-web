@@ -173,9 +173,9 @@ Guidelines:
     - Fallback: Resort to 'null' when clarity lacks.
 
 4. Reference Numbers:
-    - Extraction Guidelines: When labels like "Reference", "Ref Numbers", or "Shipper ID" are detected, begin capturing the full sequence, retaining all characters, numbers, colons, commas, and spaces. This capture should continue until there's a clear gap, a different label is encountered, or the line ends. Aim to maintain the sequence's original structure as found right after the identified label.
-    - Consolidation Approach: For stops with more than one reference, compile them into a single string separated by commas. Do not use commas to represent new lines or breaks.
-    - Filtering Criteria: Exclude sequences that might be mistaken for "PO", "PU", "pickup", or typical phone number patterns. Also, omit lengthy narratives or sequences not related to reference numbers.
+    - Capture Method: When you spot labels like "Reference", "Ref Numbers", or "Shipper ID", start capturing the subsequent details. This includes all characters, numbers, colons, commas, and spaces. Continue until you hit a clear separation, a different label, or the line's end. The goal is to mirror the sequence as it appears after the label.
+    - Aggregation Technique: In cases with multiple references at one stop, combine them into one string, using commas as separators. Avoid using commas to denote line changes or breaks.
+    - Filtering Steps: Bypass sequences resembling "PO", "PU", "pickup", or standard phone number layouts. Specifically, discard sequences that appear as phone numbers or are flagged by terms like "Phone", "Tel", or "Contact". Also, avoid extended unrelated text.
 
 Precision: Rely on context and positioning. When facing ambiguity, pivot to 'null'.`);
 
