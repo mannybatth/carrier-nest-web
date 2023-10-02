@@ -53,14 +53,14 @@ async function parseQAChainResponse(chainCall: Promise<ChainValues>) {
 
 const blockBasedQuestions: string[] = [
     `Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number.
-JSON scheme:
+json scheme:
 {
     "logistics_company": string or null,
     "load_number": string or null,
 }`,
 
     `Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Remember, a pickup is synonymous with "shipper", and delivery is equivalent to "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). If you encounter abbreviations near the address or date, consider them as potential stop names. If you are having trouble finding the stop "name", scan text near the address and date and try your best to match with a business name (could be an abbreviation). Also, for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
-JSON scheme:
+json scheme:
 {
     "stops": [
         {
@@ -80,14 +80,14 @@ JSON scheme:
     ],
 }`,
 
-    `From the document, extract financial details pertinent to the rate of the shipment or load. Specifically, hone in on the total rate or payment, which could be proximate to terms like "Total", "Rate", "Amount", and "Total Carrier Payment". Be sure to secure the cumulative total, inclusive of all supplementary fees. Seek formats resembling "$USD 3,700.00" or similar numeric configurations. Return only the precise monetary figure associated with the rate or payment for the shipment. Do not include the currency symbol or any other text. If no rate or payment is provided, return null.
-JSON Schema:
+    `Extract the financial details from the document context related to the rate or total cost of the shipment or load. The information is likely located near terms like "Total", "Rate", or "Amount". Make sure to extract the total amount with additional payments included. Search specifically for a format that might resemble "$USD 3,700.00" or any similar numerical representation. Return the exact numeric value related to the rate or payment for the load. Ensure this information is returned in the provided JSON format.
+json scheme:
 {
-    "rate": "numerical value or null"
+    "rate": number or null,
 }`,
 
     `Which email(s) does the document instruct to send the invoice and supporting documents to? If multiple emails are provided, return all of them. If no emails are provided, return null.
-JSON scheme:
+json scheme:
 {
     "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
 }`,
@@ -159,26 +159,25 @@ Given the document contains ${stopsCount} stops, present the extracted data in t
 
 Guidelines:
 
-1. OCR Adaptability: Anticipate inconsistencies in OCR outcomes. Cater for common misinterpretations and lean towards context-focused extraction.
+1. OCR: Account for OCR discrepancies. Emphasize context.
 
 2. PO Numbers:
-    - Direct Extraction: Limit attention to sequences in close proximity to labels such as "PO", "PO Number", "PO #", and variants like "P0", "P.O.", "P-O".
-    - Distance Prudence: Stay wary of labels and numbers separated by significant gaps or that span across different lines.
-    - Strict Divergence: Steer clear from sequences close to tags like "Ref Numbers:", "BOL#", "ORDER:", "Pro", and their permutations.
-    - Fallback: In unclear situations, yield 'null'.
+    - Extraction: Seek sequences around labels like "PO", "PO Number", "PO #".
+    - Caution: Bypass distant label-number pairs or those related to "Ref Numbers:", "BOL#", "ORDER:", "Pro".
+    - Fallback: Opt for 'null' if unsure.
 
 3. Pickup Numbers:
-    - Prime Source: Pull sequences that trail immediately after Pickup indicators, adjusting for OCR disparities.
-    - Secondary Insight: If an evident pickup number eludes detection, turn attention to sequences bordering the "Pro" label.
-    - Distance Prudence: Assert that the label and number remain tightly coupled. Hesitation should arise from wide separations or if they branch into distinct lines.
-    - Fallback: Prioritize 'null' in dubious scenarios.
+    - Primary: Glean from labels akin to "Pickup", "PU", "Pickup #".
+    - Secondary: If pickups are missing, explore sequences close to "Pro".
+    - Caution: Prioritize closely linked label-number combos. Avoid those proximate to "Ref", "Reference", or in phone formats.
+    - Fallback: Resort to 'null' when clarity lacks.
 
 4. Reference Numbers:
-    - Identified Labels: Cull sequences that tail directly after familiar reference indicators such as "Reference", "Reference Number", "Ref Numbers", "Ref #", "Ref No", "Ref Num", and "Shipper ID". The output should reflect the sequence directly, devoid of prefixes or unwarranted descriptors.
-    - Focused Extraction: Maintain the extraction to recognized labels and their succeeding numbers. Sidestep verbose explanations or unrelated sequences.
-    - Aggregation: At stops with multiple references, concatenate them, ensuring each label associates directly with its number.
+    - Extraction: After encountering labels like "Reference", "Ref Numbers", and similar, capture the entire sequence of characters, numbers, and symbols (including colons, commas, and whitespace) until a discernible break, new label, or end of line is reached. The goal is to preserve the exact structure and content following the label.
+    - Consolidation: For multi-references at a stop, integrate them into a cohesive comma-separated string.
+    - Caution: Sideline sequences resembling "PO", "PU", "pickup", or phone formats.
 
-Precision: Hone the extraction process to capture exact matches by minding the surrounding environment and sequence positioning. In instances of potential ambiguity, default to 'null'.`);
+Precision: Rely on context and positioning. When facing ambiguity, pivot to 'null'.`);
 
     return questions;
 };
@@ -371,9 +370,9 @@ async function runAI(
         maxTokens: number;
         useInstruct: boolean;
     } = {
-        chunkSize: 2400,
+        chunkSize: 1800,
         chunkOverlap: 500,
-        numberOfChunks: 6,
+        numberOfChunks: 5,
         maxTokens: -1,
         useInstruct: false,
     },
