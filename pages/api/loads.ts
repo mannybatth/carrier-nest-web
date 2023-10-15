@@ -117,7 +117,7 @@ export const getLoads = async ({
 
     const total = await prisma.load.count({
         where: {
-            carrierId: session.user.defaultCarrierId,
+            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
             ...(customerId ? { customerId } : null),
             ...(driverId ? { drivers: { some: { id: driverId } } } : null),
             ...(currentOnly ? { invoice: null } : {}),
@@ -128,7 +128,7 @@ export const getLoads = async ({
 
     const loads = await prisma.load.findMany({
         where: {
-            carrierId: session.user.defaultCarrierId,
+            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
             ...(customerId ? { customerId } : null),
             ...(driverId ? { drivers: { some: { id: driverId } } } : null),
             ...(currentOnly ? { invoice: null } : {}),
