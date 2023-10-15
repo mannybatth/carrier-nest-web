@@ -162,17 +162,21 @@ Guidelines:
 1. OCR: Account for OCR discrepancies. Emphasize context.
 
 2. PO Numbers:
-    - Capture Technique: Scan for sequences associated with labels such as "PO", "PO Number", or "PO #".
-    - Filtering Steps: Avoid extracting numbers that are far from their labels or those affiliated with terms like "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
-    - Default Action: If clarity is lacking, revert to 'null'.
+    - Primary Extraction: Search and extract numbers that immediately follow labels like "PO", "PO Number", or "PO #".
+    - Exclusion Criteria:
+        - Do not extract numbers that are distant from their respective labels.
+        - Exclude numbers associated with or near terms such as "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
+    - Fallback: If the extracted number is unclear or uncertain, mark it as 'null'.
 
 3. Pickup Numbers:
-    - Primary: Glean from labels akin to "Pickup", "PU", "Pickup #".
-    - Secondary: If pickups are missing, explore sequences close to "Pro".
-    - Caution: Prioritize closely linked label-number combos. Avoid those proximate to "Ref", "Reference", or in phone formats.
-    - Fallback: Resort to 'null' when clarity lacks.
+    - Primary Search: Extract numbers following labels such as "Pickup", "Delivery", "PU", "Pickup #", "PU #", "Delivery #", "PU/Del #", or "PU/Del"
+    - Secondary Search: If no pickup numbers are found from the primary search, then search for numbers adjacent to the label "Pro".
+    - Cautions:
+        - Prioritize numbers that are directly associated with their labels.
+        - Do not capture numbers near "Load Number", "Order Number", "Ref", "Reference", or those that resemble phone number formats.
+    - Default Action: If a clear pickup number cannot be determined, record as 'null'.
 
-Reference Numbers:
+4. Reference Numbers:
     - Initiate Capture: Only start capturing sequences if they directly follow the labels like "Reference", "Ref Numbers", "Shipper ID". Do not capture addresses or any sequences that don't start with these labels.
     - Sequence Details: After detecting the appropriate label, capture characters, numbers, colons, and commas. Continue extraction until encountering a distinct separation (e.g., a newline or a different, unrelated label).
     - Aggregation: If there are multiple references at one stop, concatenate them with commas. Commas should not represent line changes or breaks.
@@ -223,9 +227,9 @@ export default async function POST(req: NextRequest) {
         const stopsCount = blockBasedResponses[1]?.stops?.length;
         const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
         const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
-            chunkSize: 4000,
-            chunkOverlap: 700,
-            numberOfChunks: 3,
+            chunkSize: 2000,
+            chunkOverlap: 600,
+            numberOfChunks: 6,
             maxTokens: 750,
             useInstruct: true,
         });
