@@ -27,9 +27,9 @@ interface LogisticsData {
     }[];
     rate: number;
     invoice_emails: string[];
-    po_numbers: { [key: string]: string | null };
-    pickup_numbers: { [key: string]: string | null };
-    reference_numbers: { [key: string]: string | null };
+    // po_numbers: { [key: string]: string | null };
+    // pickup_numbers: { [key: string]: string | null };
+    // reference_numbers: { [key: string]: string | null };
 }
 
 export const config = {
@@ -224,20 +224,20 @@ export default async function POST(req: NextRequest) {
         // Use the executeRetryLogic function to potentially improve the extraction results for block-based questions
         blockBasedResponses = await executeRetryLogic(blockBasedResponses, lineDocuments);
 
-        const stopsCount = blockBasedResponses[1]?.stops?.length;
-        const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
-        const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
-            chunkSize: 2000,
-            chunkOverlap: 600,
-            numberOfChunks: 6,
-            maxTokens: 750,
-            useInstruct: true,
-        });
+        // const stopsCount = blockBasedResponses[1]?.stops?.length;
+        // const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
+        // const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
+        //     chunkSize: 2000,
+        //     chunkOverlap: 600,
+        //     numberOfChunks: 6,
+        //     maxTokens: 500,
+        //     useInstruct: true,
+        // });
 
         const load_number = blockBasedResponses[0]?.load_number || null;
-        const po_numbers = lineBasedResponses[0]?.po_numbers || [];
-        const pickup_numbers = lineBasedResponses[0]?.pickup_numbers || [];
-        const reference_numbers = lineBasedResponses[0]?.reference_numbers || [];
+        // const po_numbers = lineBasedResponses[0]?.po_numbers || [];
+        // const pickup_numbers = lineBasedResponses[0]?.pickup_numbers || [];
+        // const reference_numbers = lineBasedResponses[0]?.reference_numbers || [];
 
         const result: LogisticsData = {
             logistics_company: blockBasedResponses[0]?.logistics_company,
@@ -245,12 +245,12 @@ export default async function POST(req: NextRequest) {
             stops: blockBasedResponses[1]?.stops,
             rate: convertRateToNumber(blockBasedResponses[2]?.rate),
             invoice_emails: blockBasedResponses[3]?.invoice_emails,
-            po_numbers: po_numbers,
-            pickup_numbers: pickup_numbers,
-            reference_numbers,
+            // po_numbers: po_numbers,
+            // pickup_numbers: pickup_numbers,
+            // reference_numbers,
         };
 
-        removeMatchingValues(result);
+        // removeMatchingValues(result);
 
         return NextResponse.json(
             {
@@ -324,46 +324,46 @@ function convertRateToNumber(rate: string | number): number {
     return rate;
 }
 
-function removeMatchingValues(data: LogisticsData) {
-    const { stops } = data;
+// function removeMatchingValues(data: LogisticsData) {
+//     const { stops } = data;
 
-    // Extract street numbers and names from the stops
-    const streetNumbers = stops
-        .map((stop) => (stop.address.street ? stop.address.street.split(' ')[0] : null))
-        .filter(Boolean) as string[];
-    const stopNames = stops.map((stop) => stop.name);
+//     // Extract street numbers and names from the stops
+//     const streetNumbers = stops
+//         .map((stop) => (stop.address.street ? stop.address.street.split(' ')[0] : null))
+//         .filter(Boolean) as string[];
+//     const stopNames = stops.map((stop) => stop.name);
 
-    // Function to check if a value matches street number, or stop name
-    const isMatchingValue = (value: string | null): boolean => {
-        if (!value) return false; // If it's already null, no need to check further
-        return streetNumbers.includes(value) || stopNames.includes(value);
-    };
+//     // Function to check if a value matches street number, or stop name
+//     const isMatchingValue = (value: string | null): boolean => {
+//         if (!value) return false; // If it's already null, no need to check further
+//         return streetNumbers.includes(value) || stopNames.includes(value);
+//     };
 
-    // Helper function to convert "null" string to actual null and check for matching values
-    const processValue = (value: string | null): string | null => {
-        if (value === 'null') return null;
-        return isMatchingValue(value) ? null : value;
-    };
+//     // Helper function to convert "null" string to actual null and check for matching values
+//     const processValue = (value: string | null): string | null => {
+//         if (value === 'null') return null;
+//         return isMatchingValue(value) ? null : value;
+//     };
 
-    // Specific function for reference numbers to ensure they contain at least one digit
-    const processReferenceValue = (value: string | null): string | null => {
-        const processed = processValue(value);
-        if (!/\d/.test(processed || '')) return null;
-        return processed;
-    };
+//     // Specific function for reference numbers to ensure they contain at least one digit
+//     const processReferenceValue = (value: string | null): string | null => {
+//         const processed = processValue(value);
+//         if (!/\d/.test(processed || '')) return null;
+//         return processed;
+//     };
 
-    for (const key in data.po_numbers) {
-        data.po_numbers[key] = processValue(data.po_numbers[key]);
-    }
+//     for (const key in data.po_numbers) {
+//         data.po_numbers[key] = processValue(data.po_numbers[key]);
+//     }
 
-    for (const key in data.pickup_numbers) {
-        data.pickup_numbers[key] = processValue(data.pickup_numbers[key]);
-    }
+//     for (const key in data.pickup_numbers) {
+//         data.pickup_numbers[key] = processValue(data.pickup_numbers[key]);
+//     }
 
-    for (const key in data.reference_numbers) {
-        data.reference_numbers[key] = processReferenceValue(data.reference_numbers[key]);
-    }
-}
+//     for (const key in data.reference_numbers) {
+//         data.reference_numbers[key] = processReferenceValue(data.reference_numbers[key]);
+//     }
+// }
 
 async function runAI(
     documents: Document[],
