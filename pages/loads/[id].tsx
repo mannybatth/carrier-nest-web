@@ -986,6 +986,26 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             {load.shipper.city}, {load.shipper.state}{' '}
                                                                             {load.shipper.zip}
                                                                         </div>
+                                                                        <div className="mt-1">
+                                                                            {load.shipper.poNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    PO #&rsquo;s:{' '}
+                                                                                    {load.shipper.poNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.shipper.pickUpNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Pick Up #&rsquo;s:{' '}
+                                                                                    {load.shipper.pickUpNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.shipper.referenceNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Ref #&rsquo;s:{' '}
+                                                                                    {load.shipper.referenceNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </>
@@ -1023,6 +1043,25 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             <div>{stop.street}</div>
                                                                             <div>
                                                                                 {stop.city}, {stop.state} {stop.zip}
+                                                                            </div>
+                                                                            <div className="mt-1">
+                                                                                {stop.poNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        PO #&rsquo;s: {stop.poNumbers}
+                                                                                    </div>
+                                                                                )}
+                                                                                {stop.pickUpNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        Pick Up #&rsquo;s:{' '}
+                                                                                        {stop.pickUpNumbers}
+                                                                                    </div>
+                                                                                )}
+                                                                                {stop.referenceNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        Ref #&rsquo;s:{' '}
+                                                                                        {stop.referenceNumbers}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -1062,6 +1101,26 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         <div>
                                                                             {load.receiver.city}, {load.receiver.state}{' '}
                                                                             {load.receiver.zip}
+                                                                        </div>
+                                                                        <div className="mt-1">
+                                                                            {load.receiver.poNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    PO #&rsquo;s:{' '}
+                                                                                    {load.receiver.poNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.receiver.pickUpNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Delivery #&rsquo;s:{' '}
+                                                                                    {load.receiver.pickUpNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.receiver.referenceNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Ref #&rsquo;s:{' '}
+                                                                                    {load.receiver.referenceNumbers}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>

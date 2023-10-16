@@ -172,6 +172,9 @@ export const getLoads = async ({
                               stopIndex: true,
                               longitude: true,
                               latitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }
@@ -193,6 +196,9 @@ export const getLoads = async ({
                               stopIndex: true,
                               longitude: true,
                               latitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }
@@ -225,6 +231,9 @@ export const getLoads = async ({
                               stopIndex: true,
                               longitude: true,
                               latitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }
@@ -283,6 +292,9 @@ export const postLoads = async ({
                         stopIndex: loadData.shipper.stopIndex || 0,
                         longitude: loadData.shipper.longitude || 0,
                         latitude: loadData.shipper.latitude || 0,
+                        poNumbers: loadData.shipper.poNumbers || '',
+                        pickUpNumbers: loadData.shipper.pickUpNumbers || '',
+                        referenceNumbers: loadData.shipper.referenceNumbers || '',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -304,6 +316,9 @@ export const postLoads = async ({
                         stopIndex: loadData.receiver.stopIndex || 0,
                         longitude: loadData.receiver.longitude || 0,
                         latitude: loadData.receiver.latitude || 0,
+                        poNumbers: loadData.receiver.poNumbers || '',
+                        pickUpNumbers: loadData.receiver.pickUpNumbers || '',
+                        referenceNumbers: loadData.receiver.referenceNumbers || '',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -327,6 +342,9 @@ export const postLoads = async ({
                                 stopIndex: stop.stopIndex || 0,
                                 longitude: stop.longitude || 0,
                                 latitude: stop.latitude || 0,
+                                poNumbers: stop.poNumbers || '',
+                                pickUpNumbers: stop.pickUpNumbers || '',
+                                referenceNumbers: stop.referenceNumbers || '',
                                 user: {
                                     connect: {
                                         id: session.user.id,

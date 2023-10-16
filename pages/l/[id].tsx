@@ -478,6 +478,21 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                 <br />
                                                 {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
                                             </p>
+                                            {load.shipper.poNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    PO #&rsquo;s: {load.shipper.poNumbers}
+                                                </p>
+                                            )}
+                                            {load.shipper.pickUpNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    PU #&rsquo;s: {load.shipper.pickUpNumbers}
+                                                </p>
+                                            )}
+                                            {load.shipper.referenceNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    Ref #&rsquo;s: {load.shipper.referenceNumbers}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="flex flex-none place-items-center ">
                                             <button
@@ -522,6 +537,21 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                     <br />
                                                     {stop.city}, {stop.state} {stop.zip}
                                                 </p>
+                                                {stop.poNumbers && (
+                                                    <p className="text-sm text-gray-700 select-all">
+                                                        PO #&rsquo;s: {stop.poNumbers}
+                                                    </p>
+                                                )}
+                                                {stop.pickUpNumbers && (
+                                                    <p className="text-sm text-gray-700 select-all">
+                                                        PU #&rsquo;s: {stop.pickUpNumbers}
+                                                    </p>
+                                                )}
+                                                {stop.referenceNumbers && (
+                                                    <p className="text-sm text-gray-700 select-all">
+                                                        Ref #&rsquo;s: {stop.referenceNumbers}
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="flex flex-none place-items-center ">
                                                 <button
@@ -566,6 +596,21 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                 <br />
                                                 {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
                                             </p>
+                                            {load.receiver.poNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    PO #&rsquo;s: {load.receiver.poNumbers}
+                                                </p>
+                                            )}
+                                            {load.receiver.pickUpNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    Del #&rsquo;s: {load.receiver.pickUpNumbers}
+                                                </p>
+                                            )}
+                                            {load.receiver.referenceNumbers && (
+                                                <p className="text-sm text-gray-700 select-all">
+                                                    Ref #&rsquo;s: {load.receiver.referenceNumbers}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="flex flex-none place-items-center ">
                                             <button

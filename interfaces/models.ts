@@ -32,6 +32,9 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 stopIndex: true,
                 latitude: true,
                 longitude: true,
+                poNumbers: true,
+                pickUpNumbers: true,
+                referenceNumbers: true,
             },
         },
         receiver: {
@@ -49,6 +52,9 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 stopIndex: true,
                 latitude: true,
                 longitude: true,
+                poNumbers: true,
+                pickUpNumbers: true,
+                referenceNumbers: true,
             },
         },
         stops: {
@@ -66,6 +72,9 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 stopIndex: true,
                 latitude: true,
                 longitude: true,
+                poNumbers: true,
+                pickUpNumbers: true,
+                referenceNumbers: true,
             },
         },
         invoice: {

@@ -67,6 +67,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 stopIndex: loadData.shipper.stopIndex || 0,
                 longitude: loadData.shipper.longitude,
                 latitude: loadData.shipper.latitude,
+                poNumbers: loadData.shipper.poNumbers || '',
+                pickUpNumbers: loadData.shipper.pickUpNumbers || '',
+                referenceNumbers: loadData.shipper.referenceNumbers || '',
                 user: {
                     connect: {
                         id: session.user.id,
@@ -86,6 +89,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 stopIndex: loadData.shipper.stopIndex || 0,
                 longitude: loadData.shipper.longitude,
                 latitude: loadData.shipper.latitude,
+                poNumbers: loadData.shipper.poNumbers || '',
+                pickUpNumbers: loadData.shipper.pickUpNumbers || '',
+                referenceNumbers: loadData.shipper.referenceNumbers || '',
                 user: {
                     connect: {
                         id: session.user.id,
@@ -111,6 +117,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 stopIndex: loadData.receiver.stopIndex || 0,
                 longitude: loadData.receiver.longitude,
                 latitude: loadData.receiver.latitude,
+                poNumbers: loadData.receiver.poNumbers || '',
+                pickUpNumbers: loadData.receiver.pickUpNumbers || '',
+                referenceNumbers: loadData.receiver.referenceNumbers || '',
                 user: {
                     connect: {
                         id: session.user.id,
@@ -130,6 +139,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 stopIndex: loadData.receiver.stopIndex || 0,
                 longitude: loadData.receiver.longitude,
                 latitude: loadData.receiver.latitude,
+                poNumbers: loadData.receiver.poNumbers || '',
+                pickUpNumbers: loadData.receiver.pickUpNumbers || '',
+                referenceNumbers: loadData.receiver.referenceNumbers || '',
                 user: {
                     connect: {
                         id: session.user.id,
@@ -180,6 +192,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         stopIndex: stop.stopIndex || 0,
                         longitude: stop.longitude,
                         latitude: stop.latitude,
+                        poNumbers: stop.poNumbers || '',
+                        pickUpNumbers: stop.pickUpNumbers || '',
+                        referenceNumbers: stop.referenceNumbers || '',
                         user: {
                             connect: {
                                 id: session.user.id,
@@ -289,6 +304,9 @@ const getLoad = async ({
                               stopIndex: true,
                               latitude: true,
                               longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }
@@ -310,6 +328,9 @@ const getLoad = async ({
                               stopIndex: true,
                               latitude: true,
                               longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }
@@ -334,6 +355,9 @@ const getLoad = async ({
                               stopIndex: true,
                               latitude: true,
                               longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
                           },
                       },
                   }

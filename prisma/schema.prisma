@@ -126,26 +126,29 @@ model Load {
 }
 
 model LoadStop {
-    id              String       @id @default(cuid())
-    createdAt       DateTime     @default(now())
-    userId          String
-    type            LoadStopType
-    name            String
-    street          String
-    city            String
-    state           String
-    zip             String
-    country         String
-    date            DateTime
-    time            String
-    loadIdAsStop    String?
-    stopIndex       Int          @default(0)
-    longitude       Float?
-    latitude        Float?
-    loadsAsReceiver Load[]       @relation("receiver")
-    loadsAsShipper  Load[]       @relation("shipper")
-    loadAsStop      Load?        @relation(fields: [loadIdAsStop], references: [id])
-    user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id               String       @id @default(cuid())
+    createdAt        DateTime     @default(now())
+    userId           String
+    type             LoadStopType
+    name             String
+    street           String
+    city             String
+    state            String
+    zip              String
+    country          String
+    date             DateTime
+    time             String
+    loadIdAsStop     String?
+    stopIndex        Int          @default(0)
+    longitude        Float?
+    latitude         Float?
+    poNumbers        String?
+    pickUpNumbers    String?
+    referenceNumbers String?
+    loadsAsReceiver  Load[]       @relation("receiver")
+    loadsAsShipper   Load[]       @relation("shipper")
+    loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
+    user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Customer {

@@ -531,7 +531,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                 </label>
                                 <select
                                     {...field}
-                                    className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 >
                                     {countryCodes.map((countryCode) => (
                                         <option key={countryCode.code} value={countryCode.code}>
@@ -543,6 +543,46 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             </>
                         )}
                     />
+                </div>
+
+                <div className="col-span-12">
+                    <label className="block text-sm font-medium leading-6 text-gray-900">Additional Information</label>
+                    <div className="mt-2 flex rounded-md shadow-sm">
+                        <label className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                            PO #&rsquo;s:
+                        </label>
+                        <input
+                            {...register(fieldId('poNumbers'))}
+                            type="text"
+                            id={fieldId('poNumbers')}
+                            autoComplete="poNumbers"
+                            className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                        />
+                    </div>
+                    <div className="mt-2 flex rounded-md shadow-sm">
+                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                            {props.type === LoadStopType.RECEIVER ? 'Delivery' : 'Pickup'} #&rsquo;s:
+                        </span>
+                        <input
+                            {...register(fieldId('pickUpNumbers'))}
+                            type="text"
+                            id={fieldId('pickUpNumbers')}
+                            autoComplete="pickUpNumbers"
+                            className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                        />
+                    </div>
+                    <div className="mt-2 flex rounded-md shadow-sm">
+                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                            Ref #&rsquo;s:
+                        </span>
+                        <input
+                            {...register(fieldId('referenceNumbers'))}
+                            type="text"
+                            id={fieldId('referenceNumbers')}
+                            autoComplete="referenceNumbers"
+                            className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
