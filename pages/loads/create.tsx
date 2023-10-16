@@ -387,6 +387,9 @@ const CreateLoad: PageWithAuth = () => {
                 stopIndex: index,
                 longitude: null,
                 latitude: null,
+                poNumbers: null,
+                pickUpNumbers: null,
+                referenceNumbers: null,
             });
         });
     };

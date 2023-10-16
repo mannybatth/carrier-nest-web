@@ -284,6 +284,9 @@ const LoadForm: React.FC<Props> = ({
                                             stopIndex: stopFields.length,
                                             longitude: null,
                                             latitude: null,
+                                            poNumbers: '',
+                                            pickUpNumbers: '',
+                                            referenceNumbers: '',
                                         });
                                     }}
                                 >
