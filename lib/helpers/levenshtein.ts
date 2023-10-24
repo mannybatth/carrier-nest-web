@@ -1,7 +1,8 @@
 function cleanString(str: string) {
-    // Remove non-alphanumeric characters and extra spaces
+    // Remove non-alphanumeric characters, newline characters, then trim and lowercase.
     return str
         .replace(/[^a-zA-Z0-9\s]+/g, '')
+        .replace(/\n/g, '')
         .trim()
         .toLowerCase();
 }
