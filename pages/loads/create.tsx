@@ -344,12 +344,12 @@ const CreateLoad: PageWithAuth = () => {
         const shipperStop = load.stops.find((stop) => stop.type === 'PU');
         if (shipperStop) {
             formHook.setValue('shipper.name', shipperStop.name);
-            formHook.setValue('shipper.street', shipperStop.address.street);
-            formHook.setValue('shipper.city', shipperStop.address.city);
-            formHook.setValue('shipper.state', shipperStop.address.state);
-            formHook.setValue('shipper.zip', shipperStop.address.zip);
-            if (shipperStop.address.country) {
-                formHook.setValue('shipper.country', shipperStop.address.country);
+            formHook.setValue('shipper.street', shipperStop.address?.street || null);
+            formHook.setValue('shipper.city', shipperStop.address?.city || null);
+            formHook.setValue('shipper.state', shipperStop.address?.state || null);
+            formHook.setValue('shipper.zip', shipperStop.address?.zip || null);
+            if (shipperStop.address?.country) {
+                formHook.setValue('shipper.country', shipperStop.address?.country || null);
             }
             formHook.setValue('shipper.date', startOfDay(parseDate(shipperStop.date)));
             formHook.setValue('shipper.time', shipperStop.time);
@@ -362,12 +362,12 @@ const CreateLoad: PageWithAuth = () => {
         const receiverStop = load.stops.reverse().find((stop) => stop.type === 'SO');
         if (receiverStop) {
             formHook.setValue('receiver.name', receiverStop.name);
-            formHook.setValue('receiver.street', receiverStop.address.street);
-            formHook.setValue('receiver.city', receiverStop.address.city);
-            formHook.setValue('receiver.state', receiverStop.address.state);
-            formHook.setValue('receiver.zip', receiverStop.address.zip);
-            if (receiverStop.address.country) {
-                formHook.setValue('receiver.country', receiverStop.address.country);
+            formHook.setValue('receiver.street', receiverStop.address?.street || null);
+            formHook.setValue('receiver.city', receiverStop.address?.city || null);
+            formHook.setValue('receiver.state', receiverStop.address?.state || null);
+            formHook.setValue('receiver.zip', receiverStop.address?.zip || null);
+            if (receiverStop.address?.country) {
+                formHook.setValue('receiver.country', receiverStop.address?.country || null);
             }
             formHook.setValue('receiver.date', startOfDay(parseDate(receiverStop.date)));
             formHook.setValue('receiver.time', receiverStop.time);
@@ -383,11 +383,11 @@ const CreateLoad: PageWithAuth = () => {
                 id: null,
                 type: LoadStopType.STOP,
                 name: stop.name,
-                street: stop.address.street,
-                city: stop.address.city,
-                state: stop.address.state,
-                zip: stop.address.zip,
-                ...(stop.address.country && { country: stop.address.country }),
+                street: stop.address?.street || null,
+                city: stop.address?.city || null,
+                state: stop.address?.state || null,
+                zip: stop.address?.zip || null,
+                ...(stop.address?.country && { country: stop.address?.country || null }),
                 date: startOfDay(parseDate(stop.date)),
                 time: stop.time,
                 stopIndex: index,
