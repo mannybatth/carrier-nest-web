@@ -1,7 +1,6 @@
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai';
 import { PromptTemplate } from 'langchain/prompts';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { NextRequest, NextResponse } from 'next/server';
 
 interface LogisticsData {
     logistics_company: string;
@@ -39,6 +38,10 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         if (documentsInBlocks.length === 0 || documentsInLines.length === 0) {
             throw new Error('Invalid input. Expected arrays with at least one item.');
         }
+
+        const blockDocuments = documentsInBlocks.map((item) => {
+            return item.pageContent as string;
+        });
 
         const lineDocuments = documentsInLines.map((item) => {
             return item.pageContent as string;
@@ -130,7 +133,7 @@ Precision Strategy: Prioritize context and positioning. In ambiguous cases, defa
         });
         const prompt = await promptTemplate.format({
             question: question,
-            context: JSON.stringify(lineDocuments),
+            context: JSON.stringify(blockDocuments),
         });
 
         const response = await runAI(prompt);
@@ -157,6 +160,7 @@ async function runAI(prompt: string): Promise<LogisticsData> {
     const model = new GoogleVertexAI({
         model: 'text-bison-32k',
         maxOutputTokens: 1024,
+        temperature: 0.1,
         verbose: process.env.NODE_ENV === 'development',
     });
     const res = await model.call(prompt);
