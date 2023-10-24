@@ -12,6 +12,9 @@ export interface AIStop {
     address: AIAddress;
     date: string;
     time: string;
+    po_numbers?: string[];
+    pickup_numbers?: string[];
+    reference_numbers?: string[];
 }
 
 export interface AIAddress {

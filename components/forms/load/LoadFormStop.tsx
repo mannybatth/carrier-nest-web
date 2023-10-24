@@ -547,8 +547,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
                 <div className="col-span-12">
                     <label className="block text-sm font-medium leading-6 text-gray-900">Additional Information</label>
-                    <div className="mt-2 flex rounded-md shadow-sm">
-                        <label className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                    <div className="flex mt-2 rounded-md shadow-sm">
+                        <label className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
                             PO #&rsquo;s:
                         </label>
                         <input
@@ -559,8 +559,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                         />
                     </div>
-                    <div className="mt-2 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                    <div className="flex mt-2 rounded-md shadow-sm">
+                        <span className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
                             {props.type === LoadStopType.RECEIVER ? 'Delivery' : 'Pickup'} #&rsquo;s:
                         </span>
                         <input
@@ -571,8 +571,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                         />
                     </div>
-                    <div className="mt-2 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-gray-500 text-xs w-24">
+                    <div className="flex mt-2 rounded-md shadow-sm">
+                        <span className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
                             Ref #&rsquo;s:
                         </span>
                         <input

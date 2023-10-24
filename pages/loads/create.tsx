@@ -353,6 +353,9 @@ const CreateLoad: PageWithAuth = () => {
             }
             formHook.setValue('shipper.date', startOfDay(parseDate(shipperStop.date)));
             formHook.setValue('shipper.time', shipperStop.time);
+            formHook.setValue('shipper.poNumbers', shipperStop.po_numbers?.join(', ') || null);
+            formHook.setValue('shipper.pickUpNumbers', shipperStop.pickup_numbers?.join(', ') || null);
+            formHook.setValue('shipper.referenceNumbers', shipperStop.reference_numbers?.join(', ') || null);
         }
 
         // Select last SO stop as receiver
@@ -368,6 +371,9 @@ const CreateLoad: PageWithAuth = () => {
             }
             formHook.setValue('receiver.date', startOfDay(parseDate(receiverStop.date)));
             formHook.setValue('receiver.time', receiverStop.time);
+            formHook.setValue('receiver.poNumbers', receiverStop.po_numbers?.join(', ') || null);
+            formHook.setValue('receiver.pickUpNumbers', receiverStop.pickup_numbers?.join(', ') || null);
+            formHook.setValue('receiver.referenceNumbers', receiverStop.reference_numbers?.join(', ') || null);
         }
 
         // Select all stops in between as stops (filter out shipperStop and receiverStop from list by stop.name)
@@ -387,9 +393,9 @@ const CreateLoad: PageWithAuth = () => {
                 stopIndex: index,
                 longitude: null,
                 latitude: null,
-                poNumbers: null,
-                pickUpNumbers: null,
-                referenceNumbers: null,
+                poNumbers: stop.po_numbers?.join(', ') || null,
+                pickUpNumbers: stop.pickup_numbers?.join(', ') || null,
+                referenceNumbers: stop.reference_numbers?.join(', ') || null,
             });
         });
     };

@@ -18,12 +18,12 @@ interface LogisticsData {
         };
         date: string;
         time: string;
+        po_numbers?: string[];
+        pickup_numbers?: string[];
+        reference_numbers?: string[];
     }[];
     rate: number;
     invoice_emails: string[];
-    po_numbers: { [key: string]: string | null };
-    pickup_numbers: { [key: string]: string | null };
-    reference_numbers: { [key: string]: string | null };
 }
 
 // export default async function POST(req: NextRequest) {
@@ -69,27 +69,15 @@ For each stop in the given document, present the extracted data in the structure
                 "country": string or null
             },
             "date": string or null,
-            "time": string or null
+            "time": string or null,
+            "po_numbers": ["<po_number_1>", "<po_number_2>", ...] or null,
+            "pickup_numbers": ["<pickup_number_1>", "<pickup_number_2>", ...] or null,
+            "reference_numbers": ["<reference_number_1>", "<reference_number_2>", ...] or null
         },
         ... (repeat this structure for each stop regardless if it appears multiple times)
     ],
     "rate": number or null,
     "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
-    "po_numbers": {
-        "stop1": "PO number or null",
-        "stop2": "PO number or null",
-        ...
-    },
-    "pickup_numbers": {
-        "stop1": "Pickup number or null",
-        "stop2": "Pickup number or null",
-        ...
-    },
-    "reference_numbers": {
-        "stop1": "Single or multiple reference numbers with their labels or null",
-        "stop2": "Single or multiple reference numbers with their labels or null",
-        ...
-    }
 }
 
 Guidelines:
