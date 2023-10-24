@@ -1,7 +1,7 @@
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai';
 import { PromptTemplate } from 'langchain/prompts';
+import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { parse, format } from 'date-fns';
 
 interface LogisticsData {
     logistics_company: string;
@@ -26,32 +26,11 @@ interface LogisticsData {
     invoice_emails: string[];
 }
 
-// export default async function POST(req: NextRequest) {
-export default async (req: NextApiRequest, res: NextApiResponse) => {
-    try {
-        // const { documentsInBlocks, documentsInLines } = await req.json();
-        const { documentsInBlocks, documentsInLines } = await req.body;
-
-        if (!Array.isArray(documentsInBlocks) || !Array.isArray(documentsInLines)) {
-            throw new Error('Invalid input. Expected arrays.');
-        }
-
-        if (documentsInBlocks.length === 0 || documentsInLines.length === 0) {
-            throw new Error('Invalid input. Expected arrays with at least one item.');
-        }
-
-        const blockDocuments = documentsInBlocks.map((item) => {
-            return item.pageContent as string;
-        });
-
-        const lineDocuments = documentsInLines.map((item) => {
-            return item.pageContent as string;
-        });
-
-        const template = `{context}
+const template = `{context}
 
 {question}`;
-        const question = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
+
+const question = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
 
 Output Format:
 {
@@ -82,11 +61,14 @@ Output Format:
 
 Extraction Guidelines:
 1. General: Context is crucial due to OCR inaccuracies. Default to 'null' in ambiguous situations.
-2. Logistics Company: This isn't the carrier. Look for any clear indications of a logistics company's name.
+2. Logistics Company/Broker: Distinct from the carrier. Prioritize names with suffixes like "LLC", "Inc", "Corp". Exclude slogans.
 3. Load Number: Identify as "Load", "Order", "Load #", "Order #", etc. Remove '#' from the result.
 4. Stops:
-    - Types: Pickup is "PU" or "shipper"; delivery is "SO", "consignee", or "receiver".
-    - Details: Extract name, full address, date (MM/DD/YYYY), and time (24-hour format). If a time range is provided, use its start.
+    - Types: Classify as "PU" for indications of "shipper" or "pickup"; use "SO" for terms like "consignee", "receiver", or "delivery".
+    - Details:
+        - Name & Address: Capture the entity's name along with its complete address.
+        - Date: Extract the date ensuring it follows the MM/DD/YYYY format. Be on the lookout for nearby contextual clues (like "Date:") to accurately identify it.
+        - Time: The extracted time should strictly be in the 24-hour format. If a range is provided, it should appear in the format "HH:mm - HH:mm", for instance, "05:00 - 20:00". If the time is accompanied by a date within the range (like "2023-06-01 05:00 - 2023-07-08 20:00"), only the time portion should be extracted, omitting the date.
 5. Rate: Look for "Total", "Rate", "Amount". Extract the complete amount including any additional fees. Represent the value numerically.
 6. Invoice Emails: Extract all emails where invoices should be sent. If none are found, use 'null'.
 
@@ -187,6 +169,28 @@ Extraction output:
     "invoice_emails": ["LoadDocs@CHRobinson.com"]
 }`;
 
+// export default async function POST(req: NextRequest) {
+export default async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+        // const { documentsInBlocks, documentsInLines } = await req.json();
+        const { documentsInBlocks, documentsInLines } = await req.body;
+
+        if (!Array.isArray(documentsInBlocks) || !Array.isArray(documentsInLines)) {
+            throw new Error('Invalid input. Expected arrays.');
+        }
+
+        if (documentsInBlocks.length === 0 || documentsInLines.length === 0) {
+            throw new Error('Invalid input. Expected arrays with at least one item.');
+        }
+
+        const blockDocuments = documentsInBlocks.map((item) => {
+            return item.pageContent as string;
+        });
+
+        const lineDocuments = documentsInLines.map((item) => {
+            return item.pageContent as string;
+        });
+
         const promptTemplate = new PromptTemplate({
             template,
             inputVariables: ['question', 'context'],
@@ -196,7 +200,8 @@ Extraction output:
             context: JSON.stringify(blockDocuments),
         });
 
-        const response = await runAI(prompt);
+        let response = await runAI(prompt);
+        response = await processRetryLogic(response, lineDocuments);
 
         if (response.rate) {
             response.rate = convertRateToNumber(response.rate);
@@ -223,6 +228,37 @@ Extraction output:
         });
     }
 };
+
+async function processRetryLogic(response: LogisticsData, lineDocuments: string[]): Promise<LogisticsData> {
+    // If logistics company, load number or stop address details are missing, retry with line documents
+
+    const stops = response?.stops || [];
+    const needRetryOnStops =
+        stops.length === 0 ||
+        stops.some((stop) => !stop?.name || !stop?.address?.street || !stop?.address?.city || !stop?.address?.state);
+
+    if (!response?.logistics_company || !response?.load_number || needRetryOnStops) {
+        const promptTemplate = new PromptTemplate({
+            template,
+            inputVariables: ['question', 'context'],
+        });
+        const prompt = await promptTemplate.format({
+            question: question,
+            context: JSON.stringify(lineDocuments),
+        });
+
+        const retryResponse = await runAI(prompt);
+
+        if (retryResponse) {
+            response = {
+                ...response,
+                ...retryResponse,
+            };
+        }
+    }
+
+    return response;
+}
 
 async function runAI(prompt: string): Promise<LogisticsData> {
     const model = new GoogleVertexAI({
@@ -279,32 +315,5 @@ function extractFirstJsonObject<T>(input: string): T | null {
         return JSON.parse(jsonObjectStr) as T;
     } catch (e) {
         return null;
-    }
-}
-
-function convertRateToNumber(rate: string | number): number {
-    if (typeof rate === 'string') {
-        // Remove commas and parse the string as a float
-        const amount = rate.replace(/[^0-9.]/g, '');
-        return parseFloat(amount);
-    }
-    return rate;
-}
-
-function addColonToTimeString(time: string): string {
-    // If the string already contains a colon, return it as is
-    if (time.includes(':')) {
-        return time;
-    }
-
-    try {
-        // Parse the string into a Date object
-        const parsedDate = parse(time, 'HHmm', new Date());
-
-        // Format the Date object back into a string with the desired format
-        return format(parsedDate, 'HH:mm');
-    } catch (error) {
-        console.log(`Failed to parse time string: ${time}`);
-        return time;
     }
 }

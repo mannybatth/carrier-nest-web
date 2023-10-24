@@ -331,8 +331,16 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             ? 'Pick Up Time'
                             : 'Time'}
                     </label>
+                    <input
+                        {...register(fieldId('time'), { required: 'Time is required' })}
+                        type="text"
+                        id={fieldId('time')}
+                        autoComplete="time"
+                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    {errorMessage(errors, 'time')}
 
-                    <Controller
+                    {/* <Controller
                         control={control}
                         rules={{
                             minLength: { value: 5, message: 'Time is invalid' },
@@ -359,7 +367,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                 {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
                             </>
                         )}
-                    />
+                    /> */}
                 </div>
 
                 <div className="col-span-12 sm:col-span-6 lg:col-span-12">
