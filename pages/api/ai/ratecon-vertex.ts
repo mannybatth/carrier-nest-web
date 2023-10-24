@@ -162,6 +162,15 @@ async function runAI(prompt: string): Promise<LogisticsData> {
         maxOutputTokens: 1024,
         temperature: 0.1,
         verbose: process.env.NODE_ENV === 'development',
+        authOptions: {
+            projectId: process.env.GCP_PROJECT_ID,
+            credentials: {
+                type: 'service_account',
+                private_key: process.env.GCP_PRIVATE_KEY,
+                client_email: process.env.GCP_CLIENT_EMAIL,
+                client_id: process.env.GCP_CLIENT_ID,
+            },
+        },
     });
     const res = await model.call(prompt);
     try {
