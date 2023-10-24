@@ -297,9 +297,14 @@ function addColonToTimeString(time: string): string {
         return time;
     }
 
-    // Parse the string into a Date object
-    const parsedDate = parse(time, 'HHmm', new Date());
+    try {
+        // Parse the string into a Date object
+        const parsedDate = parse(time, 'HHmm', new Date());
 
-    // Format the Date object back into a string with the desired format
-    return format(parsedDate, 'HH:mm');
+        // Format the Date object back into a string with the desired format
+        return format(parsedDate, 'HH:mm');
+    } catch (error) {
+        console.log(`Failed to parse time string: ${time}`);
+        return time;
+    }
 }
