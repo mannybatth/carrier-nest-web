@@ -27,9 +27,9 @@ interface LogisticsData {
     }[];
     rate: number;
     invoice_emails: string[];
-    // po_numbers: { [key: string]: string | null };
-    // pickup_numbers: { [key: string]: string | null };
-    // reference_numbers: { [key: string]: string | null };
+    po_numbers: { [key: string]: string | null };
+    pickup_numbers: { [key: string]: string | null };
+    reference_numbers: { [key: string]: string | null };
 }
 
 export const config = {
@@ -138,7 +138,8 @@ const generateLineBasedQuestions = (stopsCount: number) => {
 
     questions.push(`Objective: Extract specific sequences from a rate confirmation document using OCR.
 
-Given the document contains ${stopsCount} stops, present the extracted data in the following valid JSON:
+Given the document contains ${stopsCount} stops, present the extracted data in the structured JSON format below:
+
 {
     "po_numbers": {
         "stop1": "PO number or null",
@@ -151,38 +152,39 @@ Given the document contains ${stopsCount} stops, present the extracted data in t
         ...
     },
     "reference_numbers": {
-        "stop1": "Single or multiple reference numbers including their labels or null",
-        "stop2": "Single or multiple reference numbers including their labels or null",
+        "stop1": "Single or multiple reference numbers with their labels or null",
+        "stop2": "Single or multiple reference numbers with their labels or null",
         ...
     }
 }
 
 Guidelines:
 
-1. OCR: Account for OCR discrepancies. Emphasize context.
+1. OCR Handling: Accommodate OCR errors by emphasizing context during extraction.
 
 2. PO Numbers:
-    - Primary Extraction: Search and extract numbers that immediately follow labels like "PO", "PO Number", or "PO #".
+    - Primary Extraction: Locate and extract numbers immediately succeeding labels such as "PO", "PO Number", or "PO #".
     - Exclusion Criteria:
-        - Do not extract numbers that are distant from their respective labels.
-        - Exclude numbers associated with or near terms such as "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
-    - Fallback: If the extracted number is unclear or uncertain, mark it as 'null'.
+        - Disregard numbers far removed from their labels.
+        - Exclude sequences near or linked with terms like "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
+    - Fallback: If an extraction is uncertain, default to 'null'.
 
 3. Pickup Numbers:
-    - Primary Search: Extract numbers following labels such as "Pickup", "Delivery", "PU", "Pickup #", "PU #", "Delivery #", "PU/Del #", or "PU/Del"
-    - Secondary Search: If no pickup numbers are found from the primary search, then search for numbers adjacent to the label "Pro".
+    - Primary Search: Target numbers after labels like "Pickup", "Delivery", "PU", "Pickup #", "PU #", "Delivery #", "PU/Del #", or "PU/Del".
+    - Secondary Search: If primary labels yield no results, look for numbers adjacent to "Pro".
     - Cautions:
-        - Prioritize numbers that are directly associated with their labels.
-        - Do not capture numbers near "Load Number", "Order Number", "Ref", "Reference", or those that resemble phone number formats.
-    - Default Action: If a clear pickup number cannot be determined, record as 'null'.
+        - Favor numbers closely tied to their labels.
+        - Avoid capturing sequences near "Load Number", "Order Number", "Ref", "Reference", or resembling phone formats.
+    - Default Action: If ambiguous, set as 'null'.
 
 4. Reference Numbers:
-    - Initiate Capture: Only start capturing sequences if they directly follow the labels like "Reference", "Ref Numbers", "Shipper ID". Do not capture addresses or any sequences that don't start with these labels.
-    - Sequence Details: After detecting the appropriate label, capture characters, numbers, colons, and commas. Continue extraction until encountering a distinct separation (e.g., a newline or a different, unrelated label).
-    - Aggregation: If there are multiple references at one stop, concatenate them with commas. Commas should not represent line changes or breaks.
-    - Filter Out: Ignore sequences that hint at address details, such as city names, states, or zip codes. Also, avoid sequences resembling "PO", "PU", "pickup", or standard phone numbers. Especially disregard sequences marked by terms like "Phone", "Tel", or "Contact".
+    - Initiation: Capture sequences only if they follow labels like "Reference", "Ref Numbers", or "Shipper ID". Bypass addresses or sequences not initiated by these labels.
+    - Extraction Details: On label detection, extract characters, numbers, colons, and commas until a clear separation (e.g., newline or unrelated label) is met.
+    - Aggregation: For multiple references at a stop, concatenate them using commas. Commas shouldn't denote line breaks.
+    - Continuation: Be aware that reference numbers might span onto subsequent pages.
+    - Filter Out: Sidestep sequences hinting at address details or patterns like "PO", "PU", "pickup", or typical phone numbers. Particularly, avoid labels like "Phone", "Tel", or "Contact".
 
-Precision: Rely on context and positioning. When facing ambiguity, pivot to 'null'.`);
+Precision Strategy: Prioritize context and positioning. In ambiguous cases, default to 'null'.`);
 
     return questions;
 };
@@ -224,20 +226,20 @@ export default async function POST(req: NextRequest) {
         // Use the executeRetryLogic function to potentially improve the extraction results for block-based questions
         blockBasedResponses = await executeRetryLogic(blockBasedResponses, lineDocuments);
 
-        // const stopsCount = blockBasedResponses[1]?.stops?.length;
-        // const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
-        // const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
-        //     chunkSize: 2000,
-        //     chunkOverlap: 600,
-        //     numberOfChunks: 6,
-        //     maxTokens: 500,
-        //     useInstruct: true,
-        // });
+        const stopsCount = blockBasedResponses[1]?.stops?.length;
+        const dynamicLineBasedQuestions = generateLineBasedQuestions(stopsCount);
+        const lineBasedResponses = await runAI(lineDocuments, dynamicLineBasedQuestions, {
+            chunkSize: 2048,
+            chunkOverlap: 512,
+            numberOfChunks: 6,
+            maxTokens: 512,
+            useInstruct: true,
+        });
 
         const load_number = blockBasedResponses[0]?.load_number || null;
-        // const po_numbers = lineBasedResponses[0]?.po_numbers || [];
-        // const pickup_numbers = lineBasedResponses[0]?.pickup_numbers || [];
-        // const reference_numbers = lineBasedResponses[0]?.reference_numbers || [];
+        const po_numbers = lineBasedResponses[0]?.po_numbers || [];
+        const pickup_numbers = lineBasedResponses[0]?.pickup_numbers || [];
+        const reference_numbers = lineBasedResponses[0]?.reference_numbers || [];
 
         const result: LogisticsData = {
             logistics_company: blockBasedResponses[0]?.logistics_company,
@@ -245,12 +247,12 @@ export default async function POST(req: NextRequest) {
             stops: blockBasedResponses[1]?.stops,
             rate: convertRateToNumber(blockBasedResponses[2]?.rate),
             invoice_emails: blockBasedResponses[3]?.invoice_emails,
-            // po_numbers: po_numbers,
-            // pickup_numbers: pickup_numbers,
-            // reference_numbers,
+            po_numbers: po_numbers,
+            pickup_numbers: pickup_numbers,
+            reference_numbers,
         };
 
-        // removeMatchingValues(result);
+        removeMatchingValues(result);
 
         return NextResponse.json(
             {
@@ -324,46 +326,46 @@ function convertRateToNumber(rate: string | number): number {
     return rate;
 }
 
-// function removeMatchingValues(data: LogisticsData) {
-//     const { stops } = data;
+function removeMatchingValues(data: LogisticsData) {
+    const { stops } = data;
 
-//     // Extract street numbers and names from the stops
-//     const streetNumbers = stops
-//         .map((stop) => (stop.address.street ? stop.address.street.split(' ')[0] : null))
-//         .filter(Boolean) as string[];
-//     const stopNames = stops.map((stop) => stop.name);
+    // Extract street numbers and names from the stops
+    const streetNumbers = stops
+        .map((stop) => (stop.address.street ? stop.address.street.split(' ')[0] : null))
+        .filter(Boolean) as string[];
+    const stopNames = stops.map((stop) => stop.name);
 
-//     // Function to check if a value matches street number, or stop name
-//     const isMatchingValue = (value: string | null): boolean => {
-//         if (!value) return false; // If it's already null, no need to check further
-//         return streetNumbers.includes(value) || stopNames.includes(value);
-//     };
+    // Function to check if a value matches street number, or stop name
+    const isMatchingValue = (value: string | null): boolean => {
+        if (!value) return false; // If it's already null, no need to check further
+        return streetNumbers.includes(value) || stopNames.includes(value);
+    };
 
-//     // Helper function to convert "null" string to actual null and check for matching values
-//     const processValue = (value: string | null): string | null => {
-//         if (value === 'null') return null;
-//         return isMatchingValue(value) ? null : value;
-//     };
+    // Helper function to convert "null" string to actual null and check for matching values
+    const processValue = (value: string | null): string | null => {
+        if (value === 'null') return null;
+        return isMatchingValue(value) ? null : value;
+    };
 
-//     // Specific function for reference numbers to ensure they contain at least one digit
-//     const processReferenceValue = (value: string | null): string | null => {
-//         const processed = processValue(value);
-//         if (!/\d/.test(processed || '')) return null;
-//         return processed;
-//     };
+    // Specific function for reference numbers to ensure they contain at least one digit
+    const processReferenceValue = (value: string | null): string | null => {
+        const processed = processValue(value);
+        if (!/\d/.test(processed || '')) return null;
+        return processed;
+    };
 
-//     for (const key in data.po_numbers) {
-//         data.po_numbers[key] = processValue(data.po_numbers[key]);
-//     }
+    for (const key in data.po_numbers) {
+        data.po_numbers[key] = processValue(data.po_numbers[key]);
+    }
 
-//     for (const key in data.pickup_numbers) {
-//         data.pickup_numbers[key] = processValue(data.pickup_numbers[key]);
-//     }
+    for (const key in data.pickup_numbers) {
+        data.pickup_numbers[key] = processValue(data.pickup_numbers[key]);
+    }
 
-//     for (const key in data.reference_numbers) {
-//         data.reference_numbers[key] = processReferenceValue(data.reference_numbers[key]);
-//     }
-// }
+    for (const key in data.reference_numbers) {
+        data.reference_numbers[key] = processReferenceValue(data.reference_numbers[key]);
+    }
+}
 
 async function runAI(
     documents: Document[],

@@ -256,7 +256,7 @@ const CreateLoad: PageWithAuth = () => {
                 }),
             ]);
 
-            const response = await fetch(apiUrl + '/ai/ratecon', {
+            const response = await fetch(apiUrl + '/ai/ratecon-vertex', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
