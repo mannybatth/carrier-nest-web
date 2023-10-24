@@ -212,6 +212,22 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                 if (stop.time) {
                     stop.time = addColonToTimeString(stop.time);
                 }
+
+                // Trim whitespace for every string value
+                Object.keys(stop).forEach((key) => {
+                    if (typeof stop[key] === 'string') {
+                        stop[key] = stop[key].trim();
+                    }
+                });
+
+                // Trim whitespace from address values
+                if (stop.address) {
+                    Object.keys(stop.address).forEach((key) => {
+                        if (typeof stop.address[key] === 'string') {
+                            stop.address[key] = stop.address[key].trim();
+                        }
+                    });
+                }
             });
         }
 
