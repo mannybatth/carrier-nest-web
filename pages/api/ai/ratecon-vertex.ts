@@ -1,6 +1,7 @@
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai';
 import { PromptTemplate } from 'langchain/prompts';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { parse, format } from 'date-fns';
 
 interface LogisticsData {
     logistics_company: string;
@@ -142,6 +143,14 @@ Precision Strategy: Prioritize context and positioning. In ambiguous cases, defa
             response.rate = convertRateToNumber(response.rate);
         }
 
+        if (response.stops) {
+            response.stops.forEach((stop) => {
+                if (stop.time) {
+                    stop.time = addColonToTimeString(stop.time);
+                }
+            });
+        }
+
         console.log('response', response);
 
         return res.status(200).json({
@@ -221,4 +230,17 @@ function convertRateToNumber(rate: string | number): number {
         return parseFloat(amount);
     }
     return rate;
+}
+
+function addColonToTimeString(time: string): string {
+    // If the string already contains a colon, return it as is
+    if (time.includes(':')) {
+        return time;
+    }
+
+    // Parse the string into a Date object
+    const parsedDate = parse(time, 'HHmm', new Date());
+
+    // Format the Date object back into a string with the desired format
+    return format(parsedDate, 'HH:mm');
 }
