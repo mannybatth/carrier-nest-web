@@ -51,9 +51,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         const template = `{context}
 
 {question}`;
-        const question = `Objective: Extract specific sequences from a rate confirmation document using OCR.
+        const question = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
 
-For each stop in the given document, present the extracted data in the structured JSON format below:
+Output Format:
 {
     "logistics_company": string or null,
     "load_number": string or null,
@@ -80,41 +80,112 @@ For each stop in the given document, present the extracted data in the structure
     "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
 }
 
-Guidelines:
+Extraction Guidelines:
+1. General: Context is crucial due to OCR inaccuracies. Default to 'null' in ambiguous situations.
+2. Logistics Company: This isn't the carrier. Look for any clear indications of a logistics company's name.
+3. Load Number: Identify as "Load", "Order", "Load #", "Order #", etc. Remove '#' from the result.
+4. Stops:
+    - Types: Pickup is "PU" or "shipper"; delivery is "SO", "consignee", or "receiver".
+    - Details: Extract name, full address, date (MM/DD/YYYY), and time (24-hour format). If a time range is provided, use its start.
+5. Rate: Look for "Total", "Rate", "Amount". Extract the complete amount including any additional fees. Represent the value numerically.
+6. Invoice Emails: Extract all emails where invoices should be sent. If none are found, use 'null'.
 
-1. OCR Handling: Accommodate OCR errors by emphasizing context during extraction.
+Advanced Extraction Details:
+1. PO Numbers:
+    - Extract from labels "PO", "PO Number", "PO #".
+    - Avoid numbers far from labels or near "Ref Numbers:", "BOL#", "ORDER:", "Pro".
+2. Pickup Numbers:
+    - Start with labels like "Pickup", "PU", "Pickup #", "Delivery", etc.
+    - Be cautious about sequences near "Load Number", "Order Number", "Ref", "Reference", or resembling phone numbers.
+3. Reference Numbers:
+    - This is vital. Capture the entire sequence of label-value pairs immediately following mentions of "Reference", "Ref Numbers", or "Shipper ID". These pairs are typically separated by commas.
+    - Concatenate all the captured label-value pairs from a single stop using commas but without line breaks.
+    - Stay vigilant for any continuation on the next page and strictly avoid usual address patterns or mentions like "Phone", "Tel", or "Contact".
 
-2. Who is the logistics company and what is the load or order number or confirmation number? Usually the load number is labeled with "Load", "Order", "Load #", "Order #", etc. Remove hashtags from the load number.
+Example:
+Document snippet:
 
-3. Extract all stops (both pickup (PU) and delivery (SO)) from the document in the exact order they appear. Remember, a pickup is synonymous with "shipper", and delivery is equivalent to "consignee" or "receiver". For each stop, retrieve the exact name and full address (street, city, state, zip, country). If you encounter abbreviations near the address or date, consider them as potential stop names. If you are having trouble finding the stop "name", scan text near the address and date and try your best to match with a business name (could be an abbreviation). Also, for each stop, retrieve the date and time. Convert the date to the format MM/DD/YYYY and the time to the 24-hour format HH:MM. The "time" for each stop should be the starting time of the window, formatted in 24-hour format (HH:MM). If a time range is provided (e.g., "07:00 to 08:00"), use the starting time of the range.
+LOGISTICS DETAILS
+-----------------
 
-4. Extract the financial details from the document context related to the rate or total cost of the shipment or load. The information is likely located near terms like "Total", "Rate", or "Amount". Make sure to extract the total amount with additional payments included. Search specifically for a format that might resemble "$USD 3,700.00" or any similar numerical representation. Return the exact numeric value related to the rate or payment for the load. Ensure this information is returned in the provided JSON format.
+Contracted By:     C.H. Robinson
 
-5. Which email(s) does the document instruct to send the invoice and supporting documents to? If multiple emails are provided, return all of them. If no emails are provided, return null.
+LOAD CONFIRMATION
+-----------------
+Load #:            426973549
 
-6. PO Numbers:
-    - Primary Extraction: Locate and extract numbers immediately succeeding labels such as "PO", "PO Number", or "PO #".
-    - Exclusion Criteria:
-        - Disregard numbers far removed from their labels.
-        - Exclude sequences near or linked with terms like "Ref Numbers:", "BOL#", "ORDER:", or "Pro".
-    - Fallback: If an extraction is uncertain, default to 'null'.
+SHIPMENT STOPS
+---------------
+Shipper:
 
-7. Pickup Numbers:
-    - Primary Search: Target numbers after labels like "Pickup", "Delivery", "PU", "Pickup #", "PU #", "Delivery #", "PU/Del #", or "PU/Del".
-    - Secondary Search: If primary labels yield no results, look for numbers adjacent to "Pro".
-    - Cautions:
-        - Favor numbers closely tied to their labels.
-        - Avoid capturing sequences near "Load Number", "Order Number", "Ref", "Reference", or resembling phone formats.
-    - Default Action: If ambiguous, set as 'null'.
+Gorilla Glue Company
+2125 E Kemper Rd, Cincinnati, OH 45241
+Stop Type:         Pickup (PU)
+Date:              2/23/2023
+Time:              12:00
+Reference: SI#: 90, CFM: Y, QN: 90, ZN: 768327, SWT: 33282.0, SPC: 1493.0
 
-8. Reference Numbers:
-    - Initiation: Capture sequences only if they follow labels like "Reference", "Ref Numbers", or "Shipper ID". Bypass addresses or sequences not initiated by these labels.
-    - Extraction Details: On label detection, extract characters, numbers, colons, and commas until a clear separation (e.g., newline or unrelated label) is met.
-    - Aggregation: For multiple references at a stop, concatenate them using commas. Commas shouldn't denote line breaks.
-    - Continuation: Be aware that reference numbers might span onto subsequent pages.
-    - Filter Out: Sidestep sequences hinting at address details or patterns like "PO", "PU", "pickup", or typical phone numbers. Particularly, avoid labels like "Phone", "Tel", or "Contact".
+Receiver:
 
-Precision Strategy: Prioritize context and positioning. In ambiguous cases, default to 'null'.`;
+CHR Metro Air Logistics Center
+4241 Plainfield Rd, Plainfield, IN 46231
+Stop Type:         Dropoff (SO)
+Date:              2/23/2023
+Time:              19:00
+Reference Numbers: 1RPRL2-01, 1RPRF9-01
+
+RATE INFORMATION
+----------------
+Total Rate:        $800.00
+
+INVOICE DETAILS
+---------------
+Please submit freight bills to the following emails:
+- LoadDocs@CHRobinson.com
+
+Page 1 of 1
+
+Extraction output:
+{
+    "logistics_company": "C.H. Robinson",
+    "load_number": "426973549",
+    "stops": [
+        {
+            "type": "PU",
+            "name": "Gorilla Glue Company",
+            "address": {
+                "street": "2125 E Kemper Rd",
+                "city": "Cincinnati",
+                "state": "OH",
+                "zip": "45241",
+                "country": null
+            },
+            "date": "2/23/2023",
+            "time": "12:00",
+            "po_numbers": null,
+            "pickup_numbers": null,
+            "reference_numbers": ["SI#: 90", "CFM: Y", "QN: 90", "ZN: 768327", "SWT: 33282.0", "SPC: 1493.0"]
+        },
+        {
+            "type": "SO",
+            "name": "CHR Metro Air Logistics Center",
+            "address": {
+                "street": "4241 Plainfield Rd",
+                "city": "Plainfield",
+                "state": "IN",
+                "zip": "46231",
+                "country": null
+            },
+            "date": "2/23/2023",
+            "time": "19:00",
+            "po_numbers": null,
+            "pickup_numbers": null,
+            "reference_numbers": ["1RPRL2-01", "1RPRF9-01"]
+        }
+    ],
+    "rate": 800.00,
+    "invoice_emails": ["LoadDocs@CHRobinson.com"]
+}`;
 
         const promptTemplate = new PromptTemplate({
             template,

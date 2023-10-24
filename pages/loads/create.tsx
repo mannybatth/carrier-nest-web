@@ -186,10 +186,10 @@ const CreateLoad: PageWithAuth = () => {
                         });
                         reject();
                         return;
-                    } else if (totalPages > 10) {
+                    } else if (totalPages > 8) {
                         notify({
                             title: 'Error',
-                            message: 'PDF file must contain no more than 10 pages',
+                            message: 'PDF file must contain no more than 8 pages',
                             type: 'error',
                         });
                         reject();

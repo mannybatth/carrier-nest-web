@@ -15,15 +15,19 @@ export const parseDate = (value: string) => {
         'yyyy/MM/dd',
         'MM/d yyyy',
         'MMM d yyyy',
-        'MMMM d yyyy', // Full month name, e.g., "December 7 2020".
+        'MMMM d yyyy',
         'd MMM yyyy',
-        'd MMMM yyyy', // Day first, e.g., "7 Dec 2020"
+        'd MMMM yyyy',
         'dd-MMM-yyyy',
-        'd-MMMM-yyyy', // With hyphens
+        'd-MMMM-yyyy',
         'MMM d, yyyy',
-        'MMMM d, yyyy', // With commas, e.g., "Dec 7, 2020"
+        'MMMM d, yyyy',
         'd-MMM-yyyy',
-        'd-MMMM-yyyy', // Day first with hyphens, e.g., "7-Dec-2020"
+        'd-MMMM-yyyy',
+        'yyyy-MM-dd',
+        'yy-MM-dd',
+        'd-MM-yyyy',
+        'dd-MM-yyyy',
     ];
 
     for (const format of formats) {
