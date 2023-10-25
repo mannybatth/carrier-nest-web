@@ -179,6 +179,8 @@ model Driver {
     email          String?
     phone          String?
     carrierId      String
+    smsCode        String?
+    smsCodeExpiry  DateTime?
     carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loadDocuments  LoadDocument[]
     loads          Load[]         @relation("driverLoads")
