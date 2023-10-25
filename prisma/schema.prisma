@@ -75,6 +75,7 @@ model Carrier {
     createdAt           DateTime   @default(now())
     updatedAt           DateTime   @updatedAt
     email               String     @unique
+    carrierCode         String     @unique
     name                String
     dotNum              String?
     mcNum               String?
@@ -91,7 +92,7 @@ model Carrier {
     users               User[]
     defaultCarrierUsers User[]     @relation("defaultCarrier")
 
-    @@index([name, email])
+    @@index([name, email, carrierCode])
 }
 
 model Load {
@@ -177,7 +178,7 @@ model Driver {
     updatedAt      DateTime       @updatedAt
     name           String
     email          String?
-    phone          String?
+    phone          String
     carrierId      String
     smsCode        String?
     smsCodeExpiry  DateTime?
