@@ -5,6 +5,7 @@ import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
 import { deleteDocumentFromGCS } from './documents/[did]';
+import { getToken } from 'next-auth/jwt';
 
 export default handler;
 
@@ -25,7 +26,17 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const session = await getServerSession(req, res, authOptions);
-        const response = await getLoad({ session, query: req.query });
+        const token = await getToken({ req });
+        const tokenCarrierId = token?.carrierId as string;
+
+        if (!session && !tokenCarrierId) {
+            return {
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            };
+        }
+
+        const response = await getLoad({ session, tokenCarrierId, query: req.query });
         return res.status(response.code).json(response);
     }
 
@@ -258,14 +269,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
 const getLoad = async ({
     session,
+    tokenCarrierId,
     query,
 }: {
     session?: Session;
+    tokenCarrierId?: string;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ load: ExpandedLoad }>> => {
-    /**
-     *  NOTE: THIS ENDPOINT IS OPEN TO ALL USERS IF THEY HAVE THE LOAD ID AND DRIVER ID
-     */
     const driverId = query.driverId as string;
     const expand = query.expand as string;
     const expandCustomer = expand?.includes('customer');
@@ -280,7 +290,7 @@ const getLoad = async ({
     const load = await prisma.load.findFirst({
         where: {
             id: String(query.id),
-            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
+            carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(driverId && { drivers: { some: { id: driverId } } }),
         },
         include: {

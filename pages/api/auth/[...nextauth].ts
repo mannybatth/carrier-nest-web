@@ -51,7 +51,9 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true,
         }),
         CredentialsProvider({
-            name: 'driver_login',
+            id: 'driver_auth',
+            name: 'driver_auth',
+            type: 'credentials',
             credentials: {
                 phoneNumber: {
                     label: 'Phone number',
@@ -67,6 +69,8 @@ export const authOptions: NextAuthOptions = {
                 },
             },
             async authorize(credentials) {
+                console.log('------------------');
+
                 const { phoneNumber, carrierCode, code } = credentials;
 
                 // Fetch the driver from your database using the phone number.
@@ -86,6 +90,8 @@ export const authOptions: NextAuthOptions = {
                         to: phoneNumber,
                     });
 
+                    console.log('code sent:', generatedCode);
+
                     // Store the generated code in the database linked to the driver's phone number
                     // with a short expiration time.
                     await storeCodeForDriver(driver.id, generatedCode);
@@ -101,47 +107,102 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('Invalid code');
                 }
 
+                console.log('code is valid');
+                console.log('driver:', driver);
+
                 // If the code is valid, return the driver object which will be used to create a session.
-                return { id: driver.id, phoneNumber: driver.phone };
+                return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
             },
         }),
     ],
     adapter: PrismaAdapter(prisma),
     callbacks: {
+        async jwt({ token, user, account, profile, trigger, session }) {
+            // console.log('------------------');
+            // console.log('callbacks jwt token:', token);
+            // console.log('callbacks jwt user:', user);
+            // console.log('callbacks jwt account:', account);
+            // console.log('callbacks jwt profile:', profile);
+            // console.log('callbacks jwt trigger:', trigger);
+            // console.log('callbacks jwt session:', session);
+            // console.log('------------------');
+
+            if (user) {
+                token.driverId = (user as any).driverId; // Store the driver's ID in the JWT
+                token.phoneNumber = (user as any).phoneNumber; // Store the driver's phone number in the JWT
+                token.carrierId = (user as any).carrierId; // Store the driver's carrier ID in the JWT
+            }
+
+            return token;
+        },
         async session({ session, user, token }: { session: Session; user: AdapterUser; token: JWT }) {
+            // console.log('------------------');
+            // console.log('callbacks session:', session);
+            // console.log('callbacks session user:', user);
+            // console.log('callbacks session token:', token);
+            // console.log('------------------');
             if (user && session) {
                 session.user = user as User;
             }
             return session;
         },
+        async signIn({ user, account, profile, email, credentials }) {
+            // console.log('------------------');
+            // console.log('callbacks signIn user:', user);
+            // console.log('callbacks signIn account:', account);
+            // console.log('callbacks signIn profile:', profile);
+            // console.log('callbacks signIn email:', email);
+            // console.log('callbacks signIn credentials:', credentials);
+            // console.log('------------------');
+            // if (account.provider === 'driver_auth' && user) {
+            //     return '/api/auth/get-token';
+            // }
+            return true;
+        },
     },
     session: {
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
+    jwt: {
+        secret: process.env.JWT_SECRET,
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
     events: {
         signIn: async ({ user, account, profile, isNewUser }) => {
-            console.log('signIn user:', user);
-            console.log('signIn account:', account);
-            console.log('signIn profile:', profile);
-            console.log('signIn isNewUser:', isNewUser);
+            // console.log('------------------');
+            // console.log('signIn user:', user);
+            // console.log('signIn account:', account);
+            // console.log('signIn profile:', profile);
+            // console.log('signIn isNewUser:', isNewUser);
+            // console.log('------------------');
         },
         signOut: async ({ session, token }) => {
-            console.log('signOut session:', session);
-            console.log('signOut token:', token);
+            // console.log('------------------');
+            // console.log('signOut session:', session);
+            // console.log('signOut token:', token);
+            // console.log('------------------');
         },
         createUser: async ({ user }) => {
-            console.log('createUser user:', user);
+            // console.log('------------------');
+            // console.log('createUser user:', user);
+            // console.log('------------------');
         },
         updateUser: async ({ user }) => {
-            console.log('updateUser user:', user);
+            // console.log('------------------');
+            // console.log('updateUser user:', user);
+            // console.log('------------------');
         },
         linkAccount: async ({ user, account }) => {
-            console.log('linkAccount user:', user);
-            console.log('linkAccount account:', account);
+            // console.log('------------------');
+            // console.log('linkAccount user:', user);
+            // console.log('linkAccount account:', account);
+            // console.log('------------------');
         },
         session: async ({ session, token }) => {
+            // console.log('------------------');
             // console.log('session', session);
             // console.log('session token:', token);
+            // console.log('------------------');
         },
     },
     pages: {
@@ -168,7 +229,7 @@ function generateRandomCode() {
 
 async function storeCodeForDriver(driverId: string, code: string) {
     const expirationTime = new Date();
-    expirationTime.setMonth(expirationTime.getMonth() + 6); // Set to expire in 6 months
+    expirationTime.setMinutes(expirationTime.getMinutes() + 10); // Set to expire in 10 minutes
 
     return await prisma.driver.update({
         where: {

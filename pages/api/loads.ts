@@ -7,6 +7,7 @@ import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 import { authOptions } from './auth/[...nextauth]';
+import { getToken } from 'next-auth/jwt';
 
 const buildOrderBy = (
     sortBy: string,
@@ -81,6 +82,18 @@ export const getLoads = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ loads: Partial<ExpandedLoad[]>; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);
+    const token = await getToken({ req });
+    const tokenCarrierId = token?.carrierId as string;
+
+    console.log('session', session);
+    console.log('JSON Web Token', token);
+
+    if (!session && !tokenCarrierId) {
+        return {
+            code: 401,
+            errors: [{ message: 'Unauthorized' }],
+        };
+    }
 
     const expand = query.expand as string;
     const expandCustomer = expand?.includes('customer');
@@ -117,7 +130,7 @@ export const getLoads = async ({
 
     const total = await prisma.load.count({
         where: {
-            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
+            carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(customerId ? { customerId } : null),
             ...(driverId ? { drivers: { some: { id: driverId } } } : null),
             ...(currentOnly ? { invoice: null } : {}),
