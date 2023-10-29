@@ -291,7 +291,7 @@ const getLoad = async ({
         where: {
             id: String(query.id),
             carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
-            ...(driverId && { drivers: { some: { id: driverId } } }),
+            ...(driverId ? { drivers: { some: { id: driverId } } } : null),
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),
