@@ -26,7 +26,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const session = await getServerSession(req, res, authOptions);
-        const token = await getToken({ req });
+        const token = await getToken({ req, secret: process.env.JWT_SECRET });
         const tokenCarrierId = token?.carrierId as string;
 
         if (!session && !tokenCarrierId) {

@@ -12,7 +12,14 @@ import prisma from '../../../lib/prisma';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from './verification-request';
 
-const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, authOptions);
+const authHandler: NextApiHandler = (req, res) => {
+    try {
+        return NextAuth(req, res, authOptions);
+    } catch (error) {
+        console.error('Error in authHandler:', error);
+    }
+};
+
 export default authHandler;
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -69,8 +76,6 @@ export const authOptions: NextAuthOptions = {
                 },
             },
             async authorize(credentials) {
-                console.log('------------------');
-
                 const { phoneNumber, carrierCode, code } = credentials;
 
                 // Fetch the driver from your database using the phone number.
@@ -84,11 +89,11 @@ export const authOptions: NextAuthOptions = {
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
                     const generatedCode = generateRandomCode();
-                    await client.messages.create({
-                        body: `Your login code is: ${generatedCode}`,
-                        from: '+18883429736',
-                        to: phoneNumber,
-                    });
+                    // await client.messages.create({
+                    //     body: `Your login code is: ${generatedCode}`,
+                    //     from: '+18883429736',
+                    //     to: phoneNumber,
+                    // });
 
                     console.log('code sent:', generatedCode);
 
@@ -106,9 +111,6 @@ export const authOptions: NextAuthOptions = {
                 if (!isValidCode) {
                     throw new Error('Invalid code');
                 }
-
-                console.log('code is valid');
-                console.log('driver:', driver);
 
                 // If the code is valid, return the driver object which will be used to create a session.
                 return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
@@ -154,9 +156,6 @@ export const authOptions: NextAuthOptions = {
             // console.log('callbacks signIn email:', email);
             // console.log('callbacks signIn credentials:', credentials);
             // console.log('------------------');
-            // if (account.provider === 'driver_auth' && user) {
-            //     return '/api/auth/get-token';
-            // }
             return true;
         },
     },

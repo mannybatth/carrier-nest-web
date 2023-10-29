@@ -82,11 +82,8 @@ export const getLoads = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ loads: Partial<ExpandedLoad[]>; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);
-    const token = await getToken({ req });
+    const token = await getToken({ req, secret: process.env.JWT_SECRET });
     const tokenCarrierId = token?.carrierId as string;
-
-    console.log('session', session);
-    console.log('JSON Web Token', token);
 
     if (!session && !tokenCarrierId) {
         return {
