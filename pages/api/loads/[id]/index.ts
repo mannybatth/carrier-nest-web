@@ -30,10 +30,10 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const tokenCarrierId = token?.carrierId as string;
 
         if (!session && !tokenCarrierId) {
-            return {
+            return res.status(401).send({
                 code: 401,
                 errors: [{ message: 'Unauthorized' }],
-            };
+            });
         }
 
         const response = await getLoad({ session, tokenCarrierId, query: req.query });
