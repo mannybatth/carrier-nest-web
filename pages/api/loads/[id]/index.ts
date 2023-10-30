@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session, getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
+import { ExpandedLoad, JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
 import { deleteDocumentFromGCS } from './documents/[did]';
@@ -398,8 +398,17 @@ const getLoad = async ({
         };
     }
 
-    return {
-        code: 200,
-        data: { load },
-    };
+    if (driverId) {
+        const loadWithoutRate = exclude(load, ['rate']);
+
+        return {
+            code: 200,
+            data: { load: loadWithoutRate },
+        };
+    } else {
+        return {
+            code: 200,
+            data: { load },
+        };
+    }
 };

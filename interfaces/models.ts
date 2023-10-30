@@ -185,3 +185,13 @@ const expandedLoadActivity = Prisma.validator<Prisma.LoadActivityArgs>()({
     },
 });
 export type ExpandedLoadActivity = Partial<Prisma.LoadActivityGetPayload<typeof expandedLoadActivity>>;
+
+export function exclude<ExpandedLoad, Key extends keyof ExpandedLoad>(
+    load: ExpandedLoad,
+    keys: Key[],
+): Omit<ExpandedLoad, Key> {
+    const filteredEntries = Object.entries(load).filter(([key]) => !keys.includes(key as Key));
+    return filteredEntries.length
+        ? (Object.fromEntries(filteredEntries) as Omit<ExpandedLoad, Key>)
+        : ({} as Omit<ExpandedLoad, Key>);
+}

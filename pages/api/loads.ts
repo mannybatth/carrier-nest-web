@@ -2,7 +2,7 @@ import { Load, LoadStatus, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse, exclude } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
@@ -251,10 +251,21 @@ export const getLoads = async ({
         },
     });
 
-    return {
-        code: 200,
-        data: { metadata, loads },
-    };
+    if (driverId) {
+        const loadsExcludedRate = loads.map((load) => {
+            return exclude(load, ['rate']);
+        });
+
+        return {
+            code: 200,
+            data: { metadata, loads: loadsExcludedRate },
+        };
+    } else {
+        return {
+            code: 200,
+            data: { metadata, loads },
+        };
+    }
 };
 
 export const postLoads = async ({
