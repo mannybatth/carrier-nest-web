@@ -1,9 +1,10 @@
 import { Driver, Load, LoadActivityAction, LoadStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession, Session } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
+import { getToken } from 'next-auth/jwt';
 
 export default handler;
 
@@ -19,6 +20,20 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 
     async function _patch() {
+        let load: Load;
+        let driver: Driver;
+
+        const session = await getServerSession(req, res, authOptions);
+        const token = await getToken({ req, secret: process.env.JWT_SECRET });
+        const tokenCarrierId = token?.carrierId as string;
+
+        if (!session && !tokenCarrierId) {
+            return res.status(401).send({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            });
+        }
+
         const { id } = req.query;
         const { status, driverId, longitude, latitude } = req.body as {
             status: LoadStatus;
@@ -27,15 +42,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             latitude?: number;
         };
 
-        let load: Load;
-        let session: Session;
-        let driver: Driver;
-
         if (driverId) {
             const [_load, _driver] = await Promise.all([
                 prisma.load.findFirst({
                     where: {
                         id: id as string,
+                        carrierId: tokenCarrierId,
                         drivers: {
                             some: {
                                 id: driverId,
@@ -46,13 +58,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 prisma.driver.findFirst({
                     where: {
                         id: driverId,
+                        carrierId: tokenCarrierId,
                     },
                 }),
             ]);
             load = _load;
             driver = _driver;
         } else {
-            session = await getServerSession(req, res, authOptions);
             load = await prisma.load.findFirst({
                 where: {
                     id: id as string,
