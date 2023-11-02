@@ -8,6 +8,7 @@ import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 import { authOptions } from './auth/[...nextauth]';
 import { getToken } from 'next-auth/jwt';
+import startOfDay from 'date-fns/startOfDay';
 
 const buildOrderBy = (
     sortBy: string,
@@ -107,7 +108,44 @@ export const getLoads = async ({
     const limit = query.limit !== undefined ? Number(query.limit) : undefined;
     const offset = query.offset !== undefined ? Number(query.offset) : undefined;
 
-    const currentOnly = query.currentOnly === '1';
+    const upcomingOnly = query.upcomingOnly === '1';
+    let upcomingOnlyWhereClause = {};
+
+    if (upcomingOnly) {
+        const start = startOfDay(new Date());
+        const end = new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000);
+
+        upcomingOnlyWhereClause = {
+            OR: [
+                {
+                    AND: [
+                        {
+                            shipper: {
+                                date: {
+                                    lte: new Date(),
+                                },
+                            },
+                        },
+                        {
+                            receiver: {
+                                date: {
+                                    gte: start,
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    shipper: {
+                        date: {
+                            gte: start,
+                            lte: end,
+                        },
+                    },
+                },
+            ],
+        };
+    }
 
     if (limit != null || offset != null) {
         if (limit == null || offset == null) {
@@ -130,7 +168,7 @@ export const getLoads = async ({
             carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(customerId ? { customerId } : null),
             ...(driverId ? { drivers: { some: { id: driverId } } } : null),
-            ...(currentOnly ? { invoice: null } : {}),
+            ...upcomingOnlyWhereClause,
         },
     });
 
@@ -138,10 +176,10 @@ export const getLoads = async ({
 
     const loads = await prisma.load.findMany({
         where: {
-            ...(!driverId && { carrierId: session.user.defaultCarrierId }),
+            carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(customerId ? { customerId } : null),
             ...(driverId ? { drivers: { some: { id: driverId } } } : null),
-            ...(currentOnly ? { invoice: null } : {}),
+            ...upcomingOnlyWhereClause,
         },
         orderBy: buildOrderBy(sortBy, sortDir) || {
             createdAt: 'desc',
