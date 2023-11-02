@@ -89,13 +89,11 @@ export const authOptions: NextAuthOptions = {
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
                     const generatedCode = generateRandomCode();
-                    // await client.messages.create({
-                    //     body: `Your login code is: ${generatedCode}`,
-                    //     from: '+18883429736',
-                    //     to: phoneNumber,
-                    // });
-
-                    console.log('code sent:', generatedCode);
+                    await client.messages.create({
+                        body: `Your login code is: ${generatedCode}`,
+                        from: '+18883429736',
+                        to: phoneNumber,
+                    });
 
                     // Store the generated code in the database linked to the driver's phone number
                     // with a short expiration time.
@@ -164,7 +162,7 @@ export const authOptions: NextAuthOptions = {
     },
     jwt: {
         secret: process.env.JWT_SECRET,
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 6 * 30 * 24 * 60 * 60, // 180 days
     },
     events: {
         signIn: async ({ user, account, profile, isNewUser }) => {
