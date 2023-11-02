@@ -27,7 +27,7 @@ const StatBoxSkeleton = () => {
 const StatBox = (props: {
     title: string;
     value: string;
-    icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+    icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) => {
     return (
         <div className="overflow-hidden bg-white rounded-lg shadow">
