@@ -289,7 +289,7 @@ export const getLoads = async ({
         },
     });
 
-    if (driverId) {
+    if (token) {
         const loadsExcludedRate = loads.map((load) => {
             return exclude(load, ['rate']);
         });
