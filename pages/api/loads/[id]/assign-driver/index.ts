@@ -120,12 +120,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         if (message.tokens.length > 0) {
             try {
                 const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
-                console.log('Successfully sent message:', response);
 
                 // Collect all invalid tokens
                 const invalidTokens: string[] = response.responses
                     .map((res, idx) => (res.success ? null : message.tokens[idx]))
                     .filter((token): token is string => {
+                        if (token === null) {
+                            return false;
+                        }
                         const res = response.responses[message.tokens.indexOf(token)];
                         const errorCode = res.error?.code;
                         return (
@@ -138,7 +140,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
                 // If there are invalid tokens, delete them in one batch operation
                 if (invalidTokens.length > 0) {
-                    console.log('Deleting invalid tokens:', invalidTokens);
                     try {
                         await prisma.device.deleteMany({
                             where: {
@@ -149,9 +150,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         console.error('Error removing invalid tokens:', deleteError);
                     }
                 }
-
-                console.log(`Number of messages sent successfully: ${response.successCount}`);
-                console.log(`Number of messages failed to send: ${response.failureCount}`);
             } catch (error) {
                 console.error('Error sending notification:', error);
             }
