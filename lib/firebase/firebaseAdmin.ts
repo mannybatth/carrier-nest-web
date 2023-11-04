@@ -1,9 +1,12 @@
 import * as admin from 'firebase-admin';
-import serviceAccount from '../../carriernest-1015e46ce1b5.json';
 
 if (!admin.apps.length) {
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        credential: admin.credential.cert({
+            projectId: process.env.FCM_PROJECT_ID,
+            clientEmail: process.env.FCM_CLIENT_EMAIL,
+            privateKey: process.env.FCM_PRIVATE_KEY,
+        }),
     });
 }
 
