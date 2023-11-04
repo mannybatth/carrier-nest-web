@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import Layout from '../../components/layout/Layout';
 import { PageWithAuth } from '../../interfaces/auth';
 import { useSession } from 'next-auth/react';
-import { updateCarrier } from '../../lib/rest/carrier';
+import { isCarrierCodeUnique, updateCarrier } from '../../lib/rest/carrier';
 import SettingsPageSkeleton from '../../components/skeletons/SettingsPageSkeleton';
 import { notify } from '../../components/Notification';
 import { useUserContext } from '../../components/context/UserContext';
@@ -42,6 +42,7 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
         { id: 'state', label: 'State', required: true, type: 'input' },
         { id: 'zip', label: 'Zip Code', required: true, type: 'input' },
         { id: 'country', label: 'Country', required: true, type: 'select' },
+        { id: 'carrierCode', label: 'Carrier Code', required: true, type: 'input' },
     ];
 
     const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
@@ -73,21 +74,33 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
     };
 
     const onSubmit = async (data: Carrier) => {
-        console.log('data to save', data);
+        try {
+            const didCarrierCodeChange = data.carrierCode !== defaultCarrier?.carrierCode;
 
-        const newCarrier = await updateCarrier(defaultCarrier?.id, data);
-        console.log('updated carrier', newCarrier);
+            if (didCarrierCodeChange) {
+                const isUnique = await isCarrierCodeUnique(data.carrierCode);
 
-        notify({ title: 'Carrier updated', message: 'Carrier updated successfully' });
+                if (!isUnique) {
+                    notify({ title: 'Carrier code is not unique', type: 'error' });
+                    return;
+                }
+            }
 
-        setCarriers((prevCarriers) => {
-            const index = prevCarriers.findIndex((carrier) => carrier.id === newCarrier.id);
-            const newCarriers = [...prevCarriers];
-            newCarriers[index] = newCarrier;
-            return newCarriers;
-        });
+            const newCarrier = await updateCarrier(defaultCarrier?.id, data);
 
-        setDefaultCarrier(newCarrier);
+            notify({ title: 'Carrier updated', message: 'Carrier updated successfully' });
+
+            setCarriers((prevCarriers) => {
+                const index = prevCarriers.findIndex((carrier) => carrier.id === newCarrier.id);
+                const newCarriers = [...prevCarriers];
+                newCarriers[index] = newCarrier;
+                return newCarriers;
+            });
+
+            setDefaultCarrier(newCarrier);
+        } catch (error) {
+            notify({ title: error.message, type: 'error' });
+        }
     };
 
     return (

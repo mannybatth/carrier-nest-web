@@ -38,8 +38,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const carrierData = req.body as Carrier;
 
-        console.log('carrier to update', carrierData);
-
         const updatedCarrier = await prisma.carrier.update({
             where: {
                 id: String(req.query.id),
@@ -55,6 +53,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 state: carrierData.state,
                 zip: carrierData.zip,
                 country: carrierData.country,
+                carrierCode: carrierData.carrierCode,
             },
         });
 
