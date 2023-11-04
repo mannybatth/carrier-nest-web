@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "LoadDocument" ALTER COLUMN "loadId" DROP NOT NULL,
-ALTER COLUMN "loadIdForPodDoc" DROP NOT NULL;
