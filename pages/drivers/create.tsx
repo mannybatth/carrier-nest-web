@@ -16,25 +16,27 @@ const CreateDriver: PageWithAuth = () => {
     const [loading, setLoading] = React.useState(false);
 
     const submit = async (data: Driver) => {
-        console.log(data);
-
         setLoading(true);
 
-        const driverData: Partial<Driver> = {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-        };
+        try {
+            const driverData: Partial<Driver> = {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+            };
 
-        const newDriver = await createDriver(driverData);
-        console.log('new driver', newDriver);
+            const newDriver = await createDriver(driverData);
+            console.log('new driver', newDriver);
 
-        notify({ title: 'New driver created', message: 'New driver created successfully' });
+            notify({ title: 'New driver created', message: 'New driver created successfully' });
 
-        // Redirect to driver page
-        await router.push(`/drivers/${newDriver.id}`);
-
-        setLoading(false);
+            // Redirect to driver page
+            await router.push(`/drivers/${newDriver.id}`);
+        } catch (error) {
+            notify({ title: error.message, type: 'error' });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -63,9 +65,12 @@ const CreateDriver: PageWithAuth = () => {
                             <div className="flex-1"></div>
                             <button
                                 type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                disabled={loading}
+                                className={`inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                                    loading ? 'opacity-50' : ''
+                                }`}
                             >
-                                Create Driver
+                                {loading ? 'Creating...' : 'Create Driver'}
                             </button>
                         </div>
                     </form>
