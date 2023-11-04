@@ -5,13 +5,15 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { createNewCarrier } from '../../lib/rest/carrier';
+import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
 
 const CarrierSetup: PageWithAuth = () => {
     const [isLoading, setIsLoading] = useState(false); // add this state
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
     const { update } = useSession();
+
+    const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
 
     const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
@@ -24,11 +26,37 @@ const CarrierSetup: PageWithAuth = () => {
         { id: 'state', label: 'State', required: true, type: 'input' },
         { id: 'zip', label: 'Zip Code', required: true, type: 'input' },
         { id: 'country', label: 'Country', required: true, type: 'select' },
+        { id: 'carrierCode', label: 'Carrier Code', required: true, type: 'input' },
     ];
+
+    // Add a function to generate a carrier code based on the company name
+    const generateCarrierCode = (name: string) => {
+        const code = name.substring(0, 3).toLowerCase() + Math.floor(Math.random() * 1000).toString();
+        return code;
+    };
+
+    // Add a function to check for uniqueness and set the carrier code
+    const handleCarrierCode = async (name: string) => {
+        console.log('handleCarrierCode', name);
+        let code = generateCarrierCode(name);
+        let isUnique = await isCarrierCodeUnique(code);
+        while (!isUnique) {
+            code = generateCarrierCode(name);
+            isUnique = await isCarrierCodeUnique(code);
+        }
+        formHook.setValue('carrierCode', code);
+    };
 
     const onSubmit = async (data: Carrier) => {
         setIsLoading(true);
         try {
+            const isUnique = await isCarrierCodeUnique(data.carrierCode);
+
+            if (!isUnique) {
+                notify({ title: 'Carrier code is not unique', type: 'error' });
+                return;
+            }
+
             const carrier = await createNewCarrier(data);
 
             if (carrier) {
@@ -48,8 +76,6 @@ const CarrierSetup: PageWithAuth = () => {
         signOut();
     };
 
-    const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
-
     return (
         <div className="flex items-center justify-center min-h-screen bg-blue-500">
             <button
@@ -68,6 +94,11 @@ const CarrierSetup: PageWithAuth = () => {
                             <div key={field.id} className="mb-4">
                                 <label htmlFor={field.id} className="block mb-2 text-sm font-bold text-gray-700">
                                     {field.label} {field.required && <span className="text-red-600">*</span>}
+                                    {field.id === 'carrierCode' && (
+                                        <span className="ml-2 text-sm text-right text-gray-500">
+                                            (Used by the driver to login)
+                                        </span>
+                                    )}
                                 </label>
                                 {field.type === 'input' ? (
                                     <input
@@ -80,6 +111,13 @@ const CarrierSetup: PageWithAuth = () => {
                                         type="text"
                                         {...formHook.register(field.id, {
                                             required: field.required ? field.label + ' is required' : false,
+                                            onBlur:
+                                                field.id === 'name' &&
+                                                (async (e) => {
+                                                    if (e.target.value.trim() !== '') {
+                                                        handleCarrierCode(e.target.value);
+                                                    }
+                                                }),
                                         })}
                                     />
                                 ) : (

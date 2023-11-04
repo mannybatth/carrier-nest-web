@@ -50,3 +50,16 @@ export const updateCarrier = async (carrierId: string, carrier: Carrier) => {
     }
     return data.carrier;
 };
+
+export const isCarrierCodeUnique = async (code: string) => {
+    const params = new URLSearchParams({
+        carrierCode: code,
+    });
+    const response = await fetch(`${apiUrl}/carriers/check-code-unique?${params.toString()}`);
+    const { data, errors }: JSONResponse<{ isUnique: boolean }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.isUnique;
+};
