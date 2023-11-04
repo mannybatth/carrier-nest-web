@@ -28,9 +28,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
         const { fcmToken } = req.body;
         const driverId = req.query.id as string;
 
-        console.log('FCM token', fcmToken);
-        console.log('Driver ID', driverId);
-
         // Validate the request body
         if (!fcmToken || !driverId) {
             return res.status(400).send({
