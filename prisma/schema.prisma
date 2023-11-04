@@ -17,13 +17,13 @@ model Account {
     refresh_token      String?
     access_token       String?
     expires_at         Int?
-    ext_expires_in     Int?
     token_type         String?
     scope              String?
     id_token           String?
     session_state      String?
     oauth_token_secret String?
     oauth_token        String?
+    ext_expires_in     Int?
     user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
@@ -45,18 +45,18 @@ model User {
     email            String?          @unique
     emailVerified    DateTime?
     image            String?
-    defaultCarrierId String?          @map("default_carrier_id")
-    defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
     isSiteAdmin      Boolean          @default(false)
+    defaultCarrierId String?          @map("default_carrier_id")
     accounts         Account[]
     invoices         Invoice[]
     InvoicePayment   InvoicePayment[]
     loads            Load[]
+    loadActivity     LoadActivity[]   @relation("actorUser")
     loadDocuments    LoadDocument[]
     stops            LoadStop[]
     sessions         Session[]
-    carriers         Carrier[]
-    loadActivity     LoadActivity[]   @relation("actorUser")
+    defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
+    carriers         Carrier[]        @relation("CarrierToUser")
 
     @@index([name, email, defaultCarrierId])
 }
@@ -75,7 +75,6 @@ model Carrier {
     createdAt           DateTime   @default(now())
     updatedAt           DateTime   @updatedAt
     email               String     @unique
-    carrierCode         String     @unique
     name                String
     dotNum              String?
     mcNum               String?
@@ -85,12 +84,13 @@ model Carrier {
     zip                 String
     country             String
     phone               String?
+    carrierCode         String     @unique
     customers           Customer[]
     drivers             Driver[]
     invoices            Invoice[]
     loads               Load[]
-    users               User[]
     defaultCarrierUsers User[]     @relation("defaultCarrier")
+    users               User[]     @relation("CarrierToUser")
 
     @@index([name, email, carrierCode])
 }
@@ -107,28 +107,27 @@ model Load {
     receiverId      String
     rate            Decimal
     routeEncoded    String?
+    status          LoadStatus     @default(CREATED)
     routeDistance   Decimal?
     routeDuration   Decimal?
-    status          LoadStatus     @default(CREATED)
     invoice         Invoice?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     customer        Customer?      @relation(fields: [customerId], references: [id])
-    drivers         Driver[]       @relation("driverLoads")
     receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
     shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
     user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    loadDocuments   LoadDocument[] @relation("load")
-    rateconDocument LoadDocument?  @relation("loadForRatecon")
-    podDocuments    LoadDocument[] @relation("loadForPodDoc")
-    stops           LoadStop[]
     activity        LoadActivity[]
+    podDocuments    LoadDocument[] @relation("loadForPodDoc")
+    rateconDocument LoadDocument?  @relation("loadForRatecon")
+    loadDocuments   LoadDocument[] @relation("load")
+    stops           LoadStop[]
+    drivers         Driver[]       @relation("driverLoads")
 
     @@index([refNum, carrierId, userId, customerId])
 }
 
 model LoadStop {
     id               String       @id @default(cuid())
-    createdAt        DateTime     @default(now())
     userId           String
     type             LoadStopType
     name             String
@@ -141,10 +140,11 @@ model LoadStop {
     time             String
     loadIdAsStop     String?
     stopIndex        Int          @default(0)
-    longitude        Float?
+    createdAt        DateTime     @default(now())
     latitude         Float?
-    poNumbers        String?
+    longitude        Float?
     pickUpNumbers    String?
+    poNumbers        String?
     referenceNumbers String?
     loadsAsReceiver  Load[]       @relation("receiver")
     loadsAsShipper   Load[]       @relation("shipper")
@@ -183,10 +183,10 @@ model Driver {
     smsCode        String?
     smsCodeExpiry  DateTime?
     carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    actionActivity LoadActivity[] @relation("actionDriver")
+    actorActivity  LoadActivity[] @relation("actorDriver")
     loadDocuments  LoadDocument[]
     loads          Load[]         @relation("driverLoads")
-    actorActivity  LoadActivity[] @relation("actorDriver")
-    actionActivity LoadActivity[] @relation("actionDriver")
 
     @@index([name, carrierId])
 }
@@ -198,7 +198,6 @@ model Invoice {
     loadId          String           @unique
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
-    invoiceNum      Int
     status          InvoiceStatus
     totalAmount     Decimal
     remainingAmount Decimal
@@ -207,6 +206,7 @@ model Invoice {
     dueNetDays      Int              @default(0)
     paidAmount      Decimal?         @default(0)
     lastPaymentAt   DateTime?
+    invoiceNum      Int
     carrier         Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     load            Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
     user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -219,33 +219,29 @@ model Invoice {
 
 model InvoiceItem {
     id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
     invoiceId String
     title     String
     amount    Decimal
+    createdAt DateTime @default(now())
     invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoicePayment {
     id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
     userId    String
-    carrierId String?
     invoiceId String
     amount    Decimal
     paidAt    DateTime
+    createdAt DateTime @default(now())
+    carrierId String?
     invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoadDocument {
     id               String         @id @default(cuid())
-    carrierId        String?
     userId           String?
-    driverId         String?
     loadId           String?
-    loadIdForRatecon String?        @unique
-    loadIdForPodDoc  String?
     createdAt        DateTime       @default(now())
     updatedAt        DateTime       @updatedAt
     fileKey          String
@@ -253,12 +249,16 @@ model LoadDocument {
     fileName         String
     fileType         String
     fileSize         Int
-    load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
-    loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
-    loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
-    user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-    driver           Driver?        @relation(fields: [driverId], references: [id])
+    loadIdForPodDoc  String?
+    loadIdForRatecon String?        @unique
+    driverId         String?
+    carrierId        String?
     activity         LoadActivity[] @relation("actionDocument")
+    driver           Driver?        @relation(fields: [driverId], references: [id])
+    loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
+    loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
+    load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
+    user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoadActivity {
@@ -278,11 +278,11 @@ model LoadActivity {
     actionDriverName       String?
     longitude              Float?
     latitude               Float?
-    load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
-    actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
     actionDocument         LoadDocument?      @relation("actionDocument", fields: [actionDocumentId], references: [id])
     actionDriver           Driver?            @relation("actionDriver", fields: [actionDriverId], references: [id])
+    actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
+    actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
+    load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
 }
 
 enum LoadStopType {
