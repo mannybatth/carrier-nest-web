@@ -187,6 +187,7 @@ model Driver {
     actorActivity  LoadActivity[] @relation("actorDriver")
     loadDocuments  LoadDocument[]
     loads          Load[]         @relation("driverLoads")
+    devices        Device[]
 
     @@index([name, carrierId])
 }
@@ -283,6 +284,15 @@ model LoadActivity {
     actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
     actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
     load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
+}
+
+model Device {
+    id        String   @id @default(cuid())
+    fcmToken  String   @unique
+    driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    driverId  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 enum LoadStopType {
