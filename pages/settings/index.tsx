@@ -158,6 +158,11 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
                                                         >
                                                             {label}
                                                             {required && <span>*</span>}
+                                                            {id === 'carrierCode' && (
+                                                                <span className="ml-2 text-sm text-right text-gray-500">
+                                                                    (Used by the driver to login)
+                                                                </span>
+                                                            )}
                                                         </label>
                                                         {type === 'input' ? (
                                                             <input
