@@ -1,325 +1,315 @@
 generator client {
-    provider        = "prisma-client-js"
-    previewFeatures = ["fullTextSearch"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("POSTGRES_PRISMA_URL")
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
 }
 
 model Account {
-    id                 String  @id @default(cuid())
-    userId             String  @map("user_id")
-    type               String
-    provider           String
-    providerAccountId  String  @map("provider_account_id")
-    refresh_token      String?
-    access_token       String?
-    expires_at         Int?
-    token_type         String?
-    scope              String?
-    id_token           String?
-    session_state      String?
-    oauth_token_secret String?
-    oauth_token        String?
-    ext_expires_in     Int?
-    user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String  @id @default(cuid())
+  userId             String  @map("user_id")
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+  ext_expires_in     Int?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique @map("session_token")
-    userId       String   @map("user_id")
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-    id               String           @id @default(cuid())
-    createdAt        DateTime         @default(now())
-    updatedAt        DateTime         @updatedAt
-    name             String?
-    email            String?          @unique
-    emailVerified    DateTime?
-    image            String?
-    isSiteAdmin      Boolean          @default(false)
-    defaultCarrierId String?          @map("default_carrier_id")
-    accounts         Account[]
-    invoices         Invoice[]
-    InvoicePayment   InvoicePayment[]
-    loads            Load[]
-    loadActivity     LoadActivity[]   @relation("actorUser")
-    loadDocuments    LoadDocument[]
-    stops            LoadStop[]
-    sessions         Session[]
-    defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
-    carriers         Carrier[]        @relation("CarrierToUser")
+  id               String           @id @default(cuid())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  name             String?
+  email            String?          @unique
+  emailVerified    DateTime?
+  image            String?
+  isSiteAdmin      Boolean          @default(false)
+  defaultCarrierId String?          @map("default_carrier_id")
+  accounts         Account[]
+  invoices         Invoice[]
+  InvoicePayment   InvoicePayment[]
+  loads            Load[]
+  loadActivity     LoadActivity[]   @relation("actorUser")
+  loadDocuments    LoadDocument[]
+  stops            LoadStop[]
+  sessions         Session[]
+  defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
+  carriers         Carrier[]        @relation("CarrierToUser")
 
-    @@index([name, email, defaultCarrierId])
+  @@index([name, email, defaultCarrierId])
 }
 
 model VerificationToken {
-    id         Int      @id @default(autoincrement())
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  id         Int      @id @default(autoincrement())
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
 }
 
 model Carrier {
-    id                  String     @id @default(cuid())
-    createdAt           DateTime   @default(now())
-    updatedAt           DateTime   @updatedAt
-    email               String     @unique
-    name                String
-    dotNum              String?
-    mcNum               String?
-    street              String
-    city                String
-    state               String
-    zip                 String
-    country             String
-    phone               String?
-    carrierCode         String     @unique
-    customers           Customer[]
-    drivers             Driver[]
-    invoices            Invoice[]
-    loads               Load[]
-    defaultCarrierUsers User[]     @relation("defaultCarrier")
-    users               User[]     @relation("CarrierToUser")
+  id                  String     @id @default(cuid())
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  email               String     @unique
+  name                String
+  dotNum              String?
+  mcNum               String?
+  street              String
+  city                String
+  state               String
+  zip                 String
+  country             String
+  phone               String?
+  carrierCode         String     @unique
+  customers           Customer[]
+  drivers             Driver[]
+  invoices            Invoice[]
+  loads               Load[]
+  defaultCarrierUsers User[]     @relation("defaultCarrier")
+  users               User[]     @relation("CarrierToUser")
 
-    @@index([name, email, carrierCode])
+  @@index([name, email, carrierCode])
 }
 
 model Load {
-    id              String         @id @default(cuid())
-    userId          String
-    customerId      String?
-    carrierId       String
-    createdAt       DateTime       @default(now())
-    updatedAt       DateTime       @updatedAt
-    refNum          String
-    shipperId       String
-    receiverId      String
-    rate            Decimal
-    routeEncoded    String?
-    status          LoadStatus     @default(CREATED)
-    routeDistance   Decimal?
-    routeDuration   Decimal?
-    invoice         Invoice?
-    carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    customer        Customer?      @relation(fields: [customerId], references: [id])
-    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
-    user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    activity        LoadActivity[]
-    podDocuments    LoadDocument[] @relation("loadForPodDoc")
-    rateconDocument LoadDocument?  @relation("loadForRatecon")
-    loadDocuments   LoadDocument[] @relation("load")
-    stops           LoadStop[]
-    drivers         Driver[]       @relation("driverLoads")
+  id              String         @id @default(cuid())
+  userId          String
+  customerId      String?
+  carrierId       String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  refNum          String
+  shipperId       String
+  receiverId      String
+  rate            Decimal
+  routeEncoded    String?
+  status          LoadStatus     @default(CREATED)
+  routeDistance   Decimal?
+  routeDuration   Decimal?
+  invoice         Invoice?
+  carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+  receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
+  shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity        LoadActivity[]
+  podDocuments    LoadDocument[] @relation("loadForPodDoc")
+  rateconDocument LoadDocument?  @relation("loadForRatecon")
+  loadDocuments   LoadDocument[] @relation("load")
+  stops           LoadStop[]
+  drivers         Driver[]       @relation("driverLoads")
 
-    @@index([refNum, carrierId, userId, customerId])
+  @@index([refNum, carrierId, userId, customerId])
 }
 
 model LoadStop {
-    id               String       @id @default(cuid())
-    userId           String
-    type             LoadStopType
-    name             String
-    street           String
-    city             String
-    state            String
-    zip              String
-    country          String
-    date             DateTime
-    time             String
-    loadIdAsStop     String?
-    stopIndex        Int          @default(0)
-    createdAt        DateTime     @default(now())
-    latitude         Float?
-    longitude        Float?
-    pickUpNumbers    String?
-    poNumbers        String?
-    referenceNumbers String?
-    loadsAsReceiver  Load[]       @relation("receiver")
-    loadsAsShipper   Load[]       @relation("shipper")
-    loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
-    user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  userId           String
+  type             LoadStopType
+  name             String
+  street           String
+  city             String
+  state            String
+  zip              String
+  country          String
+  date             DateTime
+  time             String
+  loadIdAsStop     String?
+  stopIndex        Int          @default(0)
+  createdAt        DateTime     @default(now())
+  latitude         Float?
+  longitude        Float?
+  pickUpNumbers    String?
+  poNumbers        String?
+  referenceNumbers String?
+  loadsAsReceiver  Load[]       @relation("receiver")
+  loadsAsShipper   Load[]       @relation("shipper")
+  loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Customer {
-    id                 String   @id @default(cuid())
-    createdAt          DateTime @default(now())
-    updatedAt          DateTime @updatedAt
-    name               String
-    contactEmail       String?
-    billingEmail       String?
-    paymentStatusEmail String?
-    street             String?
-    city               String?
-    state              String?
-    zip                String?
-    country            String?
-    carrierId          String
-    carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    loads              Load[]
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  name               String
+  contactEmail       String?
+  billingEmail       String?
+  paymentStatusEmail String?
+  street             String?
+  city               String?
+  state              String?
+  zip                String?
+  country            String?
+  carrierId          String
+  carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  loads              Load[]
 
-    @@index([name, carrierId])
+  @@index([name, carrierId])
 }
 
 model Driver {
-    id             String         @id @default(cuid())
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
-    name           String
-    email          String?
-    phone          String
-    carrierId      String
-    smsCode        String?
-    smsCodeExpiry  DateTime?
-    carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    actionActivity LoadActivity[] @relation("actionDriver")
-    actorActivity  LoadActivity[] @relation("actorDriver")
-    loadDocuments  LoadDocument[]
-    loads          Load[]         @relation("driverLoads")
-    devices        Device[]
+  id             String         @id @default(cuid())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  name           String
+  email          String?
+  phone          String
+  carrierId      String
+  smsCode        String?
+  smsCodeExpiry  DateTime?
+  carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  actionActivity LoadActivity[] @relation("actionDriver")
+  actorActivity  LoadActivity[] @relation("actorDriver")
+  loadDocuments  LoadDocument[]
+  loads          Load[]         @relation("driverLoads")
 
-    @@index([name, carrierId])
+  @@index([name, carrierId])
 }
 
 model Invoice {
-    id              String           @id @default(cuid())
-    userId          String
-    carrierId       String
-    loadId          String           @unique
-    createdAt       DateTime         @default(now())
-    updatedAt       DateTime         @updatedAt
-    status          InvoiceStatus
-    totalAmount     Decimal
-    remainingAmount Decimal
-    invoicedAt      DateTime
-    dueDate         DateTime
-    dueNetDays      Int              @default(0)
-    paidAmount      Decimal?         @default(0)
-    lastPaymentAt   DateTime?
-    invoiceNum      Int
-    carrier         Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    load            Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-    extraItems      InvoiceItem[]
-    payments        InvoicePayment[]
+  id              String           @id @default(cuid())
+  userId          String
+  carrierId       String
+  loadId          String           @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  status          InvoiceStatus
+  totalAmount     Decimal
+  remainingAmount Decimal
+  invoicedAt      DateTime
+  dueDate         DateTime
+  dueNetDays      Int              @default(0)
+  paidAmount      Decimal?         @default(0)
+  lastPaymentAt   DateTime?
+  invoiceNum      Int
+  carrier         Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  load            Load             @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  extraItems      InvoiceItem[]
+  payments        InvoicePayment[]
 
-    @@unique([carrierId, invoiceNum])
-    @@index([userId, invoiceNum])
+  @@unique([carrierId, invoiceNum])
+  @@index([userId, invoiceNum])
 }
 
 model InvoiceItem {
-    id        String   @id @default(cuid())
-    invoiceId String
-    title     String
-    amount    Decimal
-    createdAt DateTime @default(now())
-    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  invoiceId String
+  title     String
+  amount    Decimal
+  createdAt DateTime @default(now())
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoicePayment {
-    id        String   @id @default(cuid())
-    userId    String
-    invoiceId String
-    amount    Decimal
-    paidAt    DateTime
-    createdAt DateTime @default(now())
-    carrierId String?
-    invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  invoiceId String
+  amount    Decimal
+  paidAt    DateTime
+  createdAt DateTime @default(now())
+  carrierId String?
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoadDocument {
-    id               String         @id @default(cuid())
-    userId           String?
-    loadId           String?
-    createdAt        DateTime       @default(now())
-    updatedAt        DateTime       @updatedAt
-    fileKey          String
-    fileUrl          String
-    fileName         String
-    fileType         String
-    fileSize         Int
-    loadIdForPodDoc  String?
-    loadIdForRatecon String?        @unique
-    driverId         String?
-    carrierId        String?
-    activity         LoadActivity[] @relation("actionDocument")
-    driver           Driver?        @relation(fields: [driverId], references: [id])
-    loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
-    loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
-    load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
-    user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  userId           String?
+  loadId           String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  fileKey          String
+  fileUrl          String
+  fileName         String
+  fileType         String
+  fileSize         Int
+  loadIdForPodDoc  String?
+  loadIdForRatecon String?        @unique
+  driverId         String?
+  carrierId        String?
+  activity         LoadActivity[] @relation("actionDocument")
+  driver           Driver?        @relation(fields: [driverId], references: [id])
+  loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
+  loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
+  load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
+  user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoadActivity {
-    id                     String             @id @default(cuid())
-    createdAt              DateTime           @default(now())
-    loadId                 String
-    carrierId              String
-    actorUserId            String?
-    actorDriverId          String?
-    actorDriverName        String?
-    action                 LoadActivityAction
-    fromStatus             LoadStatus?
-    toStatus               LoadStatus?
-    actionDocumentId       String?
-    actionDocumentFileName String?
-    actionDriverId         String?
-    actionDriverName       String?
-    longitude              Float?
-    latitude               Float?
-    actionDocument         LoadDocument?      @relation("actionDocument", fields: [actionDocumentId], references: [id])
-    actionDriver           Driver?            @relation("actionDriver", fields: [actionDriverId], references: [id])
-    actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
-    actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
-    load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
-}
-
-model Device {
-    id        String   @id @default(cuid())
-    fcmToken  String   @unique
-    driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
-    driverId  String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id                     String             @id @default(cuid())
+  createdAt              DateTime           @default(now())
+  loadId                 String
+  carrierId              String
+  actorUserId            String?
+  actorDriverId          String?
+  actorDriverName        String?
+  action                 LoadActivityAction
+  fromStatus             LoadStatus?
+  toStatus               LoadStatus?
+  actionDocumentId       String?
+  actionDocumentFileName String?
+  actionDriverId         String?
+  actionDriverName       String?
+  longitude              Float?
+  latitude               Float?
+  actionDocument         LoadDocument?      @relation("actionDocument", fields: [actionDocumentId], references: [id])
+  actionDriver           Driver?            @relation("actionDriver", fields: [actionDriverId], references: [id])
+  actorDriver            Driver?            @relation("actorDriver", fields: [actorDriverId], references: [id])
+  actorUser              User?              @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
+  load                   Load               @relation(fields: [loadId], references: [id], onDelete: Cascade)
 }
 
 enum LoadStopType {
-    SHIPPER
-    RECEIVER
-    STOP
+  SHIPPER
+  RECEIVER
+  STOP
 }
 
 enum LoadStatus {
-    CREATED
-    IN_PROGRESS
-    DELIVERED
-    POD_READY
+  CREATED
+  IN_PROGRESS
+  DELIVERED
+  POD_READY
 }
 
 enum InvoiceStatus {
-    NOT_PAID
-    PARTIALLY_PAID
-    PAID
+  NOT_PAID
+  PARTIALLY_PAID
+  PAID
 }
 
 enum LoadActivityAction {
-    CHANGE_STATUS
-    UPLOAD_POD
-    REMOVE_POD
-    UPLOAD_DOCUMENT
-    REMOVE_DOCUMENT
-    ASSIGN_DRIVER
-    UNASSIGN_DRIVER
+  CHANGE_STATUS
+  UPLOAD_POD
+  REMOVE_POD
+  UPLOAD_DOCUMENT
+  REMOVE_DOCUMENT
+  ASSIGN_DRIVER
+  UNASSIGN_DRIVER
 }
