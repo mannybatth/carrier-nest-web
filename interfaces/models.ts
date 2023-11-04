@@ -158,6 +158,7 @@ export type ExpandedInvoice = Partial<Prisma.InvoiceGetPayload<typeof expandedIn
 const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
     include: {
         loads: true,
+        devices: true,
     },
 });
 export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>>;

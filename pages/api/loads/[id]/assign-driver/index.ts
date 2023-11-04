@@ -1,10 +1,11 @@
+import { LoadActivityAction } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
-import { JSONResponse } from '../../../../../interfaces/models';
+import Twilio from 'twilio';
+import { ExpandedDriver, JSONResponse } from '../../../../../interfaces/models';
+import firebaseAdmin from '../../../../../lib/firebase/firebaseAdmin';
 import prisma from '../../../../../lib/prisma';
 import { authOptions } from '../../../auth/[...nextauth]';
-import Twilio from 'twilio';
-import { LoadActivityAction } from '@prisma/client';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -48,11 +49,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const drivers = await prisma.driver.findMany({
+        const drivers: ExpandedDriver[] = await prisma.driver.findMany({
             where: {
                 id: {
                     in: driverIds,
                 },
+            },
+            include: {
+                devices: true,
             },
         });
 
@@ -99,6 +103,58 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     actionDriverName: driver.name,
                 },
             });
+        }
+
+        const message: firebaseAdmin.messaging.MulticastMessage = {
+            notification: {
+                title: 'You have been assigned to a load!',
+                body: 'Tap to view load details',
+            },
+            data: {
+                type: 'assigned_load',
+                loadId: load.id,
+            },
+            tokens: drivers.flatMap((driver) => driver.devices?.map((device) => device.fcmToken) ?? []),
+        };
+
+        if (message.tokens.length > 0) {
+            try {
+                const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
+                console.log('Successfully sent message:', response);
+
+                // Collect all invalid tokens
+                const invalidTokens: string[] = response.responses
+                    .map((res, idx) => (res.success ? null : message.tokens[idx]))
+                    .filter((token): token is string => {
+                        const res = response.responses[message.tokens.indexOf(token)];
+                        const errorCode = res.error?.code;
+                        return (
+                            token !== null &&
+                            (errorCode === 'messaging/registration-token-not-registered' ||
+                                errorCode === 'messaging/invalid-registration-token' ||
+                                errorCode === 'messaging/invalid-argument')
+                        );
+                    });
+
+                // If there are invalid tokens, delete them in one batch operation
+                if (invalidTokens.length > 0) {
+                    console.log('Deleting invalid tokens:', invalidTokens);
+                    try {
+                        await prisma.device.deleteMany({
+                            where: {
+                                fcmToken: { in: invalidTokens },
+                            },
+                        });
+                    } catch (deleteError) {
+                        console.error('Error removing invalid tokens:', deleteError);
+                    }
+                }
+
+                console.log(`Number of messages sent successfully: ${response.successCount}`);
+                console.log(`Number of messages failed to send: ${response.failureCount}`);
+            } catch (error) {
+                console.error('Error sending notification:', error);
+            }
         }
 
         // Send SMS to driver

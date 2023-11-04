@@ -1,10 +1,10 @@
 import { Driver } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedDriver, JSONResponse } from '../../../interfaces/models';
-import prisma from '../../../lib/prisma';
+import { ExpandedDriver, JSONResponse } from '../../../../interfaces/models';
+import prisma from '../../../../lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]';
+import { authOptions } from '../../auth/[...nextauth]';
 import { Session } from 'next-auth';
 
 export default handler;

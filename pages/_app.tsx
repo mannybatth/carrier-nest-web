@@ -31,6 +31,8 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
         // If authenticated, but no default carrier, redirect to carrier setup
         if (status === 'authenticated' && !session?.user?.defaultCarrierId) {
             router.replace('/setup/carrier');
+        } else if (status === 'authenticated' && router.pathname === '/setup/carrier') {
+            router.replace('/');
         }
     }, [status, session]);
 

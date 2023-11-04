@@ -73,7 +73,9 @@ const CarrierSetup: PageWithAuth = () => {
 
     const handleLogout = (e) => {
         e.preventDefault();
-        signOut();
+        signOut({
+            callbackUrl: '/',
+        });
     };
 
     return (
