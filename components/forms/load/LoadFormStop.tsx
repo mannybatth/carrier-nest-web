@@ -1,5 +1,5 @@
 import { Combobox } from '@headlessui/react';
-import { CheckCircleIcon, ChevronUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import { LoadStopType } from '@prisma/client';
 import classNames from 'classnames';
@@ -22,7 +22,6 @@ import { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
-import TimeField from '../TimeField';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -556,7 +555,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 <div className="col-span-12">
                     <label className="block text-sm font-medium leading-6 text-gray-900">Additional Information</label>
                     <div className="flex mt-2 rounded-md shadow-sm">
-                        <label className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
+                        <label
+                            htmlFor={fieldId('poNumbers')}
+                            className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md"
+                        >
                             PO #&rsquo;s:
                         </label>
                         <input
@@ -568,9 +570,12 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         />
                     </div>
                     <div className="flex mt-2 rounded-md shadow-sm">
-                        <span className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
+                        <label
+                            htmlFor={fieldId('pickUpNumbers')}
+                            className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md"
+                        >
                             {props.type === LoadStopType.RECEIVER ? 'Delivery' : 'Pickup'} #&rsquo;s:
-                        </span>
+                        </label>
                         <input
                             {...register(fieldId('pickUpNumbers'))}
                             type="text"
@@ -580,9 +585,12 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         />
                     </div>
                     <div className="flex mt-2 rounded-md shadow-sm">
-                        <span className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md">
+                        <label
+                            htmlFor={fieldId('referenceNumbers')}
+                            className="inline-flex items-center w-24 px-3 text-xs text-gray-500 border border-r-0 border-gray-300 rounded-l-md"
+                        >
                             Ref #&rsquo;s:
-                        </span>
+                        </label>
                         <input
                             {...register(fieldId('referenceNumbers'))}
                             type="text"
