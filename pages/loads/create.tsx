@@ -21,6 +21,8 @@ import { calcPdfPageCount } from '../../lib/helpers/pdf';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
 import { getAllCustomers } from '../../lib/rest/customer';
 import { createLoad, getLoadById } from '../../lib/rest/load';
+import AnimatedProgress from 'components/loads/AnimationProgress';
+import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -33,6 +35,9 @@ const CreateLoad: PageWithAuth = () => {
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
     const [prefillName, setPrefillName] = React.useState(null);
     const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
+
+    const [aiProgress, setAiProgress] = React.useState(0);
+    const [isRetrying, setIsRetrying] = React.useState(false);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
@@ -155,6 +160,8 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         setLoading(true);
+        setIsRetrying(false);
+        setAiProgress(0);
 
         let metadata: {
             title?: string;
@@ -210,6 +217,7 @@ const CreateLoad: PageWithAuth = () => {
             const formData = new FormData();
             formData.append('file', file);
 
+            setAiProgress(5);
             const [ocrResponse, customersResponse] = await Promise.all([
                 fetch(`${apiUrl}/ai/ocr`, {
                     method: 'POST',
@@ -217,6 +225,7 @@ const CreateLoad: PageWithAuth = () => {
                 }),
                 getAllCustomers({ limit: 999, offset: 0 }),
             ]);
+            setAiProgress(10);
 
             const ocrResult = await ocrResponse.json();
             customersList = customersResponse?.customers;
@@ -256,24 +265,83 @@ const CreateLoad: PageWithAuth = () => {
                 }),
             ]);
 
-            const response = await fetch(apiUrl + '/ai/ratecon-vertex', {
+            const response = await fetch(apiUrl + '/ai/ratecon-vertex-stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    documentsInBlocks,
-                    documentsInLines,
+                    documents: documentsInBlocks,
                 }),
             });
-            const { code, data }: { code: number; data: AILoad } = await response.json();
+            const streamReader = response.body.getReader();
 
-            if (code !== 200) {
-                notify({ title: 'Error', message: 'Error reading PDF file', type: 'error' });
-            } else {
-                logisticsCompany = data?.logistics_company;
-                applyAIOutputToForm(data);
+            let responseJSON = null;
+
+            // Read the stream for ratecon data
+            while (true) {
+                const { value, done } = await streamReader.read();
+                const decoded = JSON.parse(new TextDecoder().decode(value));
+                setAiProgress(10 + (decoded?.progress || 0) * (90 / 100));
+                if (decoded?.data) {
+                    responseJSON = decoded;
+                    break;
+                }
+                if (done) {
+                    break;
+                }
             }
+
+            let aiLoad: AILoad = responseJSON['data'];
+
+            const stops = aiLoad?.stops || [];
+            const needRetryOnStops =
+                stops.length === 0 ||
+                stops.some(
+                    (stop) => !stop?.name || !stop?.address?.street || !stop?.address?.city || !stop?.address?.state,
+                );
+
+            if (!aiLoad?.logistics_company || !aiLoad?.load_number || needRetryOnStops) {
+                setIsRetrying(true);
+                setAiProgress(10);
+
+                // Retry with line-by-line data
+                const response = await fetch(apiUrl + '/ai/ratecon-vertex-stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        documents: documentsInLines,
+                    }),
+                });
+                const streamReader = response.body.getReader();
+
+                let responseJSON = null;
+
+                // Read the stream for ratecon data
+                while (true) {
+                    const { value, done } = await streamReader.read();
+                    const decoded = JSON.parse(new TextDecoder().decode(value));
+                    console.log('decoded', decoded);
+                    setAiProgress(10 + (decoded?.progress || 0) * (90 / 100));
+                    if (decoded?.data) {
+                        responseJSON = decoded;
+                        break;
+                    }
+                    if (done) {
+                        break;
+                    }
+                }
+
+                aiLoad = responseJSON['data'];
+            }
+
+            logisticsCompany = aiLoad?.logistics_company;
+            applyAIOutputToForm(aiLoad);
+
+            setAiProgress(0);
+            setIsRetrying(false);
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
@@ -303,10 +371,42 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
     };
 
+    const postProcessAILoad = (load: AILoad) => {
+        if (load.rate) {
+            load.rate = convertRateToNumber(load.rate);
+        }
+
+        if (load.stops) {
+            load.stops.forEach((stop) => {
+                if (stop.time) {
+                    stop.time = addColonToTimeString(stop.time);
+                }
+
+                // Trim whitespace for every string value
+                Object.keys(stop).forEach((key) => {
+                    if (typeof stop[key] === 'string') {
+                        stop[key] = stop[key].trim();
+                    }
+                });
+
+                // Trim whitespace from address values
+                if (stop.address) {
+                    Object.keys(stop.address).forEach((key) => {
+                        if (typeof stop.address[key] === 'string') {
+                            stop.address[key] = stop.address[key].trim();
+                        }
+                    });
+                }
+            });
+        }
+    };
+
     const applyAIOutputToForm = (load: AILoad) => {
         if (!load) {
             return;
         }
+
+        postProcessAILoad(load);
 
         // Reset entire form
         formHook.reset({
@@ -419,35 +519,46 @@ const CreateLoad: PageWithAuth = () => {
                     <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
+                {aiProgress > 0 && (
+                    <AnimatedProgress
+                        progress={aiProgress}
+                        label={isRetrying ? 'Fine tuning results' : 'Reading Document'}
+                        labelColor={isRetrying ? 'text-orange-600' : 'text-blue-600'}
+                        bgColor={isRetrying ? 'bg-orange-100' : 'bg-blue-100'}
+                    />
+                )}
+
                 <div className="relative px-5 sm:px-6 md:px-8">
                     {loading && <LoadingOverlay />}
 
-                    <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
-                        <div className="flex mb-4">
-                            <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
-                                <span className="flex items-center space-x-2">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-6 h-6 text-gray-600"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                        />
-                                    </svg>
-                                    <span className="font-medium text-gray-600">
-                                        Drop a rate confirmation file, or{' '}
-                                        <span className="text-blue-600 underline">browse</span>
+                    {aiProgress == 0 && !currentRateconFile && (
+                        <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
+                            <div className="flex mb-4">
+                                <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
+                                    <span className="flex items-center space-x-2">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="w-6 h-6 text-gray-600"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                            />
+                                        </svg>
+                                        <span className="font-medium text-gray-600">
+                                            Drop a rate confirmation file, or{' '}
+                                            <span className="text-blue-600 underline">browse</span>
+                                        </span>
                                     </span>
-                                </span>
-                            </label>
-                        </div>
-                    </FileUploader>
+                                </label>
+                            </div>
+                        </FileUploader>
+                    )}
 
                     {currentRateconFile && (
                         <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">

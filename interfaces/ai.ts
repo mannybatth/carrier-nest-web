@@ -2,7 +2,7 @@ export interface AILoad {
     logistics_company: string;
     load_number: string;
     stops: AIStop[];
-    rate: string;
+    rate: number;
     invoice_emails: string[];
 }
 
