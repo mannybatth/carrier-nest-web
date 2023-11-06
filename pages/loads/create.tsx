@@ -339,9 +339,6 @@ const CreateLoad: PageWithAuth = () => {
 
             logisticsCompany = aiLoad?.logistics_company;
             applyAIOutputToForm(aiLoad);
-
-            setAiProgress(0);
-            setIsRetrying(false);
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
         }
@@ -369,6 +366,8 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         setLoading(false);
+        setAiProgress(0);
+        setIsRetrying(false);
     };
 
     const postProcessAILoad = (load: AILoad) => {
