@@ -203,12 +203,11 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 }
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-    // res.writeHead(200, {
-    //     'Content-Type': 'text/event-stream',
-    //     'Cache-Control': 'no-cache, no-transform',
-    //     Connection: 'keep-alive',
-    //     'Transfer-Encoding': 'chunked',
-    // });
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+    });
 
     try {
         const { documents } = await req.body;
@@ -234,22 +233,16 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             context: JSON.stringify(context),
         });
 
-        const stream = await runAI(prompt, res);
+        await runAI(prompt, res);
 
-        return new Response(stream, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                Connection: 'keep-alive',
-                'Cache-Control': 'no-cache, no-transform',
-            },
-        });
+        res.end();
     } catch (error) {
         res.write(`${JSON.stringify({ error: error.message })}\n\n`);
         res.end();
     }
 };
 
-async function runAI(prompt: string, res: NextApiResponse): Promise<IterableReadableStream<string>> {
+async function runAI(prompt: string, res: NextApiResponse) {
     const foundProperties = new Set<string>();
     let progress = 0;
     const allChunks = [];
@@ -258,7 +251,7 @@ async function runAI(prompt: string, res: NextApiResponse): Promise<IterableRead
         model: 'text-bison-32k',
         maxOutputTokens: 1024,
         temperature: 0.1,
-        verbose: process.env.NODE_ENV === 'development',
+        // verbose: process.env.NODE_ENV === 'development',
         authOptions: {
             projectId: process.env.GCP_PROJECT_ID,
             credentials: {
@@ -273,23 +266,19 @@ async function runAI(prompt: string, res: NextApiResponse): Promise<IterableRead
     const stream = await model.stream(prompt);
 
     for await (const chunk of stream) {
-        if (chunk) {
-            progress = checkForProperties(chunk, foundProperties);
-            allChunks.push(chunk);
-            // Stream back the progress
-            res.write(`${JSON.stringify({ progress: progress * 100 })}\n\n`);
-        } else {
-            // When no more chunks are coming in, progress is complete
-            progress = 1;
-            // Concatenate all the chunks into the final result
-            const finalResult = allChunks.join('');
-            // Parse the final result to return as JSON, assuming finalResult is JSON string
-            const jsonResponse = JSON.parse(finalResult);
-            res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
-            res.end();
-            return jsonResponse;
-        }
+        // Check for new properties in the chunk
+        progress = checkForProperties(chunk, foundProperties);
+        allChunks.push(chunk);
+
+        // Stream back the progress
+        res.write(` ${JSON.stringify({ progress: progress * 100 })}\n\n`);
     }
 
-    return stream;
+    // When no more chunks are coming in, progress is complete
+    progress = 1;
+    // Concatenate all the chunks into the final result
+    const finalResult = allChunks.join('');
+    // Parse the final result to return as JSON, assuming finalResult is JSON string
+    const jsonResponse = JSON.parse(finalResult);
+    res.write(` ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
 }
