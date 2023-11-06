@@ -204,7 +204,7 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
         'Transfer-Encoding': 'chunked',
     });
