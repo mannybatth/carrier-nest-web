@@ -233,9 +233,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             context: JSON.stringify(context),
         });
 
-        await runAI(prompt, res);
-
-        res.end();
+        runAI(prompt, res);
     } catch (error) {
         res.write(`${JSON.stringify({ error: error.message })}`);
         res.end();
@@ -279,7 +277,7 @@ async function runAI(prompt: string, res: NextApiResponse) {
             // Parse the final result to return as JSON, assuming finalResult is JSON string
             const jsonResponse = JSON.parse(finalResult);
             res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
-            return;
+            res.end();
         }
     }
 }
