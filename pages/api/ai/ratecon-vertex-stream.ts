@@ -1,3 +1,4 @@
+import { IterableReadableStream } from 'langchain/dist/util/stream';
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai';
 import { PromptTemplate } from 'langchain/prompts';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -202,12 +203,12 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 }
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-        'Transfer-Encoding': 'chunked',
-    });
+    // res.writeHead(200, {
+    //     'Content-Type': 'text/event-stream',
+    //     'Cache-Control': 'no-cache, no-transform',
+    //     Connection: 'keep-alive',
+    //     'Transfer-Encoding': 'chunked',
+    // });
 
     try {
         const { documents } = await req.body;
@@ -233,14 +234,22 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             context: JSON.stringify(context),
         });
 
-        await runAI(prompt, res);
+        const stream = await runAI(prompt, res);
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                Connection: 'keep-alive',
+                'Cache-Control': 'no-cache, no-transform',
+            },
+        });
     } catch (error) {
         res.write(`${JSON.stringify({ error: error.message })}\n\n`);
         res.end();
     }
 };
 
-async function runAI(prompt: string, res: NextApiResponse): Promise<LogisticsData | null> {
+async function runAI(prompt: string, res: NextApiResponse): Promise<IterableReadableStream<string>> {
     const foundProperties = new Set<string>();
     let progress = 0;
     const allChunks = [];
@@ -282,5 +291,5 @@ async function runAI(prompt: string, res: NextApiResponse): Promise<LogisticsDat
         }
     }
 
-    return null;
+    return stream;
 }
