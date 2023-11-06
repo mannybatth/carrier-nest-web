@@ -237,7 +237,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
         res.end();
     } catch (error) {
-        res.write(`${JSON.stringify({ error: error.message })}\n\n`);
+        res.write(`${JSON.stringify({ error: error.message })}`);
         res.end();
     }
 };
@@ -266,19 +266,20 @@ async function runAI(prompt: string, res: NextApiResponse) {
     const stream = await model.stream(prompt);
 
     for await (const chunk of stream) {
-        // Check for new properties in the chunk
-        progress = checkForProperties(chunk, foundProperties);
-        allChunks.push(chunk);
-
-        // Stream back the progress
-        res.write(` ${JSON.stringify({ progress: progress * 100 })}\n\n`);
+        if (chunk) {
+            progress = checkForProperties(chunk, foundProperties);
+            allChunks.push(chunk);
+            // Stream back the progress
+            res.write(`${JSON.stringify({ progress: progress * 100 })}\n\n`);
+        } else {
+            // When no more chunks are coming in, progress is complete
+            progress = 1;
+            // Concatenate all the chunks into the final result
+            const finalResult = allChunks.join('');
+            // Parse the final result to return as JSON, assuming finalResult is JSON string
+            const jsonResponse = JSON.parse(finalResult);
+            res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
+            return;
+        }
     }
-
-    // When no more chunks are coming in, progress is complete
-    progress = 1;
-    // Concatenate all the chunks into the final result
-    const finalResult = allChunks.join('');
-    // Parse the final result to return as JSON, assuming finalResult is JSON string
-    const jsonResponse = JSON.parse(finalResult);
-    res.write(` ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
 }
