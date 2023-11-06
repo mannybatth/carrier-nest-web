@@ -282,6 +282,7 @@ const CreateLoad: PageWithAuth = () => {
             while (true) {
                 const { value, done } = await streamReader.read();
                 const decoded = JSON.parse(new TextDecoder().decode(value));
+                console.log('decoded', decoded);
                 setAiProgress(10 + (decoded?.progress || 0) * (90 / 100));
                 if (decoded?.data) {
                     responseJSON = decoded;
