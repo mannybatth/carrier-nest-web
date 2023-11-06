@@ -39,12 +39,25 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             const request: protos.google.cloud.documentai.v1.IProcessRequest = {
                 name: parent,
                 rawDocument: {
-                    content: fileBuffer,
+                    content: Buffer.from(fileBuffer).toString('base64'),
                     mimeType: 'application/pdf',
+                },
+                fieldMask: {
+                    paths: [
+                        'text',
+                        'pages.blocks',
+                        'pages.lines',
+                        'pages.pageNumber',
+                        'pages.tokens',
+                        'pages.dimension',
+                        'pages.layout',
+                        'pages.image',
+                    ],
                 },
             };
 
             const [result] = await client.processDocument(request);
+            console.log('result:', JSON.stringify(result, null, 1));
             const { document } = result;
             const { text } = document; // Assuming the text is in the document object
             const pagesInBlocks = [];
@@ -128,7 +141,25 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
             await fs.unlink(localFilePath); // delete the local file
 
-            return res.status(200).json({ blocks: pagesInBlocks, lines: pagesInLines });
+            const pages = document.pages.map((page) => {
+                return {
+                    pageNumber: page.pageNumber,
+                    tokens: page.tokens,
+                    dimension: page.dimension,
+                    layout: page.layout,
+                    image: {
+                        mimeType: page.image.mimeType,
+                        height: page.image.height,
+                        width: page.image.width,
+                        content: Buffer.from(page.image.content).toString('base64'),
+                    },
+                };
+            });
+            return res.status(200).json({
+                blocks: pagesInBlocks,
+                lines: pagesInLines,
+                pages,
+            });
         } catch (error) {
             console.error('Error during the Document AI process:', error);
             return res.status(500).json({ error: 'Error during the Document AI process.' });
