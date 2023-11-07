@@ -206,18 +206,6 @@ export const runtime = 'nodejs';
 // This is required to enable streaming
 export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
-    // res.setHeader('Access-Control-Allow-Origin', '*');
-    // res.setHeader('Content-Type', 'text/event-stream');
-    // res.setHeader('Connection', 'keep-alive');
-    // res.setHeader('Cache-Control', 'no-cache, no-transform');
-    // res.setHeader('X-Accel-Buffering', 'no');
-    // res.setHeader('Content-Encoding', 'none');
-    // res.writeHead(200, {
-    //     Connection: 'keep-alive',
-    //     'Cache-Control': 'no-cache, no-transform',
-    //     'Content-Type': 'text/event-stream',
-    // });
-
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
     const encoder = new TextEncoder();
@@ -260,7 +248,7 @@ export async function POST(req: Request) {
                     allChunks.push(chunk);
                     // Stream back the progress
                     await writer.ready;
-                    await writer.write(encoder.encode(`${JSON.stringify({ progress: progress * 100 })}\n\n`));
+                    await writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
                 } else {
                     // When no more chunks are coming in, progress is complete
                     progress = 1;
@@ -269,17 +257,22 @@ export async function POST(req: Request) {
                     // Parse the final result to return as JSON, assuming finalResult is JSON string
                     const jsonResponse = JSON.parse(finalResult);
                     await writer.ready;
-                    await writer.write(encoder.encode(`${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`));
-                    await writer.ready;
-                    await writer.close();
+                    await writer.write(
+                        encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`),
+                    );
+                    writer.close();
+                    break;
                 }
             }
-        })();
+        })().catch(async (error) => {
+            await writer.ready;
+            await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            writer.close();
+        });
     } catch (error) {
         await writer.ready;
         await writer.write(`${JSON.stringify({ error: error.message })}\n\n`);
-        await writer.ready;
-        await writer.close();
+        writer.close();
     }
 
     return new Response(responseStream.readable, {
@@ -309,24 +302,5 @@ async function runAI(prompt: string) {
     });
 
     const stream = await model.stream(prompt);
-
-    // for await (const chunk of stream) {
-    // if (chunk) {
-    //     progress = checkForProperties(chunk, foundProperties);
-    //     allChunks.push(chunk);
-    //     // Stream back the progress
-    //     res.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
-    // } else {
-    //     // When no more chunks are coming in, progress is complete
-    //     progress = 1;
-    //     // Concatenate all the chunks into the final result
-    //     const finalResult = allChunks.join('');
-    //     // Parse the final result to return as JSON, assuming finalResult is JSON string
-    //     const jsonResponse = JSON.parse(finalResult);
-    //     res.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
-    //     res.end();
-    // }
-    // }
-
     return stream;
 }
