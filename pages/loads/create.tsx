@@ -283,7 +283,7 @@ const CreateLoad: PageWithAuth = () => {
                 const { value, done } = await streamReader.read();
                 const decoded = new TextDecoder().decode(value);
                 console.log('decoded', decoded);
-                const decodedJSON = JSON.parse(decoded);
+                const decodedJSON = JSON.parse(decoded.replace(/^data:/, ''));
                 setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
                 if (decodedJSON?.data) {
                     responseJSON = decodedJSON;
@@ -326,7 +326,7 @@ const CreateLoad: PageWithAuth = () => {
                     const { value, done } = await streamReader.read();
                     const decoded = new TextDecoder().decode(value);
                     console.log('decoded', decoded);
-                    const decodedJSON = JSON.parse(decoded);
+                    const decodedJSON = JSON.parse(decoded.replace(/^data:/, ''));
                     setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
                     if (decodedJSON?.data) {
                         responseJSON = decodedJSON;
