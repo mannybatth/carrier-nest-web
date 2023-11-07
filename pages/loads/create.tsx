@@ -282,7 +282,7 @@ const CreateLoad: PageWithAuth = () => {
             while (true) {
                 const { value, done } = await streamReader.read();
                 const decoded = new TextDecoder().decode(value);
-                // console.log('decoded', decoded);
+                console.log('decoded', decoded);
                 const decodedJSON = JSON.parse(decoded);
                 setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
                 if (decodedJSON?.data) {
@@ -325,7 +325,7 @@ const CreateLoad: PageWithAuth = () => {
                 while (true) {
                     const { value, done } = await streamReader.read();
                     const decoded = new TextDecoder().decode(value);
-                    // console.log('decoded', decoded);
+                    console.log('decoded', decoded);
                     const decodedJSON = JSON.parse(decoded);
                     setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
                     if (decodedJSON?.data) {
