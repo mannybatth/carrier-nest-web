@@ -57,7 +57,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             };
 
             const [result] = await client.processDocument(request);
-            console.log('result:', JSON.stringify(result, null, 1));
+            // console.log('result:', JSON.stringify(result, null, 1));
             const { document } = result;
             const { text } = document; // Assuming the text is in the document object
             const pagesInBlocks = [];
