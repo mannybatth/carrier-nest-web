@@ -265,80 +265,7 @@ const CreateLoad: PageWithAuth = () => {
                 }),
             ]);
 
-            const response = await fetch(`${appUrl}/ai`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    documents: documentsInBlocks,
-                }),
-            });
-            const streamReader = response.body.getReader();
-
-            let responseJSON = null;
-
-            // Read the stream for ratecon data
-            while (true) {
-                const { value, done } = await streamReader.read();
-                const decoded = new TextDecoder().decode(value);
-                console.log('decoded', decoded);
-                const decodedJSON = JSON.parse(decoded.replace(/^data:/, ''));
-                setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
-                if (decodedJSON?.data) {
-                    responseJSON = decodedJSON;
-                    break;
-                }
-                if (done) {
-                    break;
-                }
-            }
-
-            let aiLoad: AILoad = responseJSON['data'];
-
-            const stops = aiLoad?.stops || [];
-            const needRetryOnStops =
-                stops.length === 0 ||
-                stops.some(
-                    (stop) => !stop?.name || !stop?.address?.street || !stop?.address?.city || !stop?.address?.state,
-                );
-
-            if (!aiLoad?.logistics_company || !aiLoad?.load_number || needRetryOnStops) {
-                setIsRetrying(true);
-                setAiProgress(10);
-
-                // Retry with line-by-line data
-                const response = await fetch(`${appUrl}/ai`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        documents: documentsInLines,
-                    }),
-                });
-                const streamReader = response.body.getReader();
-
-                let responseJSON = null;
-
-                // Read the stream for ratecon data
-                while (true) {
-                    const { value, done } = await streamReader.read();
-                    const decoded = new TextDecoder().decode(value);
-                    console.log('decoded', decoded);
-                    const decodedJSON = JSON.parse(decoded.replace(/^data:/, ''));
-                    setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
-                    if (decodedJSON?.data) {
-                        responseJSON = decodedJSON;
-                        break;
-                    }
-                    if (done) {
-                        break;
-                    }
-                }
-
-                aiLoad = responseJSON['data'];
-            }
+            const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false);
 
             logisticsCompany = aiLoad?.logistics_company;
             applyAIOutputToForm(aiLoad);
@@ -371,6 +298,96 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
         setAiProgress(0);
         setIsRetrying(false);
+    };
+
+    const getAILoad = async (documentsInBlocks: any[], documentsInLines: any[], isRetry = false): Promise<AILoad> => {
+        const response = await fetch(`${appUrl}/ai`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                documents: isRetry ? documentsInLines : documentsInBlocks,
+            }),
+        });
+        const streamReader = response.body.getReader();
+
+        let responseJSON = null;
+
+        const processChunk = (chunk: string): boolean => {
+            try {
+                const json = JSON.parse(chunk.replace(/^data:/, ''));
+                console.log('json', json);
+                if (json?.data) {
+                    setAiProgress(100);
+                    responseJSON = json;
+                    return true;
+                } else {
+                    setAiProgress(10 + (json?.progress || 0) * (90 / 100));
+                }
+            } catch (error) {
+                console.error('Error parsing JSON chunk:', error);
+                // Handle JSON parsing error, if necessary
+            }
+            return false;
+        };
+
+        // Process and handle each individual chunk from the buffer
+        const processChunks = (chunks: string) => {
+            const messages = chunks.split('\n\ndata:');
+            console.log('messages', messages);
+            for (let i = 0; i < messages.length; i++) {
+                const message = messages[i];
+                const done = processChunk(message);
+                if (done) {
+                    return;
+                }
+            }
+        };
+
+        // Read the stream for ratecon data
+        while (true) {
+            const { value, done } = await streamReader.read();
+            if (done) {
+                break;
+            }
+            // Accumulate the stream data in a buffer
+            const decoded = new TextDecoder().decode(value);
+
+            console.log('decoded', decoded);
+
+            // Process all complete messages in the buffer
+            processChunks(decoded);
+
+            // Keep only the incomplete part of the message (if any) in the buffer
+            // const lastNewLineIndex = buffer.lastIndexOf('\ndata:');
+            // if (lastNewLineIndex !== -1) {
+            //     buffer = buffer.substring(lastNewLineIndex + 1); // +1 to remove the newline as well
+            // }
+        }
+
+        const aiLoad: AILoad = responseJSON['data'];
+
+        if (isRetry) {
+            return aiLoad;
+        }
+
+        const stops = aiLoad?.stops || [];
+        const needRetryOnStops =
+            stops.length === 0 ||
+            stops.some(
+                (stop) => !stop?.name || !stop?.address?.street || !stop?.address?.city || !stop?.address?.state,
+            );
+
+        if (!aiLoad?.logistics_company || !aiLoad?.load_number || needRetryOnStops) {
+            setIsRetrying(true);
+            setAiProgress(10);
+
+            // Retry with line-by-line data
+            return getAILoad(documentsInBlocks, documentsInLines, true);
+        }
+
+        return aiLoad;
     };
 
     const postProcessAILoad = (load: AILoad) => {

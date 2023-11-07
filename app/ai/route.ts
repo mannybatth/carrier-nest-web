@@ -271,7 +271,7 @@ export async function POST(req: Request) {
         });
     } catch (error) {
         await writer.ready;
-        await writer.write(`${JSON.stringify({ error: error.message })}\n\n`);
+        await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
         writer.close();
     }
 
