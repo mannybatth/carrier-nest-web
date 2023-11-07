@@ -317,7 +317,6 @@ const CreateLoad: PageWithAuth = () => {
         const processChunk = (chunk: string): boolean => {
             try {
                 const json = JSON.parse(chunk.replace(/^data:/, ''));
-                console.log('json', json);
                 if (json?.data) {
                     setAiProgress(100);
                     responseJSON = json;
@@ -332,10 +331,8 @@ const CreateLoad: PageWithAuth = () => {
             return false;
         };
 
-        // Process and handle each individual chunk from the buffer
         const processChunks = (chunks: string) => {
             const messages = chunks.split('\n\ndata:');
-            console.log('messages', messages);
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i];
                 const done = processChunk(message);
@@ -345,25 +342,13 @@ const CreateLoad: PageWithAuth = () => {
             }
         };
 
-        // Read the stream for ratecon data
         while (true) {
             const { value, done } = await streamReader.read();
             if (done) {
                 break;
             }
-            // Accumulate the stream data in a buffer
             const decoded = new TextDecoder().decode(value);
-
-            console.log('decoded', decoded);
-
-            // Process all complete messages in the buffer
             processChunks(decoded);
-
-            // Keep only the incomplete part of the message (if any) in the buffer
-            // const lastNewLineIndex = buffer.lastIndexOf('\ndata:');
-            // if (lastNewLineIndex !== -1) {
-            //     buffer = buffer.substring(lastNewLineIndex + 1); // +1 to remove the newline as well
-            // }
         }
 
         const aiLoad: AILoad = responseJSON['data'];
