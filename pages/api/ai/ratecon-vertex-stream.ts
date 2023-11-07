@@ -202,6 +202,7 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
     return updateProgress(foundProperties);
 }
 
+export const dynamic = 'force-dynamic';
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     // res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'text/event-stream');
