@@ -259,7 +259,7 @@ export async function POST(req: Request) {
                     progress = checkForProperties(chunk, foundProperties);
                     allChunks.push(chunk);
                     // Stream back the progress
-                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
+                    writer.write(encoder.encode(`${JSON.stringify({ progress: progress * 100 })}`));
                 } else {
                     // When no more chunks are coming in, progress is complete
                     progress = 1;
@@ -267,14 +267,14 @@ export async function POST(req: Request) {
                     const finalResult = allChunks.join('');
                     // Parse the final result to return as JSON, assuming finalResult is JSON string
                     const jsonResponse = JSON.parse(finalResult);
-                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`));
+                    writer.write(encoder.encode(`${JSON.stringify({ progress: 100, data: jsonResponse })}`));
                     writer.close();
                 }
             }
         })();
     } catch (error) {
-        // res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-        // res.end();
+        writer.write(`${JSON.stringify({ error: error.message })}`);
+        writer.close();
     }
 
     return new Response(responseStream.readable, {

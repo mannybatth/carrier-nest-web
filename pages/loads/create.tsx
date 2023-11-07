@@ -282,8 +282,8 @@ const CreateLoad: PageWithAuth = () => {
             while (true) {
                 const { value, done } = await streamReader.read();
                 const decoded = new TextDecoder().decode(value);
-                console.log('decoded', decoded);
-                const decodedJSON = JSON.parse(decoded.replace(/^data:/, ''));
+                // console.log('decoded', decoded);
+                const decodedJSON = JSON.parse(decoded);
                 setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
                 if (decodedJSON?.data) {
                     responseJSON = decodedJSON;
@@ -324,11 +324,12 @@ const CreateLoad: PageWithAuth = () => {
                 // Read the stream for ratecon data
                 while (true) {
                     const { value, done } = await streamReader.read();
-                    const decoded = JSON.parse(new TextDecoder().decode(value));
-                    console.log('decoded', decoded);
-                    setAiProgress(10 + (decoded?.progress || 0) * (90 / 100));
-                    if (decoded?.data) {
-                        responseJSON = decoded;
+                    const decoded = new TextDecoder().decode(value);
+                    // console.log('decoded', decoded);
+                    const decodedJSON = JSON.parse(decoded);
+                    setAiProgress(10 + (decodedJSON?.progress || 0) * (90 / 100));
+                    if (decodedJSON?.data) {
+                        responseJSON = decodedJSON;
                         break;
                     }
                     if (done) {
