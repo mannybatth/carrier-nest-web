@@ -268,7 +268,7 @@ async function runAI(prompt: string, res: NextApiResponse) {
             progress = checkForProperties(chunk, foundProperties);
             allChunks.push(chunk);
             // Stream back the progress
-            res.write(`${JSON.stringify({ progress: progress * 100 })}\n\n`);
+            res.write(`${JSON.stringify({ progress: progress * 100 })}`);
         } else {
             // When no more chunks are coming in, progress is complete
             progress = 1;
@@ -276,7 +276,7 @@ async function runAI(prompt: string, res: NextApiResponse) {
             const finalResult = allChunks.join('');
             // Parse the final result to return as JSON, assuming finalResult is JSON string
             const jsonResponse = JSON.parse(finalResult);
-            res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
+            res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}`);
             res.end();
         }
     }
