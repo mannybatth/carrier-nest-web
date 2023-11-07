@@ -3,7 +3,7 @@ import { ChevronDownIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outli
 import { Invoice } from '@prisma/client';
 import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
@@ -153,8 +153,8 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
 };
 
 const InvoiceDetailsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const invoiceId = searchParams.get('id');
+    const params = useParams();
+    const invoiceId = params.id as string;
 
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
     const { data: session } = useSession();

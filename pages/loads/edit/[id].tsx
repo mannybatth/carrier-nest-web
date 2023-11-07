@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -178,8 +178,8 @@ const EditLoad: PageWithAuth = () => {
 EditLoad.authenticationEnabled = true;
 
 const EditLoadPageWrapper: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const loadId = searchParams.get('id');
+    const params = useParams();
+    const loadId = params.id as string;
 
     return (
         <LoadProvider loadId={loadId}>

@@ -14,7 +14,7 @@ import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
@@ -1154,8 +1154,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 LoadDetailsPage.authenticationEnabled = true;
 
 const LoadDetailsPageWrapper: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const loadId = searchParams.get('id');
+    const params = useParams();
+    const loadId = params.id as string;
 
     return (
         <LoadProvider loadId={loadId}>
