@@ -202,22 +202,33 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
     return updateProgress(foundProperties);
 }
 
-export const dynamic = 'force-dynamic';
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+export const config = {
+    runtime: 'nodejs',
+    dynamic: 'force-dynamic',
+};
+export async function POST(req: Request) {
     // res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.setHeader('Content-Encoding', 'none');
+    // res.setHeader('Content-Type', 'text/event-stream');
+    // res.setHeader('Connection', 'keep-alive');
+    // res.setHeader('Cache-Control', 'no-cache, no-transform');
+    // res.setHeader('X-Accel-Buffering', 'no');
+    // res.setHeader('Content-Encoding', 'none');
     // res.writeHead(200, {
     //     Connection: 'keep-alive',
     //     'Cache-Control': 'no-cache, no-transform',
     //     'Content-Type': 'text/event-stream',
     // });
 
+    const responseStream = new TransformStream();
+    const writer = responseStream.writable.getWriter();
+
+    const foundProperties = new Set<string>();
+    let progress = 0;
+    const allChunks = [];
+
     try {
-        const { documents } = await req.body;
+        // const { documents } = await req.body;
+        const { documents } = await req.json();
 
         if (!Array.isArray(documents)) {
             throw new Error('Invalid input. Expected arrays.');
@@ -240,18 +251,43 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             context: JSON.stringify(context),
         });
 
-        runAI(prompt, res);
+        const stream = await runAI(prompt);
+
+        stream
+            .getReader()
+            .read()
+            .then(({ done, value: chunk }) => {
+                if (chunk) {
+                    progress = checkForProperties(chunk, foundProperties);
+                    allChunks.push(chunk);
+                    // Stream back the progress
+                    writer.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
+                } else {
+                    // When no more chunks are coming in, progress is complete
+                    progress = 1;
+                    // Concatenate all the chunks into the final result
+                    const finalResult = allChunks.join('');
+                    // Parse the final result to return as JSON, assuming finalResult is JSON string
+                    const jsonResponse = JSON.parse(finalResult);
+                    writer.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
+                    writer.close();
+                }
+            });
     } catch (error) {
-        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-        res.end();
+        // res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        // res.end();
     }
-};
 
-async function runAI(prompt: string, res: NextApiResponse) {
-    const foundProperties = new Set<string>();
-    let progress = 0;
-    const allChunks = [];
+    return new Response(responseStream.readable, {
+        headers: {
+            'Content-Type': 'text/event-stream',
+            Connection: 'keep-alive',
+            'Cache-Control': 'no-cache, no-transform',
+        },
+    });
+}
 
+async function runAI(prompt: string) {
     const model = new GoogleVertexAI({
         model: 'text-bison-32k',
         maxOutputTokens: 1024,
@@ -270,21 +306,23 @@ async function runAI(prompt: string, res: NextApiResponse) {
 
     const stream = await model.stream(prompt);
 
-    for await (const chunk of stream) {
-        if (chunk) {
-            progress = checkForProperties(chunk, foundProperties);
-            allChunks.push(chunk);
-            // Stream back the progress
-            res.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
-        } else {
-            // When no more chunks are coming in, progress is complete
-            progress = 1;
-            // Concatenate all the chunks into the final result
-            const finalResult = allChunks.join('');
-            // Parse the final result to return as JSON, assuming finalResult is JSON string
-            const jsonResponse = JSON.parse(finalResult);
-            res.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
-            res.end();
-        }
-    }
+    // for await (const chunk of stream) {
+    // if (chunk) {
+    //     progress = checkForProperties(chunk, foundProperties);
+    //     allChunks.push(chunk);
+    //     // Stream back the progress
+    //     res.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
+    // } else {
+    //     // When no more chunks are coming in, progress is complete
+    //     progress = 1;
+    //     // Concatenate all the chunks into the final result
+    //     const finalResult = allChunks.join('');
+    //     // Parse the final result to return as JSON, assuming finalResult is JSON string
+    //     const jsonResponse = JSON.parse(finalResult);
+    //     res.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
+    //     res.end();
+    // }
+    // }
+
+    return stream;
 }
