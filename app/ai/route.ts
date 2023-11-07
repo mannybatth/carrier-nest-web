@@ -270,6 +270,7 @@ export async function POST(req: Request) {
                     const jsonResponse = JSON.parse(finalResult);
                     await writer.ready;
                     writer.write(encoder.encode(`${JSON.stringify({ progress: 100, data: jsonResponse })}`));
+                    await writer.ready;
                     writer.close();
                 }
             }
@@ -277,6 +278,7 @@ export async function POST(req: Request) {
     } catch (error) {
         await writer.ready;
         writer.write(`${JSON.stringify({ error: error.message })}`);
+        await writer.ready;
         writer.close();
     }
 
