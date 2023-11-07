@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, EnvelopeIcon, PhoneIcon, TruckIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -94,13 +94,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, disabled, del
 
 const DriverDetailsPage: PageWithAuth = () => {
     const searchParams = useSearchParams();
+    const params = useParams();
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
     });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
-    const driverId = searchParams.get('id') || '';
+    const driverId = params.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
