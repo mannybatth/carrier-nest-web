@@ -274,7 +274,7 @@ export async function POST(req: Request) {
             }
         })();
     } catch (error) {
-        writer.write(`${JSON.stringify({ error: error.message })}`);
+        if (!writer.closed) writer.write(`${JSON.stringify({ error: error.message })}`);
         writer.close();
     }
 
