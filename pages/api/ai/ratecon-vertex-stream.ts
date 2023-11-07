@@ -203,12 +203,18 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 }
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.setHeader('Content-Encoding', 'none');
+    // res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    // res.setHeader('Connection', 'keep-alive');
+    // res.setHeader('Cache-Control', 'no-cache, no-transform');
+    // res.setHeader('X-Accel-Buffering', 'no');
+    // res.setHeader('Content-Encoding', 'none');
+    res.writeHead(200, {
+        Connection: 'keep-alive',
+        'Content-Encoding': 'none',
+        'Cache-Control': 'no-cache, no-transform',
+        'Content-Type': 'text/event-stream',
+    });
 
     try {
         const { documents } = await req.body;
@@ -236,7 +242,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
         runAI(prompt, res);
     } catch (error) {
-        res.write(`${JSON.stringify({ error: error.message })}`);
+        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
         res.end();
     }
 };
@@ -269,7 +275,7 @@ async function runAI(prompt: string, res: NextApiResponse) {
             progress = checkForProperties(chunk, foundProperties);
             allChunks.push(chunk);
             // Stream back the progress
-            res.write(`${JSON.stringify({ progress: progress * 100 })}`);
+            res.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
         } else {
             // When no more chunks are coming in, progress is complete
             progress = 1;
@@ -277,7 +283,7 @@ async function runAI(prompt: string, res: NextApiResponse) {
             const finalResult = allChunks.join('');
             // Parse the final result to return as JSON, assuming finalResult is JSON string
             const jsonResponse = JSON.parse(finalResult);
-            res.write(`${JSON.stringify({ progress: 100, data: jsonResponse })}`);
+            res.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
             res.end();
         }
     }
