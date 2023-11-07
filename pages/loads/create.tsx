@@ -11,7 +11,7 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
-import { apiUrl } from '../../constants';
+import { apiUrl, appUrl } from '../../constants';
 import { AILoad } from '../../interfaces/ai';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
@@ -265,7 +265,7 @@ const CreateLoad: PageWithAuth = () => {
                 }),
             ]);
 
-            const response = await fetch(apiUrl + '/ai/ratecon-vertex-stream', {
+            const response = await fetch(`${appUrl}/ai`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ const CreateLoad: PageWithAuth = () => {
                 setAiProgress(10);
 
                 // Retry with line-by-line data
-                const response = await fetch(apiUrl + '/ai/ratecon-vertex-stream', {
+                const response = await fetch(`${appUrl}/ai`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

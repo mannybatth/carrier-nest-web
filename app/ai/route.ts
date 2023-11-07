@@ -202,10 +202,9 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
     return updateProgress(foundProperties);
 }
 
-export const config = {
-    runtime: 'nodejs',
-    dynamic: 'force-dynamic',
-};
+export const runtime = 'nodejs';
+// This is required to enable streaming
+export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
     // res.setHeader('Access-Control-Allow-Origin', '*');
     // res.setHeader('Content-Type', 'text/event-stream');
@@ -221,10 +220,11 @@ export async function POST(req: Request) {
 
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
+    const encoder = new TextEncoder();
 
     const foundProperties = new Set<string>();
     let progress = 0;
-    const allChunks = [];
+    const allChunks: string[] = [];
 
     try {
         // const { documents } = await req.body;
@@ -253,15 +253,13 @@ export async function POST(req: Request) {
 
         const stream = await runAI(prompt);
 
-        stream
-            .getReader()
-            .read()
-            .then(({ done, value: chunk }) => {
+        (async () => {
+            for await (const chunk of stream) {
                 if (chunk) {
                     progress = checkForProperties(chunk, foundProperties);
                     allChunks.push(chunk);
                     // Stream back the progress
-                    writer.write(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`);
+                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
                 } else {
                     // When no more chunks are coming in, progress is complete
                     progress = 1;
@@ -269,10 +267,11 @@ export async function POST(req: Request) {
                     const finalResult = allChunks.join('');
                     // Parse the final result to return as JSON, assuming finalResult is JSON string
                     const jsonResponse = JSON.parse(finalResult);
-                    writer.write(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`);
+                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`));
                     writer.close();
                 }
-            });
+            }
+        })();
     } catch (error) {
         // res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
         // res.end();
