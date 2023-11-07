@@ -259,6 +259,7 @@ export async function POST(req: Request) {
                     progress = checkForProperties(chunk, foundProperties);
                     allChunks.push(chunk);
                     // Stream back the progress
+                    await writer.ready;
                     writer.write(encoder.encode(`${JSON.stringify({ progress: progress * 100 })}`));
                 } else {
                     // When no more chunks are coming in, progress is complete
