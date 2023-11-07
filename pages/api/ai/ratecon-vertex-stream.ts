@@ -204,10 +204,11 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'text/event-stream;charset=utf-8');
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Connection', 'keep-alive');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('X-Accel-Buffering', 'no');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Content-Encoding', 'none');
 
     try {
         const { documents } = await req.body;
