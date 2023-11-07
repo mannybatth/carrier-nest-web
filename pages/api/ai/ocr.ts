@@ -51,7 +51,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         'pages.tokens',
                         'pages.dimension',
                         'pages.layout',
-                        'pages.image',
                     ],
                 },
             };
@@ -147,12 +146,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     tokens: page.tokens,
                     dimension: page.dimension,
                     layout: page.layout,
-                    image: {
-                        mimeType: page.image.mimeType,
-                        height: page.image.height,
-                        width: page.image.width,
-                        content: Buffer.from(page.image.content).toString('base64'),
-                    },
                 };
             });
             return res.status(200).json({
