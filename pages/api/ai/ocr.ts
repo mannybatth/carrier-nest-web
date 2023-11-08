@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccessToken } from 'web-auth-library/google';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webAuthLibrary = require('web-auth-library');
 
 interface ITextSegment {
     /** TextSegment startIndex */
@@ -23,7 +24,7 @@ export const config = {
 
 export default async function POST(req: NextRequest) {
     // Generate a short lived access token from the service account key credentials
-    const accessToken = await getAccessToken({
+    const accessToken = await webAuthLibrary.google.getAccessToken({
         credentials: {
             type: 'service_account',
             private_key: process.env.GCP_PRIVATE_KEY,
