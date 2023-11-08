@@ -248,7 +248,8 @@ export async function POST(req: Request) {
                     progress = checkForProperties(chunk, foundProperties);
                     allChunks.push(chunk);
                     // Stream back the progress
-                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
+                    await writer.ready;
+                    await writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
                 } else {
                     // When no more chunks are coming in, progress is complete
                     progress = 1;
@@ -257,6 +258,7 @@ export async function POST(req: Request) {
                     // Parse the final result to return as JSON, assuming finalResult is JSON string
                     const jsonResponse = JSON.parse(finalResult);
 
+                    await writer.ready;
                     await writer.write(
                         encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`),
                     );
