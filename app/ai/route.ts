@@ -196,7 +196,13 @@ export async function POST(req: NextRequest) {
         });
 
         const stream = await runAI(prompt);
-        return new StreamingTextResponse(stream);
+        return new NextResponse(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                Connection: 'keep-alive',
+                'Cache-Control': 'no-cache, no-transform',
+            },
+        });
     } catch (error) {
         return new NextResponse(JSON.stringify({ error: error.message }), {
             headers: {
