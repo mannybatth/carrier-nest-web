@@ -327,6 +327,7 @@ const CreateLoad: PageWithAuth = () => {
 
         const processChunk = (chunk: string): boolean => {
             try {
+                console.log('chunk:', chunk);
                 const json = JSON.parse(chunk.replace(/^data:/, ''));
                 if (json?.data) {
                     setAiProgress(100);
