@@ -1,4 +1,5 @@
 import { StreamingTextResponse } from 'ai';
+import { BytesOutputParser } from 'langchain/schema/output_parser';
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai/web';
 import { PromptTemplate } from 'langchain/prompts';
 import { NextRequest, NextResponse } from 'next/server';
@@ -174,6 +175,12 @@ export async function POST(req: NextRequest) {
     try {
         const { documents } = await req.json();
 
+        /**
+         * Chat models stream message chunks rather than bytes, so this
+         * output parser handles serialization and encoding.
+         */
+        const outputParser = new BytesOutputParser();
+
         if (!Array.isArray(documents)) {
             throw new Error('Invalid input. Expected arrays.');
         }
@@ -190,19 +197,32 @@ export async function POST(req: NextRequest) {
             template,
             inputVariables: ['question', 'context'],
         });
-        const prompt = await promptTemplate.format({
+
+        const model = new GoogleVertexAI({
+            model: 'text-bison-32k',
+            maxOutputTokens: 1024,
+            temperature: 0.1,
+            verbose: process.env.NODE_ENV === 'development',
+            authOptions: {
+                credentials: {
+                    type: 'service_account',
+                    private_key: process.env.GCP_PRIVATE_KEY,
+                    client_email: process.env.GCP_CLIENT_EMAIL,
+                    client_id: process.env.GCP_CLIENT_ID,
+                    project_id: process.env.GCP_PROJECT_ID,
+                    token_uri: 'https://oauth2.googleapis.com/token',
+                },
+            },
+        });
+
+        const chain = promptTemplate.pipe(model).pipe(outputParser);
+
+        const stream = await chain.stream({
             question: question,
             context: JSON.stringify(context),
         });
 
-        const stream = await runAI(prompt);
-        return new NextResponse(stream, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                Connection: 'keep-alive',
-                'Cache-Control': 'no-cache, no-transform',
-            },
-        });
+        return new StreamingTextResponse(stream);
     } catch (error) {
         return new NextResponse(JSON.stringify({ error: error.message }), {
             headers: {
@@ -210,26 +230,4 @@ export async function POST(req: NextRequest) {
             },
         });
     }
-}
-
-async function runAI(prompt: string) {
-    const model = new GoogleVertexAI({
-        model: 'text-bison-32k',
-        maxOutputTokens: 1024,
-        temperature: 0.1,
-        verbose: process.env.NODE_ENV === 'development',
-        authOptions: {
-            credentials: {
-                type: 'service_account',
-                private_key: process.env.GCP_PRIVATE_KEY,
-                client_email: process.env.GCP_CLIENT_EMAIL,
-                client_id: process.env.GCP_CLIENT_ID,
-                project_id: process.env.GCP_PROJECT_ID,
-                token_uri: 'https://oauth2.googleapis.com/token',
-            },
-        },
-    });
-
-    const stream = await model.stream(prompt);
-    return stream;
 }
