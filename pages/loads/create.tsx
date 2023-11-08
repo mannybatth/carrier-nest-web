@@ -337,7 +337,7 @@ const CreateLoad: PageWithAuth = () => {
                     setAiProgress(10 + (json?.progress || 0) * (90 / 100));
                 }
             } catch (error) {
-                console.error('Error parsing JSON chunk:', error);
+                // console.error('Error parsing JSON chunk:', error);
                 // Handle JSON parsing error, if necessary
             }
             return false;
