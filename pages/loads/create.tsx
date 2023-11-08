@@ -214,14 +214,25 @@ const CreateLoad: PageWithAuth = () => {
         let logisticsCompany: string = null;
         let customersList: Customer[] = [];
         try {
-            const formData = new FormData();
-            formData.append('file', file);
+            const base64File = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    if (reader.result) {
+                        const base64String = (reader.result as string).replace(/^data:.+;base64,/, ''); // remove the "data:*/*;base64," part
+                        resolve(base64String);
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+            });
 
             setAiProgress(5);
             const [ocrResponse, customersResponse] = await Promise.all([
                 fetch(`${apiUrl}/ai/ocr`, {
                     method: 'POST',
-                    body: formData,
+                    body: JSON.stringify({
+                        file: base64File,
+                    }),
                 }),
                 getAllCustomers({ limit: 999, offset: 0 }),
             ]);

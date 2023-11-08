@@ -1,68 +1,50 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm } from 'formidable';
-import { DocumentProcessorServiceClient, protos } from '@google-cloud/documentai';
-import { promises as fs } from 'fs';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from 'web-auth-library/google';
+
+interface ITextSegment {
+    /** TextSegment startIndex */
+    startIndex?: number | Long | string | null;
+
+    /** TextSegment endIndex */
+    endIndex?: number | Long | string | null;
+}
+
+interface ITextAnchor {
+    /** TextAnchor textSegments */
+    textSegments?: ITextSegment[] | null;
+
+    /** TextAnchor content */
+    content?: string | null;
+}
 
 export const config = {
-    api: {
-        bodyParser: false,
-    },
+    runtime: 'edge',
 };
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
-    const client = new DocumentProcessorServiceClient({
-        projectId: process.env.GCP_PROJECT_ID,
+export default async function POST(req: NextRequest) {
+    // Generate a short lived access token from the service account key credentials
+    const accessToken = await getAccessToken({
         credentials: {
             type: 'service_account',
             private_key: process.env.GCP_PRIVATE_KEY,
             client_email: process.env.GCP_CLIENT_EMAIL,
             client_id: process.env.GCP_CLIENT_ID,
-            universe_domain: 'googleapis.com',
-        },
+            token_uri: 'https://oauth2.googleapis.com/token',
+        } as any,
+        scope: 'https://www.googleapis.com/auth/cloud-platform',
     });
 
     if (req.method === 'POST') {
         try {
-            const data = await new Promise<{ fields: any; files: any }>((resolve, reject) => {
-                const form = new IncomingForm();
-                form.parse(req, (err, fields, files) => {
-                    if (err) reject(err);
-                    resolve({ fields, files });
-                });
-            });
+            const { file } = await req.json();
+            const response = await fetchDocumentAI(file, accessToken);
 
-            const localFilePath = data.files.file[0].filepath;
-            const fileBuffer = await fs.readFile(localFilePath);
-
-            const parent = `projects/${process.env.GCP_OCR_PROJECT_ID}/locations/${process.env.GCP_OCR_LOCATION}/processors/${process.env.GCP_OCR_PROCESSOR_ID}`;
-
-            const request: protos.google.cloud.documentai.v1.IProcessRequest = {
-                name: parent,
-                rawDocument: {
-                    content: Buffer.from(fileBuffer).toString('base64'),
-                    mimeType: 'application/pdf',
-                },
-                fieldMask: {
-                    paths: [
-                        'text',
-                        'pages.blocks',
-                        'pages.lines',
-                        'pages.pageNumber',
-                        'pages.tokens',
-                        'pages.dimension',
-                        'pages.layout',
-                    ],
-                },
-            };
-
-            const [result] = await client.processDocument(request);
-            // console.log('result:', JSON.stringify(result, null, 1));
-            const { document } = result;
+            const { document } = response;
             const { text } = document; // Assuming the text is in the document object
             const pagesInBlocks = [];
             const pagesInLines = [];
 
-            const getText = (textAnchor: protos.google.cloud.documentai.v1.Document.ITextAnchor) => {
+            const getText = (textAnchor: ITextAnchor) => {
                 if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
                     return '';
                 }
@@ -138,8 +120,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                 pagesInLines.push(pageText);
             }
 
-            await fs.unlink(localFilePath); // delete the local file
-
             const pages = document.pages.map((page) => {
                 return {
                     pageNumber: page.pageNumber,
@@ -148,17 +128,53 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     layout: page.layout,
                 };
             });
-            return res.status(200).json({
+            return NextResponse.json({
                 blocks: pagesInBlocks,
                 lines: pagesInLines,
                 pages,
             });
         } catch (error) {
             console.error('Error during the Document AI process:', error);
-            return res.status(500).json({ error: 'Error during the Document AI process.' });
+            return NextResponse.json({ error: 'Error during the Document AI process.' }, { status: 500 });
         }
     } else {
-        res.setHeader('Allow', ['POST']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
+        return NextResponse.next();
     }
-};
+}
+
+async function fetchDocumentAI(base64File, accessToken) {
+    const url = `https://documentai.googleapis.com/v1/projects/${process.env.GCP_OCR_PROJECT_ID}/locations/${process.env.GCP_OCR_LOCATION}/processors/${process.env.GCP_OCR_PROCESSOR_ID}:process`;
+
+    const request = {
+        rawDocument: {
+            content: base64File,
+            mimeType: 'application/pdf',
+        },
+        fieldMask: {
+            paths: [
+                'text',
+                'pages.blocks',
+                'pages.lines',
+                'pages.pageNumber',
+                'pages.tokens',
+                'pages.dimension',
+                'pages.layout',
+            ],
+        },
+    };
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Document AI API responded with status: ${response.status}`);
+    }
+
+    return response.json();
+}

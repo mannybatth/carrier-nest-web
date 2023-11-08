@@ -1,7 +1,6 @@
-import { IterableReadableStream } from 'langchain/dist/util/stream';
-import { GoogleVertexAI } from 'langchain/llms/googlevertexai';
+import { StreamingTextResponse } from 'ai';
+import { GoogleVertexAI } from 'langchain/llms/googlevertexai/web';
 import { PromptTemplate } from 'langchain/prompts';
-import { NextApiRequest, NextApiResponse } from 'next';
 
 interface LogisticsData {
     logistics_company: string;
@@ -202,9 +201,11 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
     return updateProgress(foundProperties);
 }
 
-export const runtime = 'nodejs';
-// This is required to enable streaming
-export const dynamic = 'force-dynamic';
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export const runtime = 'edge';
 export async function POST(req: Request) {
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
@@ -247,8 +248,7 @@ export async function POST(req: Request) {
                     progress = checkForProperties(chunk, foundProperties);
                     allChunks.push(chunk);
                     // Stream back the progress
-                    await writer.ready;
-                    await writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
+                    writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
                 } else {
                     // When no more chunks are coming in, progress is complete
                     progress = 1;
@@ -256,32 +256,28 @@ export async function POST(req: Request) {
                     const finalResult = allChunks.join('');
                     // Parse the final result to return as JSON, assuming finalResult is JSON string
                     const jsonResponse = JSON.parse(finalResult);
-                    await writer.ready;
+
                     await writer.write(
                         encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`),
                     );
+                    await sleep(1000);
+                    await writer.ready;
                     writer.close();
                     break;
                 }
             }
         })().catch(async (error) => {
-            await writer.ready;
             await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            await writer.ready;
             writer.close();
         });
     } catch (error) {
-        await writer.ready;
         await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        await writer.ready;
         writer.close();
     }
 
-    return new Response(responseStream.readable, {
-        headers: {
-            'Content-Type': 'text/event-stream',
-            Connection: 'keep-alive',
-            'Cache-Control': 'no-cache, no-transform',
-        },
-    });
+    return new StreamingTextResponse(responseStream.readable);
 }
 
 async function runAI(prompt: string) {
@@ -289,14 +285,15 @@ async function runAI(prompt: string) {
         model: 'text-bison-32k',
         maxOutputTokens: 1024,
         temperature: 0.1,
-        // verbose: process.env.NODE_ENV === 'development',
+        verbose: process.env.NODE_ENV === 'development',
         authOptions: {
-            projectId: process.env.GCP_PROJECT_ID,
             credentials: {
                 type: 'service_account',
                 private_key: process.env.GCP_PRIVATE_KEY,
                 client_email: process.env.GCP_CLIENT_EMAIL,
                 client_id: process.env.GCP_CLIENT_ID,
+                project_id: process.env.GCP_PROJECT_ID,
+                token_uri: 'https://oauth2.googleapis.com/token',
             },
         },
     });
