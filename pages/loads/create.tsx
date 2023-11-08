@@ -24,6 +24,39 @@ import { createLoad, getLoadById } from '../../lib/rest/load';
 import AnimatedProgress from 'components/loads/AnimationProgress';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 
+const expectedProperties = new Set([
+    'logistics_company',
+    'load_number',
+    'stops',
+    'name',
+    'street',
+    'city',
+    'state',
+    'zip',
+    'date',
+    'time',
+    'po_numbers',
+    'pickup_numbers',
+    'reference_numbers',
+    'rate',
+    'invoice_emails',
+]);
+
+function updateProgress(foundProperties: Set<string>) {
+    return (foundProperties.size / (expectedProperties.size + 1)) * 100;
+}
+
+// This function has been simplified to only check for the presence of a key
+function checkForProperties(chunk: string, foundProperties: Set<string>) {
+    expectedProperties.forEach((property) => {
+        if (chunk.includes(`"${property}"`) && !foundProperties.has(property)) {
+            foundProperties.add(property);
+        }
+    });
+
+    return updateProgress(foundProperties);
+}
+
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
@@ -323,47 +356,29 @@ const CreateLoad: PageWithAuth = () => {
         });
         const streamReader = response.body.getReader();
 
-        let responseJSON = null;
+        let aiLoad: AILoad = null;
+        const foundProperties = new Set<string>();
+        let buffer = '';
 
-        const processChunk = (chunk: string): boolean => {
-            try {
-                console.log('chunk:', chunk);
-                const json = JSON.parse(chunk.replace(/^data:/, ''));
-                if (json?.data) {
-                    setAiProgress(100);
-                    responseJSON = json;
-                    return true;
-                } else {
-                    setAiProgress(10 + (json?.progress || 0) * (90 / 100));
-                }
-            } catch (error) {
-                // console.error('Error parsing JSON chunk:', error);
-                // Handle JSON parsing error, if necessary
-            }
-            return false;
-        };
-
-        const processChunks = (chunks: string) => {
-            const messages = chunks.split('\n\ndata:');
-            for (let i = 0; i < messages.length; i++) {
-                const message = messages[i];
-                const done = processChunk(message);
-                if (done) {
-                    return;
-                }
-            }
+        const processChunk = (chunk: string) => {
+            console.log('chunk', chunk);
+            const progress = checkForProperties(chunk, foundProperties);
+            console.log('progress', progress);
+            setAiProgress(10 + (progress || 0) * (90 / 100));
         };
 
         while (true) {
             const { value, done } = await streamReader.read();
             if (done) {
+                setAiProgress(100);
+                console.log('AI response', buffer);
+                aiLoad = JSON.parse(buffer);
                 break;
             }
             const decoded = new TextDecoder().decode(value);
-            processChunks(decoded);
+            buffer += decoded;
+            processChunk(decoded);
         }
-
-        const aiLoad: AILoad = responseJSON['data'];
 
         if (isRetry) {
             return aiLoad;

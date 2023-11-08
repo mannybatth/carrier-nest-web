@@ -1,6 +1,7 @@
 import { StreamingTextResponse } from 'ai';
 import { GoogleVertexAI } from 'langchain/llms/googlevertexai/web';
 import { PromptTemplate } from 'langchain/prompts';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface LogisticsData {
     logistics_company: string;
@@ -168,55 +169,9 @@ Extraction output:
     "invoice_emails": ["LoadDocs@CHRobinson.com"]
 }`;
 
-const expectedProperties = new Set([
-    'logistics_company',
-    'load_number',
-    'stops',
-    'name',
-    'street',
-    'city',
-    'state',
-    'zip',
-    'date',
-    'time',
-    'po_numbers',
-    'pickup_numbers',
-    'reference_numbers',
-    'rate',
-    'invoice_emails',
-]);
-
-function updateProgress(foundProperties: Set<string>) {
-    return foundProperties.size / (expectedProperties.size + 1);
-}
-
-// This function has been simplified to only check for the presence of a key
-function checkForProperties(chunk: string, foundProperties: Set<string>) {
-    expectedProperties.forEach((property) => {
-        if (chunk.includes(`"${property}"`) && !foundProperties.has(property)) {
-            foundProperties.add(property);
-        }
-    });
-
-    return updateProgress(foundProperties);
-}
-
-function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export const runtime = 'edge';
-export async function POST(req: Request) {
-    const responseStream = new TransformStream();
-    const writer = responseStream.writable.getWriter();
-    const encoder = new TextEncoder();
-
-    const foundProperties = new Set<string>();
-    let progress = 0;
-    const allChunks: string[] = [];
-
+export async function POST(req: NextRequest) {
     try {
-        // const { documents } = await req.body;
         const { documents } = await req.json();
 
         if (!Array.isArray(documents)) {
@@ -241,45 +196,14 @@ export async function POST(req: Request) {
         });
 
         const stream = await runAI(prompt);
-
-        (async () => {
-            for await (const chunk of stream) {
-                if (chunk) {
-                    progress = checkForProperties(chunk, foundProperties);
-                    allChunks.push(chunk);
-                    // Stream back the progress
-                    await writer.ready;
-                    await writer.write(encoder.encode(`data: ${JSON.stringify({ progress: progress * 100 })}\n\n`));
-                } else {
-                    // When no more chunks are coming in, progress is complete
-                    progress = 1;
-                    // Concatenate all the chunks into the final result
-                    const finalResult = allChunks.join('');
-                    // Parse the final result to return as JSON, assuming finalResult is JSON string
-                    const jsonResponse = JSON.parse(finalResult);
-
-                    await writer.ready;
-                    await writer.write(
-                        encoder.encode(`data: ${JSON.stringify({ progress: 100, data: jsonResponse })}\n\n`),
-                    );
-                    await sleep(1000);
-                    await writer.ready;
-                    writer.close();
-                    break;
-                }
-            }
-        })().catch(async (error) => {
-            await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-            await writer.ready;
-            writer.close();
-        });
+        return new StreamingTextResponse(stream);
     } catch (error) {
-        await writer.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-        await writer.ready;
-        writer.close();
+        return new NextResponse(JSON.stringify({ error: error.message }), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
     }
-
-    return new StreamingTextResponse(responseStream.readable);
 }
 
 async function runAI(prompt: string) {
