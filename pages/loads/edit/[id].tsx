@@ -11,8 +11,8 @@ import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
-import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';
 import { updateLoad } from '../../../lib/rest/load';
+import { calculateGeoForLoad } from 'lib/mapbox/load-geo';
 
 const EditLoad: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
@@ -61,58 +61,7 @@ const EditLoad: PageWithAuth = () => {
     const saveLoadData = async (loadData: ExpandedLoad) => {
         setLoading(true);
 
-        const shipperAddress =
-            loadData.shipper.street +
-            ', ' +
-            loadData.shipper.city +
-            ', ' +
-            loadData.shipper.state +
-            ' ' +
-            loadData.shipper.zip;
-        const receiverAddress =
-            loadData.receiver.street +
-            ', ' +
-            loadData.receiver.city +
-            ', ' +
-            loadData.receiver.state +
-            ' ' +
-            loadData.receiver.zip;
-        const shipperCoordinates = await getGeocoding(shipperAddress);
-        const receiverCoordinates = await getGeocoding(receiverAddress);
-        const stopsCoordinates = await Promise.all(
-            loadData.stops.map(async (stop) => {
-                const stopAddress = stop.street + ', ' + stop.city + ', ' + stop.state + ' ' + stop.zip;
-                return await getGeocoding(stopAddress);
-            }),
-        );
-
-        const { routeEncoded, distance, duration } = await getRouteForCoords([
-            [shipperCoordinates.longitude, shipperCoordinates.latitude],
-            ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
-            [receiverCoordinates.longitude, receiverCoordinates.latitude],
-        ]);
-
-        loadData.shipper = {
-            ...loadData.shipper,
-            longitude: shipperCoordinates.longitude,
-            latitude: shipperCoordinates.latitude,
-        };
-        loadData.receiver = {
-            ...loadData.receiver,
-            longitude: receiverCoordinates.longitude,
-            latitude: receiverCoordinates.latitude,
-        };
-        loadData.stops = loadData.stops.map((stop, index) => {
-            return {
-                ...stop,
-                longitude: stopsCoordinates[index].longitude,
-                latitude: stopsCoordinates[index].latitude,
-            };
-        });
-        loadData.routeEncoded = routeEncoded;
-        loadData.routeDistance = distance;
-        loadData.routeDuration = duration;
-
+        await calculateGeoForLoad(loadData);
         const newLoad = await updateLoad(load.id, loadData);
 
         notify({ title: 'Load updated', message: 'Load updated successfully' });

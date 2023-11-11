@@ -1,22 +1,7 @@
+import { ITextAnchor } from 'interfaces/document-ai';
 import { NextRequest, NextResponse } from 'next/server';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webAuthLibrary = require('web-auth-library');
-
-interface ITextSegment {
-    /** TextSegment startIndex */
-    startIndex?: number | Long | string | null;
-
-    /** TextSegment endIndex */
-    endIndex?: number | Long | string | null;
-}
-
-interface ITextAnchor {
-    /** TextAnchor textSegments */
-    textSegments?: ITextSegment[] | null;
-
-    /** TextAnchor content */
-    content?: string | null;
-}
 
 export const config = {
     runtime: 'edge',
