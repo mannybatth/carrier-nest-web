@@ -121,8 +121,8 @@ const CreateLoad: PageWithAuth = () => {
 
         let metadata = null;
         let numOfPages = 0;
-        let pdfImages: string[] = [];
-        const aiLoad: AILoad = null;
+        // let pdfImages: string[] = [];
+
         let ocrResult: {
             blocks: string[];
             lines: string[];
@@ -143,7 +143,7 @@ const CreateLoad: PageWithAuth = () => {
             const pdfResult = await rateconImporter.readPdf(file);
             metadata = pdfResult.metadata;
             numOfPages = pdfResult.totalPages;
-            pdfImages = pdfResult.images;
+            // pdfImages = pdfResult.images;
 
             if (numOfPages < 1) {
                 notify({
@@ -185,49 +185,50 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
-        const getText = (textAnchor: ITextAnchor) => {
-            if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
-                return '';
-            }
+        // const getText = (textAnchor: ITextAnchor) => {
+        //     if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
+        //         return '';
+        //     }
 
-            // First shard in document doesn't have startIndex property
-            const startIndex = textAnchor.textSegments[0].startIndex || 0;
-            const endIndex = textAnchor.textSegments[0].endIndex;
+        //     // First shard in document doesn't have startIndex property
+        //     const startIndex = textAnchor.textSegments[0].startIndex || 0;
+        //     const endIndex = textAnchor.textSegments[0].endIndex;
 
-            return ocrResult.text.substring(startIndex as number, endIndex as number);
-        };
+        //     return ocrResult.text.substring(startIndex as number, endIndex as number);
+        // };
 
-        const ocrPages: PageOcrData[] = ocrResult.pages.map((page: OCRPage, index: number) => {
-            return {
-                words: page.lines.map((token) => {
-                    const normalizedVertices = token.layout.boundingPoly.normalizedVertices;
-                    return {
-                        text: getText(token.layout.textAnchor),
-                        left: normalizedVertices[0].x * (page.dimension.width / 2),
-                        top: normalizedVertices[0].y * (page.dimension.height / 2),
-                        width: (normalizedVertices[1].x - normalizedVertices[0].x) * (page.dimension.width / 2),
-                        height: (normalizedVertices[2].y - normalizedVertices[0].y) * (page.dimension.height / 2),
-                    };
-                }),
-                image: `${index}`,
-                height: page.dimension.height,
-                width: page.dimension.width,
-            };
-        });
-        setPagesOcrData(ocrPages);
-        setPdfImages(pdfImages);
+        // const ocrPages: PageOcrData[] = ocrResult.pages.map((page: OCRPage, index: number) => {
+        //     return {
+        //         words: page.lines.map((token) => {
+        //             const normalizedVertices = token.layout.boundingPoly.normalizedVertices;
+        //             return {
+        //                 text: getText(token.layout.textAnchor),
+        //                 left: normalizedVertices[0].x * (page.dimension.width / 2),
+        //                 top: normalizedVertices[0].y * (page.dimension.height / 2),
+        //                 width: (normalizedVertices[1].x - normalizedVertices[0].x) * (page.dimension.width / 2),
+        //                 height: (normalizedVertices[2].y - normalizedVertices[0].y) * (page.dimension.height / 2),
+        //             };
+        //         }),
+        //         image: `${index}`,
+        //         height: page.dimension.height,
+        //         width: page.dimension.width,
+        //     };
+        // });
+        // setPagesOcrData(ocrPages);
+        // setPdfImages(pdfImages);
 
-        // try {
-        //     aiLoad = await rateconImporter.processRateconFile(file, ocrResult, numOfPages, metadata);
-        //     applyAIOutputToForm(aiLoad);
-        //     setCurrentRateconFile(file);
-        // } catch (e) {
-        //     resetState();
-        //     notify({ title: 'Error', message: e?.message || 'Error processing file', type: 'error' });
-        //     return;
-        // }
+        let aiLoad: AILoad = null;
+        try {
+            aiLoad = await rateconImporter.processRateconFile(file, ocrResult, numOfPages, metadata);
+            applyAIOutputToForm(aiLoad);
+            setCurrentRateconFile(file);
+        } catch (e) {
+            resetState();
+            notify({ title: 'Error', message: e?.message || 'Error processing file', type: 'error' });
+            return;
+        }
 
-        // applyCustomerToForm(aiLoad, customersList);
+        applyCustomerToForm(aiLoad, customersList);
 
         setLoading(false);
         setAiProgress(0);
@@ -382,108 +383,106 @@ const CreateLoad: PageWithAuth = () => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
-            <div className="flex h-screen">
-                <div className="py-2 mx-auto overflow-auto">
-                    <BreadCrumb
-                        className="sm:px-6 md:px-8"
-                        paths={[
-                            {
-                                label: 'Loads',
-                                href: '/loads',
-                            },
-                            {
-                                label: 'Create New Load',
-                            },
-                        ]}
-                    ></BreadCrumb>
-                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                        <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
-                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                    </div>
-                    {aiProgress > 0 && (
-                        <AnimatedProgress
-                            progress={aiProgress}
-                            label={isRetrying ? 'Fine tuning results' : 'Reading Document'}
-                            labelColor={isRetrying ? 'text-orange-600' : 'text-blue-600'}
-                            bgColor={isRetrying ? 'bg-orange-100' : 'bg-blue-100'}
-                        />
+            <div className="max-w-4xl py-2 mx-auto">
+                <BreadCrumb
+                    className="sm:px-6 md:px-8"
+                    paths={[
+                        {
+                            label: 'Loads',
+                            href: '/loads',
+                        },
+                        {
+                            label: 'Create New Load',
+                        },
+                    ]}
+                ></BreadCrumb>
+                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                    <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
+                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+                </div>
+                {aiProgress > 0 && (
+                    <AnimatedProgress
+                        progress={aiProgress}
+                        label={isRetrying ? 'Fine tuning results' : 'Reading Document'}
+                        labelColor={isRetrying ? 'text-orange-600' : 'text-blue-600'}
+                        bgColor={isRetrying ? 'bg-orange-100' : 'bg-blue-100'}
+                    />
+                )}
+
+                <div className="relative px-5 sm:px-6 md:px-8">
+                    {loading && <LoadingOverlay />}
+
+                    {aiProgress == 0 && !currentRateconFile && (
+                        <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
+                            <div className="flex mb-4">
+                                <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
+                                    <span className="flex items-center space-x-2">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="w-6 h-6 text-gray-600"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                            />
+                                        </svg>
+                                        <span className="font-medium text-gray-600">
+                                            Drop a rate confirmation file, or{' '}
+                                            <span className="text-blue-600 underline">browse</span>
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                        </FileUploader>
                     )}
 
-                    <div className="relative px-5 sm:px-6 md:px-8">
-                        {loading && <LoadingOverlay />}
-
-                        {aiProgress == 0 && !currentRateconFile && (
-                            <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
-                                <div className="flex mb-4">
-                                    <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
-                                        <span className="flex items-center space-x-2">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="w-6 h-6 text-gray-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                                />
-                                            </svg>
-                                            <span className="font-medium text-gray-600">
-                                                Drop a rate confirmation file, or{' '}
-                                                <span className="text-blue-600 underline">browse</span>
-                                            </span>
-                                        </span>
-                                    </label>
-                                </div>
-                            </FileUploader>
-                        )}
-
-                        {currentRateconFile && (
-                            <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">
-                                <div className="flex items-center space-x-2">
-                                    <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" />
-                                    <span className="font-medium text-gray-600">
-                                        {currentRateconFile.name} ({currentRateconFile.size} bytes)
-                                    </span>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    onClick={() => setCurrentRateconFile(null)}
-                                >
-                                    <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon>
-                                    Remove
-                                </button>
+                    {currentRateconFile && (
+                        <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">
+                            <div className="flex items-center space-x-2">
+                                <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <span className="font-medium text-gray-600">
+                                    {currentRateconFile.name} ({currentRateconFile.size} bytes)
+                                </span>
                             </div>
-                        )}
+                            <button
+                                type="button"
+                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                onClick={() => setCurrentRateconFile(null)}
+                            >
+                                <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon>
+                                Remove
+                            </button>
+                        </div>
+                    )}
 
-                        <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
-                            <LoadForm
-                                formHook={formHook}
-                                openAddCustomerFromProp={openAddCustomer}
-                                setOpenAddCustomerFromProp={setOpenAddCustomer}
-                                showMissingCustomerLabel={showMissingCustomerLabel}
-                                setShowMissingCustomerLabel={setShowMissingCustomerLabel}
-                                prefillName={prefillName}
-                                setPrefillName={setPrefillName}
-                                parentStopsFieldArray={stopsFieldArray}
-                            ></LoadForm>
-                            <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                                <div className="flex-1"></div>
-                                <button
-                                    type="submit"
-                                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Create Load
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
+                        <LoadForm
+                            formHook={formHook}
+                            openAddCustomerFromProp={openAddCustomer}
+                            setOpenAddCustomerFromProp={setOpenAddCustomer}
+                            showMissingCustomerLabel={showMissingCustomerLabel}
+                            setShowMissingCustomerLabel={setShowMissingCustomerLabel}
+                            prefillName={prefillName}
+                            setPrefillName={setPrefillName}
+                            parentStopsFieldArray={stopsFieldArray}
+                        ></LoadForm>
+                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                            <div className="flex-1"></div>
+                            <button
+                                type="submit"
+                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                Create Load
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div className="overflow-auto">
+                {/* <div className="overflow-auto">
                     <div className="px-5 mt-6">
                         <div className="flex flex-col gap-4">
                             {pagesOcrData.length > 0 &&
@@ -535,7 +534,7 @@ const CreateLoad: PageWithAuth = () => {
                                 ))}
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
         </Layout>
     );
