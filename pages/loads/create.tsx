@@ -22,13 +22,10 @@ import { getAllCustomers } from '../../lib/rest/customer';
 import { createLoad, getLoadById } from '../../lib/rest/load';
 import { calculateGeoForLoad } from '../../lib/mapbox/load-geo';
 import { RateconImporter } from '../../lib/load/ratecon-importer';
-
-interface OCRPage {
-    dimension: any;
-    layout: any;
-    tokens: any;
-    image: string;
-}
+import NerPage from '../../components/ner/NerPage';
+import { PageOcrData } from '../../interfaces/ner';
+import { OCRPage } from '../../interfaces/ocr';
+import { ITextAnchor } from 'interfaces/document-ai';
 
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
@@ -45,7 +42,8 @@ const CreateLoad: PageWithAuth = () => {
     const [aiProgress, setAiProgress] = React.useState(0);
     const [isRetrying, setIsRetrying] = React.useState(false);
 
-    const [ocrPages, setOcrPages] = React.useState<OCRPage[]>([]);
+    const [pagesOcrData, setPagesOcrData] = React.useState<PageOcrData[]>([]);
+    const [pdfImages, setPdfImages] = React.useState<string[]>([]);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
@@ -124,8 +122,13 @@ const CreateLoad: PageWithAuth = () => {
         let metadata = null;
         let numOfPages = 0;
         let pdfImages: string[] = [];
-        let aiLoad: AILoad = null;
-        let ocrResult: any = null;
+        const aiLoad: AILoad = null;
+        let ocrResult: {
+            blocks: string[];
+            lines: string[];
+            pages: OCRPage[];
+            text: string;
+        } = null;
         let customersList: Customer[] = [];
 
         const rateconImporter = new RateconImporter();
@@ -182,27 +185,49 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
-        const ocrPages = ocrResult.pages.map((page: any, index: number) => {
+        const getText = (textAnchor: ITextAnchor) => {
+            if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
+                return '';
+            }
+
+            // First shard in document doesn't have startIndex property
+            const startIndex = textAnchor.textSegments[0].startIndex || 0;
+            const endIndex = textAnchor.textSegments[0].endIndex;
+
+            return ocrResult.text.substring(startIndex as number, endIndex as number);
+        };
+
+        const ocrPages: PageOcrData[] = ocrResult.pages.map((page: OCRPage, index: number) => {
             return {
-                dimension: page.dimension,
-                layout: page.layout,
-                tokens: page.tokens,
-                image: pdfImages[index],
+                words: page.lines.map((token) => {
+                    const normalizedVertices = token.layout.boundingPoly.normalizedVertices;
+                    return {
+                        text: getText(token.layout.textAnchor),
+                        left: normalizedVertices[0].x * (page.dimension.width / 2),
+                        top: normalizedVertices[0].y * (page.dimension.height / 2),
+                        width: (normalizedVertices[1].x - normalizedVertices[0].x) * (page.dimension.width / 2),
+                        height: (normalizedVertices[2].y - normalizedVertices[0].y) * (page.dimension.height / 2),
+                    };
+                }),
+                image: `${index}`,
+                height: page.dimension.height,
+                width: page.dimension.width,
             };
         });
-        setOcrPages(ocrPages);
+        setPagesOcrData(ocrPages);
+        setPdfImages(pdfImages);
 
-        try {
-            aiLoad = await rateconImporter.processRateconFile(file, ocrResult, numOfPages, metadata);
-            applyAIOutputToForm(aiLoad);
-            setCurrentRateconFile(file);
-        } catch (e) {
-            resetState();
-            notify({ title: 'Error', message: e?.message || 'Error processing file', type: 'error' });
-            return;
-        }
+        // try {
+        //     aiLoad = await rateconImporter.processRateconFile(file, ocrResult, numOfPages, metadata);
+        //     applyAIOutputToForm(aiLoad);
+        //     setCurrentRateconFile(file);
+        // } catch (e) {
+        //     resetState();
+        //     notify({ title: 'Error', message: e?.message || 'Error processing file', type: 'error' });
+        //     return;
+        // }
 
-        applyCustomerToForm(aiLoad, customersList);
+        // applyCustomerToForm(aiLoad, customersList);
 
         setLoading(false);
         setAiProgress(0);
@@ -329,10 +354,36 @@ const CreateLoad: PageWithAuth = () => {
         }
     };
 
+    function calculateFontSize(text, boxWidth, boxHeight, initialFontSize = 16) {
+        const testDiv = document.createElement('div');
+        testDiv.style.position = 'absolute';
+        testDiv.style.visibility = 'hidden';
+        testDiv.style.height = 'auto';
+        testDiv.style.width = boxWidth + 'px';
+        testDiv.style.fontSize = initialFontSize + 'px';
+        testDiv.style.whiteSpace = 'pre'; // or 'normal' if you expect wrapping
+        testDiv.style.lineHeight = 'normal'; // or 1 if you expect wrapping
+        testDiv.textContent = text;
+
+        document.body.appendChild(testDiv);
+
+        let currentFontSize = initialFontSize;
+        const increment = 0.5; // Adjust this value for finer control
+
+        // Adjust the font size up or down based on the height
+        while (testDiv.scrollHeight > boxHeight && currentFontSize > 0) {
+            currentFontSize -= increment;
+            testDiv.style.fontSize = currentFontSize + 'px';
+        }
+
+        document.body.removeChild(testDiv);
+        return currentFontSize;
+    }
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
-            <div className="flex">
-                <div className="py-2 mx-auto">
+            <div className="flex h-screen">
+                <div className="py-2 mx-auto overflow-auto">
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
                         paths={[
@@ -432,35 +483,58 @@ const CreateLoad: PageWithAuth = () => {
                         </form>
                     </div>
                 </div>
-                <div className="w-1/2">
-                    {/* {ocrPages.length > 0 && (
-                        <div className="flex justify-center">
-                            {ocrPages.map((page, index) => (
-                                <Image
-                                    key={index}
-                                    src={page.image}
-                                    alt={`Page ${index + 1}`}
-                                    width={500}
-                                    height={100}
-                                />
-                            ))}
-                        </div>
-                    )} */}
-                    {/* <div className="px-5 mt-6">
+                <div className="overflow-auto">
+                    <div className="px-5 mt-6">
                         <div className="flex flex-col gap-4">
-                            <div className="relative">
-                                <div className="inline-flex overflow-hidden bg-white rounded-lg shadow">
-                                    <Image src="/download.png" alt="" width={750} height={0} />
-                                </div>
-                            </div>
-
-                            <div className="relative">
-                                <div className="inline-flex overflow-hidden bg-white rounded-lg shadow">
-                                    <Image src="/download.png" alt="" width={750} height={0} />
-                                </div>
-                            </div>
+                            {pagesOcrData.length > 0 &&
+                                pagesOcrData.map((page, index) => (
+                                    <div className="relative" key={index}>
+                                        <div className="z-0 inline-flex overflow-hidden bg-white rounded-lg shadow">
+                                            <Image
+                                                src={pdfImages[index]}
+                                                alt={`Page ${index + 1}`}
+                                                width={page.width / 2}
+                                                height={0}
+                                                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                                                draggable={false}
+                                            />
+                                        </div>
+                                        <div>
+                                            {page.words.map((word, index) => {
+                                                const fontSize =
+                                                    calculateFontSize(word.text, word.width, word.height) * 2;
+                                                return (
+                                                    <div
+                                                        key={index}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: word.left,
+                                                            top: word.top,
+                                                            width: word.width,
+                                                            height: word.height,
+                                                            cursor: 'text',
+                                                            whiteSpace: 'pre',
+                                                            textAlign: 'initial',
+                                                            lineHeight: 'normal',
+                                                            textSizeAdjust: 'none',
+                                                            forcedColorAdjust: 'none',
+                                                            zIndex: 2,
+                                                            overflow: 'hidden',
+                                                            fontSize: fontSize,
+                                                            // color: 'transparent',
+                                                        }}
+                                                    >
+                                                        <span style={{ margin: 'auto', textAlign: 'center' }}>
+                                                            {word.text}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
-                    </div> */}
+                    </div>
                 </div>
             </div>
         </Layout>

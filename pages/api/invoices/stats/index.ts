@@ -79,10 +79,6 @@ export const getInvoiceStats = async ({
         },
     });
 
-    console.log('totalAmountPaidThisMonth', totalAmountPaidThisMonth);
-    console.log('totalAmountUnpaid', totalAmountUnpaid);
-    console.log('totalAmountOverdue', totalAmountOverdue);
-
     const totalPaid = totalAmountPaidThisMonth.find((status) => status.carrierId === session.user.defaultCarrierId)
         ?._sum.amount;
     const totalUnpaid = totalAmountUnpaid.find((status) => status.carrierId === session.user.defaultCarrierId)?._sum

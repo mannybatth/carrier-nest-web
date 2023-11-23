@@ -37,7 +37,6 @@ const CarrierSetup: PageWithAuth = () => {
 
     // Add a function to check for uniqueness and set the carrier code
     const handleCarrierCode = async (name: string) => {
-        console.log('handleCarrierCode', name);
         let code = generateCarrierCode(name);
         let isUnique = await isCarrierCodeUnique(code);
         while (!isUnique) {

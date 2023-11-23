@@ -16,8 +16,6 @@ const CreateCustomer: PageWithAuth = () => {
     const [loading, setLoading] = React.useState(false);
 
     const submit = async (data: Customer) => {
-        console.log(data);
-
         setLoading(true);
 
         const customerData: Partial<Customer> = {

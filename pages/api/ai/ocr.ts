@@ -108,16 +108,17 @@ export default async function POST(req: NextRequest) {
 
             const pages = document.pages.map((page) => {
                 return {
-                    pageNumber: page.pageNumber,
                     tokens: page.tokens,
                     dimension: page.dimension,
                     layout: page.layout,
+                    lines: page.lines,
                 };
             });
             return NextResponse.json({
                 blocks: pagesInBlocks,
                 lines: pagesInLines,
                 pages,
+                text,
             });
         } catch (error) {
             console.error('Error during the Document AI process:', error);

@@ -3,7 +3,7 @@ import { entities, Entity, PageOcrData, Rectangle } from '../../interfaces/ner';
 import Selection from './Selection';
 
 type Props = {
-    data: Blob;
+    data: Blob | string;
     pageOcrData: PageOcrData;
     setPageOcrData?(ocrData: PageOcrData): void;
 };
@@ -70,7 +70,7 @@ const NerPage: React.FC<Props> = ({ data, pageOcrData, setPageOcrData }) => {
                 const imageData = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
                 setOriginalCanvasImage(imageData);
             };
-            img.src = URL.createObjectURL(data);
+            img.src = data instanceof Blob ? URL.createObjectURL(data) : data;
         }
     }, [data, canvasRef, context]);
 

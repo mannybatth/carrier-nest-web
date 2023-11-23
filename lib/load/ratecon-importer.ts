@@ -2,6 +2,7 @@ import { AILoad } from '../../interfaces/ai';
 import { apiUrl, appUrl } from '../../constants';
 import { calcPdfPageCount } from '../helpers/pdf';
 import { addColonToTimeString, convertRateToNumber } from '../helpers/ratecon-vertex-helpers';
+import { OCRPage } from '../../interfaces/ocr';
 
 const expectedProperties = new Set([
     'logistics_company',
@@ -61,7 +62,12 @@ export class RateconImporter {
         });
     }
 
-    public async runOCR(file: File) {
+    public async runOCR(file: File): Promise<{
+        blocks: string[];
+        lines: string[];
+        pages: OCRPage[];
+        text: string;
+    }> {
         const base64File = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
