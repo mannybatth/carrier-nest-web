@@ -110,6 +110,8 @@ model Load {
     status          LoadStatus     @default(CREATED)
     routeDistance   Decimal?
     routeDuration   Decimal?
+    routeId         String?
+    route           Route?
     invoice         Invoice?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     customer        Customer?      @relation(fields: [customerId], references: [id])
@@ -121,7 +123,6 @@ model Load {
     rateconDocument LoadDocument?  @relation("loadForRatecon")
     loadDocuments   LoadDocument[] @relation("load")
     stops           LoadStop[]
-    drivers         Driver[]       @relation("driverLoads")
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -150,6 +151,54 @@ model LoadStop {
     loadsAsShipper   Load[]       @relation("shipper")
     loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
     user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    routeItems       RouteItem[]
+}
+
+model Location {
+    id        String      @id @default(cuid())
+    createdAt DateTime    @default(now())
+    updatedAt DateTime    @updatedAt
+    name      String
+    street    String
+    city      String
+    state     String
+    zip       String
+    country   String
+    latitude  Float?
+    longitude Float?
+    routeItem RouteItem[]
+}
+
+model Route {
+    id         String      @id @default(cuid())
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
+    loadId     String?     @unique
+    load       Load?       @relation(fields: [loadId], references: [id])
+    routeItems RouteItem[]
+}
+
+model RouteItem {
+    id          String             @id @default(cuid())
+    routeId     String
+    sequence    Int
+    locationId  String?
+    loadStopId  String?
+    assignments DriverAssignment[]
+    route       Route              @relation(fields: [routeId], references: [id], onDelete: Cascade)
+    location    Location?          @relation(fields: [locationId], references: [id])
+    loadStop    LoadStop?          @relation(fields: [loadStopId], references: [id])
+
+    @@index([routeId, sequence]) // Helps in ordering and retrieval
+}
+
+model DriverAssignment {
+    id          String    @id @default(cuid())
+    routeItemId String
+    driverId    String
+    assignedAt  DateTime  @default(now())
+    routeItem   RouteItem @relation(fields: [routeItemId], references: [id], onDelete: Cascade)
+    driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
 }
 
 model Customer {
@@ -173,21 +222,21 @@ model Customer {
 }
 
 model Driver {
-    id             String         @id @default(cuid())
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
+    id             String             @id @default(cuid())
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
     name           String
     email          String?
     phone          String
     carrierId      String
     smsCode        String?
     smsCodeExpiry  DateTime?
-    carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    actionActivity LoadActivity[] @relation("actionDriver")
-    actorActivity  LoadActivity[] @relation("actorDriver")
+    carrier        Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    actionActivity LoadActivity[]     @relation("actionDriver")
+    actorActivity  LoadActivity[]     @relation("actorDriver")
     loadDocuments  LoadDocument[]
-    loads          Load[]         @relation("driverLoads")
     devices        Device[]
+    assignments    DriverAssignment[]
 
     @@index([name, carrierId])
 }
@@ -308,6 +357,13 @@ enum LoadStatus {
     POD_READY
 }
 
+enum RouteStatus {
+    NOT_STARTED
+    READY_FOR_PICKUP
+    IN_PROGRESS
+    COMPLETED
+}
+
 enum InvoiceStatus {
     NOT_PAID
     PARTIALLY_PAID
@@ -316,6 +372,7 @@ enum InvoiceStatus {
 
 enum LoadActivityAction {
     CHANGE_STATUS
+    ROUTE_CHANGE_STATUS
     UPLOAD_POD
     REMOVE_POD
     UPLOAD_DOCUMENT
