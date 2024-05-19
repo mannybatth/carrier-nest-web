@@ -107,7 +107,6 @@ model Load {
     receiverId      String
     rate            Decimal
     routeEncoded    String?
-    status          LoadStatus     @default(CREATED)
     routeDistance   Decimal?
     routeDuration   Decimal?
     routeId         String?
@@ -115,14 +114,14 @@ model Load {
     invoice         Invoice?
     carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     customer        Customer?      @relation(fields: [customerId], references: [id])
-    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
     user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    activity        LoadActivity[]
+    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
+    stops           LoadStop[]
+    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
     podDocuments    LoadDocument[] @relation("loadForPodDoc")
     rateconDocument LoadDocument?  @relation("loadForRatecon")
     loadDocuments   LoadDocument[] @relation("load")
-    stops           LoadStop[]
+    activity        LoadActivity[]
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -193,12 +192,13 @@ model RouteItem {
 }
 
 model DriverAssignment {
-    id          String    @id @default(cuid())
+    id          String           @id @default(cuid())
     routeItemId String
     driverId    String
-    assignedAt  DateTime  @default(now())
-    routeItem   RouteItem @relation(fields: [routeItemId], references: [id], onDelete: Cascade)
-    driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    assignedAt  DateTime         @default(now())
+    routeItem   RouteItem        @relation(fields: [routeItemId], references: [id], onDelete: Cascade)
+    driver      Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    status      AssignmentStatus @default(NOT_STARTED)
 }
 
 model Customer {
@@ -248,7 +248,7 @@ model Invoice {
     loadId          String           @unique
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
-    status          InvoiceStatus
+    status          InvoiceStatus    @default(NOT_PAID)
     totalAmount     Decimal
     remainingAmount Decimal
     invoicedAt      DateTime
@@ -320,8 +320,8 @@ model LoadActivity {
     actorDriverId          String?
     actorDriverName        String?
     action                 LoadActivityAction
-    fromStatus             LoadStatus?
-    toStatus               LoadStatus?
+    fromRouteStatus        RouteStatus?
+    toRouteStatus          RouteStatus?
     actionDocumentId       String?
     actionDocumentFileName String?
     actionDriverId         String?
@@ -350,14 +350,14 @@ enum LoadStopType {
     STOP
 }
 
-enum LoadStatus {
-    CREATED
-    IN_PROGRESS
-    DELIVERED
-    POD_READY
-}
+// enum LoadStatus {
+//     CREATED
+//     IN_PROGRESS
+//     DELIVERED
+//     POD_READY
+// }
 
-enum RouteStatus {
+enum AssignmentStatus {
     NOT_STARTED
     READY_FOR_PICKUP
     IN_PROGRESS
@@ -371,7 +371,6 @@ enum InvoiceStatus {
 }
 
 enum LoadActivityAction {
-    CHANGE_STATUS
     ROUTE_CHANGE_STATUS
     UPLOAD_POD
     REMOVE_POD
