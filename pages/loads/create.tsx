@@ -372,7 +372,12 @@ const CreateLoad: PageWithAuth = () => {
             if (done) {
                 setAiProgress(100);
                 console.log('AI response', buffer);
-                aiLoad = JSON.parse(buffer);
+                const jsonString = buffer.match(/```json\s*([\s\S]*?)\s*```/);
+                try {
+                    aiLoad = JSON.parse(jsonString[1]);
+                } catch (error) {
+                    console.error('Error parsing JSON:', error);
+                }
                 break;
             }
             const decoded = new TextDecoder().decode(value);

@@ -1,8 +1,8 @@
 import { StreamingTextResponse } from 'ai';
-import { BytesOutputParser } from 'langchain/schema/output_parser';
-import { GoogleVertexAI } from 'langchain/llms/googlevertexai/web';
-import { PromptTemplate } from 'langchain/prompts';
 import { NextRequest, NextResponse } from 'next/server';
+import { ChatVertexAI } from '@langchain/google-vertexai-web';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { BytesOutputParser } from '@langchain/core/output_parsers';
 
 interface LogisticsData {
     logistics_company: string;
@@ -198,8 +198,8 @@ export async function POST(req: NextRequest) {
             inputVariables: ['question', 'context'],
         });
 
-        const model = new GoogleVertexAI({
-            model: 'text-bison-32k',
+        const model = new ChatVertexAI({
+            model: 'gemini-1.5-pro-preview-0409',
             maxOutputTokens: 1024,
             temperature: 0.1,
             verbose: process.env.NODE_ENV === 'development',
