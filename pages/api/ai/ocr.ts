@@ -62,6 +62,9 @@ export default async function POST(req: NextRequest) {
             const getBottomY = (block) => block.layout.boundingPoly.normalizedVertices[2].y;
 
             for (const page of document.pages) {
+                if (!page.blocks) {
+                    continue;
+                }
                 const blocks = [...page.blocks];
 
                 blocks.sort((a, b) => {
@@ -92,6 +95,9 @@ export default async function POST(req: NextRequest) {
             }
 
             for (const page of document.pages) {
+                if (!page.lines) {
+                    continue;
+                }
                 const lines = [...page.lines];
 
                 lines.sort((a, b) => {
