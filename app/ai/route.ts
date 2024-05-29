@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
 
         const model = new ChatVertexAI({
             model: 'gemini-1.5-pro-preview-0409',
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
             temperature: 0.1,
             verbose: process.env.NODE_ENV === 'development',
             authOptions: {
