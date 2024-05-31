@@ -435,6 +435,21 @@ const CreateLoad: PageWithAuth = () => {
                 }
             });
         }
+
+        // If po_numbers, pickup_numbers, or reference_numbers are strings, add them to an array
+        if (load.stops) {
+            load.stops.forEach((stop) => {
+                if (typeof stop.po_numbers === 'string') {
+                    stop.po_numbers = [stop.po_numbers];
+                }
+                if (typeof stop.pickup_numbers === 'string') {
+                    stop.pickup_numbers = [stop.pickup_numbers];
+                }
+                if (typeof stop.reference_numbers === 'string') {
+                    stop.reference_numbers = [stop.reference_numbers];
+                }
+            });
+        }
     };
 
     const applyAIOutputToForm = (load: AILoad) => {
