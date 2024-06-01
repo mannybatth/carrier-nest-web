@@ -13,9 +13,9 @@ export interface DashboardStats {
 }
 
 export enum DashboardStatsTimeFrameType {
-    ONE_WEEK = 7,
-    TWO_WEEK = 14,
-    MONTH = 30,
-    YEAR = 364,
-    ALL = 364 * 10,
+    ONE_WEEK = '7',
+    TWO_WEEK = '14',
+    MONTH = '30',
+    YEAR = '364',
+    ALL = `${364 * 10}`,
 }

@@ -97,8 +97,8 @@ const Dashboard: PageWithAuth = () => {
         getStats(timeFrameSelected);
     };
 
-    const covertEnumValueToUIString = () => {
-        switch (statsTimeFrame) {
+    const convertEnumValueToUIString = (enumValue: DashboardStatsTimeFrameType) => {
+        switch (enumValue) {
             case DashboardStatsTimeFrameType.ONE_WEEK:
                 return 'One Week';
                 break;
@@ -393,7 +393,7 @@ const Dashboard: PageWithAuth = () => {
                                     type="button"
                                     className="relative inline-flex items-center px-3 py-2 text-sm font-base text-gray-900 bg-white rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
                                 >
-                                    Past: {covertEnumValueToUIString()}
+                                    Past: {convertEnumValueToUIString(statsTimeFrame)}
                                 </button>
                                 <Menu as="div" className="block -ml-px">
                                     <Menu.Button className="relative inline-flex items-center h-full px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
@@ -410,112 +410,34 @@ const Dashboard: PageWithAuth = () => {
                                         leaveTo="transform opacity-0 scale-95"
                                     >
                                         <Menu.Items className="absolute left-0 z-10 w-36 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                            <div className="py-1">
-                                                {
-                                                    <Menu.Item>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={() =>
-                                                                    changeStatsTimeFrame(
-                                                                        DashboardStatsTimeFrameType.ONE_WEEK,
-                                                                    )
-                                                                }
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                One Week
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                }
-                                                {
-                                                    <Menu.Item>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={() =>
-                                                                    changeStatsTimeFrame(
-                                                                        DashboardStatsTimeFrameType.TWO_WEEK,
-                                                                    )
-                                                                }
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                Two Week
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                }
-                                                {
-                                                    <Menu.Item>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={() =>
-                                                                    changeStatsTimeFrame(
-                                                                        DashboardStatsTimeFrameType.MONTH,
-                                                                    )
-                                                                }
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                Month
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                }
-                                                {
-                                                    <Menu.Item>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={() =>
-                                                                    changeStatsTimeFrame(
-                                                                        DashboardStatsTimeFrameType.YEAR,
-                                                                    )
-                                                                }
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                Year
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                }
-                                                {
-                                                    <Menu.Item>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={() =>
-                                                                    changeStatsTimeFrame(
-                                                                        DashboardStatsTimeFrameType.ALL,
-                                                                    )
-                                                                }
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                All Time
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                }
+                                            <div className="py-1" key={'statsdropdown'}>
+                                                {Object.keys(DashboardStatsTimeFrameType).map((key) => {
+                                                    return (
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <a
+                                                                    onClick={() =>
+                                                                        changeStatsTimeFrame(
+                                                                            DashboardStatsTimeFrameType[
+                                                                                key
+                                                                            ] as DashboardStatsTimeFrameType,
+                                                                        )
+                                                                    }
+                                                                    className={classNames(
+                                                                        active
+                                                                            ? 'bg-gray-100 text-gray-900'
+                                                                            : 'text-gray-700',
+                                                                        'block px-4 py-2 text-sm',
+                                                                    )}
+                                                                >
+                                                                    {convertEnumValueToUIString(
+                                                                        DashboardStatsTimeFrameType[key],
+                                                                    )}
+                                                                </a>
+                                                            )}
+                                                        </Menu.Item>
+                                                    );
+                                                })}
                                             </div>
                                         </Menu.Items>
                                     </Transition>
