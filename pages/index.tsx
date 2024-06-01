@@ -1,17 +1,19 @@
-import { CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { Menu, Transition } from '@headlessui/react';
+import { ChevronDownIcon, CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import { Carrier } from '@prisma/client';
+import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { formatValue } from 'react-currency-input-field';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
 import LoadStatusBadge from '../components/loads/LoadStatusBadge';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
-import { DashboardStats } from '../interfaces/stats';
+import { DashboardStats, DashboardStatsTimeFrameType } from '../interfaces/stats';
 import { getDashboardStats, getUpcomingLoads } from '../lib/rest/dashboard';
 
 const StatBoxSkeleton = () => {
@@ -30,7 +32,7 @@ const StatBox = (props: {
     icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) => {
     return (
-        <div className="overflow-hidden bg-white rounded-lg shadow">
+        <div className="overflow-hidden bg-slate-50 rounded-lg shadow-none border border-gray-200">
             <div className="p-5">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -60,6 +62,9 @@ const Dashboard: PageWithAuth = () => {
 
     const [loadingStats, setLoadingStats] = React.useState(true);
     const [stats, setStats] = React.useState<DashboardStats>(null);
+    const [statsTimeFrame, setStatsTimeFrame] = React.useState<DashboardStatsTimeFrameType>(
+        DashboardStatsTimeFrameType.ONE_WEEK,
+    );
 
     // Get loads on page load
     React.useEffect(() => {
@@ -80,10 +85,36 @@ const Dashboard: PageWithAuth = () => {
         setLoadsLoading(false);
     };
 
-    const getStats = async () => {
-        const stats = await getDashboardStats();
+    const getStats = async (timeFrameSelected?: DashboardStatsTimeFrameType) => {
+        const stats = await getDashboardStats(timeFrameSelected ?? statsTimeFrame);
         setStats(stats);
         setLoadingStats(false);
+    };
+
+    const changeStatsTimeFrame = async (timeFrameSelected: DashboardStatsTimeFrameType) => {
+        setLoadingStats(true);
+        setStatsTimeFrame(timeFrameSelected);
+        getStats(timeFrameSelected);
+    };
+
+    const covertEnumValueToUIString = () => {
+        switch (statsTimeFrame) {
+            case DashboardStatsTimeFrameType.ONE_WEEK:
+                return 'One Week';
+                break;
+            case DashboardStatsTimeFrameType.TWO_WEEK:
+                return 'Two Week';
+                break;
+            case DashboardStatsTimeFrameType.MONTH:
+                return 'Month';
+                break;
+            case DashboardStatsTimeFrameType.YEAR:
+                return 'One Year';
+                break;
+            case DashboardStatsTimeFrameType.ALL:
+                return 'All Time';
+                break;
+        }
     };
 
     return (
@@ -94,14 +125,13 @@ const Dashboard: PageWithAuth = () => {
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="text-2xl text-gray-900">
+            <div className="py-2 mx-auto max-w-7xl ">
+                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8 ">
+                    <h1 className="text-2xl font-bold text-slate-700">
                         Welcome back
-                        <span className="font-semibold">
-                            &nbsp;{session?.user?.name ? session?.user?.name : defaultCarrier?.name}
+                        <span className="font-light text-black">
+                            &nbsp;{session?.user?.name ? session?.user?.name + '!' : defaultCarrier?.name + '!'}
                         </span>
-                        !
                     </h1>
 
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
@@ -111,10 +141,21 @@ const Dashboard: PageWithAuth = () => {
                         <>
                             {loadsList.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center pb-10">
-                                    <div className="p-6 mt-6 bg-white rounded shadow-md w-80">
-                                        <h1 className="mb-4 text-2xl font-bold text-center">Create a New Load</h1>
-                                        <p className="mb-6 text-center text-gray-600">
-                                            Click the button below to create a new load and get started.
+                                    <Image
+                                        className="absolute top-18 -right-0 "
+                                        alt="Truck BG"
+                                        src={'/truckcbg.jpeg'}
+                                        height={200}
+                                        width={200}
+                                    />
+                                    <div className="p-6 mt-6 flex flex-col items-center bg-white rounded w-80">
+                                        <h1 className="mb-2 text-xl font-bold text-center">Create a New Load</h1>
+                                        <p className="mb-6 text-center text-gray-600 text-sm">
+                                            Easily import a load using our
+                                            <span className="whitespace-nowrap bg-slate-50 font-bold text-slate-700 italic shadow-sm m-1 px-1 rounded border border-slate-300">
+                                                Rate Confirmation AI
+                                            </span>
+                                            click below to get started.
                                         </p>
                                         <Link href="/loads/create">
                                             <button
@@ -343,7 +384,145 @@ const Dashboard: PageWithAuth = () => {
                     )}
 
                     <div className="px-5 mt-2 md:px-0">
-                        <h2 className="text-lg font-bold leading-6 text-gray-900">Overview - Past 30 Days</h2>
+                        <div className="flex flex-row justify-between place-items-baseline">
+                            <h2 className="text-xl font-light leading-6 text-gray-700 mb-4">
+                                Overview - Company Stats
+                            </h2>
+                            <div className="relative inline-flex rounded-md shadow-sm">
+                                <button
+                                    type="button"
+                                    className="relative inline-flex items-center px-3 py-2 text-sm font-base text-gray-900 bg-white rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+                                >
+                                    Past: {covertEnumValueToUIString()}
+                                </button>
+                                <Menu as="div" className="block -ml-px">
+                                    <Menu.Button className="relative inline-flex items-center h-full px-2 py-2 text-gray-400 bg-white rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10">
+                                        <span className="sr-only">Open options</span>
+                                        <ChevronDownIcon className="w-5 h-5" aria-hidden="true" />
+                                    </Menu.Button>
+                                    <Transition
+                                        as={Fragment}
+                                        enter="transition ease-out duration-100"
+                                        enterFrom="transform opacity-0 scale-95"
+                                        enterTo="transform opacity-100 scale-100"
+                                        leave="transition ease-in duration-75"
+                                        leaveFrom="transform opacity-100 scale-100"
+                                        leaveTo="transform opacity-0 scale-95"
+                                    >
+                                        <Menu.Items className="absolute left-0 z-10 w-36 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                            <div className="py-1">
+                                                {
+                                                    <Menu.Item>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={() =>
+                                                                    changeStatsTimeFrame(
+                                                                        DashboardStatsTimeFrameType.ONE_WEEK,
+                                                                    )
+                                                                }
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                One Week
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                }
+                                                {
+                                                    <Menu.Item>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={() =>
+                                                                    changeStatsTimeFrame(
+                                                                        DashboardStatsTimeFrameType.TWO_WEEK,
+                                                                    )
+                                                                }
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                Two Week
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                }
+                                                {
+                                                    <Menu.Item>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={() =>
+                                                                    changeStatsTimeFrame(
+                                                                        DashboardStatsTimeFrameType.MONTH,
+                                                                    )
+                                                                }
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                Month
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                }
+                                                {
+                                                    <Menu.Item>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={() =>
+                                                                    changeStatsTimeFrame(
+                                                                        DashboardStatsTimeFrameType.YEAR,
+                                                                    )
+                                                                }
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                Year
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                }
+                                                {
+                                                    <Menu.Item>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={() =>
+                                                                    changeStatsTimeFrame(
+                                                                        DashboardStatsTimeFrameType.ALL,
+                                                                    )
+                                                                }
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                All Time
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                }
+                                            </div>
+                                        </Menu.Items>
+                                    </Transition>
+                                </Menu>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3">
                             {loadingStats ? (
                                 <>

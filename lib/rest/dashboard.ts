@@ -12,8 +12,8 @@ export const getUpcomingLoads = async (): Promise<ExpandedLoad[]> => {
     return data;
 };
 
-export const getDashboardStats = async (): Promise<DashboardStats> => {
-    const response = await fetch(`${apiUrl}/stats`);
+export const getDashboardStats = async (statsTimeFrame: number): Promise<DashboardStats> => {
+    const response = await fetch(`${apiUrl}/stats?timeframe=${statsTimeFrame}`, { cache: 'no-cache' });
     const { data, errors }: JSONResponse<DashboardStats> = await response.json();
 
     if (errors) {

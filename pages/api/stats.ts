@@ -25,8 +25,10 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         try {
             const session = await getServerSession(req, res, authOptions);
 
+            const numberOfDaysToLoad = Number(req.query.timeframe) || 7;
+
             const start = new Date();
-            start.setDate(start.getDate() - 30);
+            start.setDate(start.getDate() - numberOfDaysToLoad);
 
             const loads = await prisma.load.findMany({
                 where: {
