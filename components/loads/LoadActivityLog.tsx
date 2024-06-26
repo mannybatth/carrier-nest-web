@@ -102,7 +102,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                     >
                                         <div className="w-px bg-gray-200" />
                                     </div>
-                                    <div className="relative flex items-center justify-center flex-none w-6 h-6 bg-white">
+                                    <div className="relative flex items-center justify-center flex-none w-6 h-6 bg-white rounded-full">
                                         <div className="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300" />
                                     </div>
                                     <p className="flex-auto py-0.5 text-xs leading-5 text-gray-500">

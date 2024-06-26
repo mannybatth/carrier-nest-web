@@ -1,16 +1,16 @@
+import { Prisma } from '@prisma/client';
 import { NextComponentType, NextPageContext } from 'next';
 import { Session } from 'next-auth';
-import { SessionProvider, signIn, useSession } from 'next-auth/react';
+import { SessionProvider, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { PropsWithChildren } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { UserProvider } from '../components/context/UserContext';
 import Spinner from '../components/Spinner';
+import { UserProvider } from '../components/context/UserContext';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
-import { Prisma } from '@prisma/client';
 
 Prisma.Decimal.prototype.toJSON = function () {
     return this.toNumber();
@@ -26,8 +26,8 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
-        if (status === 'unauthenticated') signIn(); // If not authenticated, force log in
-
+        //if (status === 'unauthenticated') signIn(); // If not authenticated, force log in
+        if (status === 'unauthenticated') router.replace('/homepage');
         // If authenticated, but no default carrier, redirect to carrier setup
         if (status === 'authenticated' && !session?.user?.defaultCarrierId) {
             router.replace('/setup/carrier');

@@ -1,11 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session, getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedLoad, JSONResponse, exclude } from '../../../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadStop, JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
 import { deleteDocumentFromGCS } from './documents/[did]';
 import { getToken } from 'next-auth/jwt';
+import { Load, LoadStop, LoadStopType } from '@prisma/client';
 
 export default handler;
 
@@ -15,6 +16,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             return _get();
         case 'PUT':
             return _put();
+        case 'PATCH':
+            return _patch();
         case 'DELETE':
             return _delete();
         default:
@@ -189,7 +192,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                 },
                 stops: {
-                    deleteMany: {},
+                    deleteMany: { type: { equals: LoadStopType.STOP } },
                     create: (loadData.stops || []).map((stop) => ({
                         type: stop.type,
                         name: stop.name,
@@ -225,6 +228,98 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         });
     }
 
+    async function _patch() {
+        const session = await getServerSession(req, res, authOptions);
+
+        // Check if the load exists and is assigned to the carrier
+        const load = await prisma.load.findFirst({
+            where: {
+                id: String(req.query.id),
+                carrierId: session.user.defaultCarrierId,
+            },
+        });
+
+        if (!load) {
+            return res.status(404).send({
+                code: 404,
+                errors: [{ message: 'Load not found' }],
+            });
+        }
+
+        // Get load stop details from request body
+        const stop = req.body as LoadStop;
+
+        const updatedAdditionalStops = await prisma.load.update({
+            where: {
+                id: String(req.query.id),
+            },
+            data: {
+                additionalStops: {
+                    create: {
+                        type: stop.type || LoadStopType.LEGSTOP,
+                        name: stop.name,
+                        street: stop.street || '',
+                        city: stop.city || '',
+                        state: stop.state || '',
+                        zip: stop.zip || '',
+                        country: stop.country || '',
+                        date: stop.date || '',
+                        time: stop.time || '',
+                        stopIndex: stop.stopIndex || 0,
+                        longitude: stop.longitude,
+                        latitude: stop.latitude,
+                        poNumbers: stop.poNumbers || '',
+                        pickUpNumbers: stop.pickUpNumbers || '',
+                        referenceNumbers: stop.referenceNumbers || '',
+                        user: {
+                            connect: {
+                                id: session.user.id,
+                            },
+                        },
+                    },
+                },
+            },
+            select: {
+                additionalStops: {
+                    orderBy: {
+                        createdAt: 'asc',
+                    },
+                    select: {
+                        id: true,
+                        type: true,
+                        name: true,
+                        street: true,
+                        city: true,
+                        state: true,
+                        zip: true,
+                        country: true,
+                        date: true,
+                        time: true,
+                        stopIndex: true,
+                        latitude: true,
+                        longitude: true,
+                        poNumbers: true,
+                        pickUpNumbers: true,
+                        referenceNumbers: true,
+                    },
+                },
+            },
+        });
+
+        const additionalStops = updatedAdditionalStops.additionalStops;
+
+        if (!updatedAdditionalStops.additionalStops) {
+            return res.status(500).send({
+                code: 500,
+                errors: [{ message: 'Failed to add additional stop' }],
+            });
+        }
+
+        return res.status(200).json({
+            code: 200,
+            data: { additionalStops },
+        });
+    }
     async function _delete() {
         const session = await getServerSession(req, res, authOptions);
 
@@ -286,6 +381,8 @@ const getLoad = async ({
     const expandDriver = expand?.includes('driver');
     const expandDocuments = expand?.includes('documents');
     const expandCarrier = expand?.includes('carrier');
+    const expandRoute = expand?.includes('route');
+    const expandAdditionalStops = expand?.includes('additionalStops');
 
     const load = await prisma.load.findFirst({
         where: {
@@ -372,6 +469,33 @@ const getLoad = async ({
                       },
                   }
                 : {}),
+            ...(expandAdditionalStops
+                ? {
+                      additionalStops: {
+                          orderBy: {
+                              createdAt: 'asc',
+                          },
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
+                          },
+                      },
+                  }
+                : {}),
             ...(expandDriver ? { drivers: true } : {}),
             ...(expandDocuments
                 ? {
@@ -384,6 +508,38 @@ const getLoad = async ({
                       podDocuments: {
                           orderBy: {
                               createdAt: 'desc',
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandRoute
+                ? {
+                      route: {
+                          select: {
+                              id: true,
+                              routeLegs: {
+                                  select: {
+                                      id: true,
+                                      driverInstructions: true,
+                                      locations: { select: { id: true } },
+                                      scheduledDate: true,
+                                      scheduledTime: true,
+                                      startedAt: true,
+                                      startLatitude: true,
+                                      startLongitude: true,
+                                      createdAt: true,
+                                      endedAt: true,
+                                      endLatitude: true,
+                                      endLongitude: true,
+                                      driverAssignments: {
+                                          select: {
+                                              driverId: true,
+                                              assignedAt: true,
+                                              driver: true,
+                                          },
+                                      },
+                                  },
+                              },
                           },
                       },
                   }

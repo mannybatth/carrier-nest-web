@@ -2,7 +2,10 @@ import { Menu, Transition } from '@headlessui/react';
 import {
     ArrowTopRightOnSquareIcon,
     ArrowUpTrayIcon,
+    BuildingOffice2Icon,
     ChevronDownIcon,
+    EllipsisHorizontalIcon,
+    MapIcon,
     MapPinIcon,
     PaperClipIcon,
     StopIcon,
@@ -11,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
 import classNames from 'classnames';
+import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,22 +22,23 @@ import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
+import { notify } from '../../components/Notification';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
+import LegAssignmentModal from 'components/drivers/LegAssignmentModal';
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadActivityLog from '../../components/loads/LoadActivityLog';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
-import { notify } from '../../components/Notification';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedRoute, ExpandedRouteLeg, ExpandedRouteLegFromLoad } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
 import { downloadCombinedPDFForLoad } from '../../lib/load/download-files';
-import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
+import { UILoadStatus, isDate24HrInThePast, loadStatus } from '../../lib/load/load-utils';
 import {
     addLoadDocumentToLoad,
     deleteLoadById,
@@ -41,7 +46,9 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import { LoadingOverlay } from 'components/LoadingOverlay';
+import Spinner from 'components/Spinner';
+import { removeRouteLeg, updateRouteLegStatus } from 'lib/rest/routeLeg';
+import { set } from 'date-fns';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -49,7 +56,7 @@ type ActionsDropdownProps = {
     editLoadClicked: () => void;
     viewInvoiceClicked?: () => void;
     createInvoiceClicked?: () => void;
-    assignDriverClicked: () => void;
+    addAssignmentClicked: () => void;
     downloadCombinedPDF: () => void;
     makeCopyOfLoadClicked: () => void;
     deleteLoadClicked: () => void;
@@ -61,7 +68,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     editLoadClicked,
     viewInvoiceClicked,
     createInvoiceClicked,
-    assignDriverClicked,
+    addAssignmentClicked,
     downloadCombinedPDF,
     makeCopyOfLoadClicked,
     deleteLoadClicked,
@@ -87,7 +94,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <Menu.Items className="absolute right-0 z-20 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
                         <Menu.Item>
                             {({ active }) => (
@@ -130,14 +137,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        assignDriverClicked();
+                                        addAssignmentClicked();
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Add/Remove Driver
+                                    Add Driver Assignment
                                 </a>
                             )}
                         </Menu.Item>
@@ -199,6 +206,211 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
         </Menu>
     );
 };
+export enum LoadLegStatus {
+    ASSIGNED = 'ASSIGNED',
+    STARTED = 'STARTED',
+    COMPLETED = 'COMPLETED',
+}
+
+type LegAssignStatusDropDownProps = {
+    disabled: boolean;
+    status: LoadLegStatus;
+    legId: string;
+    startedAt: Date;
+    endedAt: Date;
+    changeStatusClicked: (newStatus: LoadLegStatus, legId: string) => void;
+};
+
+const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
+    disabled,
+    status,
+    legId,
+    startedAt,
+    endedAt,
+    changeStatusClicked,
+}) => {
+    let qTipText = startedAt && !endedAt ? `Started at: ${new Date(startedAt).toLocaleString()}` : '';
+    qTipText = endedAt ? `Completed at: ${new Date(endedAt).toLocaleString()}` : qTipText;
+
+    return (
+        <Menu as="div" className="relative inline-block text-left">
+            <div>
+                <Menu.Button
+                    data-tooltip-id="tooltip"
+                    data-tooltip-content={qTipText}
+                    data-tooltip-place="top-start"
+                    className={`inline-flex justify-center capitalize w-full px-2 py-[4px] text-xs font-semibold text-slate-700 ${
+                        status === LoadLegStatus.STARTED
+                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                            : status === LoadLegStatus.COMPLETED
+                            ? 'bg-green-500 text-white hover:bg-green-600'
+                            : 'bg-white text-slate-900 hover:bg-gray-50'
+                    } shadow-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
+                    disabled={disabled}
+                >
+                    {status.toLowerCase()}
+                    <ChevronDownIcon className="w-5 h-4 mx-0 pl-1" aria-hidden="true" />
+                </Menu.Button>
+            </div>
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items
+                    key={'loadstatusdropdown'}
+                    className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                >
+                    {Object.values(LoadLegStatus).map((thisStatus, index) => {
+                        return (
+                            thisStatus !== status && (
+                                <div className="py-1" key={`legstatusitem-${index}`}>
+                                    <Menu.Item>
+                                        {({ active }) => (
+                                            <a
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    changeStatusClicked(thisStatus, legId);
+                                                }}
+                                                className={classNames(
+                                                    active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                                    'block px-4 py-2 text-sm',
+                                                )}
+                                            >
+                                                <p className="capitalize font-bold">
+                                                    {LoadLegStatus[thisStatus].toLowerCase()}
+                                                </p>
+                                            </a>
+                                        )}
+                                    </Menu.Item>
+                                </div>
+                            )
+                        );
+                    })}
+
+                    {/* <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        editLegClicked(legId);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Edit Assignment
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div>
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteLegClicked(legId);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Delete Assignement
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div> */}
+                </Menu.Items>
+            </Transition>
+        </Menu>
+    );
+};
+
+type LegAssignDropDownProps = {
+    load: ExpandedLoad;
+    disabled: boolean;
+    editLegClicked: (legId: string) => void;
+    deleteLegClicked: (legId: string) => void;
+    legId: string;
+};
+
+const LegAssignDropDown: React.FC<LegAssignDropDownProps> = ({
+    load,
+    disabled,
+    editLegClicked,
+    deleteLegClicked,
+    legId,
+}) => {
+    return (
+        <Menu as="div" className="relative inline-block text-left">
+            <div>
+                <Menu.Button
+                    className="inline-flex justify-center w-full px-1 py-[2px] text-sm font-bold text-slate-700 bg-white shadow-lg border border-gray-300 rounded-md  hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+                    disabled={disabled}
+                >
+                    <EllipsisHorizontalIcon className="w-5 h-4 mx-0" aria-hidden="true" />
+                </Menu.Button>
+            </div>
+
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        editLegClicked(legId);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Edit Assignment
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div>
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteLegClicked(legId);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Delete Assignement
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div>
+                </Menu.Items>
+            </Transition>
+        </Menu>
+    );
+};
 
 type ToolbarProps = {
     className?: string;
@@ -232,7 +444,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }, [load]);
 
     return (
-        <div className={`flex flex-row place-content-between ${className}`}>
+        <div className={`sticky z-10 top-0 flex flex-row place-content-between ${className}`}>
             <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
                 <button
                     type="button"
@@ -248,7 +460,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={assignDriverClicked}
                     disabled={disabled}
                 >
-                    Add/Remove Drivers
+                    Add Driver Assignment
                 </button>
                 <button
                     type="button"
@@ -359,19 +571,25 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [load, setLoad] = useLoadContext();
     const { data: session } = useSession();
     const [openSelectDriver, setOpenSelectDriver] = useState(false);
+    const [openLegAssignment, setOpenLegAssignment] = useState(false);
     const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
     const [downloadingDocs, setDownloadingDocs] = useState(false);
 
+    const [removingRouteLegWithId, setRemovingRouteLegWithId] = React.useState<string | null>(null);
+
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
     const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
+    const [editingRouteLeg, setEditingRouteLeg] = useState<ExpandedRouteLegFromLoad | null>(null);
 
     const router = useRouter();
 
     let podFileInput: HTMLInputElement;
     let docFileInput: HTMLInputElement;
+
+    // console.log('load', load);
 
     useEffect(() => {
         if (!load) {
@@ -381,8 +599,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setPodDocuments(load.podDocuments || []);
     }, [load]);
 
-    const assignDriverAction = async () => {
-        setOpenSelectDriver(true);
+    const addAssignmentAction = async () => {
+        setOpenLegAssignment(true);
     };
 
     const deleteLoad = async (id: string) => {
@@ -547,6 +765,80 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         router.push(`/loads/create?copyLoadId=${load.id}`);
     };
 
+    const editLegClicked = (legId: string) => {
+        const leg = load.route.routeLegs.find((rl) => rl.id === legId);
+        if (leg) {
+            setEditingRouteLeg(leg);
+            setOpenLegAssignment(true);
+        }
+    };
+
+    const changeLegStatusClicked = async (legStatus: LoadLegStatus, routeLegId: string) => {
+        // console.log('changing leg status', legStatus);
+        // Update the load context with the updated driver assignment
+        const curRoute = load.route;
+        const routeLeg: ExpandedRouteLegFromLoad = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
+
+        try {
+            await updateRouteLegStatus(load.id, routeLegId, legStatus);
+
+            // Update the route leg status
+            switch (legStatus) {
+                case LoadLegStatus.ASSIGNED:
+                    routeLeg.startedAt = null;
+                    routeLeg.endedAt = null;
+                    break;
+                case LoadLegStatus.STARTED:
+                    routeLeg.startedAt = new Date();
+                    routeLeg.endedAt = null;
+                    break;
+                default:
+                    routeLeg.startedAt = new Date();
+                    routeLeg.endedAt = new Date();
+                    break;
+            }
+
+            // Update the route with the updated route leg
+            const updatedRouteLegs = curRoute.routeLegs.map((leg) => (leg.id === routeLegId ? routeLeg : leg)) as [];
+            // Update the load context with the updated route
+            const newRoute: ExpandedRoute = {
+                id: curRoute.id,
+                routeLegs: updatedRouteLegs,
+            };
+
+            // Update the load context with the updated route
+            setLoad((prev) => ({
+                ...prev,
+                route: JSON.parse(JSON.stringify(newRoute)),
+            }));
+
+            notify({ title: 'Load Assignment Status', message: 'Load assignment successfully updated' });
+        } catch (error) {
+            notify({ title: 'Error Updating Load Assignment ', type: 'error' });
+        }
+    };
+
+    const deleteLegClicked = async (legId: string) => {
+        setRemovingRouteLegWithId(legId);
+
+        try {
+            await removeRouteLeg(load.id, legId);
+            setLoad((prev) => ({
+                ...prev,
+                route: {
+                    ...prev.route,
+                    routeLegs: prev.route.routeLegs.filter((rl) => rl.id !== legId),
+                },
+            }));
+            notify({ title: 'Load Assignment', message: 'Load assignment successfully removed' });
+        } catch (e) {
+            notify({ title: 'Error Removing Load Assignment', type: 'error' });
+        }
+
+        setRemovingRouteLegWithId(null);
+    };
+
+    // console.log('editing route leg', editingRouteLeg);
     return (
         <Layout
             smHeaderComponent={
@@ -567,7 +859,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             createInvoiceClicked={() => {
                                 router.push(`/accounting/create-invoice/${load.id}`);
                             }}
-                            assignDriverClicked={assignDriverAction}
+                            addAssignmentClicked={addAssignmentAction}
                             downloadCombinedPDF={downloadCombinedPDF}
                             makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                             deleteLoadClicked={() => {
@@ -579,6 +871,14 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             }
         >
             <>
+                <LegAssignmentModal
+                    show={openLegAssignment}
+                    routeLeg={editingRouteLeg}
+                    onClose={() => {
+                        setOpenLegAssignment(false);
+                        setEditingRouteLeg(null);
+                    }}
+                ></LegAssignmentModal>
                 <DriverSelectionModal
                     show={openSelectDriver}
                     onClose={() => setOpenSelectDriver(false)}
@@ -642,7 +942,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 createInvoiceClicked={() => {
                                     router.push(`/accounting/create-invoice/${load.id}`);
                                 }}
-                                assignDriverClicked={assignDriverAction}
+                                addAssignmentClicked={addAssignmentAction}
                                 downloadCombinedPDF={downloadCombinedPDF}
                                 makeCopyOfLoadClicked={makeCopyOfLoadClicked}
                                 deleteLoadClicked={() => {
@@ -654,7 +954,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     </div>
 
                     <Toolbar
-                        className="px-5 mb-3 sm:px-6 md:px-8"
+                        className="px-5 mb-1 py-2 sm:px-6 md:px-8 bg-white"
                         load={load}
                         disabled={!load}
                         editLoadClicked={() => {
@@ -668,11 +968,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         createInvoiceClicked={() => {
                             router.push(`/accounting/create-invoice/${load.id}`);
                         }}
-                        assignDriverClicked={assignDriverAction}
+                        assignDriverClicked={() => setOpenLegAssignment(true)}
                         changeLoadStatus={changeLoadStatus}
                     ></Toolbar>
 
-                    {load && load.routeEncoded && (
+                    {/* {load && load.routeEncoded && (
                         <Image
                             src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
                                 load.routeEncoded,
@@ -683,16 +983,16 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             loading="lazy"
                             className="w-full h-auto mb-3"
                         ></Image>
-                    )}
-                    <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-8 sm:px-6 md:px-8">
+                    )} */}
+                    <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
                         {load ? (
                             <>
-                                <div className="col-span-8 sm:col-span-3 md:col-span-8 lg:col-span-3">
+                                <div className="col-span-8 lg:col-span-4 ">
                                     <aside className="bg-white border-gray-200">
                                         <div className="pb-0 space-y-6 lg:pb-10">
                                             <dl className="border-gray-200 divide-y divide-gray-200">
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Load/Order #</dt>
+                                                    <dt className="text-gray-500">Load #</dt>
                                                     <dd className="text-right text-gray-900">{load.refNum}</dd>
                                                 </div>
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
@@ -711,7 +1011,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         )}
                                                     </dd>
                                                 </div>
-                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                {/* <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Drivers</dt>
                                                     <dd className="text-right text-gray-900">
                                                         {load.drivers.length > 0 ? (
@@ -728,7 +1028,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             </a>
                                                         )}
                                                     </dd>
-                                                </div>
+                                                </div> */}
                                                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                     <dt className="text-gray-500">Rate</dt>
                                                     <dd className="text-right text-gray-900">
@@ -741,7 +1041,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         })}
                                                     </dd>
                                                 </div>
-                                                {load.routeDistance && (
+                                                {/* {load.routeDistance && (
                                                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Route Distance</dt>
                                                         <dd className="text-right text-gray-900">
@@ -761,7 +1061,176 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             )}
                                                         </dd>
                                                     </div>
-                                                )}
+                                                )} */}
+                                                {/* <div>
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">Invoice</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {load.invoice ? (
+                                                                <Link
+                                                                    href={`/accounting/invoices/${load.invoice.id}`}
+                                                                    passHref
+                                                                >
+                                                                    # {load.invoice?.invoiceNum}
+                                                                </Link>
+                                                            ) : (
+                                                                <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                                    Create Invoice
+                                                                </Link>
+                                                            )}
+                                                        </dd>
+                                                    </div>
+                                                    {load.invoice ? (
+                                                        <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
+                                                            <DownloadInvoicePDFButton
+                                                                invoice={load.invoice}
+                                                                customer={load.customer}
+                                                                load={load}
+                                                                fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
+                                                            />
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">PODs</dt>
+                                                        <dd className="text-gray-900">
+                                                            <div>
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={handleUploadPodsChange}
+                                                                    style={{ display: 'none' }}
+                                                                    ref={(input) => (podFileInput = input)}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                    onClick={() => podFileInput.click()}
+                                                                    disabled={docsLoading}
+                                                                >
+                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                                                    <span className="block md:hidden">Upload POD</span>
+                                                                    <span className="hidden md:block">Upload POD</span>
+                                                                </button>
+                                                            </div>
+                                                        </dd>
+                                                    </div>
+                                                    {podDocuments.length > 0 && (
+                                                        <ul
+                                                            role="list"
+                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                        >
+                                                            {podDocuments.map((doc, index) => (
+                                                                <li key={`pod-doc-${index}`}>
+                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                        <div
+                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                            onClick={() => openDocument(doc)}
+                                                                        >
+                                                                            <PaperClipIcon
+                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                            <span className="flex-1 w-0 ml-2 truncate">
+                                                                                {doc.fileName}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex-shrink-0 ml-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setDocumentIdToDelete(doc.id);
+                                                                                    setOpenDeleteDocumentConfirmation(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                disabled={docsLoading}
+                                                                            >
+                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                        <dt className="text-gray-500">Documents</dt>
+                                                        <dd className="text-gray-900">
+                                                            <div>
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={handleUploadDocsChange}
+                                                                    style={{ display: 'none' }}
+                                                                    ref={(input) => (docFileInput = input)}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                    onClick={() => docFileInput.click()}
+                                                                    disabled={docsLoading}
+                                                                >
+                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                                                    <span className="block md:hidden">Upload</span>
+                                                                    <span className="hidden md:block">Upload Doc</span>
+                                                                </button>
+                                                            </div>
+                                                        </dd>
+                                                    </div>
+                                                    {loadDocuments.length > 0 && (
+                                                        <ul
+                                                            role="list"
+                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                        >
+                                                            {loadDocuments.map((doc, index) => (
+                                                                <li key={`doc-${index}`}>
+                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                        <div
+                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                            onClick={() => openDocument(doc)}
+                                                                        >
+                                                                            <PaperClipIcon
+                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                            <span className="flex-1 w-0 ml-2 truncate">
+                                                                                {doc.fileName}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex-shrink-0 ml-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setDocumentIdToDelete(doc.id);
+                                                                                    setOpenDeleteDocumentConfirmation(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                disabled={docsLoading}
+                                                                            >
+                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div> */}
+                                            </dl>
+                                        </div>
+                                    </aside>
+                                </div>
+                                <div className="col-span-8 lg:col-span-4  ">
+                                    <aside className="bg-white border-gray-200">
+                                        <div className="pb-0 space-y-6 lg:pb-10">
+                                            <dl className="border-gray-200 divide-y divide-gray-200">
                                                 <div>
                                                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                                                         <dt className="text-gray-500">Invoice</dt>
@@ -928,7 +1397,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </aside>
                                 </div>
 
-                                <div className="col-span-8 space-y-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
+                                {/* <div className="col-span-8 space-y-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
                                     <div className="mt-4 space-y-3">
                                         <div className="flex flex-row justify-between pb-2 border-b border-gray-200">
                                             <h3 className="text-base font-semibold leading-6 text-gray-900">
@@ -1137,6 +1606,534 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 Load Activity
                                             </h3>
                                         </div>
+                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
+                                    </div>
+                                </div> */}
+                                <div className="col-span-8 my-10 md:my-2">
+                                    <div className="mt-4 space-y-3">
+                                        <div className="flex flex-row justify-between pb-2 ">
+                                            <div className="flex flex-col">
+                                                <h3 className="text-base font-semibold leading-6 text-gray-900">
+                                                    Load Route
+                                                </h3>
+                                                <p className="text-xs text-slate-500">
+                                                    All the load stops are listed below | Pick-Up/Stops/Drop-Off
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="flex flex-row items-center h-8 px-3 py-0 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                onClick={openRouteInGoogleMaps}
+                                            >
+                                                Get Directions
+                                                <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col border rounded-lg border-slate-200">
+                                            <div className="w-full flex flex-row justify-between  bg-slate-100 rounded-tl-lg p-2 rounded-tr-lg">
+                                                <p className="text-sm text-slate-900">
+                                                    Route Distance:{' '}
+                                                    {metersToMiles(
+                                                        new Prisma.Decimal(load.routeDistance).toNumber(),
+                                                    ).toFixed(0)}{' '}
+                                                    miles
+                                                </p>
+                                                <p className="text-sm text-slate-900">
+                                                    Travel Time:{' '}
+                                                    {secondsToReadable(
+                                                        new Prisma.Decimal(load.routeDuration).toNumber(),
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            {load && load.routeEncoded && (
+                                                <Image
+                                                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/path-5(${encodeURIComponent(
+                                                        load.routeEncoded,
+                                                    )})/auto/1275x400?padding=25,25,25,25&access_token=${
+                                                        process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+                                                    }`}
+                                                    width={1200}
+                                                    height={300}
+                                                    alt="Load Route"
+                                                    loading="lazy"
+                                                    className="w-full h-auto mb-3"
+                                                ></Image>
+                                            )}
+                                            <ul
+                                                role="list"
+                                                className=" p-2 px-4 pb-4 flex flex-col lg:flex-row flex-grow gap-3 lg:gap-4 overflow-x-auto justify-between   bg-whtie"
+                                            >
+                                                <li className="bg-neutral-50 rounded-lg p-2 mt-4 flex-grow  border border-slate-100">
+                                                    <div className="relative z-auto">
+                                                        <div className="relative flex flex-col  items-start ">
+                                                            <>
+                                                                <div className="relative px-0 w-full">
+                                                                    <div className="flex flex-row pb-2 items-end justify-between  rounded-full ">
+                                                                        <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
+                                                                            Pick-Up
+                                                                        </p>
+                                                                        <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
+                                                                            <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                                <span className="text-sm font-bold text-blue-500">
+                                                                                    {new Intl.DateTimeFormat('en-US', {
+                                                                                        year: 'numeric',
+
+                                                                                        month: 'long',
+                                                                                        day: '2-digit',
+                                                                                    }).format(
+                                                                                        new Date(load.shipper.date),
+                                                                                    )}
+                                                                                </span>
+                                                                                {load.shipper.time && (
+                                                                                    <p className="text-xs font-base text-slate-500">
+                                                                                        @{load.shipper.time}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex flex-row items-center justify-center w-8 h-8 bg-green-200 rounded-md border-2 border-white">
+                                                                            <TruckIcon
+                                                                                className="w-4 h-4   text-green-900"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="text-sm text-gray-500">
+                                                                        <div className="text-base font-semibold capitalize text-slate-900">
+                                                                            {load.shipper.name.toLowerCase()}
+                                                                        </div>
+                                                                        <div>{load.shipper.street}</div>
+                                                                        <div>
+                                                                            {load.shipper.city}, {load.shipper.state}{' '}
+                                                                            {load.shipper.zip}
+                                                                        </div>
+                                                                        <div className="mt-1">
+                                                                            {load.shipper.poNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    PO #&rsquo;s:{' '}
+                                                                                    {load.shipper.poNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.shipper.pickUpNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Pick Up #&rsquo;s:{' '}
+                                                                                    {load.shipper.pickUpNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                            {load.shipper.referenceNumbers && (
+                                                                                <div className="text-xs">
+                                                                                    Ref #&rsquo;s:{' '}
+                                                                                    {load.shipper.referenceNumbers}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                                {load.stops.map((stop, index) => (
+                                                    <li
+                                                        className="bg-neutral-50 rounded-lg p-2 mt-4 flex-grow border border-slate-100"
+                                                        key={index}
+                                                    >
+                                                        <div className="relative">
+                                                            <div className="relative flex items-start  ">
+                                                                <div className="w-full flex-1">
+                                                                    <div className="relative px-0 w-full">
+                                                                        <div className="flex flex-row pb-2 items-end justify-between w-full  rounded-full ">
+                                                                            <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
+                                                                                Stop
+                                                                            </p>
+                                                                            <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
+                                                                                <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                                    <span className="text-sm font-bold text-blue-500">
+                                                                                        {new Intl.DateTimeFormat(
+                                                                                            'en-US',
+                                                                                            {
+                                                                                                year: 'numeric',
+
+                                                                                                month: 'long',
+                                                                                                day: '2-digit',
+                                                                                            },
+                                                                                        ).format(new Date(stop.date))}
+                                                                                    </span>
+                                                                                    {stop.time && (
+                                                                                        <p className="text-xs font-base text-slate-500">
+                                                                                            @{stop.time}
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex flex-row items-center justify-center w-8 h-8 bg-gray-200 rounded-md border-2 border-white">
+                                                                                <StopIcon
+                                                                                    className="w-4 h-4   text-gray-900"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="text-sm text-gray-500">
+                                                                            <div className="text-base font-semibold capitalize text-slate-900">
+                                                                                {stop.name.toLowerCase()}
+                                                                            </div>
+                                                                            <div>{stop.street}</div>
+                                                                            <div>
+                                                                                {stop.city}, {stop.state} {stop.zip}
+                                                                            </div>
+                                                                            <div className="mt-1">
+                                                                                {stop.poNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        PO #&rsquo;s: {stop.poNumbers}
+                                                                                    </div>
+                                                                                )}
+                                                                                {stop.pickUpNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        Pick Up #&rsquo;s:{' '}
+                                                                                        {stop.pickUpNumbers}
+                                                                                    </div>
+                                                                                )}
+                                                                                {stop.referenceNumbers && (
+                                                                                    <div className="text-xs">
+                                                                                        Ref #&rsquo;s:{' '}
+                                                                                        {stop.referenceNumbers}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                                <li className="bg-neutral-50 rounded-lg mt-4 border border-slate-100 p-2 flex-grow">
+                                                    <div className="relative ">
+                                                        <div className="relative flex flex-col items-start">
+                                                            <div className="flex flex-row pb-2 items-end justify-between w-full rounded-full ">
+                                                                <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
+                                                                    Drop-Off
+                                                                </p>
+                                                                <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
+                                                                    <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                        <span className="text-sm font-bold text-blue-500">
+                                                                            {new Intl.DateTimeFormat('en-US', {
+                                                                                year: 'numeric',
+                                                                                month: 'long',
+                                                                                day: '2-digit',
+                                                                            }).format(new Date(load.receiver.date))}
+                                                                        </span>
+                                                                        {load.receiver.time && (
+                                                                            <p className="text-xs font-base text-slate-500">
+                                                                                @{load.receiver.time}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-row items-center justify-center w-8 h-8 bg-red-200 rounded-md border-2 border-white">
+                                                                    <MapPinIcon
+                                                                        className="w-4 h-4   text-red-900"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm text-gray-500">
+                                                                    <div className="text-base capitalize font-semibold text-slate-900">
+                                                                        {load.receiver.name.toLowerCase()}
+                                                                    </div>
+                                                                    <div>{load.receiver.street}</div>
+                                                                    <div>
+                                                                        {load.receiver.city}, {load.receiver.state}{' '}
+                                                                        {load.receiver.zip}
+                                                                    </div>
+                                                                    <div className="mt-1">
+                                                                        {load.receiver.poNumbers && (
+                                                                            <div className="text-xs">
+                                                                                PO #&rsquo;s: {load.receiver.poNumbers}
+                                                                            </div>
+                                                                        )}
+                                                                        {load.receiver.pickUpNumbers && (
+                                                                            <div className="text-xs">
+                                                                                Delivery #&rsquo;s:{' '}
+                                                                                {load.receiver.pickUpNumbers}
+                                                                            </div>
+                                                                        )}
+                                                                        {load.receiver.referenceNumbers && (
+                                                                            <div className="text-xs">
+                                                                                Ref #&rsquo;s:{' '}
+                                                                                {load.receiver.referenceNumbers}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    {/* <div className="mt-4 space-y-3">
+                                        <div className="pb-2 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
+                                                Load Activity
+                                            </h3>
+                                        </div>
+                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
+                                    </div> */}
+                                </div>
+                                <div className="col-span-8 my-10 md:my-2 ">
+                                    <div className="flex flex-row justify-between justify-items-start align-top">
+                                        <div>
+                                            <h1 className="text-base font-semibold text-gray-900">Load Assignments</h1>
+                                            <p className="text-xs text-slate-500">
+                                                Following tasks have been assigned on this load:
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between py-0 space-x-2 text-sm font-medium">
+                                                <dd className="text-right text-gray-900">
+                                                    <a onClick={() => setOpenLegAssignment(true)}>Add Assignment</a>
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {load.route && load.route.routeLegs.length > 0 && (
+                                            <div className="flex flex-col w-full" key={'routelegscontainer'}>
+                                                <div
+                                                    className="p-0 border border-slate-100 rounded-lg my-3 mt-6"
+                                                    key={'routelegs'}
+                                                >
+                                                    {load.route.routeLegs.map((leg, index) => {
+                                                        const drivers = leg.driverAssignments.map(
+                                                            (driver) => driver.driver,
+                                                        );
+                                                        const allStops = [
+                                                            load.shipper,
+                                                            ...load.stops,
+                                                            load.receiver,
+                                                            ...load.additionalStops,
+                                                        ];
+                                                        const stops = allStops.filter((stop) =>
+                                                            leg.locations.find((loc) => loc.id === stop.id),
+                                                        );
+
+                                                        const legStatus =
+                                                            leg.startedAt && !leg.endedAt
+                                                                ? LoadLegStatus.STARTED
+                                                                : leg.endedAt
+                                                                ? LoadLegStatus.COMPLETED
+                                                                : LoadLegStatus.ASSIGNED;
+
+                                                        // console.log('legStatus', legStatus);
+                                                        return (
+                                                            <div className="relative pb-4" key={`routelegs-${index}`}>
+                                                                {removingRouteLegWithId == leg.id && (
+                                                                    <div className="absolute z-[5]  flex flex-col items-center h-full w-full bg-slate-50/90 ounded-lg justify-center flex-1 flex-grow ">
+                                                                        <div className="flex items-center mt-10 space-x-2 text-slate-700">
+                                                                            <Spinner />
+                                                                            <span>Removing assignment...</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <div
+                                                                    className="flex flex-col items-start lg:flex-row gap-1 text-sm  lg:items-center bg-slate-100 p-2 rounded-tl-md rounded-tr-md"
+                                                                    key={`routeleg-${index}-drivers`}
+                                                                >
+                                                                    <div className="absolute right-0  -top-6 flex items-center flex-row gap-2 rounded-md p-[3px] px-2 h-8  text-center text-xs font-semibold border-2 bg-slate-100 border-slate-100">
+                                                                        <p
+                                                                            data-tooltip-id="tooltip"
+                                                                            data-tooltip-content={`Assigned at: ${new Date(
+                                                                                leg.createdAt,
+                                                                            ).toLocaleString()}`}
+                                                                            data-tooltip-place="top-start"
+                                                                        >
+                                                                            Assignment# {index + 1}
+                                                                        </p>
+                                                                        <div>
+                                                                            <LegAssignDropDown
+                                                                                deleteLegClicked={() =>
+                                                                                    deleteLegClicked(leg.id)
+                                                                                }
+                                                                                editLegClicked={() =>
+                                                                                    editLegClicked(leg.id)
+                                                                                }
+                                                                                disabled={false}
+                                                                                legId={leg.id}
+                                                                                load={load}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute right-2 rounded-md   text-center text-xs font-bold border-2 border-slate-100">
+                                                                        <div className="flex flex-row items-center gap-1">
+                                                                            <p className="text-xs  text-slate-800 font-semibold ">
+                                                                                Status:
+                                                                            </p>
+                                                                            <div className="font-light rounded-full bg-slate-100">
+                                                                                {/* {leg.startedAt && !leg.endedAt && (
+                                                                                    <p
+                                                                                        data-tooltip-id="tooltip"
+                                                                                        data-tooltip-place="top-start"
+                                                                                        data-tooltip-content={`Started at: ${new Date(
+                                                                                            leg.startedAt,
+                                                                                        ).toLocaleString()}`}
+                                                                                        className="bg-amber-500 text-white px-2 py-1 rounded-full font-semibold"
+                                                                                    >
+                                                                                        Started
+                                                                                    </p>
+                                                                                )}
+                                                                                {leg.startedAt && leg.endedAt && (
+                                                                                    <p
+                                                                                        data-tooltip-id="tooltip"
+                                                                                        data-tooltip-place="top-start"
+                                                                                        data-tooltip-content={`Completed at: ${new Date(
+                                                                                            leg.startedAt,
+                                                                                        ).toLocaleString()}`}
+                                                                                        className="bg-green-600 text-white px-2 py-1 rounded-full font-semibold"
+                                                                                    >
+                                                                                        Completed
+                                                                                    </p>
+                                                                                )}
+                                                                                {!leg.startedAt && !leg.endedAt && (
+                                                                                    <p className="bg-white text-gray-600 px-2 py-1 rounded-full font-base">
+                                                                                        Assigned
+                                                                                    </p>
+                                                                                )} */}
+
+                                                                                <LegAssignStatusDropDown
+                                                                                    changeStatusClicked={(legStatus) =>
+                                                                                        changeLegStatusClicked(
+                                                                                            legStatus,
+                                                                                            leg.id,
+                                                                                        )
+                                                                                    }
+                                                                                    startedAt={leg.startedAt}
+                                                                                    endedAt={leg.endedAt}
+                                                                                    legId={leg.id}
+                                                                                    disabled={false}
+                                                                                    status={legStatus}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="font-semibold">Assigned Drivers:</p>
+                                                                    <div
+                                                                        className="flex flex-row gap-1"
+                                                                        key={`routelegs-${index}-drivers`}
+                                                                    >
+                                                                        {drivers.map((driver, index) => {
+                                                                            return (
+                                                                                <p
+                                                                                    className="capitalize text-xs bg-white rounded-md px-2 py-1 border border-slate-300"
+                                                                                    key={`driver-${index}`}
+                                                                                >
+                                                                                    <Link
+                                                                                        href={`/drivers/${driver.id}`}
+                                                                                    >
+                                                                                        {driver.name.toLowerCase()}
+                                                                                    </Link>
+                                                                                </p>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-row gap-1 text-xs px-4 pt-4 py-2">
+                                                                    <p>Instructions:</p>
+                                                                    <p className="italic text-slate-600">
+                                                                        {leg.driverInstructions}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="flex flex-row gap-1 text-sm font-semibold justify-center items-center text-slate-600 px-4   ">
+                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
+                                                                    <p className=" px-1 rounded-md">Assigned Stops</p>
+                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
+                                                                </div>
+                                                                <div
+                                                                    className="flex flex-col lg:flex-row gap-2 overflow-x-auto p-3 bg-neutral-50 m-4 rounded-lg mt-2"
+                                                                    key={`routelegs-${index}-stops`}
+                                                                >
+                                                                    {stops.map((stop, index) => {
+                                                                        return (
+                                                                            <div
+                                                                                className="flex-1"
+                                                                                key={`routelegs-stops-stop-${index}`}
+                                                                            >
+                                                                                <label /* htmlFor={`stop-${index}`} */>
+                                                                                    <div className="relative flex flex-col items-start flex-1 py-1 pl-1 cursor-default">
+                                                                                        <div className="flex flex-row w-full justify-items-start items-center gap-0">
+                                                                                            <p className="relative top-0 text-sm font-medium bg-slate-200 p-[2px] h-7 w-7 text-center border-2 border-slate-300 rounded-full">
+                                                                                                {index + 1}
+                                                                                            </p>
+                                                                                            <div className="h-[3px] w-full flex-1 bg-slate-300  "></div>
+                                                                                            {
+                                                                                                <TruckIcon
+                                                                                                    className="w-6 h-6 text-gray-500"
+                                                                                                    aria-hidden="true"
+                                                                                                />
+                                                                                            }
+                                                                                        </div>
+
+                                                                                        <div className="flex-1 truncate pl-7">
+                                                                                            <p className="text-base font-semibold capitalize text-gray-900 truncate">
+                                                                                                {stop.name.toLowerCase()}
+                                                                                            </p>
+                                                                                            <p className="text-xs text-gray-800 truncate">
+                                                                                                {new Date(
+                                                                                                    stop.date,
+                                                                                                ).toLocaleDateString()}{' '}
+                                                                                                @ {stop.time}
+                                                                                            </p>
+                                                                                            <p className="text-xs text-gray-500 capitalize truncate">
+                                                                                                {stop.street.toLowerCase()}
+                                                                                            </p>
+                                                                                            <p className="text-xs capitalize text-gray-500 truncate">
+                                                                                                {stop.city.toLowerCase()}
+                                                                                                ,{' '}
+                                                                                                {stop.state.toUpperCase()}
+                                                                                                , {stop.zip}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </label>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!load.route ||
+                                            (load.route.routeLegs.length == 0 && (
+                                                <p className="flex flex-col items-center justify-center text-sm h-20 w-full bg-neutral-50 p-1 my-2 rounded-lg">
+                                                    No assignments created for this load.
+                                                </p>
+                                            ))}
+                                    </div>
+                                </div>
+                                <div className="col-span-8 my-10 md:my-2 mt-2  ">
+                                    <div className="pb-2 f">
+                                        <h3 className="text-base font-semibold leading-6 text-gray-900">
+                                            Load Activity
+                                        </h3>
+                                        <p className="text-xs text-slate-500">
+                                            All changes made on this load are listed below
+                                        </p>
+                                    </div>
+                                    <div
+                                        className={` w-full gap-1   bg-neutral-50 border border-slate-100 p-3 rounded-lg`}
+                                    >
                                         <LoadActivityLog loadId={loadId}></LoadActivityLog>
                                     </div>
                                 </div>

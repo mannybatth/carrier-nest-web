@@ -1,4 +1,4 @@
-import { Load, LoadDocument, LoadStatus } from '@prisma/client';
+import { Load, LoadDocument, LoadStatus, LoadStop } from '@prisma/client';
 import { ParsedUrlQueryInput, stringify } from 'querystring';
 import { apiUrl } from '../../constants';
 import { ExpandedLoad, ExpandedLoadActivity, JSONResponse } from '../../interfaces/models';
@@ -52,7 +52,7 @@ export const getLoadsExpanded = async ({
 };
 
 export const getLoadById = async (id: string, driverId?: string, expandCarrier = false): Promise<ExpandedLoad> => {
-    let expand = 'customer,shipper,receiver,stops,invoice,driver,documents';
+    let expand = 'customer,shipper,receiver,stops,invoice,driver,documents,route,additionalStops';
     if (expandCarrier) {
         expand += ',carrier';
     }
@@ -113,6 +113,22 @@ export const updateLoad = async (id: string, load: Partial<Load>) => {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data.updatedLoad;
+};
+
+export const addAdditionalStopToLoad = async (id: string, stop: Partial<LoadStop>) => {
+    const response = await fetch(apiUrl + '/loads/' + id, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(stop),
+    });
+    const { data, errors }: JSONResponse<{ additionalStops: LoadStop[] }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.additionalStops;
 };
 
 export const deleteLoadById = async (id: string) => {

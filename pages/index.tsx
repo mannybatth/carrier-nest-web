@@ -32,7 +32,7 @@ const StatBox = (props: {
     icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) => {
     return (
-        <div className="overflow-hidden bg-slate-50 rounded-lg shadow-none border border-gray-200">
+        <div className="overflow-hidden bg-white rounded-lg shadow-none border border-gray-200">
             <div className="p-5">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -136,11 +136,11 @@ const Dashboard: PageWithAuth = () => {
 
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-0 md:px-8">
+                <div className="px-0 md:px-8 ">
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center pb-10">
+                                <div className="flex flex-col items-center justify-center pb-10 h-[50vh]">
                                     <Image
                                         className="absolute top-18 -right-0 "
                                         alt="Truck BG"
@@ -383,11 +383,9 @@ const Dashboard: PageWithAuth = () => {
                         </>
                     )}
 
-                    <div className="px-5 mt-2 md:px-0">
-                        <div className="flex flex-row justify-between place-items-baseline">
-                            <h2 className="text-xl font-light leading-6 text-gray-700 mb-4">
-                                Overview - Company Stats
-                            </h2>
+                    <div className="mx-0 mt-2 bg-gray-100 rounded-lg">
+                        <div className="flex flex-row justify-between place-items-baseline border-b border-slate-200 mb-2 p-4 pb-2">
+                            <h2 className="text-lg font-bold leading-6 text-gray-700 mb-4">Loads Activity Overview</h2>
                             <div className="relative inline-flex rounded-md shadow-sm">
                                 <button
                                     type="button"
@@ -409,11 +407,14 @@ const Dashboard: PageWithAuth = () => {
                                         leaveFrom="transform opacity-100 scale-100"
                                         leaveTo="transform opacity-0 scale-95"
                                     >
-                                        <Menu.Items className="absolute left-0 z-10 w-36 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                            <div className="py-1" key={'statsdropdown'}>
+                                        <Menu.Items
+                                            key={'statsdropdownitems'}
+                                            className="absolute left-0 z-10 w-36 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                        >
+                                            <div className="py-1" key={'statsdropdowndiv'}>
                                                 {Object.keys(DashboardStatsTimeFrameType).map((key) => {
                                                     return (
-                                                        <Menu.Item>
+                                                        <Menu.Item key={`${key}`}>
                                                             {({ active }) => (
                                                                 <a
                                                                     onClick={() =>
@@ -445,7 +446,7 @@ const Dashboard: PageWithAuth = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3 p-4 ">
                             {loadingStats ? (
                                 <>
                                     <StatBoxSkeleton></StatBoxSkeleton>
@@ -468,7 +469,7 @@ const Dashboard: PageWithAuth = () => {
                                         icon={TruckIcon}
                                     ></StatBox>
                                     <StatBox
-                                        title={'Loads Ready to Invoice'}
+                                        title={'Ready for Invoicing'}
                                         value={`${stats.totalReadyToInvoice}`}
                                         icon={TruckIcon}
                                     ></StatBox>

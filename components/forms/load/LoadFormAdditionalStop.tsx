@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import * as iso3166 from 'iso-3166-2';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Control,
     Controller,
@@ -37,7 +37,35 @@ export type LoadFormStopProps = {
     watch: UseFormWatch<ExpandedLoad>;
 };
 
-const LoadFormStop: React.FC<LoadFormStopProps> = ({
+export const timePicker = () => {
+    const [rawTime, setRawTime] = React.useState('00:00');
+
+    const [hours, minutes] = React.useMemo(() => rawTime.split(':').slice(0, 2).map(Number), [rawTime]);
+
+    const statesJson = JSON.stringify(
+        {
+            rawTime,
+            hours,
+            minutes,
+        },
+        null,
+        2,
+    );
+
+    return (
+        <div>
+            <input className="time-input" type="time" onChange={(ev) => setRawTime(ev.target.value)} value={rawTime} />
+            <div className="states">
+                <label>States:</label>
+                <pre>
+                    <code>{statesJson}</code>
+                </pre>
+            </div>
+        </div>
+    );
+};
+
+const LoadFormAdditionalStop: React.FC<LoadFormStopProps> = ({
     register,
     errors,
     control,
@@ -56,6 +84,9 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
 
     // Local storage of location to compare changes against
     const [selectedLocation, setSelectedLocation] = useState<LocationEntry>(null);
+
+    const [rawTime, setRawTime] = React.useState('00:00'); // Default time
+    const [hours, minutes] = React.useMemo(() => rawTime.split(':').slice(0, 2).map(Number), [rawTime]);
 
     const fieldId = (name: string): any => {
         if (props.type === LoadStopType.SHIPPER) {
@@ -240,7 +271,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     };
 
     return (
-        <div className={`col-span-6 pl-4 border-l-4 ${borderColor()}`}>
+        <div className={`col-span-6 p-1 border-0 ${borderColor()}`}>
             {index !== undefined && (
                 <input
                     {...register(fieldId('stopIndex'), {
@@ -267,21 +298,22 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
             </div>
 
             <div className="grid grid-cols-12 gap-6">
-                <div className="col-span-12 sm:col-span-5 lg:col-span-6">
+                <div className="col-span-12">
                     <label htmlFor={fieldId('name')} className="block text-sm font-medium text-gray-700">
-                        Business Name
+                        Stop Name
                     </label>
                     <input
-                        {...register(fieldId('name'), { required: 'Business Name is required' })}
+                        {...register(fieldId('name'), { required: 'Stop Name is required' })}
                         type="text"
                         id={fieldId('name')}
+                        placeholder="99 trailer yard, Pepsi Co. - Millcreek"
                         autoComplete="business-name"
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'name')}
                 </div>
 
-                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                <div className="col-span-6">
                     <label htmlFor={fieldId('date')} className="block text-sm font-medium text-gray-700">
                         {props.type === LoadStopType.RECEIVER
                             ? 'Delivery Date'
@@ -324,7 +356,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     />
                 </div>
 
-                <div className="col-span-12 sm:col-span-3 lg:col-span-3">
+                <div className="col-span-6">
                     <label htmlFor={fieldId('time')} className="block text-sm font-medium text-gray-700">
                         {props.type === LoadStopType.RECEIVER
                             ? 'Drop Off Time'
@@ -334,9 +366,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     </label>
                     <input
                         {...register(fieldId('time'), { required: 'Time is required' })}
-                        type="text"
+                        type="time"
                         id={fieldId('time')}
                         autoComplete="time"
+                        onChange={(e) => setRawTime(e.target.value)}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'time')}
@@ -485,7 +518,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     />
                 </div>
 
-                <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+                <div className="col-span-12">
                     <label htmlFor={fieldId('city')} className="block text-sm font-medium text-gray-700">
                         City
                     </label>
@@ -499,9 +532,9 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     {errorMessage(errors, 'city')}
                 </div>
 
-                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                <div className="col-span-6 sm:col-span-4 lg:col-span-3">
                     <label htmlFor={fieldId('state')} className="block text-sm font-medium text-gray-700">
-                        State / Province
+                        State
                     </label>
                     <input
                         {...register(fieldId('state'), { required: 'State is required' })}
@@ -513,9 +546,9 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     {errorMessage(errors, 'state')}
                 </div>
 
-                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
-                    <label htmlFor={fieldId('zip')} className="block text-sm font-medium text-gray-700">
-                        Zip / Postal Code
+                <div className="col-span-6">
+                    <label htmlFor={fieldId('zip')} className="inline-block text-sm w-fit font-medium text-gray-700">
+                        Postal Code
                     </label>
                     <input
                         {...register(fieldId('zip'), { required: 'Zipcode is required' })}
@@ -527,7 +560,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     {errorMessage(errors, 'zip')}
                 </div>
 
-                <div className="col-span-12 sm:col-span-4 lg:col-span-3">
+                <div className="col-span-12">
                     <Controller
                         control={control}
                         rules={{ required: 'Country is required' }}
@@ -608,4 +641,4 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     );
 };
 
-export default LoadFormStop;
+export default LoadFormAdditionalStop;

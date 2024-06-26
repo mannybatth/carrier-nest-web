@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { id } from 'date-fns/locale';
 
 export type JSONResponse<T> = {
     code: number;
@@ -77,6 +78,26 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 referenceNumbers: true,
             },
         },
+        additionalStops: {
+            select: {
+                id: true,
+                type: true,
+                name: true,
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
+                country: true,
+                date: true,
+                time: true,
+                stopIndex: true,
+                latitude: true,
+                longitude: true,
+                poNumbers: true,
+                pickUpNumbers: true,
+                referenceNumbers: true,
+            },
+        },
         invoice: {
             select: {
                 id: true,
@@ -98,6 +119,34 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 phone: true,
             },
         },
+        route: {
+            select: {
+                id: true,
+                routeLegs: {
+                    select: {
+                        id: true,
+                        driverInstructions: true,
+                        locations: { select: { id: true } },
+                        scheduledDate: true,
+                        scheduledTime: true,
+                        startedAt: true,
+                        startLatitude: true,
+                        startLongitude: true,
+                        createdAt: true,
+                        endedAt: true,
+                        endLatitude: true,
+                        endLongitude: true,
+                        driverAssignments: {
+                            select: {
+                                driverId: true,
+                                assignedAt: true,
+                                driver: true,
+                            },
+                        },
+                    },
+                },
+            },
+        },
         loadDocuments: true,
         podDocuments: true,
         rateconDocument: true,
@@ -114,6 +163,27 @@ const expandedCustomer = Prisma.validator<Prisma.CustomerArgs>()({
     },
 });
 export type ExpandedCustomer = Partial<Prisma.CustomerGetPayload<typeof expandedCustomer>>;
+
+const expandedLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
+    select: {
+        type: true,
+        name: true,
+        street: true,
+        city: true,
+        state: true,
+        zip: true,
+        country: true,
+        date: true,
+        time: true,
+        stopIndex: true,
+        latitude: true,
+        longitude: true,
+        poNumbers: true,
+        pickUpNumbers: true,
+        referenceNumbers: true,
+    },
+});
+export type ExpandedLoadStop = Partial<Prisma.LoadStopGetPayload<typeof expandedLoadStop>>;
 
 /**
  * Invoice
@@ -152,6 +222,80 @@ const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
 });
 export type ExpandedInvoice = Partial<Prisma.InvoiceGetPayload<typeof expandedInvoice>>;
 
+const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
+    select: {
+        id: true,
+        routeLegs: {
+            select: {
+                id: true,
+                driverInstructions: true,
+                locations: { select: { id: true } },
+                scheduledDate: true,
+                scheduledTime: true,
+                startedAt: true,
+                startLatitude: true,
+                startLongitude: true,
+                endedAt: true,
+                endLatitude: true,
+                endLongitude: true,
+                driverAssignments: {
+                    select: {
+                        driverId: true,
+                        assignedAt: true,
+                        driver: true,
+                    },
+                },
+            },
+        },
+    },
+});
+export type ExpandedRoute = Partial<Prisma.RouteGetPayload<typeof expandedRoute>>;
+
+const expandedRouteLegFromLoad = Prisma.validator<Prisma.RouteLegArgs>()({
+    select: {
+        id: true,
+        driverInstructions: true,
+        locations: { select: { id: true } },
+        scheduledDate: true,
+        scheduledTime: true,
+        startedAt: true,
+        startLatitude: true,
+        startLongitude: true,
+        endedAt: true,
+        endLatitude: true,
+        endLongitude: true,
+        driverAssignments: {
+            select: {
+                driverId: true,
+                assignedAt: true,
+                driver: true,
+            },
+        },
+    },
+});
+export type ExpandedRouteLegFromLoad = Partial<Prisma.RouteLegGetPayload<typeof expandedRouteLegFromLoad>>;
+
+const expandedRouteLeg = Prisma.validator<Prisma.RouteLegArgs>()({
+    select: {
+        id: true,
+        driverInstructions: true,
+        locations: { select: { id: true } },
+        scheduledDate: true,
+        scheduledTime: true,
+        startedAt: true,
+        startLatitude: true,
+        startLongitude: true,
+        endedAt: true,
+        endLatitude: true,
+        endLongitude: true,
+        driverAssignments: {
+            select: {
+                driverId: true,
+            },
+        },
+    },
+});
+export type ExpandedRouteLeg = Partial<Prisma.RouteLegGetPayload<typeof expandedRouteLeg>>;
 /**
  * Driver
  */

@@ -121,7 +121,9 @@ model Load {
     rateconDocument LoadDocument?  @relation("loadForRatecon")
     loadDocuments   LoadDocument[] @relation("load")
     stops           LoadStop[]
+    additionalStops LoadStop[]     @relation("loadAdditionalLegStops")
     drivers         Driver[]       @relation("driverLoads")
+    route           Route?
 
     @@index([refNum, carrierId, userId, customerId])
 }
@@ -139,6 +141,7 @@ model LoadStop {
     date             DateTime
     time             String
     loadIdAsStop     String?
+    loadIdAsAddStop  String?
     stopIndex        Int          @default(0)
     createdAt        DateTime     @default(now())
     latitude         Float?
@@ -149,7 +152,45 @@ model LoadStop {
     loadsAsReceiver  Load[]       @relation("receiver")
     loadsAsShipper   Load[]       @relation("shipper")
     loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
+    loadAsAdditional Load?        @relation("loadAdditionalLegStops", fields: [loadIdAsAddStop], references: [id])
     user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    routeLegs        RouteLeg[]
+}
+
+model Route {
+    id        String     @id @default(cuid())
+    loadId    String     @unique
+    routeLegs RouteLeg[] // Define the one-to-many relationship with RouteLeg
+    load      Load       @relation(fields: [loadId], references: [id], onDelete: Cascade)
+}
+
+model RouteLeg {
+    id                 String             @id @default(cuid())
+    routeId            String
+    scheduledDate      DateTime?
+    scheduledTime      String?
+    startLatitude      Float?
+    startLongitude     Float?
+    startedAt          DateTime?
+    endLatitude        Float?
+    endLongitude       Float?
+    endedAt            DateTime?
+    createdAt          DateTime           @default(now())
+    driverInstructions String?
+    route              Route              @relation(fields: [routeId], references: [id], onDelete: Cascade) // Define the many-to-one relationship with Route
+    driverAssignments  DriverAssignment[]
+    locations          LoadStop[]
+}
+
+model DriverAssignment {
+    id         String   @id @default(cuid())
+    routeLegId String
+    driverId   String
+    assignedAt DateTime @default(now())
+    routeLeg   RouteLeg @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
+    driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+    @@unique([driverId, routeLegId])
 }
 
 model Customer {
@@ -173,21 +214,22 @@ model Customer {
 }
 
 model Driver {
-    id             String         @id @default(cuid())
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
-    name           String
-    email          String?
-    phone          String
-    carrierId      String
-    smsCode        String?
-    smsCodeExpiry  DateTime?
-    carrier        Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    actionActivity LoadActivity[] @relation("actionDriver")
-    actorActivity  LoadActivity[] @relation("actorDriver")
-    loadDocuments  LoadDocument[]
-    loads          Load[]         @relation("driverLoads")
-    devices        Device[]
+    id                String             @id @default(cuid())
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    name              String
+    email             String?
+    phone             String
+    carrierId         String
+    smsCode           String?
+    smsCodeExpiry     DateTime?
+    carrier           Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    actionActivity    LoadActivity[]     @relation("actionDriver")
+    actorActivity     LoadActivity[]     @relation("actorDriver")
+    loadDocuments     LoadDocument[]
+    loads             Load[]             @relation("driverLoads")
+    devices           Device[]
+    driverAssignments DriverAssignment[]
 
     @@index([name, carrierId])
 }
@@ -299,6 +341,7 @@ enum LoadStopType {
     SHIPPER
     RECEIVER
     STOP
+    LEGSTOP
 }
 
 enum LoadStatus {

@@ -11,11 +11,19 @@ import { title } from 'process';
 
 type Props = {
     title?: string;
+    selectedDrivers: Driver[];
     goBack: () => void;
+    selectDrivers: (drivers: Driver[]) => void;
     close: (value: boolean) => void;
 };
 
-const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: Props) => {
+const LegDriverSelectionModalSearch: React.FC<Props> = ({
+    goBack,
+    close,
+    title,
+    selectDrivers,
+    selectedDrivers,
+}: Props) => {
     const [load, setLoad] = useLoadContext();
 
     const [loadingAllDrivers, setLoadingAllDrivers] = React.useState<boolean>(false);
@@ -24,19 +32,20 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
     const [allDrivers, setAllDrivers] = React.useState<Driver[]>([]);
     const [availableDrivers, setAvailableDrivers] = React.useState<Driver[]>([]);
     const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
-    const [sendSMS, setSendSMS] = React.useState<boolean>(false);
 
     useEffect(() => {
+        console.log(selectedDrivers);
         const loadDrivers = async () => {
             setLoadingAllDrivers(true);
             const { drivers } = await getAllDrivers({
                 limit: 999,
                 offset: 0,
             });
-            setAllDrivers(drivers);
+            const filterSelectedDrivers = drivers.filter((d) => !selectedDrivers.find((sd) => sd.id === d.id));
+            setAllDrivers(filterSelectedDrivers);
 
-            const availableDrivers = drivers.filter((d) => !load.drivers?.find((ld) => ld.id === d.id));
-            setAvailableDrivers(availableDrivers);
+            //const availableDrivers = drivers.filter((d) => !load.drivers?.find((ld) => ld.id === d.id));
+            setAvailableDrivers(filterSelectedDrivers);
 
             setLoadingAllDrivers(false);
         };
@@ -54,22 +63,12 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
 
     const saveSelectedDrivers = async () => {
         setSaveLoading(true);
-        const newDriverIds = [...selectedDriverIds, ...load.drivers.map((d) => d.id)];
+        const newDriverIds = [...selectedDriverIds];
         const newDrivers = allDrivers.filter((d) => newDriverIds.includes(d.id));
 
-        try {
-            await assignDriversToLoad(load.id, selectedDriverIds, sendSMS);
-            setLoad((prev) => ({
-                ...prev,
-                drivers: newDrivers,
-            }));
-            setSelectedDriverIds([]);
-            goBack();
-            notify({ title: 'Drivers assigned', message: 'Drivers assigned to load successfully' });
-        } catch (e) {
-            notify({ title: 'Error Assigning Drivers', message: e.message, type: 'error' });
-        }
-
+        selectDrivers(newDrivers);
+        setSelectedDriverIds([]);
+        goBack();
         setSaveLoading(false);
     };
 
@@ -141,7 +140,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
                                                             aria-hidden="true"
                                                         />
                                                         <div className="flex-1 truncate">
-                                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                            <p className="text-sm font-bold capitalize text-gray-900 truncate">
                                                                 {driver.name}
                                                             </p>
                                                             <p className="text-sm text-gray-500 truncate">
@@ -174,7 +173,7 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
                                             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                             onClick={saveSelectedDrivers}
                                         >
-                                            Save ({selectedDriverIds.length})
+                                            Select ({selectedDriverIds.length})
                                         </button>
                                         <button
                                             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -184,28 +183,14 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
                                         </button>
                                     </div>
                                     <div className="flex-1" />
-                                    <div className="flex items-center justify-center h-full">
-                                        <input
-                                            id={'sms-send'}
-                                            name={'sms-send'}
-                                            type="checkbox"
-                                            onChange={(e) => setSendSMS(e.target.checked)}
-                                            className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                        />
-                                        <label
-                                            htmlFor={'sms-send'}
-                                            className="text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"
-                                        >
-                                            Send SMS
-                                        </label>
-                                    </div>
                                 </div>
                             )}
                         </div>
                     ) : (
                         <div className="flex items-start justify-center flex-1 h-32">
-                            <div className="flex items-center mt-10 space-x-2 text-gray-500">
-                                <span>No drivers available to add</span>
+                            <div className="flex flex-col items-center mt-10 space-x-2 text-gray-500 text-center gap-1">
+                                <span>No drivers available to add.</span>
+                                <span>Add more drivers under Drivers page.</span>
                             </div>
                         </div>
                     )}
@@ -215,4 +200,4 @@ const DriverSelectionModalSearch: React.FC<Props> = ({ goBack, close, title }: P
     );
 };
 
-export default DriverSelectionModalSearch;
+export default LegDriverSelectionModalSearch;

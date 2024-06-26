@@ -48,7 +48,7 @@ Output Format:
                 "zip": string or null,
                 "country": string or null
             },
-            "date": string or null,
+            "date": string or null (use MM/DD/YYYY format, replace - with / if necessary),
             "time": string or null,
             "po_numbers": ["<po_number_1>", "<po_number_2>", ...] or null,
             "pickup_numbers": ["<pickup_number_1>", "<pickup_number_2>", ...] or null,
@@ -199,9 +199,9 @@ export async function POST(req: NextRequest) {
         });
 
         const model = new ChatVertexAI({
-            model: 'gemini-1.5-pro-preview-0409',
+            model: 'gemini-1.5-pro-001',
             maxOutputTokens: 2048,
-            temperature: 0.1,
+            temperature: 0,
             verbose: process.env.NODE_ENV === 'development',
             safetySettings: [
                 {

@@ -48,7 +48,7 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
         } else if (status === UILoadStatus.IN_PROGRESS) {
             setTooltipText('Load has been picked up and is in transit');
         } else if (status === UILoadStatus.DELIVERED) {
-            setTooltipText('Load has been delivered or is 24 hours after the delivery date');
+            setTooltipText('Load has been delivered or is 24 hours past its delivery date');
         } else if (status === UILoadStatus.POD_READY) {
             setTooltipText('Proof of delivery has been uploaded');
         } else if (status === UILoadStatus.INVOICED) {

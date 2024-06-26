@@ -17,5 +17,5 @@ export enum DashboardStatsTimeFrameType {
     TWO_WEEK = '14',
     MONTH = '30',
     YEAR = '364',
-    ALL = `${364 * 10}`,
+    ALL = `3640`,
 }
