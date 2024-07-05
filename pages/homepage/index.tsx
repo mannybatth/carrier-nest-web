@@ -66,11 +66,11 @@ const Homepage = () => {
                             <span className="text-5xl font-extrabold mb-1 text-cyan-700">Trucking Simplified.</span>
                             <span className="text-xl font-light pl-2 text-slate-600">
                                 Carrier Nest lets you focus on growing your business. <br></br>We aim to simplify
-                                logistics for owner operators/medium sized trucking companies.
+                                logistics for owner operators & medium sized trucking companies.
                             </span>
                         </h1>
                     </div>
-                    <div className="absolute top-0 m-4 right-0 sm:top-0  lg:top-auto sm:m-4 md:flex">
+                    <div className="relative sm:absolute top-0 mx-auto md:m-4 right-0 sm:top-0  lg:top-auto sm:m-4 md:flex">
                         <Image src={'/truckbg.png'} alt="logo" width={300} height={75} className="rounded-xl" />
                     </div>
                 </div>
@@ -93,21 +93,23 @@ const Homepage = () => {
                         ))}
                     </div>
                 </div>
-                <div className="relative h-full w-full rounded-3xl text-center flex flex-row justify-between my-12">
-                    <h1 className="   w-fit mr-10 p-4 my-auto flex-1 text-center font-black text-3xl text-cyan-800 bg-slate-100 border-slate-400 border-0 rounded-2xl">
+                <div className="relative h-full w-full rounded-3xl text-center flex flex-col md:flex-row justify-between my-12">
+                    <h1 className="w-fit mr-10 p-4 my-auto flex-1 text-center font-black text-3xl text-cyan-800 bg-slate-100 border-slate-400 border-0 rounded-2xl">
                         App Dashboard Overview
                     </h1>
-                    <Image
-                        src={'/dashboard.png'}
-                        alt="logo"
-                        height={0}
-                        width={0}
-                        sizes="100vw"
-                        className="rounded-3xl border-4 border-slate-300 "
-                        style={{ width: '65%', height: 'auto', margin: 'auto' }}
-                    />
+                    <div className="w-full mx-0">
+                        <Image
+                            src={'/dashboard.png'}
+                            alt="App dashboard overview"
+                            height={0}
+                            width={0}
+                            sizes="100vw"
+                            className="rounded-3xl border-4 border-slate-300 "
+                            style={{ width: 'auto', height: 'auto', margin: 'auto' }}
+                        />
+                    </div>
                 </div>
-                <article className="p-1.5 mx-auto my-24 w-full rounded-3xl bg-gradient-to-r from-rose-400 via-cyan-600 to-purple-400">
+                <article className="sm:p-1.5 mx-auto my-24 w-full rounded-3xl bg-gradient-to-r from-rose-400 via-cyan-600 to-purple-400">
                     <div className="py-40 bg-slate-100 rounded-2xl p-4 text-center flex flex-col justify-center items-center">
                         <h4 className="text-5xl font-bold">Get Started with Carrier Nest Today!</h4>
 
@@ -128,7 +130,7 @@ const Homepage = () => {
                         </button>
                     </div>
                 </article>
-                <div className="h-fit flex flex-row justify-between bg-slate-200 p-4 rounded-t-2xl">
+                <div className="h-fit flex flex-col-reverse md:flex-row justify-between bg-slate-200 p-4 rounded-t-2xl">
                     <p className="font-light text-lg text-center text-slate-400  text-cener py-4">
                         All Rights Reserved By Carrier Nest @2024
                     </p>
