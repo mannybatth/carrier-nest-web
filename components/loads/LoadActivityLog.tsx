@@ -1,10 +1,11 @@
 import { LoadActivityAction } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import { ExpandedLoadActivity } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedLoadActivity } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { loadStatusToUIStatus } from '../../lib/load/load-utils';
 import { getLoadActivity } from '../../lib/rest/load';
+import { useLoadContext } from 'components/context/LoadContext';
 
 const LoadActivityLogSkeleton: React.FC = () => {
     return (
@@ -34,6 +35,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
     const [activity, setActivity] = useState<ExpandedLoadActivity[]>([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [moreLoading, setMoreLoading] = useState(false);
+    const [load, setLoad] = useLoadContext();
 
     const [limit, setLimit] = React.useState(8);
     const [offset, setOffset] = React.useState(0);
@@ -93,7 +95,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                         )}
                         <ul role="list" className="space-y-4">
                             {activity.map((activityItem, activityItemIdx) => (
-                                <li key={activityItem.id} className="relative flex gap-x-2">
+                                <li key={activityItemIdx} className="relative flex gap-x-2">
                                     <div
                                         className={classNames(
                                             activityItemIdx === activity.length - 1 ? 'h-6' : '-bottom-6',
@@ -114,7 +116,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                         activityItem.actorDriver?.name ||
                                                         activityItem.actorDriverName}
                                                 </span>{' '}
-                                                changed the status to{' '}
+                                                changed the load status to{' '}
                                                 <span className="font-medium text-gray-900">
                                                     {loadStatusToUIStatus(activityItem.toStatus).toUpperCase()}
                                                 </span>
@@ -253,6 +255,62 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                     {activityItem.actionDriver?.name || activityItem.actionDriverName}
                                                 </span>{' '}
                                                 from the load
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                added{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDriver?.name || activityItem.actionDriverName}
+                                                </span>{' '}
+                                                to an assignement
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                removed{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDriver?.name || activityItem.actionDriverName}
+                                                </span>{' '}
+                                                from an assignement
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.ADD_ASSIGNMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                added driver assignment to load
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.REMOVE_ASSIGNMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                removed a driver assignment from load
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.UPDATED_ASSIGNMENT && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                updated a driver assignment
+                                            </>
+                                        )}
+                                        {activityItem.action === LoadActivityAction.CHANGE_ASSIGNMENT_STATUS && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                </span>{' '}
+                                                changed driver assignment status
                                             </>
                                         )}
                                     </p>

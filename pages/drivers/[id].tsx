@@ -334,7 +334,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                             )}
 
                             <div className="col-span-12">
-                                <h3 className="mb-2">Loads Assigned to Driver</h3>
+                                <h3 className="mb-2">Driver assigned to following loads</h3>
                                 {loadingLoads ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                                 ) : (

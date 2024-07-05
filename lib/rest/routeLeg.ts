@@ -124,12 +124,12 @@ export const updateRouteLegStatus = async (loadId: string, routeLegId: string, r
         body: JSON.stringify({ routeLegStatus, loadId }),
     });
 
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+    const { data, errors }: JSONResponse<{ loadStatus: string }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.result;
+    return data.loadStatus;
 };
 
 export const removeRouteLeg = async (loadId: string, routeLegId: string) => {

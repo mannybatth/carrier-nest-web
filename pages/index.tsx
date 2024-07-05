@@ -142,11 +142,11 @@ const Dashboard: PageWithAuth = () => {
                             {loadsList.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center pb-10 h-[50vh]">
                                     <Image
-                                        className="absolute top-18 -right-0 "
+                                        className="absolute top-18 -right-0 top-12 md:top-20"
                                         alt="Truck BG"
                                         src={'/truckcbg.jpeg'}
-                                        height={200}
-                                        width={200}
+                                        height={150}
+                                        width={150}
                                     />
                                     <div className="p-6 mt-6 flex flex-col items-center bg-white rounded w-80">
                                         <h1 className="mb-2 text-xl font-bold text-center">Create a New Load</h1>
@@ -383,7 +383,7 @@ const Dashboard: PageWithAuth = () => {
                         </>
                     )}
 
-                    <div className="mx-0 mt-2 bg-gray-100 rounded-lg">
+                    <div className="mx-4 md:mx-0 mt-2 bg-gray-100 rounded-lg">
                         <div className="flex flex-row justify-between place-items-baseline border-b border-slate-200 mb-2 p-4 pb-2">
                             <h2 className="text-lg font-bold leading-6 text-gray-700 mb-4">Loads Activity Overview</h2>
                             <div className="relative inline-flex rounded-md shadow-sm">

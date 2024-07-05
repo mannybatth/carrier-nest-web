@@ -1,4 +1,4 @@
-import { DriverAssignment, LoadActivityAction } from '@prisma/client';
+import { DriverAssignment, LoadActivity, LoadActivityAction } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import Twilio from 'twilio';
@@ -52,7 +52,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     routeLegs: {
                         create: [
                             {
-                                scheduledAt: routeLeg.scheduledDate || undefined,
+                                scheduledDate: routeLeg.scheduledDate || undefined,
+                                scheduledTime: routeLeg.scheduledTime || undefined,
                                 driverInstructions: routeLeg.driverInstructions,
                                 driverAssignments: {
                                     create: routeLeg.driverAssignments.map((driver) => ({
@@ -69,6 +70,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 select: {
                     id: true,
                     routeLegs: {
+                        orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                         select: {
                             id: true,
                             driverInstructions: true,
@@ -119,11 +121,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         },
                     },
                 },
+
                 select: {
                     route: {
                         select: {
                             id: true,
                             routeLegs: {
+                                orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                                 select: {
                                     id: true,
                                     driverInstructions: true,
@@ -150,6 +154,90 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             });
         }
+
+        const expandedRouteDetails: ExpandedRoute = updatedRoute ?? updatedLoad;
+
+        const legCreatedLoadActivity = {
+            loadId: loadId,
+            carrierId: session.user.defaultCarrierId,
+            action: LoadActivityAction.ADD_ASSIGNMENT,
+            actorUserId: session.user.id,
+        } as unknown as LoadActivity;
+
+        const loadActivityArray: LoadActivity[] = routeLeg.driverAssignments.map((driver) => ({
+            loadId: loadId,
+
+            carrierId: session.user.defaultCarrierId,
+            action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
+            actorUserId: session.user.id,
+
+            actionDriverId: driver.driverId,
+
+            actionDriverName: expandedRouteDetails.routeLegs
+                .find((leg) => leg.driverAssignments.find((da) => da.driverId === driver.driverId))
+                .driverAssignments.find((da) => da.driverId === driver.driverId).driver.name,
+        })) as unknown as LoadActivity[];
+
+        await prisma.loadActivity.create({
+            data: legCreatedLoadActivity,
+        });
+        await prisma.loadActivity.createMany({
+            data: [...loadActivityArray],
+        });
+
+        /* const drivers = expandedRouteDetails.routeLegs
+            .flatMap((leg) => leg.driverAssignments.map((da) => da.driver))
+            .filter((d) => routeLeg.driverAssignments.find((da) => da.driverId === d.id)) as ExpandedDriver[];
+
+        const message: firebaseAdmin.messaging.MulticastMessage = {
+            notification: {
+                title: 'You have been added to a new load assignment!',
+                body: 'Tap to view assignment details',
+            },
+            data: {
+                type: 'assigned_load',
+                loadId: loadId,
+            },
+            tokens: drivers.flatMap((driver) => driver.devices?.map((device) => device.fcmToken) ?? []),
+        };
+
+        if (message.tokens.length > 0) {
+            try {
+                const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
+
+                // Collect all invalid tokens
+                const invalidTokens: string[] = response.responses
+                    .map((res, idx) => (res.success ? null : message.tokens[idx]))
+                    .filter((token): token is string => {
+                        if (token === null) {
+                            return false;
+                        }
+                        const res = response.responses[message.tokens.indexOf(token)];
+                        const errorCode = res.error?.code;
+                        return (
+                            token !== null &&
+                            (errorCode === 'messaging/registration-token-not-registered' ||
+                                errorCode === 'messaging/invalid-registration-token' ||
+                                errorCode === 'messaging/invalid-argument')
+                        );
+                    });
+
+                // If there are invalid tokens, delete them in one batch operation
+                if (invalidTokens.length > 0) {
+                    try {
+                        await prisma.device.deleteMany({
+                            where: {
+                                fcmToken: { in: invalidTokens },
+                            },
+                        });
+                    } catch (deleteError) {
+                        console.error('Error removing invalid tokens:', deleteError);
+                    }
+                }
+            } catch (error) {
+                console.error('Error sending notification:', error);
+            }
+        } */
 
         // console.log('Updated load:', updatedLoad);
 
@@ -307,8 +395,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         } */
 
         //console.log(updatedRoute, updatedLoad);
-
-        const expandedRouteDetails: ExpandedRoute = updatedRoute ?? updatedLoad;
 
         return res.status(200).json({
             code: 200,

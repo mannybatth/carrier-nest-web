@@ -36,6 +36,10 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     const [selectedDrivers, setSelectedDrivers] = React.useState<Driver[]>([]);
     const [selectedStops, setSelectedStops] = React.useState<LoadStop[]>([]);
 
+    const [scheduleStartDate, setScheduleStartDate] = React.useState<Date | null>();
+    const [rawTime, setRawTime] = React.useState('00:00'); // Default time
+    const [hours, minutes] = React.useMemo(() => rawTime.split(':').slice(0, 2).map(Number), [rawTime]);
+
     // const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
 
     // If no drivers are assigned to the this task, show the search modal
@@ -48,6 +52,8 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     }, [show]); */
     React.useEffect(() => {
         if (routeLeg) {
+            setScheduleStartDate(new Date(routeLeg.scheduledDate));
+            setRawTime(routeLeg.scheduledTime);
             setSelectedDrivers(routeLeg.driverAssignments.map((assignment) => assignment.driver));
             const allLoadStops = [load.shipper, ...load.stops, load.receiver, ...load.additionalStops];
             const selectedStopsOnLeg = allLoadStops.filter((stop) =>
@@ -59,11 +65,14 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     }, [routeLeg]);
 
     const close = (value: boolean) => {
+        console.log('Closing the stops modal');
         onClose(value);
         setShowDriverSearch(false);
         setDriverInstructions('');
         setSelectedDrivers([]);
         setSelectedStops([]);
+        setRawTime('00:00');
+        setScheduleStartDate(null);
     };
 
     const onRemoveDriver = async (driverIdToRemove: string) => {
@@ -95,13 +104,27 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
         setSelectedDrivers([...selectedDrivers, ...drivers]);
     };
     const selectStops = (loadStops: LoadStop[]) => {
-        // Update the array of drivers selected in state
+        // Update the array of stops selected in state
         setSelectedStops([...selectedStops, ...loadStops]);
+        // Set the schedule start date to the date of the first stop selected
+        console.log('Setting schedule start date to', selectedStops.at(0)?.date || loadStops.at(0)?.date);
+        setScheduleStartDate(
+            new Date(
+                selectedStops.at(0)?.date.toString().split('T')[0] || loadStops.at(0)?.date.toString().split('T')[0],
+            ),
+        );
     };
 
     // console.log('Load', load);
     const submit = async () => {
         setSaveLoading(true);
+        console.log(rawTime, scheduleStartDate);
+        // check if date and time are selected and valid
+        if (scheduleStartDate === null || rawTime === null || rawTime === '') {
+            notify({ title: 'Error', message: 'Please select a valid date and time', type: 'error' });
+            setSaveLoading(false);
+            return;
+        }
 
         const routeLegDetails: Partial<ExpandedRouteLeg> = {
             driverAssignments: selectedDrivers.map((driver) => ({
@@ -118,6 +141,8 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                 zip: stop.zip, */,
             })) as LoadStop[],
             driverInstructions: driverInstructions,
+            scheduledDate: scheduleStartDate,
+            scheduledTime: rawTime,
         };
 
         try {
@@ -165,32 +190,6 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
             setSaveLoading(false);
             notify({ title: 'Error', message: 'Error creating/updating driver assignment', type: 'error' });
         }
-
-        /*  const invoiceData: ExpandedInvoice = {
-            invoiceNum: Number(data.invoiceNum),
-            invoicedAt: data.invoicedAt,
-            totalAmount: new Prisma.Decimal(total),
-            remainingAmount: new Prisma.Decimal(total),
-            dueNetDays: data.dueNetDays,
-            loadId: load.id,
-            extraItems: data.extraItems.map((item) => ({
-                title: item.title,
-                amount: new Prisma.Decimal(item.amount),
-            })) as InvoiceItem[],
-        }; */
-
-        /* try {
-            const newInvoice = await createInvoice(invoiceData);
-            console.log('new invoice', newInvoice);
-
-
-            notify({ title: 'New invoice created', message: 'New invoice created successfully' });
-
-            setLoading(false);
-        } catch (error) {
-            setLoading(false);
-            notify({ title: 'Error', message: 'Error creating invoice', type: 'error' });
-        } */
     };
 
     const repositionSelectedStops = (index: number, direction: 'up' | 'down') => {
@@ -237,7 +236,9 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                 title="Select Stops"
                                                 selectedStops={selectedStops}
                                                 selectStops={selectStops}
-                                                goBack={() => setShowStopSearch(false)}
+                                                goBack={() => {
+                                                    setShowStopSearch(false);
+                                                }}
                                                 close={(value) => close(value)}
                                             ></LegStopsSelectionModalSearch>
                                         </div>
@@ -245,12 +246,14 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                     <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
                                         {saveLoading && <LoadingOverlay />}
                                         {!showDriverSearch && !showStopSearch && (
-                                            <div className="fixed bottom-0 right-0 z-10 w-full text-center px-5 pb-5 pr-9">
+                                            <div className="fixed bottom-0 right-0 z-10 w-full text-center px-5 pb-5 pr-9 ">
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"
                                                         disabled={
-                                                            selectedDrivers.length < 1 || selectedStops.length < 2
+                                                            selectedDrivers.length < 1 ||
+                                                            selectedStops.length < 2 ||
+                                                            saveLoading
                                                         }
                                                         className={`inline-flex items-center px-3 py-2  text-sm font-medium leading-4 text-white ${
                                                             selectedDrivers.length < 1 || selectedStops.length < 2
@@ -284,6 +287,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                     </button>
                                                 </div>
                                             </div>
+
                                             <div className="my-4 ">
                                                 <div className="flex flex-col justify-start mb-2">
                                                     <h5 className="font-semibold text-sm text-slate-600">
@@ -355,7 +359,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         className={`inline-flex  items-center px-3 py-2 text-sm font-medium leading-4 text-white ${
                                                             selectedDrivers.length == 0
                                                                 ? 'bg-blue-600'
-                                                                : 'bg-gray-600/70'
+                                                                : 'bg-gray-400/80'
                                                         }  rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
                                                         onClick={() => setShowDriverSearch(true)}
                                                     >
@@ -482,7 +486,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                             className={`inline-flex items-center px-3 py-2 text-sm font-medium   leading-4 text-white ${
                                                                 selectedStops.length == 0
                                                                     ? 'bg-blue-600'
-                                                                    : 'bg-gray-600/70'
+                                                                    : 'bg-gray-400/80'
                                                             }  rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
                                                             onClick={() => setShowStopSearch(true)}
                                                         >
@@ -493,6 +497,40 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         </button>
                                                     </div>
                                                 </div>
+                                            )}
+                                            {selectedDrivers.length != 0 && selectedStops.length != 0 && (
+                                                <>
+                                                    <div className="flex flex-col justify-start mb-2">
+                                                        <h5 className="font-semibold text-sm text-slate-600">
+                                                            Assignment Date & Time
+                                                        </h5>
+                                                        <p className="text-xs text-slate-400 font-light">
+                                                            Which should driver begin this task
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex flex-row items-end w-full gap-2">
+                                                        <input
+                                                            onChange={(e) => {
+                                                                if (e.target.value != '')
+                                                                    setScheduleStartDate(new Date(e.target.value));
+                                                            }}
+                                                            value={scheduleStartDate?.toISOString()?.split('T')[0]}
+                                                            type="date"
+                                                            max="9999-12-31"
+                                                            min={new Date().toLocaleString().split('T')[0]}
+                                                            autoComplete="date"
+                                                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm  `}
+                                                        />
+                                                        <input
+                                                            required
+                                                            type="time"
+                                                            value={rawTime}
+                                                            onChange={(e) => setRawTime(e.target.value)}
+                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                </>
                                             )}
 
                                             {selectedDrivers.length != 0 && selectedStops.length != 0 && (

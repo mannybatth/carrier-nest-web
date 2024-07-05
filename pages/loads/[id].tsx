@@ -12,7 +12,7 @@ import {
     TrashIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
-import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
+import { LoadDocument, LoadStatus, LoadStop, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useSession } from 'next-auth/react';
@@ -77,7 +77,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
         <Menu as="div" className="relative inline-block text-left">
             <div>
                 <Menu.Button
-                    className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+                    className="inline-flex justify-center w-full px-4 py-1 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
                     disabled={disabled}
                 >
                     Actions
@@ -241,11 +241,11 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                     data-tooltip-place="top-start"
                     className={`inline-flex justify-center capitalize w-full px-2 py-[4px] text-xs font-semibold text-slate-700 ${
                         status === LoadLegStatus.STARTED
-                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                            ? 'bg-amber-400/70 text-white hover:bg-amber-400'
                             : status === LoadLegStatus.COMPLETED
-                            ? 'bg-green-500 text-white hover:bg-green-600'
+                            ? 'bg-green-700/70 text-white hover:bg-green-500'
                             : 'bg-white text-slate-900 hover:bg-gray-50'
-                    } shadow-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
+                    } shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
                     disabled={disabled}
                 >
                     {status.toLowerCase()}
@@ -339,6 +339,7 @@ type LegAssignDropDownProps = {
     disabled: boolean;
     editLegClicked: (legId: string) => void;
     deleteLegClicked: (legId: string) => void;
+    openRouteInMapsClicked: (legId: string) => void;
     legId: string;
 };
 
@@ -347,6 +348,7 @@ const LegAssignDropDown: React.FC<LegAssignDropDownProps> = ({
     disabled,
     editLegClicked,
     deleteLegClicked,
+    openRouteInMapsClicked,
     legId,
 }) => {
     return (
@@ -384,6 +386,24 @@ const LegAssignDropDown: React.FC<LegAssignDropDownProps> = ({
                                     )}
                                 >
                                     Edit Assignment
+                                </a>
+                            )}
+                        </Menu.Item>
+                    </div>
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openRouteInMapsClicked(legId);
+                                    }}
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm',
+                                    )}
+                                >
+                                    Open route map
                                 </a>
                             )}
                         </Menu.Item>
@@ -444,7 +464,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }, [load]);
 
     return (
-        <div className={`sticky z-10 top-0 flex flex-row place-content-between ${className}`}>
+        <div className={`sticky z-0  sm:z-10 top-0 flex flex-row place-content-between ${className}`}>
             <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
                 <button
                     type="button"
@@ -773,6 +793,49 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
+    const openRouteInMapsClicked = (legId: string) => {
+        // Get the stops for the route leg
+        const routeLegStops = load.route.routeLegs.find((rl) => rl.id === legId)?.locations || [];
+        const allStops = [...load.stops, load.shipper, load.receiver, ...routeLegStops] as LoadStop[];
+
+        if (routeLegStops.length > 0) {
+            // origin is the load shipper address
+            const origin = `${allStops.find((s) => s.id === routeLegStops[0].id).latitude}, ${
+                allStops.find((s) => s.id === routeLegStops[0].id).longitude
+            }`;
+            // destination is the load receiver address
+            const destination = `${
+                allStops.find((s) => s.id === routeLegStops[routeLegStops.length - 1].id).latitude
+            }, ${allStops.find((s) => s.id === routeLegStops[routeLegStops.length - 1].id).longitude}`;
+
+            let waypoints = null;
+            // waypoints are the load stops, separate by a pipe
+            if (routeLegStops.length > 2) {
+                waypoints = routeLegStops
+                    .map(
+                        (stop, index) =>
+                            index > 0 &&
+                            index < routeLegStops.length - 1 &&
+                            `${allStops.find((s) => s.id === stop.id).latitude}, ${
+                                allStops.find((s) => s.id === stop.id).longitude
+                            }`,
+                    )
+                    .join('|');
+            }
+
+            const searchParams = new URLSearchParams();
+            searchParams.append('api', '1');
+            searchParams.append('origin', origin);
+            searchParams.append('destination', destination);
+            if (waypoints) {
+                searchParams.append('waypoints', waypoints);
+            }
+            searchParams.append('travelmode', 'driving');
+            const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
+            window.open(url);
+        }
+    };
+
     const changeLegStatusClicked = async (legStatus: LoadLegStatus, routeLegId: string) => {
         // console.log('changing leg status', legStatus);
         // Update the load context with the updated driver assignment
@@ -780,7 +843,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         const routeLeg: ExpandedRouteLegFromLoad = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
 
         try {
-            await updateRouteLegStatus(load.id, routeLegId, legStatus);
+            const loadStatus = (await updateRouteLegStatus(load.id, routeLegId, legStatus)) as LoadStatus;
 
             // Update the route leg status
             switch (legStatus) {
@@ -809,6 +872,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             // Update the load context with the updated route
             setLoad((prev) => ({
                 ...prev,
+                status: loadStatus,
                 route: JSON.parse(JSON.stringify(newRoute)),
             }));
 
@@ -1611,7 +1675,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 </div> */}
                                 <div className="col-span-8 my-10 md:my-2">
                                     <div className="mt-4 space-y-3">
-                                        <div className="flex flex-row justify-between pb-2 ">
+                                        <div className="flex flex-row justify-between pb-2 gap-2">
                                             <div className="flex flex-col">
                                                 <h3 className="text-base font-semibold leading-6 text-gray-900">
                                                     Load Route
@@ -1623,7 +1687,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                             <button
                                                 type="button"
-                                                className="flex flex-row items-center h-8 px-3 py-0 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                className="flex items-center h-8 px-3   whitespace-nowrap   text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                 onClick={openRouteInGoogleMaps}
                                             >
                                                 Get Directions
@@ -1900,7 +1964,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         </div>
                                         <div>
                                             <div className="flex justify-between py-0 space-x-2 text-sm font-medium">
-                                                <dd className="text-right text-gray-900">
+                                                <dd className="text-right text-gray-900 whitespace-nowrap">
                                                     <a onClick={() => setOpenLegAssignment(true)}>Add Assignment</a>
                                                 </dd>
                                             </div>
@@ -1934,7 +1998,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 ? LoadLegStatus.COMPLETED
                                                                 : LoadLegStatus.ASSIGNED;
 
-                                                        // console.log('legStatus', legStatus);
                                                         return (
                                                             <div className="relative pb-4" key={`routelegs-${index}`}>
                                                                 {removingRouteLegWithId == leg.id && (
@@ -1967,17 +2030,20 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                 editLegClicked={() =>
                                                                                     editLegClicked(leg.id)
                                                                                 }
+                                                                                openRouteInMapsClicked={() =>
+                                                                                    openRouteInMapsClicked(leg.id)
+                                                                                }
                                                                                 disabled={false}
                                                                                 legId={leg.id}
                                                                                 load={load}
                                                                             />
                                                                         </div>
                                                                     </div>
-                                                                    <div className="absolute right-2 rounded-md   text-center text-xs font-bold border-2 border-slate-100">
+                                                                    <div className="absolute right-2 rounded-md   text-center text-xs font-bold ">
                                                                         <div className="flex flex-row items-center gap-1">
-                                                                            <p className="text-xs  text-slate-800 font-semibold ">
+                                                                            {/* <p className="text-xs  text-slate-800 font-semibold ">
                                                                                 Status:
-                                                                            </p>
+                                                                            </p> */}
                                                                             <div className="font-light rounded-full bg-slate-100">
                                                                                 {/* {leg.startedAt && !leg.endedAt && (
                                                                                     <p
@@ -2027,13 +2093,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     </div>
                                                                     <p className="font-semibold">Assigned Drivers:</p>
                                                                     <div
-                                                                        className="flex flex-row gap-1"
+                                                                        className="flex gap-1"
                                                                         key={`routelegs-${index}-drivers`}
                                                                     >
                                                                         {drivers.map((driver, index) => {
                                                                             return (
                                                                                 <p
-                                                                                    className="capitalize text-xs bg-white rounded-md px-2 py-1 border border-slate-300"
+                                                                                    className="capitalize text-xs bg-white rounded-md px-2 py-1 whitespace-nowrap border border-slate-300"
                                                                                     key={`driver-${index}`}
                                                                                 >
                                                                                     <Link
@@ -2046,9 +2112,25 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         })}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 text-xs px-4 pt-4 py-2">
+                                                                <div className="flex flex-row gap-1 text-xs px-4 pt-4 py-1 font-normal">
+                                                                    <p>Assignment begin time:</p>
+                                                                    <p className=" text-slate-600">
+                                                                        {`${
+                                                                            new Date(leg.scheduledDate)
+                                                                                ?.toISOString()
+                                                                                ?.split('T')[0]
+                                                                        } @ ${new Date(
+                                                                            `${
+                                                                                leg.scheduledDate
+                                                                                    ?.toString()
+                                                                                    ?.split('T')[0]
+                                                                            }T${leg.scheduledTime}`,
+                                                                        ).toLocaleTimeString()}`}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="flex flex-row gap-1 text-xs px-4 py-1 pb-4">
                                                                     <p>Instructions:</p>
-                                                                    <p className="italic text-slate-600">
+                                                                    <p className=" text-slate-600">
                                                                         {leg.driverInstructions}
                                                                     </p>
                                                                 </div>
@@ -2057,6 +2139,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     <p className=" px-1 rounded-md">Assigned Stops</p>
                                                                     <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
                                                                 </div>
+                                                                {/* <a className="absolute bottom-3 pl-4 text-xs text-slate-400">
+                                                                    Open route in Google Maps
+                                                                </a> */}
                                                                 <div
                                                                     className="flex flex-col lg:flex-row gap-2 overflow-x-auto p-3 bg-neutral-50 m-4 rounded-lg mt-2"
                                                                     key={`routelegs-${index}-stops`}

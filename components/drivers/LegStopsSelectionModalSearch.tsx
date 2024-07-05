@@ -99,7 +99,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                 <Dialog.Title className="flex-1 text-lg font-semibold leading-6 text-gray-900">
                     {title ? title : 'Add Drivers to Load'}
                 </Dialog.Title>
-                <div className="flex items-center ml-3 h-7">
+                {/*                 <div className="flex items-center ml-3 h-7">
                     <button
                         type="button"
                         className="relative text-gray-400 bg-white rounded-md hover:text-gray-500 focus:ring-2 focus:ring-blue-500"
@@ -109,7 +109,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                         <span className="sr-only">Close panel</span>
                         <XMarkIcon className="w-6 h-6" aria-hidden="true" />
                     </button>
-                </div>
+                </div> */}
             </div>
             {loadingAllStops ? (
                 <div className="flex items-start justify-center flex-1 h-32">

@@ -178,7 +178,13 @@ export const getLoads = async ({
         where: {
             carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(customerId ? { customerId } : null),
-            ...(driverId ? { drivers: { some: { id: driverId } } } : null),
+            ...(driverId
+                ? {
+                      route: {
+                          routeLegs: { some: { driverAssignments: { some: { driverId: driverId } } } },
+                      } /* drivers: { some: { id: driverId } } */,
+                  }
+                : null),
             ...upcomingOnlyWhereClause,
         },
         orderBy: buildOrderBy(sortBy, sortDir) || {

@@ -1,4 +1,4 @@
-import { LoadActivityAction } from '@prisma/client';
+import { LoadActivity, LoadActivityAction } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ExpandedRouteLeg, JSONResponse } from '../../../../../interfaces/models';
@@ -38,6 +38,27 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     },
                 },
             },
+            select: {
+                id: true,
+                carrierId: true,
+                route: {
+                    select: {
+                        id: true,
+                        routeLegs: {
+                            orderBy: { createdAt: 'desc' },
+                            select: {
+                                id: true,
+                                driverAssignments: {
+                                    select: {
+                                        driverId: true,
+                                        driver: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
 
         if (!load) {
@@ -70,7 +91,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
 
-        /* await prisma.loadActivity.create({
+        await prisma.loadActivity.create({
             data: {
                 load: {
                     connect: {
@@ -86,7 +107,22 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             },
         });
- */
+
+        const loadActivityArray: LoadActivity[] = load.route.routeLegs
+            .find((leg) => leg.id === req.query.legid)
+            .driverAssignments.map((driver) => ({
+                loadId: req.query.id as string,
+                carrierId: session.user.defaultCarrierId,
+                action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
+                actorUserId: session.user.id,
+                actionDriverId: driver.driverId,
+                actionDriverName: driver.driver?.name,
+            })) as unknown as LoadActivity[];
+
+        await prisma.loadActivity.createMany({
+            data: [...loadActivityArray],
+        });
+
         return res.status(200).json({
             code: 200,
             data: { updatedLoad },
@@ -150,6 +186,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
             data: {
                 driverInstructions: routeLeg.driverInstructions,
+                scheduledDate: routeLeg.scheduledDate || undefined,
+                scheduledTime: routeLeg.scheduledTime || undefined,
                 driverAssignments: {
                     deleteMany: {},
                     create: routeLeg.driverAssignments.map((driver) => ({ driverId: driver.driverId })),
@@ -189,6 +227,23 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
+        await prisma.loadActivity.create({
+            data: {
+                load: {
+                    connect: {
+                        id: loadId,
+                    },
+                },
+                carrierId: session.user.defaultCarrierId,
+                action: LoadActivityAction.UPDATED_ASSIGNMENT,
+                actorUser: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+        });
+
         // return the updated route leg
         return res.status(200).json({
             code: 200,
@@ -200,9 +255,10 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const session = await getServerSession(req, res, authOptions);
 
         // Validate request body
-        const { routeLegStatus, loadId } = req.body as {
+        const { routeLegStatus, loadId, driverId } = req.body as {
             routeLegStatus: LoadLegStatus;
             loadId: string;
+            driverId: string;
         };
 
         // Check if the load exists and is assigned to the carrier
@@ -218,11 +274,13 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
             },
             select: {
+                status: true,
                 route: {
                     select: {
                         routeLegs: {
-                            where: { id: String(req.query.legid) },
+                            orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                             select: {
+                                id: true,
                                 startedAt: true,
                                 endedAt: true,
                             },
@@ -285,10 +343,71 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
+        await prisma.loadActivity.create({
+            data: {
+                load: {
+                    connect: {
+                        id: loadId,
+                    },
+                },
+                carrierId: session.user.defaultCarrierId,
+                action: LoadActivityAction.CHANGE_ASSIGNMENT_STATUS,
+                actorUser: {
+                    connect: {
+                        id: session.user.id,
+                    },
+                },
+            },
+        });
+
+        // Get count route legs
+        const routeLegsCount = load.route.routeLegs.length;
+        const routeLeg = load.route.routeLegs.find((leg) => leg.id === req.query.legid);
+        const routeLegIndex = load.route.routeLegs.findIndex((leg) => leg.id === req.query.legid);
+
+        let loadStatus = load.status;
+
+        // If this is the first leg, update load status to in progress
+        // if this is the last leg, update load status to delevered
+        if (routeLeg) {
+            // if this is the anyleg (not last one, update load status to in progress
+            if (
+                routeLegIndex !== routeLegsCount - 1 &&
+                load.status === 'CREATED' &&
+                (routeLegStatus === LoadLegStatus.STARTED || routeLegStatus === LoadLegStatus.COMPLETED)
+            ) {
+                // update load status to in progress
+                loadStatus = 'IN_PROGRESS';
+                await prisma.load.update({
+                    where: {
+                        id: loadId,
+                    },
+                    data: {
+                        status: 'IN_PROGRESS',
+                    },
+                });
+            } else if (
+                routeLegIndex === routeLegsCount - 1 &&
+                routeLegStatus === LoadLegStatus.COMPLETED &&
+                load.status !== 'DELIVERED'
+            ) {
+                // update load status to delivered
+                loadStatus = 'DELIVERED';
+                await prisma.load.update({
+                    where: {
+                        id: loadId,
+                    },
+                    data: {
+                        status: 'DELIVERED',
+                    },
+                });
+            }
+        }
+
         // return the updated route leg
         return res.status(200).json({
             code: 200,
-            data: { result: 'success' },
+            data: { loadStatus: loadStatus },
         });
     }
 }

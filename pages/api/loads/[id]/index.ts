@@ -518,6 +518,7 @@ const getLoad = async ({
                           select: {
                               id: true,
                               routeLegs: {
+                                  orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                                   select: {
                                       id: true,
                                       driverInstructions: true,

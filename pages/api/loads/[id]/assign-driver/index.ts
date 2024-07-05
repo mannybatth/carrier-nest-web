@@ -164,14 +164,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
                 const textMessage = `You have been assigned to a load!
 
-${load.customer.name}
-${load.shipper.city}, ${load.shipper.state} to ${load.receiver.city}, ${load.receiver.state}
-Pick up: ${new Intl.DateTimeFormat('en-US', {
+                ${load.customer.name}
+                ${load.shipper.city}, ${load.shipper.state} to ${load.receiver.city}, ${load.receiver.state}
+                Pick up: ${new Intl.DateTimeFormat('en-US', {
                     month: 'short',
                     day: '2-digit',
                 }).format(new Date(load.shipper.date))} at ${load.shipper.time}
 
-View Load: ${linkToLoad}`;
+                View Load: ${linkToLoad}`;
 
                 await client.messages.create({
                     body: textMessage,
