@@ -40,7 +40,8 @@ type Props = {
 
 const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
-    callbackUrl = callbackUrl.includes('homepage') ? '/' : callbackUrl;
+
+    callbackUrl = callbackUrl?.includes('homepage') ? '/' : callbackUrl;
 
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
