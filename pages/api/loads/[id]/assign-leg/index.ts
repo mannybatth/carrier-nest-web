@@ -1,8 +1,14 @@
-import { DriverAssignment, LoadActivity, LoadActivityAction } from '@prisma/client';
+import { DriverAssignment, LoadActivity, LoadActivityAction, Route } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import Twilio from 'twilio';
-import { ExpandedDriver, ExpandedRoute, ExpandedRouteLeg, JSONResponse } from '../../../../../interfaces/models';
+import {
+    ExpandedDriver,
+    ExpandedLoad,
+    ExpandedRoute,
+    ExpandedRouteLeg,
+    JSONResponse,
+} from '../../../../../interfaces/models';
 import firebaseAdmin from '../../../../../lib/firebase/firebaseAdmin';
 import prisma from '../../../../../lib/prisma';
 import { authOptions } from '../../../auth/[...nextauth]';
@@ -40,8 +46,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             },
         });
 
-        let updatedRoute;
-        let updatedLoad;
+        let updatedRoute: ExpandedRoute;
+        let updatedLoad: ExpandedLoad;
 
         if (routeExists) {
             updatedRoute = await prisma.route.update({
@@ -105,7 +111,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                             routeLegs: {
                                 create: [
                                     {
-                                        scheduledAt: routeLeg.scheduledDate || undefined,
+                                        scheduledDate: routeLeg.scheduledDate || undefined,
                                         driverInstructions: routeLeg.driverInstructions,
                                         driverAssignments: {
                                             create: routeLeg.driverAssignments.map((driver) => ({
@@ -123,7 +129,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
 
                 select: {
-                    customer: { select: { name: true } },
+                    customer: { select: { id: true, name: true } },
                     id: true,
                     route: {
                         select: {
@@ -133,7 +139,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                 select: {
                                     id: true,
                                     driverInstructions: true,
-                                    locations: { select: { id: true, city: true, state: true } },
+                                    locations: { select: { id: true } },
                                     scheduledDate: true,
                                     scheduledTime: true,
                                     startedAt: true,
@@ -157,7 +163,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const expandedRouteDetails: ExpandedRoute = updatedRoute ?? updatedLoad;
+        const expandedRouteDetails = updatedRoute ?? updatedLoad.route;
 
         const legCreatedLoadActivity = {
             loadId: loadId,
