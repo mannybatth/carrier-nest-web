@@ -132,6 +132,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                         startedAt: true,
                         startLatitude: true,
                         startLongitude: true,
+                        createdAt: true,
                         endedAt: true,
                         endLatitude: true,
                         endLongitude: true,

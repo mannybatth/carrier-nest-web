@@ -146,6 +146,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                     startedAt: true,
                                     startLatitude: true,
                                     startLongitude: true,
+                                    createdAt: true,
                                     endedAt: true,
                                     endLatitude: true,
                                     endLongitude: true,
