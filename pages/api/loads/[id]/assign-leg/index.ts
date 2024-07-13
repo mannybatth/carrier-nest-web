@@ -112,6 +112,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                 create: [
                                     {
                                         scheduledDate: routeLeg.scheduledDate || undefined,
+                                        scheduledTime: routeLeg.scheduledTime || undefined,
                                         driverInstructions: routeLeg.driverInstructions,
                                         driverAssignments: {
                                             create: routeLeg.driverAssignments.map((driver) => ({
