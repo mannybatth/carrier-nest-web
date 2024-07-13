@@ -80,7 +80,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         select: {
                             id: true,
                             driverInstructions: true,
-                            locations: { select: { id: true } },
+                            locations: { select: { id: true, city: true, state: true } },
                             scheduledDate: true,
                             scheduledTime: true,
                             startedAt: true,
@@ -139,7 +139,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                 select: {
                                     id: true,
                                     driverInstructions: true,
-                                    locations: { select: { id: true } },
+                                    locations: { select: { id: true, city: true, state: true } },
                                     scheduledDate: true,
                                     scheduledTime: true,
                                     startedAt: true,
