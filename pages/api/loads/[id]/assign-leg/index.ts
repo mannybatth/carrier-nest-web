@@ -26,10 +26,10 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _post() {
         const session = await getServerSession(req, res, authOptions);
-        const { routeLeg, loadId, sendSMS } = req.body as {
+        const { routeLeg, loadId, sendSms } = req.body as {
             routeLeg: ExpandedRouteLeg;
             loadId: string;
-            sendSMS: boolean;
+            sendSms: boolean;
         };
 
         console.log('Assigning route leg to load', loadId, routeLeg);
@@ -123,6 +123,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 },
 
                 select: {
+                    customer: { select: { name: true } },
+                    id: true,
                     route: {
                         select: {
                             id: true,
@@ -131,7 +133,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                 select: {
                                     id: true,
                                     driverInstructions: true,
-                                    locations: { select: { id: true } },
+                                    locations: { select: { id: true, city: true, state: true } },
                                     scheduledDate: true,
                                     scheduledTime: true,
                                     startedAt: true,
@@ -184,6 +186,31 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         await prisma.loadActivity.createMany({
             data: [...loadActivityArray],
         });
+
+        const drivers = expandedRouteDetails.routeLegs
+            .flatMap((leg) => leg.driverAssignments.map((da) => da.driver))
+            .filter((d) => routeLeg.driverAssignments.find((da) => da.driverId === d.id)) as ExpandedDriver[];
+
+        // Send SMS to driver
+        if (sendSms) {
+            for (const driver of drivers) {
+                if (!driver.phone) {
+                    continue;
+                }
+                const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${expandedRouteDetails.id}?did=${driver.id}`;
+                const textMessage = `You have a new assignment!
+
+
+                View Load: ${linkToLoad}`;
+
+                /* await client.messages.create({
+
+                    body: textMessage,
+                    from: '+18883429736',
+                    to: driver.phone,
+                }); */
+            }
+        }
 
         /* const drivers = expandedRouteDetails.routeLegs
             .flatMap((leg) => leg.driverAssignments.map((da) => da.driver))

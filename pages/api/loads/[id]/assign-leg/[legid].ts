@@ -255,10 +255,12 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         const session = await getServerSession(req, res, authOptions);
 
         // Validate request body
-        const { routeLegStatus, loadId, driverId } = req.body as {
+        const { routeLegStatus, loadId, driverId, lattitue, longitude } = req.body as {
             routeLegStatus: LoadLegStatus;
             loadId: string;
             driverId: string;
+            lattitue: number;
+            longitude: number;
         };
 
         // Check if the load exists and is assigned to the carrier
@@ -304,6 +306,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         let _startedAt;
         let _endedAt;
 
+        // Lookup the route leg status and update the startedAt and endedAt dates accordingly
         switch (routeLegStatus) {
             case LoadLegStatus.ASSIGNED:
                 console.log('changing leg status to assigned');
@@ -329,6 +332,25 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             data: {
                 startedAt: _startedAt,
                 endedAt: _endedAt,
+                ...(routeLegStatus === LoadLegStatus.ASSIGNED
+                    ? {
+                          startLatitude: null,
+                          startLongitude: null,
+                          endLatitude: null,
+                          endLongitude: null,
+                      }
+                    : {}),
+                ...(routeLegStatus === LoadLegStatus.STARTED
+                    ? {
+                          startLatitude: lattitue || null,
+                          startLongitude: longitude || null,
+                          endLatitude: null,
+                          endLongitude: null,
+                      }
+                    : {}),
+                ...(routeLegStatus === LoadLegStatus.COMPLETED
+                    ? { endLatitude: lattitue || null, endLongitude: longitude || null }
+                    : {}),
             },
             select: {
                 id: true,
