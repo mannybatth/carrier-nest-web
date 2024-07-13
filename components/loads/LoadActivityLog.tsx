@@ -266,7 +266,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actionDriver?.name || activityItem.actionDriverName}
                                                 </span>{' '}
-                                                to an assignement
+                                                to an assignment
                                             </>
                                         )}
                                         {activityItem.action === LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT && (
@@ -278,7 +278,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actionDriver?.name || activityItem.actionDriverName}
                                                 </span>{' '}
-                                                from an assignement
+                                                from an assignment
                                             </>
                                         )}
                                         {activityItem.action === LoadActivityAction.ADD_ASSIGNMENT && (

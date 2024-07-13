@@ -180,7 +180,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                 }));
 
                 notify({ title: 'Load Assignment', message: 'New load assignment created successfully' });
-                //console.log('New leg assignement', newLegAssignment);
+                //console.log('New leg assignment', newLegAssignment);
             }
 
             close(true); // Close the modal
@@ -246,7 +246,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                     <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
                                         {saveLoading && <LoadingOverlay />}
                                         {!showDriverSearch && !showStopSearch && (
-                                            <div className="fixed bottom-0 right-0 z-10 w-full text-center px-5 pb-5 pr-9 ">
+                                            <div className="fixed bottom-0 right-0 z-10 w-full px-5 pb-5 text-center pr-9 ">
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"
@@ -290,19 +290,19 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
 
                                             <div className="my-4 ">
                                                 <div className="flex flex-col justify-start mb-2">
-                                                    <h5 className="font-semibold text-sm text-slate-600">
+                                                    <h5 className="text-sm font-semibold text-slate-600">
                                                         Select Drivers
                                                     </h5>
-                                                    <p className="text-xs text-slate-400 font-light">
+                                                    <p className="text-xs font-light text-slate-400">
                                                         Add drivers to this assignment
                                                     </p>
                                                 </div>
                                                 {selectedDrivers.length != 0 && (
-                                                    <div className="bg-slate-100 p-2 rounded-lg mb-3">
-                                                        <ul role="list" className=" overflow-y-auto   divide-gray-200">
+                                                    <div className="p-2 mb-3 rounded-lg bg-slate-100">
+                                                        <ul role="list" className="overflow-y-auto divide-gray-200 ">
                                                             {selectedDrivers?.map((driver, index) => (
                                                                 <li key={index}>
-                                                                    <div className="flex items-center space-x-4 border  bg-slate-50 border-slate-200 rounded-lg mx-1 my-2">
+                                                                    <div className="flex items-center mx-1 my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
                                                                         <div className="flex-1">
                                                                             <label htmlFor={`driver-${index}`}>
                                                                                 <div className="relative flex items-center flex-1 py-1 pl-4 space-x-4 cursor-pointer">
@@ -311,7 +311,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                         aria-hidden="true"
                                                                                     />
                                                                                     <div className="flex-1 truncate">
-                                                                                        <p className="text-sm font-bold capitalize text-gray-900 truncate">
+                                                                                        <p className="text-sm font-bold text-gray-900 capitalize truncate">
                                                                                             {driver.name}
                                                                                         </p>
                                                                                         <p className="text-sm text-gray-500 truncate">
@@ -339,8 +339,8 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                     </div>
                                                 )}
                                                 {selectedDrivers.length > 0 && (
-                                                    <div className="col-span-12 sm:col-span-4 lg:col-span-3 my-3">
-                                                        <label className="block font-base text-sm text-slate-700">
+                                                    <div className="col-span-12 my-3 sm:col-span-4 lg:col-span-3">
+                                                        <label className="block text-sm font-base text-slate-700">
                                                             Driver Instructions
                                                         </label>
                                                         <input
@@ -353,7 +353,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         />
                                                     </div>
                                                 )}
-                                                <div className="flex flex-col mb-4  ">
+                                                <div className="flex flex-col mb-4 ">
                                                     <button
                                                         type="button"
                                                         className={`inline-flex  items-center px-3 py-2 text-sm font-medium leading-4 text-white ${
@@ -374,24 +374,24 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                             {selectedDrivers.length != 0 && (
                                                 <div className="my-4">
                                                     <div className="mb-2">
-                                                        <h5 className="font-semibold text-sm text-slate-600">
+                                                        <h5 className="text-sm font-semibold text-slate-600">
                                                             Select Stops
                                                         </h5>
-                                                        <p className="text-xs text-slate-400 font-light">
+                                                        <p className="text-xs font-light text-slate-400">
                                                             Select drops for this assignment
                                                         </p>
                                                     </div>
                                                     {selectedStops.length != 0 && (
-                                                        <div className="bg-slate-100 p-2 rounded-lg mb-3">
-                                                            <ul role="list" className=" overflow-y-auto  ">
+                                                        <div className="p-2 mb-3 rounded-lg bg-slate-100">
+                                                            <ul role="list" className="overflow-y-auto ">
                                                                 {selectedStops?.map((stop, index) => (
                                                                     <li key={index}>
-                                                                        <div className="flex items-center space-x-4 border bg-slate-50 border-slate-200 rounded-lg m-1 my-2">
+                                                                        <div className="flex items-center m-1 my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
                                                                             <div className="flex-1">
                                                                                 <label /* htmlFor={`stop-${index}`} */>
                                                                                     <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-default">
-                                                                                        <div className="flex flex-col justify-items-start items-center gap-4">
-                                                                                            <p className="relative top-0 text-xs bg-slate-200 p-1 h-6 w-6 text-center rounded-full">
+                                                                                        <div className="flex flex-col items-center gap-4 justify-items-start">
+                                                                                            <p className="relative top-0 w-6 h-6 p-1 text-xs text-center rounded-full bg-slate-200">
                                                                                                 {index + 1}
                                                                                             </p>
                                                                                             {/*  <BuildingOffice2Icon
@@ -401,7 +401,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                         </div>
 
                                                                                         <div className="flex-1 truncate">
-                                                                                            <p className="text-base font-semibold capitalize text-gray-900 truncate">
+                                                                                            <p className="text-base font-semibold text-gray-900 capitalize truncate">
                                                                                                 {stop.name.toLowerCase()}
                                                                                             </p>
                                                                                             <p className="text-xs text-gray-800 truncate">
@@ -413,7 +413,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                             <p className="text-sm text-gray-500 capitalize truncate">
                                                                                                 {stop.street.toLowerCase()}
                                                                                             </p>
-                                                                                            <p className="text-sm capitalize text-gray-500 truncate">
+                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
                                                                                                 {stop.city.toLowerCase()}
                                                                                                 ,{' '}
                                                                                                 {stop.state.toUpperCase()}
@@ -423,7 +423,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                     </div>
                                                                                 </label>
                                                                             </div>
-                                                                            <div className="flex flex-col items-center justify-between  pr-4 min-h-full gap-3">
+                                                                            <div className="flex flex-col items-center justify-between min-h-full gap-3 pr-4">
                                                                                 {index != 0 ? (
                                                                                     <button
                                                                                         type="button"
@@ -436,13 +436,13 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                         }
                                                                                     >
                                                                                         <ChevronUpIcon
-                                                                                            className=" h-5 w-5"
+                                                                                            className="w-5 h-5 "
                                                                                             aria-hidden="true"
                                                                                             color="black"
                                                                                         />
                                                                                     </button>
                                                                                 ) : (
-                                                                                    <p className=" h-4 w-4"></p>
+                                                                                    <p className="w-4 h-4 "></p>
                                                                                 )}
                                                                                 <input
                                                                                     id={`stop-${index}`}
@@ -465,13 +465,13 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                                                         }
                                                                                     >
                                                                                         <ChevronDownIcon
-                                                                                            className=" h-5 w-5"
+                                                                                            className="w-5 h-5 "
                                                                                             aria-hidden="true"
                                                                                             color="black"
                                                                                         />
                                                                                     </button>
                                                                                 ) : (
-                                                                                    <p className=" h-4 w-4"></p>
+                                                                                    <p className="w-4 h-4 "></p>
                                                                                 )}
                                                                             </div>
                                                                         </div>
@@ -501,10 +501,10 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                             {selectedDrivers.length != 0 && selectedStops.length != 0 && (
                                                 <>
                                                     <div className="flex flex-col justify-start mb-2">
-                                                        <h5 className="font-semibold text-sm text-slate-600">
+                                                        <h5 className="text-sm font-semibold text-slate-600">
                                                             Assignment Date & Time
                                                         </h5>
-                                                        <p className="text-xs text-slate-400 font-light">
+                                                        <p className="text-xs font-light text-slate-400">
                                                             Which should driver begin this task
                                                         </p>
                                                     </div>
@@ -536,14 +536,14 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                             {selectedDrivers.length != 0 && selectedStops.length != 0 && (
                                                 <div className="flex flex-col justify-start my-4">
                                                     <div className="mb-2">
-                                                        <h5 className="font-semibold text-sm text-slate-700">
+                                                        <h5 className="text-sm font-semibold text-slate-700">
                                                             Send Alert
                                                         </h5>
-                                                        <p className="text-xs text-slate-400 font-light">
+                                                        <p className="text-xs font-light text-slate-400">
                                                             Notify the drivers of this assignment
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center justify-between h-full py-2 bg-slate-100 p-2 rounded-lg ">
+                                                    <div className="flex items-center justify-between h-full p-2 py-2 rounded-lg bg-slate-100 ">
                                                         <label
                                                             htmlFor={'sms-send'}
                                                             className="text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"

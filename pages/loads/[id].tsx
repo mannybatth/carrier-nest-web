@@ -77,7 +77,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
         <Menu as="div" className="relative inline-block text-left">
             <div>
                 <Menu.Button
-                    className="inline-flex justify-center w-full px-4 py-1 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+                    className="inline-flex justify-center w-full px-4 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm sm:py-2 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
                     disabled={disabled}
                 >
                     Actions
@@ -249,7 +249,7 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                     disabled={disabled}
                 >
                     {status.toLowerCase()}
-                    <ChevronDownIcon className="w-5 h-4 mx-0 pl-1" aria-hidden="true" />
+                    <ChevronDownIcon className="w-5 h-4 pl-1 mx-0" aria-hidden="true" />
                 </Menu.Button>
             </div>
             <Transition
@@ -281,7 +281,7 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                                                     'block px-4 py-2 text-sm',
                                                 )}
                                             >
-                                                <p className="capitalize font-bold">
+                                                <p className="font-bold capitalize">
                                                     {LoadLegStatus[thisStatus].toLowerCase()}
                                                 </p>
                                             </a>
@@ -323,7 +323,7 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Delete Assignement
+                                    Delete Assignment
                                 </a>
                             )}
                         </Menu.Item>
@@ -421,7 +421,7 @@ const LegAssignDropDown: React.FC<LegAssignDropDownProps> = ({
                                         'block px-4 py-2 text-sm',
                                     )}
                                 >
-                                    Delete Assignement
+                                    Delete Assignment
                                 </a>
                             )}
                         </Menu.Item>
@@ -1018,7 +1018,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     </div>
 
                     <Toolbar
-                        className="px-5 mb-1 py-2 sm:px-6 md:px-8 bg-white"
+                        className="px-5 py-2 mb-1 bg-white sm:px-6 md:px-8"
                         load={load}
                         disabled={!load}
                         editLoadClicked={() => {
@@ -1291,7 +1291,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         </div>
                                     </aside>
                                 </div>
-                                <div className="col-span-8 lg:col-span-4  ">
+                                <div className="col-span-8 lg:col-span-4 ">
                                     <aside className="bg-white border-gray-200">
                                         <div className="pb-0 space-y-6 lg:pb-10">
                                             <dl className="border-gray-200 divide-y divide-gray-200">
@@ -1675,7 +1675,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 </div> */}
                                 <div className="col-span-8 my-10 md:my-2">
                                     <div className="mt-4 space-y-3">
-                                        <div className="flex flex-row justify-between pb-2 gap-2">
+                                        <div className="flex flex-row justify-between gap-2 pb-2">
                                             <div className="flex flex-col">
                                                 <h3 className="text-base font-semibold leading-6 text-gray-900">
                                                     Load Route
@@ -1687,7 +1687,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                             <button
                                                 type="button"
-                                                className="flex items-center h-8 px-3   whitespace-nowrap   text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                className="flex items-center h-8 px-3 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm whitespace-nowrap hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                 onClick={openRouteInGoogleMaps}
                                             >
                                                 Get Directions
@@ -1695,7 +1695,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             </button>
                                         </div>
                                         <div className="flex flex-col border rounded-lg border-slate-200">
-                                            <div className="w-full flex flex-row justify-between  bg-slate-100 rounded-tl-lg p-2 rounded-tr-lg">
+                                            <div className="flex flex-row justify-between w-full p-2 rounded-tl-lg rounded-tr-lg bg-slate-100">
                                                 <p className="text-sm text-slate-900">
                                                     Route Distance:{' '}
                                                     {metersToMiles(
@@ -1727,19 +1727,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             )}
                                             <ul
                                                 role="list"
-                                                className=" p-2 px-4 pb-4 flex flex-col lg:flex-row flex-grow gap-3 lg:gap-4 overflow-x-auto justify-between   bg-whtie"
+                                                className="flex flex-col justify-between flex-grow gap-3 p-2 px-4 pb-4 overflow-x-auto lg:flex-row lg:gap-4 bg-whtie"
                                             >
-                                                <li className="bg-neutral-50 rounded-lg p-2 mt-4 flex-grow  border border-slate-100">
+                                                <li className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100">
                                                     <div className="relative z-auto">
-                                                        <div className="relative flex flex-col  items-start ">
+                                                        <div className="relative flex flex-col items-start ">
                                                             <>
-                                                                <div className="relative px-0 w-full">
-                                                                    <div className="flex flex-row pb-2 items-end justify-between  rounded-full ">
+                                                                <div className="relative w-full px-0">
+                                                                    <div className="flex flex-row items-end justify-between pb-2 rounded-full ">
                                                                         <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
                                                                             Pick-Up
                                                                         </p>
-                                                                        <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
-                                                                            <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                        <div className="flex p-1 bg-white border rounded-lg border-slate-200">
+                                                                            <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
                                                                                 <span className="text-sm font-bold text-blue-500">
                                                                                     {new Intl.DateTimeFormat('en-US', {
                                                                                         year: 'numeric',
@@ -1757,9 +1757,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                 )}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="flex flex-row items-center justify-center w-8 h-8 bg-green-200 rounded-md border-2 border-white">
+                                                                        <div className="flex flex-row items-center justify-center w-8 h-8 bg-green-200 border-2 border-white rounded-md">
                                                                             <TruckIcon
-                                                                                className="w-4 h-4   text-green-900"
+                                                                                className="w-4 h-4 text-green-900"
                                                                                 aria-hidden="true"
                                                                             />
                                                                         </div>
@@ -1803,19 +1803,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 </li>
                                                 {load.stops.map((stop, index) => (
                                                     <li
-                                                        className="bg-neutral-50 rounded-lg p-2 mt-4 flex-grow border border-slate-100"
+                                                        className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100"
                                                         key={index}
                                                     >
                                                         <div className="relative">
-                                                            <div className="relative flex items-start  ">
-                                                                <div className="w-full flex-1">
-                                                                    <div className="relative px-0 w-full">
-                                                                        <div className="flex flex-row pb-2 items-end justify-between w-full  rounded-full ">
+                                                            <div className="relative flex items-start ">
+                                                                <div className="flex-1 w-full">
+                                                                    <div className="relative w-full px-0">
+                                                                        <div className="flex flex-row items-end justify-between w-full pb-2 rounded-full ">
                                                                             <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
                                                                                 Stop
                                                                             </p>
-                                                                            <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
-                                                                                <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                            <div className="flex p-1 bg-white border rounded-lg border-slate-200">
+                                                                                <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
                                                                                     <span className="text-sm font-bold text-blue-500">
                                                                                         {new Intl.DateTimeFormat(
                                                                                             'en-US',
@@ -1834,9 +1834,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     )}
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="flex flex-row items-center justify-center w-8 h-8 bg-gray-200 rounded-md border-2 border-white">
+                                                                            <div className="flex flex-row items-center justify-center w-8 h-8 bg-gray-200 border-2 border-white rounded-md">
                                                                                 <StopIcon
-                                                                                    className="w-4 h-4   text-gray-900"
+                                                                                    className="w-4 h-4 text-gray-900"
                                                                                     aria-hidden="true"
                                                                                 />
                                                                             </div>
@@ -1877,15 +1877,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         </div>
                                                     </li>
                                                 ))}
-                                                <li className="bg-neutral-50 rounded-lg mt-4 border border-slate-100 p-2 flex-grow">
+                                                <li className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100">
                                                     <div className="relative ">
                                                         <div className="relative flex flex-col items-start">
-                                                            <div className="flex flex-row pb-2 items-end justify-between w-full rounded-full ">
+                                                            <div className="flex flex-row items-end justify-between w-full pb-2 rounded-full ">
                                                                 <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
                                                                     Drop-Off
                                                                 </p>
-                                                                <div className="flex bg-white p-1 border border-slate-200 rounded-lg">
-                                                                    <div className="flex lg:flex-col items-center lg:items-start justify-center gap-2 lg:gap-0">
+                                                                <div className="flex p-1 bg-white border rounded-lg border-slate-200">
+                                                                    <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
                                                                         <span className="text-sm font-bold text-blue-500">
                                                                             {new Intl.DateTimeFormat('en-US', {
                                                                                 year: 'numeric',
@@ -1900,9 +1900,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-row items-center justify-center w-8 h-8 bg-red-200 rounded-md border-2 border-white">
+                                                                <div className="flex flex-row items-center justify-center w-8 h-8 bg-red-200 border-2 border-white rounded-md">
                                                                     <MapPinIcon
-                                                                        className="w-4 h-4   text-red-900"
+                                                                        className="w-4 h-4 text-red-900"
                                                                         aria-hidden="true"
                                                                     />
                                                                 </div>
@@ -1910,7 +1910,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="text-sm text-gray-500">
-                                                                    <div className="text-base capitalize font-semibold text-slate-900">
+                                                                    <div className="text-base font-semibold capitalize text-slate-900">
                                                                         {load.receiver.name.toLowerCase()}
                                                                     </div>
                                                                     <div>{load.receiver.street}</div>
@@ -1955,7 +1955,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </div> */}
                                 </div>
                                 <div className="col-span-8 my-10 md:my-2 ">
-                                    <div className="flex flex-row justify-between justify-items-start align-top">
+                                    <div className="flex flex-row justify-between align-top justify-items-start">
                                         <div>
                                             <h1 className="text-base font-semibold text-gray-900">Load Assignments</h1>
                                             <p className="text-xs text-slate-500">
@@ -1974,7 +1974,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         {load.route && load.route.routeLegs.length > 0 && (
                                             <div className="flex flex-col w-full" key={'routelegscontainer'}>
                                                 <div
-                                                    className="p-0 border border-slate-100 rounded-lg my-3 mt-6"
+                                                    className="p-0 my-3 mt-6 border rounded-lg border-slate-100"
                                                     key={'routelegs'}
                                                 >
                                                     {load.route.routeLegs.map((leg, index) => {
@@ -2009,7 +2009,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     </div>
                                                                 )}
                                                                 <div
-                                                                    className="flex flex-col items-start lg:flex-row gap-1 text-sm  lg:items-center bg-slate-100 p-2 rounded-tl-md rounded-tr-md"
+                                                                    className="flex flex-col items-start gap-1 p-2 text-sm lg:flex-row lg:items-center bg-slate-100 rounded-tl-md rounded-tr-md"
                                                                     key={`routeleg-${index}-drivers`}
                                                                 >
                                                                     <div className="absolute right-0  -top-6 flex items-center flex-row gap-2 rounded-md p-[3px] px-2 h-8  text-center text-xs font-semibold border-2 bg-slate-100 border-slate-100">
@@ -2039,9 +2039,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             />
                                                                         </div>
                                                                     </div>
-                                                                    <div className="absolute right-2 rounded-md   text-center text-xs font-bold ">
+                                                                    <div className="absolute text-xs font-bold text-center rounded-md right-2 ">
                                                                         <div className="flex flex-row items-center gap-1">
-                                                                            {/* <p className="text-xs  text-slate-800 font-semibold ">
+                                                                            {/* <p className="text-xs font-semibold text-slate-800 ">
                                                                                 Status:
                                                                             </p> */}
                                                                             <div className="font-light rounded-full bg-slate-100">
@@ -2052,7 +2052,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                         data-tooltip-content={`Started at: ${new Date(
                                                                                             leg.startedAt,
                                                                                         ).toLocaleString()}`}
-                                                                                        className="bg-amber-500 text-white px-2 py-1 rounded-full font-semibold"
+                                                                                        className="px-2 py-1 font-semibold text-white rounded-full bg-amber-500"
                                                                                     >
                                                                                         Started
                                                                                     </p>
@@ -2064,13 +2064,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                         data-tooltip-content={`Completed at: ${new Date(
                                                                                             leg.startedAt,
                                                                                         ).toLocaleString()}`}
-                                                                                        className="bg-green-600 text-white px-2 py-1 rounded-full font-semibold"
+                                                                                        className="px-2 py-1 font-semibold text-white bg-green-600 rounded-full"
                                                                                     >
                                                                                         Completed
                                                                                     </p>
                                                                                 )}
                                                                                 {!leg.startedAt && !leg.endedAt && (
-                                                                                    <p className="bg-white text-gray-600 px-2 py-1 rounded-full font-base">
+                                                                                    <p className="px-2 py-1 text-gray-600 bg-white rounded-full font-base">
                                                                                         Assigned
                                                                                     </p>
                                                                                 )} */}
@@ -2099,7 +2099,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         {drivers.map((driver, index) => {
                                                                             return (
                                                                                 <p
-                                                                                    className="capitalize text-xs bg-white rounded-md px-2 py-1 whitespace-nowrap border border-slate-300"
+                                                                                    className="px-2 py-1 text-xs capitalize bg-white border rounded-md whitespace-nowrap border-slate-300"
                                                                                     key={`driver-${index}`}
                                                                                 >
                                                                                     <Link
@@ -2112,7 +2112,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         })}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 text-xs px-4 pt-4 py-1 font-normal">
+                                                                <div className="flex flex-row gap-1 px-4 py-1 pt-4 text-xs font-normal">
                                                                     <p>Assignment begin time:</p>
                                                                     <p className=" text-slate-600">
                                                                         {`${
@@ -2128,22 +2128,22 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         ).toLocaleTimeString()}`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 text-xs px-4 py-1 pb-4">
+                                                                <div className="flex flex-row gap-1 px-4 py-1 pb-4 text-xs">
                                                                     <p>Instructions:</p>
                                                                     <p className=" text-slate-600">
                                                                         {leg.driverInstructions}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 text-sm font-semibold justify-center items-center text-slate-600 px-4   ">
+                                                                <div className="flex flex-row items-center justify-center gap-1 px-4 text-sm font-semibold text-slate-600 ">
                                                                     <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
-                                                                    <p className=" px-1 rounded-md">Assigned Stops</p>
+                                                                    <p className="px-1 rounded-md ">Assigned Stops</p>
                                                                     <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
                                                                 </div>
-                                                                {/* <a className="absolute bottom-3 pl-4 text-xs text-slate-400">
+                                                                {/* <a className="absolute pl-4 text-xs bottom-3 text-slate-400">
                                                                     Open route in Google Maps
                                                                 </a> */}
                                                                 <div
-                                                                    className="flex flex-col lg:flex-row gap-2 overflow-x-auto p-3 bg-neutral-50 m-4 rounded-lg mt-2"
+                                                                    className="flex flex-col gap-2 p-3 m-4 mt-2 overflow-x-auto rounded-lg lg:flex-row bg-neutral-50"
                                                                     key={`routelegs-${index}-stops`}
                                                                 >
                                                                     {stops.map((stop, index) => {
@@ -2154,7 +2154,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             >
                                                                                 <label /* htmlFor={`stop-${index}`} */>
                                                                                     <div className="relative flex flex-col items-start flex-1 py-1 pl-1 cursor-default">
-                                                                                        <div className="flex flex-row w-full justify-items-start items-center gap-0">
+                                                                                        <div className="flex flex-row items-center w-full gap-0 justify-items-start">
                                                                                             <p className="relative top-0 text-sm font-medium bg-slate-200 p-[2px] h-7 w-7 text-center border-2 border-slate-300 rounded-full">
                                                                                                 {index + 1}
                                                                                             </p>
@@ -2168,7 +2168,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                         </div>
 
                                                                                         <div className="flex-1 truncate pl-7">
-                                                                                            <p className="text-base font-semibold capitalize text-gray-900 truncate">
+                                                                                            <p className="text-base font-semibold text-gray-900 capitalize truncate">
                                                                                                 {stop.name.toLowerCase()}
                                                                                             </p>
                                                                                             <p className="text-xs text-gray-800 truncate">
@@ -2180,7 +2180,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                             <p className="text-xs text-gray-500 capitalize truncate">
                                                                                                 {stop.street.toLowerCase()}
                                                                                             </p>
-                                                                                            <p className="text-xs capitalize text-gray-500 truncate">
+                                                                                            <p className="text-xs text-gray-500 capitalize truncate">
                                                                                                 {stop.city.toLowerCase()}
                                                                                                 ,{' '}
                                                                                                 {stop.state.toUpperCase()}
@@ -2201,13 +2201,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         )}
                                         {!load.route ||
                                             (load.route.routeLegs.length == 0 && (
-                                                <p className="flex flex-col items-center justify-center text-sm h-20 w-full bg-neutral-50 p-1 my-2 rounded-lg">
+                                                <p className="flex flex-col items-center justify-center w-full h-20 p-1 my-2 text-sm rounded-lg bg-neutral-50">
                                                     No assignments created for this load.
                                                 </p>
                                             ))}
                                     </div>
                                 </div>
-                                <div className="col-span-8 my-10 md:my-2 mt-2  ">
+                                <div className="col-span-8 my-10 mt-2 md:my-2 ">
                                     <div className="pb-2 f">
                                         <h3 className="text-base font-semibold leading-6 text-gray-900">
                                             Load Activity
