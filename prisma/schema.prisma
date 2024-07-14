@@ -91,82 +91,80 @@ model Carrier {
     loads               Load[]
     defaultCarrierUsers User[]     @relation("defaultCarrier")
     users               User[]     @relation("CarrierToUser")
+    locations           Location[]
 
     @@index([name, email, carrierCode])
 }
 
 model Load {
-    id              String         @id @default(cuid())
-    userId          String
-    customerId      String?
-    carrierId       String
-    createdAt       DateTime       @default(now())
-    updatedAt       DateTime       @updatedAt
-    refNum          String
-    shipperId       String
-    receiverId      String
-    rate            Decimal
-    routeEncoded    String?
-    status          LoadStatus     @default(CREATED)
-    routeDistance   Decimal?
-    routeDuration   Decimal?
-    invoice         Invoice?
-    carrier         Carrier        @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    customer        Customer?      @relation(fields: [customerId], references: [id])
-    receiver        LoadStop       @relation("receiver", fields: [receiverId], references: [id])
-    shipper         LoadStop       @relation("shipper", fields: [shipperId], references: [id])
-    user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    activity        LoadActivity[]
-    podDocuments    LoadDocument[] @relation("loadForPodDoc")
-    rateconDocument LoadDocument?  @relation("loadForRatecon")
-    loadDocuments   LoadDocument[] @relation("load")
-    stops           LoadStop[]
-    additionalStops LoadStop[]     @relation("loadAdditionalLegStops")
-    drivers         Driver[]       @relation("driverLoads")
-    route           Route?
+    id                String             @id @default(cuid())
+    userId            String
+    customerId        String?
+    carrierId         String
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    refNum            String
+    shipperId         String
+    receiverId        String
+    rate              Decimal
+    routeEncoded      String?
+    status            LoadStatus         @default(CREATED)
+    routeDistance     Decimal?
+    routeDuration     Decimal?
+    invoice           Invoice?
+    carrier           Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    customer          Customer?          @relation(fields: [customerId], references: [id])
+    receiver          LoadStop           @relation("receiver", fields: [receiverId], references: [id])
+    shipper           LoadStop           @relation("shipper", fields: [shipperId], references: [id])
+    stops             LoadStop[]
+    user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    activity          LoadActivity[]
+    podDocuments      LoadDocument[]     @relation("loadForPodDoc")
+    rateconDocument   LoadDocument?      @relation("loadForRatecon")
+    loadDocuments     LoadDocument[]     @relation("load")
+    driverAssignments DriverAssignment[]
+    route             Route?
 
     @@index([refNum, carrierId, userId, customerId])
 }
 
 model LoadStop {
-    id               String       @id @default(cuid())
-    userId           String
-    type             LoadStopType
-    name             String
-    street           String
-    city             String
-    state            String
-    zip              String
-    country          String
-    date             DateTime
-    time             String
-    loadIdAsStop     String?
-    loadIdAsAddStop  String?
-    stopIndex        Int          @default(0)
-    createdAt        DateTime     @default(now())
-    latitude         Float?
-    longitude        Float?
-    pickUpNumbers    String?
-    poNumbers        String?
-    referenceNumbers String?
-    loadsAsReceiver  Load[]       @relation("receiver")
-    loadsAsShipper   Load[]       @relation("shipper")
-    loadAsStop       Load?        @relation(fields: [loadIdAsStop], references: [id])
-    loadAsAdditional Load?        @relation("loadAdditionalLegStops", fields: [loadIdAsAddStop], references: [id])
-    user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-    routeLegs        RouteLeg[]
+    id                String             @id @default(cuid())
+    userId            String
+    type              LoadStopType
+    name              String
+    street            String
+    city              String
+    state             String
+    zip               String
+    country           String
+    date              DateTime
+    time              String
+    loadIdAsStop      String?
+    loadIdAsAddStop   String?
+    stopIndex         Int                @default(0)
+    createdAt         DateTime           @default(now())
+    latitude          Float?
+    longitude         Float?
+    pickUpNumbers     String?
+    poNumbers         String?
+    referenceNumbers  String?
+    loadsAsReceiver   Load[]             @relation("receiver")
+    loadsAsShipper    Load[]             @relation("shipper")
+    loadAsStop        Load?              @relation(fields: [loadIdAsStop], references: [id])
+    user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    routeLegLocations RouteLegLocation[]
 }
 
 model Route {
     id        String     @id @default(cuid())
     loadId    String     @unique
-    routeLegs RouteLeg[] // Define the one-to-many relationship with RouteLeg
+    routeLegs RouteLeg[]
     load      Load       @relation(fields: [loadId], references: [id], onDelete: Cascade)
 }
 
 model RouteLeg {
     id                 String             @id @default(cuid())
-    routeId            String
     scheduledDate      DateTime?
     scheduledTime      String?
     startLatitude      Float?
@@ -177,18 +175,52 @@ model RouteLeg {
     endedAt            DateTime?
     createdAt          DateTime           @default(now())
     driverInstructions String?
+    locations          RouteLegLocation[] @relation("routeLegLocation")
+    driverAssignments  DriverAssignment[] @relation("driverAssignment")
     route              Route              @relation(fields: [routeId], references: [id], onDelete: Cascade) // Define the many-to-one relationship with Route
-    driverAssignments  DriverAssignment[]
-    locations          LoadStop[]
+    routeId            String
+}
+
+model RouteLegLocation {
+    id         String    @id @default(cuid())
+    loadStopId String?
+    locationId String?
+    routeLegId String
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    loadStop   LoadStop? @relation(fields: [loadStopId], references: [id])
+    location   Location? @relation(fields: [locationId], references: [id])
+    routeLeg   RouteLeg  @relation("routeLegLocation", fields: [routeLegId], references: [id], onDelete: Cascade)
+
+    @@unique([routeLegId])
+}
+
+model Location {
+    id                String             @id @default(cuid())
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    name              String
+    street            String
+    city              String
+    state             String
+    zip               String
+    country           String
+    latitude          Float?
+    longitude         Float?
+    carrier           Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId         String
+    routeLegLocations RouteLegLocation[]
 }
 
 model DriverAssignment {
     id         String   @id @default(cuid())
-    routeLegId String
+    loadId     String?
     driverId   String
+    routeLegId String
     assignedAt DateTime @default(now())
-    routeLeg   RouteLeg @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
+    load       Load?    @relation(fields: [loadId], references: [id], onDelete: Cascade)
     driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    routeLeg   RouteLeg @relation("driverAssignment", fields: [routeLegId], references: [id])
 
     @@unique([driverId, routeLegId])
 }
@@ -214,22 +246,21 @@ model Customer {
 }
 
 model Driver {
-    id                String             @id @default(cuid())
-    createdAt         DateTime           @default(now())
-    updatedAt         DateTime           @updatedAt
-    name              String
-    email             String?
-    phone             String
-    carrierId         String
-    smsCode           String?
-    smsCodeExpiry     DateTime?
-    carrier           Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    actionActivity    LoadActivity[]     @relation("actionDriver")
-    actorActivity     LoadActivity[]     @relation("actorDriver")
-    loadDocuments     LoadDocument[]
-    loads             Load[]             @relation("driverLoads")
-    devices           Device[]
-    driverAssignments DriverAssignment[]
+    id             String             @id @default(cuid())
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
+    name           String
+    email          String?
+    phone          String
+    carrierId      String
+    smsCode        String?
+    smsCodeExpiry  DateTime?
+    assignments    DriverAssignment[]
+    carrier        Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    actionActivity LoadActivity[]     @relation("actionDriver")
+    actorActivity  LoadActivity[]     @relation("actorDriver")
+    loadDocuments  LoadDocument[]
+    devices        Device[]
 
     @@index([name, carrierId])
 }
