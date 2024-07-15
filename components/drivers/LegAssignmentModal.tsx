@@ -8,22 +8,19 @@ import {
     ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import React, { Fragment } from 'react';
-import { removeDriverFromLoad } from '../../lib/rest/driver';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import LegDriverSelectionModalSearch from './LegDriverSelectionModalSearch';
-import { Driver, DriverAssignment, LoadStop, Route, RouteLeg } from '@prisma/client';
-import { set } from 'date-fns';
+import { Driver, LoadStop } from '@prisma/client';
 import LegStopsSelectionModalSearch from './LegStopsSelectionModalSearch';
-import { ExpandedRoute, ExpandedRouteLeg, ExpandedRouteLegFromLoad } from 'interfaces/models';
-import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
+import { ExpandedRoute, ExpandedRouteLeg } from 'interfaces/models';
 import { notify } from 'components/Notification';
-import { send } from 'process';
+import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
+import { RouteLegUpdate } from 'interfaces/route-leg';
 
 type Props = {
     show: boolean;
     onClose: (value: boolean) => void;
-    routeLeg?: ExpandedRouteLegFromLoad;
+    routeLeg?: ExpandedRouteLeg;
 };
 
 const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props) => {
@@ -37,35 +34,23 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     const [selectedStops, setSelectedStops] = React.useState<LoadStop[]>([]);
 
     const [scheduleStartDate, setScheduleStartDate] = React.useState<Date | null>();
-    const [rawTime, setRawTime] = React.useState('00:00'); // Default time
-    const [hours, minutes] = React.useMemo(() => rawTime.split(':').slice(0, 2).map(Number), [rawTime]);
+    const [rawTime, setRawTime] = React.useState('00:00');
 
-    // const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
-
-    // If no drivers are assigned to the this task, show the search modal
-    /* React.useEffect(() => {
-        if (show) {
-            if (selectDrivers.length === 0) {
-                setShowDriverSearch(true);
-            }
-        }
-    }, [show]); */
     React.useEffect(() => {
         if (routeLeg) {
             setScheduleStartDate(new Date(routeLeg.scheduledDate));
             setRawTime(routeLeg.scheduledTime);
             setSelectedDrivers(routeLeg.driverAssignments.map((assignment) => assignment.driver));
-            const allLoadStops = [load.shipper, ...load.stops, load.receiver, ...load.additionalStops];
+            const allLoadStops = [load.shipper, ...load.stops, load.receiver];
             const selectedStopsOnLeg = allLoadStops.filter((stop) =>
                 routeLeg.locations.find((location, index) => location.id === stop.id),
             ) as LoadStop[];
             setSelectedStops(selectedStopsOnLeg);
-            setDriverInstructions(routeLeg.driverInstructions!);
+            setDriverInstructions(routeLeg.driverInstructions);
         }
     }, [routeLeg]);
 
     const close = (value: boolean) => {
-        console.log('Closing the stops modal');
         onClose(value);
         setShowDriverSearch(false);
         setDriverInstructions('');
@@ -75,39 +60,21 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
         setScheduleStartDate(null);
     };
 
-    const onRemoveDriver = async (driverIdToRemove: string) => {
-        setSaveLoading(true);
-        await removeDriverFromLoad(load.id, driverIdToRemove);
-        setLoad((prev) => ({ ...prev, drivers: prev.drivers.filter((driver) => driver.id !== driverIdToRemove) }));
-        setSaveLoading(false);
-    };
-
     const handleDriverCheckboxChange = (event) => {
-        //console.log(event.target.checked, event.target.value);
         if (!event.target.checked) {
-            //setSelectedDriverIds((prev) => [...prev, event.target.value]);
             const newDriverList = selectedDrivers.filter((driver) => driver.id !== event.target.value);
             setSelectedDrivers(newDriverList);
         }
     };
     const handleStopCheckboxChange = (event) => {
-        //console.log(event.target.checked, event.target.value);
         if (!event.target.checked) {
-            //setSelectedDriverIds((prev) => [...prev, event.target.value]);
             const newStops = selectedStops.filter((stop) => stop.id !== event.target.value);
             setSelectedStops(newStops);
         }
     };
 
-    const selectDrivers = (drivers: Driver[]) => {
-        // Update the array of drivers selected in state
-        setSelectedDrivers([...selectedDrivers, ...drivers]);
-    };
     const selectStops = (loadStops: LoadStop[]) => {
-        // Update the array of stops selected in state
         setSelectedStops([...selectedStops, ...loadStops]);
-        // Set the schedule start date to the date of the first stop selected
-        console.log('Setting schedule start date to', selectedStops.at(0)?.date || loadStops.at(0)?.date);
         setScheduleStartDate(
             new Date(
                 selectedStops.at(0)?.date.toString().split('T')[0] || loadStops.at(0)?.date.toString().split('T')[0],
@@ -115,77 +82,29 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
         );
     };
 
-    // console.log('Load', load);
     const submit = async () => {
         setSaveLoading(true);
-        console.log(rawTime, scheduleStartDate);
-        // check if date and time are selected and valid
+
         if (scheduleStartDate === null || rawTime === null || rawTime === '') {
             notify({ title: 'Error', message: 'Please select a valid date and time', type: 'error' });
             setSaveLoading(false);
             return;
         }
 
-        const routeLegDetails: Partial<ExpandedRouteLeg> = {
-            driverAssignments: selectedDrivers.map((driver) => ({
-                driverId: driver.id,
-            })) as DriverAssignment[],
-            locations: selectedStops.map((stop) => ({
-                id: stop.id /*
-                name: stop.name,
-                date: stop.date,
-                time: stop.time,
-                street: stop.street,
-                city: stop.city,
-                state: stop.state,
-                zip: stop.zip, */,
-            })) as LoadStop[],
+        const routeLegUpdate: RouteLegUpdate = {
+            driverIds: selectedDrivers.map((driver) => driver.id),
+            locationIds: selectedStops.map((stop) => stop.id),
             driverInstructions: driverInstructions,
             scheduledDate: scheduleStartDate,
             scheduledTime: rawTime,
         };
 
         try {
-            if (routeLeg) {
-                // If the routeLeg already exists, update it
-                if (routeLeg.id) {
-                    //console.log('updating leg', routeLeg);
-                    const updatedLeg = await updateRouteLeg(load.id, routeLegDetails, routeLeg.id, sendSMS);
-                    //console.log('updated leg', updatedLeg);
+            const updatedLeg = await updateRouteLeg(load.id, routeLeg.id, routeLegUpdate, sendSMS);
 
-                    // Update the load context with the updated driver assignment
-                    const curRoute = load.route;
-                    const updatedRouteLegs = curRoute.routeLegs.map((leg) =>
-                        leg.id === routeLeg.id ? updatedLeg : leg,
-                    ) as [];
-                    const newRoute: ExpandedRoute = {
-                        id: curRoute.id,
-                        routeLegs: updatedRouteLegs,
-                    };
-                    setLoad((prev) => ({
-                        ...prev,
-                        route: JSON.parse(JSON.stringify(newRoute)),
-                    }));
+            close(true);
 
-                    notify({ title: 'Load Assignment', message: 'Load assignment successfully updated' });
-                }
-            } else {
-                // If the routeLeg does not exist, create it
-                const newLegAssignment: ExpandedRoute = await createRouteLeg(load.id, routeLegDetails, sendSMS);
-
-                // Update the load context with the new driver assignment
-                setLoad((prev) => ({
-                    ...prev,
-                    route: JSON.parse(JSON.stringify(newLegAssignment)),
-                }));
-
-                notify({ title: 'Load Assignment', message: 'New load assignment created successfully' });
-                //console.log('New leg assignment', newLegAssignment);
-            }
-
-            close(true); // Close the modal
-
-            setSaveLoading(false); // Stop the loading spinner
+            setSaveLoading(false);
         } catch (error) {
             setSaveLoading(false);
             notify({ title: 'Error', message: 'Error creating/updating driver assignment', type: 'error' });
@@ -219,17 +138,6 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
-                                    {showDriverSearch && (
-                                        <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
-                                            <LegDriverSelectionModalSearch
-                                                title="Select Drivers"
-                                                selectedDrivers={selectedDrivers}
-                                                selectDrivers={selectDrivers}
-                                                goBack={() => setShowDriverSearch(false)}
-                                                close={(value) => close(value)}
-                                            ></LegDriverSelectionModalSearch>
-                                        </div>
-                                    )}
                                     {showStopSearch && (
                                         <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
                                             <LegStopsSelectionModalSearch
@@ -565,41 +473,6 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                             )}
 
                                             <div className="h-16"></div>
-
-                                            {/* <ul role="list" className="flex-1 overflow-y-auto divide-y divide-gray-200">
-                                                {load?.drivers?.map((driver) => (
-                                                    <li key={driver.id}>
-                                                        <div className="relative flex items-center px-4 py-4 group">
-                                                            <div className="relative flex items-center flex-1 min-w-0 space-x-4">
-                                                                <UserCircleIcon
-                                                                    className="w-6 h-6 text-gray-500"
-                                                                    aria-hidden="true"
-                                                                />
-                                                                <div className="flex-1 truncate">
-                                                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                                                        {driver.name}
-                                                                    </p>
-                                                                    <p className="text-sm text-gray-500 truncate">
-                                                                        {driver.phone}
-                                                                    </p>
-                                                                </div>
-                                                                <div>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            onRemoveDriver(driver.id);
-                                                                        }}
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul> */}
                                         </div>
                                     </div>
                                 </Dialog.Panel>

@@ -23,9 +23,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const drivers = await prisma.driver.findMany({
             where: {
-                loads: {
+                assignments: {
                     some: {
-                        id: String(req.query.id),
+                        loadId: String(req.query.id),
                     },
                 },
                 carrierId: session.user.defaultCarrierId,

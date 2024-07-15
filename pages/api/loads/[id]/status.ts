@@ -1,10 +1,10 @@
 import { Driver, Load, LoadActivityAction, LoadStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
-import { getToken } from 'next-auth/jwt';
 
 export default handler;
 
@@ -48,11 +48,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     where: {
                         id: id as string,
                         carrierId: tokenCarrierId,
-                        drivers: {
-                            some: {
-                                id: driverId,
-                            },
-                        },
+                        driverAssignments: { some: { driverId: driverId } },
                     },
                 }),
                 prisma.driver.findFirst({

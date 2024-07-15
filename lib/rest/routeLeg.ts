@@ -1,8 +1,9 @@
 import { RouteLeg } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedRoute, ExpandedRouteLegFromLoad, JSONResponse } from '../../interfaces/models';
+import { ExpandedRoute, ExpandedRouteLeg, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { LoadLegStatus } from 'pages/loads/[id]';
+import { RouteLegUpdate } from 'interfaces/route-leg';
 
 export const getAllRouteLegs = async ({
     sort,
@@ -56,26 +57,6 @@ export const getRouteLegsForLoadId = async (loadId: string) => {
     return data.routeLegs;
 };
 
-/* export const searchDriversByName = async (value: string) => {
-    const response = await fetch(apiUrl + '/drivers/search?q=' + value);
-    const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.drivers;
-}; */
-
-/* export const fullTextSearchDriversByName = async (value: string) => {
-    const response = await fetch(apiUrl + '/drivers/search/?fullText=true&q=' + value);
-    const { data, errors }: JSONResponse<{ drivers: Driver[] }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.drivers;
-}; */
-
 export const createRouteLeg = async (loadId: string, routeLeg: Partial<RouteLeg>, sendSms: boolean) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg', {
         method: 'POST',
@@ -95,8 +76,8 @@ export const createRouteLeg = async (loadId: string, routeLeg: Partial<RouteLeg>
 
 export const updateRouteLeg = async (
     loadId: string,
-    routeLeg: Partial<RouteLeg>,
     routeLegId: string,
+    routeLegUpdate: RouteLegUpdate,
     sendSms: boolean,
 ) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg/' + routeLegId, {
@@ -104,10 +85,10 @@ export const updateRouteLeg = async (
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ routeLeg, sendSms, loadId }),
+        body: JSON.stringify({ routeLegUpdate, sendSms, loadId }),
     });
 
-    const { data, errors }: JSONResponse<{ updatedRoute: ExpandedRouteLegFromLoad }> = await response.json();
+    const { data, errors }: JSONResponse<{ updatedRoute: ExpandedRouteLeg }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
@@ -161,25 +142,6 @@ export const deleteRouteLegById = async (id: string) => {
     return data.result;
 };
 
-/* export const assignDriversToRouteLeg = async (routeId: string, driverIds: string[], sendSMS = false) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver', {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            driverIds: driverIds,
-            sendSMS: sendSMS,
-        }),
-    });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
-};
- */
 export const removeDriverFromLoad = async (loadId: string, driverId: string) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver/' + driverId, {
         method: 'DELETE',

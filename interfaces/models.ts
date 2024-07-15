@@ -17,6 +17,20 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
     include: {
         customer: { select: { id: true, name: true } },
         carrier: { select: { id: true, name: true } },
+        invoice: {
+            select: {
+                id: true,
+                status: true,
+                invoiceNum: true,
+                totalAmount: true,
+                invoicedAt: true,
+                dueDate: true,
+                dueNetDays: true,
+                paidAmount: true,
+                remainingAmount: true,
+                lastPaymentAt: true,
+            },
+        },
         shipper: {
             select: {
                 id: true,
@@ -77,20 +91,6 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 referenceNumbers: true,
             },
         },
-        invoice: {
-            select: {
-                id: true,
-                status: true,
-                invoiceNum: true,
-                totalAmount: true,
-                invoicedAt: true,
-                dueDate: true,
-                dueNetDays: true,
-                paidAmount: true,
-                remainingAmount: true,
-                lastPaymentAt: true,
-            },
-        },
         route: {
             select: {
                 id: true,
@@ -98,7 +98,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                     select: {
                         id: true,
                         driverInstructions: true,
-                        locations: { select: { id: true } },
+                        locations: { select: { id: true, loadStop: true, location: true } },
                         scheduledDate: true,
                         scheduledTime: true,
                         startedAt: true,
@@ -160,6 +160,9 @@ const expandedLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
         poNumbers: true,
         pickUpNumbers: true,
         referenceNumbers: true,
+        routeLegLocations: {
+            select: { id: true, loadStop: true, location: true },
+        },
     },
 });
 export type ExpandedLoadStop = Partial<Prisma.LoadStopGetPayload<typeof expandedLoadStop>>;
@@ -258,7 +261,28 @@ export type ExpandedRouteLeg = Partial<Prisma.RouteLegGetPayload<typeof expanded
  */
 const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
     include: {
-        assignments: true,
+        assignments: {
+            select: {
+                driverId: true,
+                assignedAt: true,
+                driver: true,
+                routeLeg: {
+                    select: {
+                        id: true,
+                        driverInstructions: true,
+                        locations: { select: { id: true, loadStop: true, location: true } },
+                        scheduledDate: true,
+                        scheduledTime: true,
+                        startedAt: true,
+                        startLatitude: true,
+                        startLongitude: true,
+                        endedAt: true,
+                        endLatitude: true,
+                        endLongitude: true,
+                    },
+                },
+            },
+        },
         devices: true,
     },
 });

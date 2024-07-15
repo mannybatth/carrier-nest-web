@@ -32,7 +32,7 @@ const StatBox = (props: {
     icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) => {
     return (
-        <div className="overflow-hidden bg-white rounded-lg shadow-none border border-gray-200">
+        <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-none">
             <div className="p-5">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -148,11 +148,11 @@ const Dashboard: PageWithAuth = () => {
                                         height={150}
                                         width={150}
                                     />
-                                    <div className="p-6 mt-6 flex flex-col items-center bg-white rounded w-80">
+                                    <div className="flex flex-col items-center p-6 mt-6 bg-white rounded w-80">
                                         <h1 className="mb-2 text-xl font-bold text-center">Create a New Load</h1>
-                                        <p className="mb-6 text-center text-gray-600 text-sm">
+                                        <p className="mb-6 text-sm text-center text-gray-600">
                                             Easily import a load using our
-                                            <span className="whitespace-nowrap bg-slate-50 font-bold text-slate-700 italic shadow-sm m-1 px-1 rounded border border-slate-300">
+                                            <span className="px-1 m-1 italic font-bold border rounded shadow-sm whitespace-nowrap bg-slate-50 text-slate-700 border-slate-300">
                                                 Rate Confirmation AI
                                             </span>
                                             click below to get started.
@@ -330,23 +330,26 @@ const Dashboard: PageWithAuth = () => {
                                                                     Driver details
                                                                 </div>
                                                                 <div>
-                                                                    {load.drivers?.length > 0 ? (
-                                                                        load.drivers.map((driver, index) => (
-                                                                            <span key={driver.id}>
-                                                                                <Link
-                                                                                    href={`/drivers/${driver.id}`}
-                                                                                    className="font-medium"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                    }}
-                                                                                >
-                                                                                    {driver?.name}
-                                                                                </Link>
-                                                                                {index < load.drivers.length - 1
-                                                                                    ? ', '
-                                                                                    : ''}
-                                                                            </span>
-                                                                        ))
+                                                                    {load.driverAssignments?.length > 0 ? (
+                                                                        load.driverAssignments.map(
+                                                                            (assignment, index) => (
+                                                                                <span key={assignment.driver.id}>
+                                                                                    <Link
+                                                                                        href={`/drivers/${assignment.driver.id}`}
+                                                                                        className="font-medium"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                        }}
+                                                                                    >
+                                                                                        {assignment.driver?.name}
+                                                                                    </Link>
+                                                                                    {index <
+                                                                                    load.driverAssignments.length - 1
+                                                                                        ? ', '
+                                                                                        : ''}
+                                                                                </span>
+                                                                            ),
+                                                                        )
                                                                     ) : (
                                                                         <div className="text-gray-400">
                                                                             No driver assigned
@@ -383,13 +386,13 @@ const Dashboard: PageWithAuth = () => {
                         </>
                     )}
 
-                    <div className="mx-4 md:mx-0 mt-2 bg-gray-100 rounded-lg">
-                        <div className="flex flex-row justify-between place-items-baseline border-b border-slate-200 mb-2 p-4 pb-2">
-                            <h2 className="text-lg font-bold leading-6 text-gray-700 mb-4">Loads Activity Overview</h2>
+                    <div className="mx-4 mt-2 bg-gray-100 rounded-lg md:mx-0">
+                        <div className="flex flex-row justify-between p-4 pb-2 mb-2 border-b place-items-baseline border-slate-200">
+                            <h2 className="mb-4 text-lg font-bold leading-6 text-gray-700">Loads Activity Overview</h2>
                             <div className="relative inline-flex rounded-md shadow-sm">
                                 <button
                                     type="button"
-                                    className="relative inline-flex items-center px-3 py-2 text-sm font-base text-gray-900 bg-white rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+                                    className="relative inline-flex items-center px-3 py-2 text-sm text-gray-900 bg-white font-base rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
                                 >
                                     Past: {convertEnumValueToUIString(statsTimeFrame)}
                                 </button>
@@ -409,7 +412,7 @@ const Dashboard: PageWithAuth = () => {
                                     >
                                         <Menu.Items
                                             key={'statsdropdownitems'}
-                                            className="absolute left-0 z-10 w-36 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                            className="absolute left-0 z-10 mt-2 -mr-1 origin-top-right bg-white rounded-md shadow-lg w-36 md:right-0 md:left-auto ring-1 ring-black ring-opacity-5 focus:outline-none"
                                         >
                                             <div className="py-1" key={'statsdropdowndiv'}>
                                                 {Object.keys(DashboardStatsTimeFrameType).map((key) => {
@@ -446,7 +449,7 @@ const Dashboard: PageWithAuth = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-5 mt-2 sm:grid-cols-2 lg:grid-cols-3 p-4 ">
+                        <div className="grid grid-cols-1 gap-5 p-4 mt-2 sm:grid-cols-2 lg:grid-cols-3 ">
                             {loadingStats ? (
                                 <>
                                     <StatBoxSkeleton></StatBoxSkeleton>

@@ -75,7 +75,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 stops: true,
                 podDocuments: true,
                 invoice: true,
-                drivers: true,
+                driverAssignments: true,
             },
         });
 

@@ -2,10 +2,8 @@ import { Menu, Transition } from '@headlessui/react';
 import {
     ArrowTopRightOnSquareIcon,
     ArrowUpTrayIcon,
-    BuildingOffice2Icon,
     ChevronDownIcon,
     EllipsisHorizontalIcon,
-    MapIcon,
     MapPinIcon,
     PaperClipIcon,
     StopIcon,
@@ -15,6 +13,9 @@ import {
 import { LoadDocument, LoadStatus, LoadStop, Prisma } from '@prisma/client';
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
+import Spinner from 'components/Spinner';
+import LegAssignmentModal from 'components/drivers/LegAssignmentModal';
+import { removeRouteLeg, updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,8 +26,6 @@ import { formatValue } from 'react-currency-input-field';
 import { notify } from '../../components/Notification';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
-import DriverSelectionModal from '../../components/drivers/DriverSelectionModal';
-import LegAssignmentModal from 'components/drivers/LegAssignmentModal';
 import { DownloadInvoicePDFButton } from '../../components/invoices/invoicePdf';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
@@ -34,7 +33,7 @@ import LoadActivityLog from '../../components/loads/LoadActivityLog';
 import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, ExpandedRoute, ExpandedRouteLeg, ExpandedRouteLegFromLoad } from '../../interfaces/models';
+import { ExpandedLoad, ExpandedRoute, ExpandedRouteLeg } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
 import { downloadCombinedPDFForLoad } from '../../lib/load/download-files';
@@ -46,9 +45,6 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import Spinner from 'components/Spinner';
-import { removeRouteLeg, updateRouteLegStatus } from 'lib/rest/routeLeg';
-import { set } from 'date-fns';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -590,7 +586,6 @@ type Props = {
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [load, setLoad] = useLoadContext();
     const { data: session } = useSession();
-    const [openSelectDriver, setOpenSelectDriver] = useState(false);
     const [openLegAssignment, setOpenLegAssignment] = useState(false);
     const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
@@ -602,7 +597,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
     const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
-    const [editingRouteLeg, setEditingRouteLeg] = useState<ExpandedRouteLegFromLoad | null>(null);
+    const [editingRouteLeg, setEditingRouteLeg] = useState<ExpandedRouteLeg | null>(null);
 
     const router = useRouter();
 
@@ -840,7 +835,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         // console.log('changing leg status', legStatus);
         // Update the load context with the updated driver assignment
         const curRoute = load.route;
-        const routeLeg: ExpandedRouteLegFromLoad = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
+        const routeLeg: ExpandedRouteLeg = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
 
         try {
             const loadStatus = (await updateRouteLegStatus(load.id, routeLegId, legStatus)) as LoadStatus;
@@ -943,10 +938,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         setEditingRouteLeg(null);
                     }}
                 ></LegAssignmentModal>
-                <DriverSelectionModal
-                    show={openSelectDriver}
-                    onClose={() => setOpenSelectDriver(false)}
-                ></DriverSelectionModal>
                 <SimpleDialog
                     show={openDeleteLoadConfirmation}
                     title="Delete Load"
@@ -1981,12 +1972,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         const drivers = leg.driverAssignments.map(
                                                             (driver) => driver.driver,
                                                         );
-                                                        const allStops = [
-                                                            load.shipper,
-                                                            ...load.stops,
-                                                            load.receiver,
-                                                            ...load.additionalStops,
-                                                        ];
+                                                        const allStops = [load.shipper, ...load.stops, load.receiver];
                                                         const stops = allStops.filter((stop) =>
                                                             leg.locations.find((loc) => loc.id === stop.id),
                                                         );
