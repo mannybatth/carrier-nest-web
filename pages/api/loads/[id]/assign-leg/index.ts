@@ -1,23 +1,23 @@
 import { DriverAssignment, LoadActivity, LoadActivityAction, Route } from '@prisma/client';
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import Twilio from 'twilio';
-import {
-    ExpandedDriver,
-    ExpandedLoad,
-    ExpandedRoute,
-    ExpandedRouteLeg,
-    JSONResponse,
-} from '../../../../../interfaces/models';
-import firebaseAdmin from '../../../../../lib/firebase/firebaseAdmin';
-import prisma from '../../../../../lib/prisma';
-import { authOptions } from '../../../auth/[...nextauth]';
+// import type { NextApiRequest, NextApiResponse } from 'next';
+// import { getServerSession } from 'next-auth';
+// import Twilio from 'twilio';
+// import {
+//     ExpandedDriver,
+//     ExpandedLoad,
+//     ExpandedRoute,
+//     ExpandedRouteLeg,
+//     JSONResponse,
+// } from '../../../../../interfaces/models';
+// import firebaseAdmin from '../../../../../lib/firebase/firebaseAdmin';
+// import prisma from '../../../../../lib/prisma';
+// import { authOptions } from '../../../auth/[...nextauth]';
 
-// const accountSid = process.env.TWILIO_ACCOUNT_SID;
-// const authToken = process.env.TWILIO_AUTH_TOKEN;
-// const client = Twilio(accountSid, authToken);
+// // const accountSid = process.env.TWILIO_ACCOUNT_SID;
+// // const authToken = process.env.TWILIO_AUTH_TOKEN;
+// // const client = Twilio(accountSid, authToken);
 
-// export default handler;
+// // export default handler;
 
 // function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 //     switch (req.method) {

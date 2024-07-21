@@ -15,7 +15,7 @@ import LegStopsSelectionModalSearch from './LegStopsSelectionModalSearch';
 import { ExpandedRoute, ExpandedRouteLeg } from 'interfaces/models';
 import { notify } from 'components/Notification';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
-import { RouteLegUpdate } from 'interfaces/route-leg';
+import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
 
 type Props = {
     show: boolean;
@@ -91,16 +91,21 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
             return;
         }
 
-        const routeLegUpdate: RouteLegUpdate = {
-            driverIds: selectedDrivers.map((driver) => driver.id),
-            locationIds: selectedStops.map((stop) => stop.id),
-            driverInstructions: driverInstructions,
-            scheduledDate: scheduleStartDate,
-            scheduledTime: rawTime,
+        const updateRequest: UpdateAssignmentRequest = {
+            routeLegId: routeLeg?.id,
+            routeLegData: {
+                driverIds: selectedDrivers.map((driver) => driver.id),
+                locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
+                driverInstructions: driverInstructions,
+                scheduledDate: scheduleStartDate.toISOString().split('T')[0],
+                scheduledTime: rawTime,
+            },
+            sendSms: sendSMS,
+            loadId: load.id,
         };
 
         try {
-            const updatedLeg = await updateRouteLeg(load.id, routeLeg.id, routeLegUpdate, sendSMS);
+            const updatedLeg = await updateRouteLeg(updateRequest);
 
             close(true);
 

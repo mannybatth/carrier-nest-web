@@ -33,7 +33,6 @@ export const getInvoicesExpanded = async ({
     if (status) {
         params.append('status', status);
     }
-    console.log(`${apiUrl}/invoices?${params.toString()}`);
     const response = await fetch(apiUrl + '/invoices?' + params.toString());
     const { data, errors }: JSONResponse<{ invoices: ExpandedInvoice[]; metadata: PaginationMetadata }> =
         await response.json();

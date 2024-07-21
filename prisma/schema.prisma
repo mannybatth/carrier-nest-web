@@ -175,6 +175,7 @@ model RouteLeg {
     endedAt            DateTime?
     createdAt          DateTime           @default(now())
     driverInstructions String?
+    status             RouteLegStatus     @default(ASSIGNED)
     locations          RouteLegLocation[] @relation("routeLegLocation")
     driverAssignments  DriverAssignment[] @relation("driverAssignment")
     route              Route              @relation(fields: [routeId], references: [id], onDelete: Cascade) // Define the many-to-one relationship with Route
@@ -346,6 +347,8 @@ model LoadActivity {
     action                 LoadActivityAction
     fromStatus             LoadStatus?
     toStatus               LoadStatus?
+    fromLegStatus          RouteLegStatus?
+    toLegStatus            RouteLegStatus?
     actionDocumentId       String?
     actionDocumentFileName String?
     actionDriverId         String?
@@ -382,6 +385,12 @@ enum LoadStatus {
     POD_READY
 }
 
+enum RouteLegStatus {
+    ASSIGNED
+    IN_PROGRESS
+    COMPLETED
+}
+
 enum InvoiceStatus {
     NOT_PAID
     PARTIALLY_PAID
@@ -394,12 +403,7 @@ enum LoadActivityAction {
     REMOVE_POD
     UPLOAD_DOCUMENT
     REMOVE_DOCUMENT
-    ASSIGN_DRIVER
-    UNASSIGN_DRIVER
-    ADD_ASSIGNMENT
-    REMOVE_ASSIGNMENT
     ADD_DRIVER_TO_ASSIGNMENT
-    UPDATED_ASSIGNMENT
     REMOVE_DRIVER_FROM_ASSIGNMENT
     CHANGE_ASSIGNMENT_STATUS
 }

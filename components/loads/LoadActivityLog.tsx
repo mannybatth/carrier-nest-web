@@ -232,7 +232,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                             </>
                                         )}
 
-                                        {activityItem.action === LoadActivityAction.ASSIGN_DRIVER && (
+                                        {/* {activityItem.action === LoadActivityAction.ASSIGN_DRIVER && (
                                             <>
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actorUser?.name || activityItem.actorUser?.email}
@@ -256,7 +256,8 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 </span>{' '}
                                                 from the load
                                             </>
-                                        )}
+                                        )} */}
+
                                         {activityItem.action === LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
@@ -281,7 +282,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 from an assignment
                                             </>
                                         )}
-                                        {activityItem.action === LoadActivityAction.ADD_ASSIGNMENT && (
+                                        {/* {activityItem.action === LoadActivityAction.ADD_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actorUser?.name || activityItem.actorUser?.email}
@@ -304,7 +305,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 </span>{' '}
                                                 updated a driver assignment
                                             </>
-                                        )}
+                                        )} */}
                                         {activityItem.action === LoadActivityAction.CHANGE_ASSIGNMENT_STATUS && (
                                             <>
                                                 <span className="font-medium text-gray-900">

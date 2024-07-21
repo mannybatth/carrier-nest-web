@@ -1,69 +1,15 @@
-import { RouteLeg } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { ExpandedRoute, ExpandedRouteLeg, JSONResponse } from '../../interfaces/models';
-import { PaginationMetadata, Sort } from '../../interfaces/table';
-import { LoadLegStatus } from 'pages/loads/[id]';
-import { RouteLegUpdate } from 'interfaces/route-leg';
+import { ExpandedRoute, JSONResponse } from '../../interfaces/models';
+import { CreateAssignmentRequest, UpdateAssignmentRequest } from '../../interfaces/assignment';
+import { LoadStatus, RouteLegStatus } from '@prisma/client';
 
-export const getAllRouteLegs = async ({
-    sort,
-    limit,
-    offset,
-}: {
-    sort?: Sort;
-    limit?: number;
-    offset?: number;
-}): Promise<{ routeLegs: RouteLeg[]; metadata: PaginationMetadata }> => {
-    const params = new URLSearchParams();
-    if (sort && sort.key) {
-        params.append('sortBy', sort.key);
-    }
-    if (sort && sort.order) {
-        params.append('sortDir', sort.order);
-    }
-    if (limit !== undefined) {
-        params.append('limit', limit.toString());
-    }
-    if (offset !== undefined) {
-        params.append('offset', offset.toString());
-    }
-    const response = await fetch(apiUrl + '/drivers?' + params.toString());
-    const { data, errors }: JSONResponse<{ routeLegs: RouteLeg[]; metadata: PaginationMetadata }> =
-        await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data;
-};
-
-export const getRouteLegById = async (id: string) => {
-    const response = await fetch(apiUrl + '/drivers/' + id);
-    const { data, errors }: JSONResponse<{ routeLeg: RouteLeg }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.routeLeg;
-};
-
-export const getRouteLegsForLoadId = async (loadId: string) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/drivers');
-    const { data, errors }: JSONResponse<{ routeLegs: RouteLeg[] }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.routeLegs;
-};
-
-export const createRouteLeg = async (loadId: string, routeLeg: Partial<RouteLeg>, sendSms: boolean) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg', {
+export const createRouteLeg = async (createAssignmentRequest: CreateAssignmentRequest) => {
+    const response = await fetch(apiUrl + '/assignment', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ routeLeg, sendSms, loadId }),
+        body: JSON.stringify(createAssignmentRequest),
     });
 
     const { data, errors }: JSONResponse<{ expandedRouteDetails: ExpandedRoute }> = await response.json();
@@ -74,35 +20,46 @@ export const createRouteLeg = async (loadId: string, routeLeg: Partial<RouteLeg>
     return data.expandedRouteDetails;
 };
 
-export const updateRouteLeg = async (
-    loadId: string,
-    routeLegId: string,
-    routeLegUpdate: RouteLegUpdate,
-    sendSms: boolean,
-) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg/' + routeLegId, {
+export const updateRouteLeg = async (updateAssignmentRequest: UpdateAssignmentRequest) => {
+    const response = await fetch(apiUrl + '/assignment', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ routeLegUpdate, sendSms, loadId }),
+        body: JSON.stringify(updateAssignmentRequest),
     });
 
-    const { data, errors }: JSONResponse<{ updatedRoute: ExpandedRouteLeg }> = await response.json();
+    const { data, errors }: JSONResponse<{ expandedRouteDetails: ExpandedRoute }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.updatedRoute;
+    return data.expandedRouteDetails;
 };
 
-export const updateRouteLegStatus = async (loadId: string, routeLegId: string, routeLegStatus: LoadLegStatus) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg/' + routeLegId, {
+export const removeRouteLegById = async (routeLegId: string) => {
+    const params = new URLSearchParams({
+        routeLegId: routeLegId,
+    });
+
+    const response = await fetch(apiUrl + '/assignment?' + params.toString(), {
+        method: 'DELETE',
+    });
+    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.result;
+};
+
+export const updateRouteLegStatus = async (routeLegId: string, routeLegStatus: RouteLegStatus) => {
+    const response = await fetch(apiUrl + '/assignment/' + routeLegId, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ routeLegStatus, loadId }),
+        body: JSON.stringify({ routeLegStatus }),
     });
 
     const { data, errors }: JSONResponse<{ loadStatus: string }> = await response.json();
@@ -110,46 +67,5 @@ export const updateRouteLegStatus = async (loadId: string, routeLegId: string, r
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.loadStatus;
-};
-
-export const removeRouteLeg = async (loadId: string, routeLegId: string) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-leg/' + routeLegId, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    console.log('response', response);
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
-};
-
-export const deleteRouteLegById = async (id: string) => {
-    const response = await fetch(apiUrl + '/drivers/' + id, {
-        method: 'DELETE',
-    });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
-};
-
-export const removeDriverFromLoad = async (loadId: string, driverId: string) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver/' + driverId, {
-        method: 'DELETE',
-    });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
+    return data.loadStatus as LoadStatus;
 };

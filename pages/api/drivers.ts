@@ -96,7 +96,7 @@ export const getDrivers = async ({
     query,
 }: {
     req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    res: NextApiResponse<JSONResponse<Driver[]>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ drivers: Driver[]; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);

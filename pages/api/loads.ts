@@ -79,7 +79,7 @@ export const getLoads = async ({
     query,
 }: {
     req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    res: NextApiResponse<JSONResponse<ExpandedLoad[]>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ loads: Partial<ExpandedLoad[]>; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);
@@ -311,10 +311,11 @@ export const postLoads = async ({
     res,
 }: {
     req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    res: NextApiResponse<JSONResponse<ExpandedLoad>>;
 }): Promise<JSONResponse<{ load: Load }>> => {
     try {
         const session = await getServerSession(req, res, authOptions);
+
         const loadData = req.body as ExpandedLoad;
 
         const load = await prisma.load.create({

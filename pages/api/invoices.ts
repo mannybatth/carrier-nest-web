@@ -154,7 +154,7 @@ export const getInvoices = async ({
     query,
 }: {
     req: NextApiRequest;
-    res: NextApiResponse<JSONResponse<any>>;
+    res: NextApiResponse<JSONResponse<ExpandedInvoice[]>>;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ invoices: ExpandedInvoice[]; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);

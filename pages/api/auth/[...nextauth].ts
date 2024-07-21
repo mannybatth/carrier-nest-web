@@ -24,7 +24,7 @@ export default authHandler;
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = Twilio(accountSid, authToken);
+const twilioClient = Twilio(accountSid, authToken);
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -89,7 +89,7 @@ export const authOptions: NextAuthOptions = {
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
                     const generatedCode = generateRandomCode();
-                    await client.messages.create({
+                    await twilioClient.messages.create({
                         body: `Your login code is: ${generatedCode}`,
                         from: '+18883429736',
                         to: phoneNumber,

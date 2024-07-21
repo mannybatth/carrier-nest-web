@@ -117,34 +117,3 @@ export const deleteDriverById = async (id: string) => {
     }
     return data.result;
 };
-
-export const assignDriversToLoad = async (loadId: string, driverIds: string[], sendSMS = false) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver', {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            driverIds: driverIds,
-            sendSMS: sendSMS,
-        }),
-    });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
-};
-
-export const removeDriverFromLoad = async (loadId: string, driverId: string) => {
-    const response = await fetch(apiUrl + '/loads/' + loadId + '/assign-driver/' + driverId, {
-        method: 'DELETE',
-    });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-    return data.result;
-};

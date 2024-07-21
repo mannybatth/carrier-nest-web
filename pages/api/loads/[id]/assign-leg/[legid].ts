@@ -5,7 +5,6 @@ import { ExpandedRouteLeg, JSONResponse } from '../../../../../interfaces/models
 import prisma from '../../../../../lib/prisma';
 import { authOptions } from '../../../auth/[...nextauth]';
 import { de } from 'date-fns/locale';
-import { LoadLegStatus } from 'pages/loads/[id]';
 
 // export default handler;
 

@@ -10,12 +10,11 @@ import {
     TrashIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
-import { LoadDocument, LoadStatus, LoadStop, Prisma } from '@prisma/client';
+import { LoadDocument, LoadStatus, LoadStop, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import Spinner from 'components/Spinner';
 import LegAssignmentModal from 'components/drivers/LegAssignmentModal';
-import { removeRouteLeg, updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -45,6 +44,7 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import { removeRouteLegById, updateRouteLegStatus } from 'lib/rest/routeLeg';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -202,19 +202,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
         </Menu>
     );
 };
-export enum LoadLegStatus {
-    ASSIGNED = 'ASSIGNED',
-    STARTED = 'STARTED',
-    COMPLETED = 'COMPLETED',
-}
 
 type LegAssignStatusDropDownProps = {
     disabled: boolean;
-    status: LoadLegStatus;
+    status: RouteLegStatus;
     legId: string;
     startedAt: Date;
     endedAt: Date;
-    changeStatusClicked: (newStatus: LoadLegStatus, legId: string) => void;
+    changeStatusClicked: (newStatus: RouteLegStatus, legId: string) => void;
 };
 
 const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
@@ -236,9 +231,9 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                     data-tooltip-content={qTipText}
                     data-tooltip-place="top-start"
                     className={`inline-flex justify-center capitalize w-full px-2 py-[4px] text-xs font-semibold text-slate-700 ${
-                        status === LoadLegStatus.STARTED
+                        status === RouteLegStatus.IN_PROGRESS
                             ? 'bg-amber-400/70 text-white hover:bg-amber-400'
-                            : status === LoadLegStatus.COMPLETED
+                            : status === RouteLegStatus.COMPLETED
                             ? 'bg-green-700/70 text-white hover:bg-green-500'
                             : 'bg-white text-slate-900 hover:bg-gray-50'
                     } shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
@@ -258,13 +253,13 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                 leaveTo="transform opacity-0 scale-95"
             >
                 <Menu.Items
-                    key={'loadstatusdropdown'}
+                    key={'load-status-dropdown'}
                     className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                 >
-                    {Object.values(LoadLegStatus).map((thisStatus, index) => {
+                    {Object.values(RouteLegStatus).map((thisStatus, index) => {
                         return (
                             thisStatus !== status && (
-                                <div className="py-1" key={`legstatusitem-${index}`}>
+                                <div className="py-1" key={`leg-status-item-${index}`}>
                                     <Menu.Item>
                                         {({ active }) => (
                                             <a
@@ -278,7 +273,7 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                                                 )}
                                             >
                                                 <p className="font-bold capitalize">
-                                                    {LoadLegStatus[thisStatus].toLowerCase()}
+                                                    {RouteLegStatus[thisStatus].toLowerCase()}
                                                 </p>
                                             </a>
                                         )}
@@ -287,43 +282,6 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
                             )
                         );
                     })}
-
-                    {/* <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        editLegClicked(legId);
-                                    }}
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Edit Assignment
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div>
-                    <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteLegClicked(legId);
-                                    }}
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm',
-                                    )}
-                                >
-                                    Delete Assignment
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div> */}
                 </Menu.Items>
             </Transition>
         </Menu>
@@ -604,8 +562,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     let podFileInput: HTMLInputElement;
     let docFileInput: HTMLInputElement;
 
-    // console.log('load', load);
-
     useEffect(() => {
         if (!load) {
             return;
@@ -831,22 +787,21 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
-    const changeLegStatusClicked = async (legStatus: LoadLegStatus, routeLegId: string) => {
-        // console.log('changing leg status', legStatus);
+    const changeLegStatusClicked = async (legStatus: RouteLegStatus, routeLegId: string) => {
         // Update the load context with the updated driver assignment
         const curRoute = load.route;
         const routeLeg: ExpandedRouteLeg = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
 
         try {
-            const loadStatus = (await updateRouteLegStatus(load.id, routeLegId, legStatus)) as LoadStatus;
+            const loadStatus = await updateRouteLegStatus(routeLegId, legStatus);
 
             // Update the route leg status
             switch (legStatus) {
-                case LoadLegStatus.ASSIGNED:
+                case RouteLegStatus.ASSIGNED:
                     routeLeg.startedAt = null;
                     routeLeg.endedAt = null;
                     break;
-                case LoadLegStatus.STARTED:
+                case RouteLegStatus.IN_PROGRESS:
                     routeLeg.startedAt = new Date();
                     routeLeg.endedAt = null;
                     break;
@@ -881,7 +836,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setRemovingRouteLegWithId(legId);
 
         try {
-            await removeRouteLeg(load.id, legId);
+            await removeRouteLegById(legId);
             setLoad((prev) => ({
                 ...prev,
                 route: {
@@ -1979,10 +1934,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                                         const legStatus =
                                                             leg.startedAt && !leg.endedAt
-                                                                ? LoadLegStatus.STARTED
+                                                                ? RouteLegStatus.IN_PROGRESS
                                                                 : leg.endedAt
-                                                                ? LoadLegStatus.COMPLETED
-                                                                : LoadLegStatus.ASSIGNED;
+                                                                ? RouteLegStatus.COMPLETED
+                                                                : RouteLegStatus.ASSIGNED;
 
                                                         return (
                                                             <div className="relative pb-4" key={`routelegs-${index}`}>
