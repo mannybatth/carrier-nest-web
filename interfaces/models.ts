@@ -110,9 +110,16 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                         endLongitude: true,
                         driverAssignments: {
                             select: {
-                                driverId: true,
+                                id: true,
                                 assignedAt: true,
-                                driver: true,
+                                driver: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        phone: true,
+                                        email: true,
+                                    },
+                                },
                             },
                         },
                     },
@@ -121,9 +128,15 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
         },
         driverAssignments: {
             select: {
-                driverId: true,
                 assignedAt: true,
-                driver: true,
+                driver: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        email: true,
+                    },
+                },
             },
         },
         loadDocuments: true,
@@ -222,9 +235,16 @@ const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
                 endLongitude: true,
                 driverAssignments: {
                     select: {
-                        driverId: true,
+                        id: true,
                         assignedAt: true,
-                        driver: true,
+                        driver: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                phone: true,
+                            },
+                        },
                     },
                 },
             },
@@ -248,9 +268,16 @@ const expandedRouteLeg = Prisma.validator<Prisma.RouteLegArgs>()({
         endLongitude: true,
         driverAssignments: {
             select: {
-                driverId: true,
+                id: true,
                 assignedAt: true,
-                driver: true,
+                driver: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
             },
         },
     },
@@ -263,9 +290,7 @@ const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
     include: {
         assignments: {
             select: {
-                driverId: true,
                 assignedAt: true,
-                driver: true,
                 routeLeg: {
                     select: {
                         id: true,

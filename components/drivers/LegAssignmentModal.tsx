@@ -30,7 +30,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     const [showStopSearch, setShowStopSearch] = React.useState(false);
     const [saveLoading, setSaveLoading] = React.useState(false);
     const [sendSMS, setSendSMS] = React.useState<boolean>(true);
-    const [selectedDrivers, setSelectedDrivers] = React.useState<Driver[]>([]);
+    const [selectedDrivers, setSelectedDrivers] = React.useState<Partial<Driver>[]>([]);
     const [selectedStops, setSelectedStops] = React.useState<LoadStop[]>([]);
 
     const [scheduleStartDate, setScheduleStartDate] = React.useState<Date | null>();

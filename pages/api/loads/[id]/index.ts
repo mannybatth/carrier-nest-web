@@ -284,7 +284,7 @@ const getLoad = async ({
     const expandReceiver = expand?.includes('receiver');
     const expandStops = expand?.includes('stops');
     const expandInvoice = expand?.includes('invoice');
-    const expandDriver = expand?.includes('driver');
+    const expandDriverAssignments = expand?.includes('driverAssignments');
     const expandDocuments = expand?.includes('documents');
     const expandCarrier = expand?.includes('carrier');
     const expandRoute = expand?.includes('route');
@@ -374,7 +374,24 @@ const getLoad = async ({
                       },
                   }
                 : {}),
-            ...(expandDriver ? { drivers: true } : {}),
+            ...(expandDriverAssignments
+                ? {
+                      driverAssignments: {
+                          select: {
+                              id: true,
+                              assignedAt: true,
+                              driver: {
+                                  select: {
+                                      id: true,
+                                      name: true,
+                                      email: true,
+                                      phone: true,
+                                  },
+                              },
+                          },
+                      },
+                  }
+                : {}),
             ...(expandDocuments
                 ? {
                       loadDocuments: {
@@ -412,9 +429,16 @@ const getLoad = async ({
                                       endLongitude: true,
                                       driverAssignments: {
                                           select: {
-                                              driverId: true,
+                                              id: true,
                                               assignedAt: true,
-                                              driver: true,
+                                              driver: {
+                                                  select: {
+                                                      id: true,
+                                                      name: true,
+                                                      email: true,
+                                                      phone: true,
+                                                  },
+                                              },
                                           },
                                       },
                                   },

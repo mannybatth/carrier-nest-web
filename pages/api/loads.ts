@@ -97,7 +97,7 @@ export const getLoads = async ({
     const expandCustomer = expand?.includes('customer');
     const expandShipper = expand?.includes('shipper');
     const expandReceiver = expand?.includes('receiver');
-    const expandDriver = expand?.includes('driver');
+    const expandDriverAssignments = expand?.includes('driverAssignments');
     const expandStops = expand?.includes('stops');
 
     const sortBy = query.sortBy as string;
@@ -251,13 +251,20 @@ export const getLoads = async ({
                       },
                   }
                 : {}),
-            ...(expandDriver
+            ...(expandDriverAssignments
                 ? {
-                      drivers: {
+                      driverAssignments: {
                           select: {
                               id: true,
-                              name: true,
-                              phone: true,
+                              assignedAt: true,
+                              driver: {
+                                  select: {
+                                      id: true,
+                                      name: true,
+                                      email: true,
+                                      phone: true,
+                                  },
+                              },
                           },
                       },
                   }
