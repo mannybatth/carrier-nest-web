@@ -1,14 +1,17 @@
 -- CreateEnum
-CREATE TYPE "LoadStopType" AS ENUM ('SHIPPER', 'RECEIVER', 'STOP');
+CREATE TYPE "LoadStopType" AS ENUM ('SHIPPER', 'RECEIVER', 'STOP', 'LEGSTOP');
 
 -- CreateEnum
 CREATE TYPE "LoadStatus" AS ENUM ('CREATED', 'IN_PROGRESS', 'DELIVERED', 'POD_READY');
 
 -- CreateEnum
+CREATE TYPE "RouteLegStatus" AS ENUM ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED');
+
+-- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('NOT_PAID', 'PARTIALLY_PAID', 'PAID');
 
 -- CreateEnum
-CREATE TYPE "LoadActivityAction" AS ENUM ('CHANGE_STATUS', 'UPLOAD_POD', 'REMOVE_POD', 'UPLOAD_DOCUMENT', 'REMOVE_DOCUMENT', 'ASSIGN_DRIVER', 'UNASSIGN_DRIVER');
+CREATE TYPE "LoadActivityAction" AS ENUM ('CHANGE_STATUS', 'UPLOAD_POD', 'REMOVE_POD', 'UPLOAD_DOCUMENT', 'REMOVE_DOCUMENT', 'ADD_DRIVER_TO_ASSIGNMENT', 'REMOVE_DRIVER_FROM_ASSIGNMENT', 'CHANGE_ASSIGNMENT_STATUS');
 
 -- CreateTable
 CREATE TABLE "Account" (
@@ -120,6 +123,7 @@ CREATE TABLE "LoadStop" (
     "date" TIMESTAMP(3) NOT NULL,
     "time" TEXT NOT NULL,
     "loadIdAsStop" TEXT,
+    "loadIdAsAddStop" TEXT,
     "stopIndex" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "latitude" DOUBLE PRECISION,
@@ -129,6 +133,74 @@ CREATE TABLE "LoadStop" (
     "referenceNumbers" TEXT,
 
     CONSTRAINT "LoadStop_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Route" (
+    "id" TEXT NOT NULL,
+    "loadId" TEXT NOT NULL,
+
+    CONSTRAINT "Route_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RouteLeg" (
+    "id" TEXT NOT NULL,
+    "scheduledDate" TIMESTAMP(3),
+    "scheduledTime" TEXT,
+    "startLatitude" DOUBLE PRECISION,
+    "startLongitude" DOUBLE PRECISION,
+    "startedAt" TIMESTAMP(3),
+    "endLatitude" DOUBLE PRECISION,
+    "endLongitude" DOUBLE PRECISION,
+    "endedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "driverInstructions" TEXT,
+    "status" "RouteLegStatus" NOT NULL DEFAULT 'ASSIGNED',
+    "routeId" TEXT NOT NULL,
+
+    CONSTRAINT "RouteLeg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RouteLegLocation" (
+    "id" TEXT NOT NULL,
+    "loadStopId" TEXT,
+    "locationId" TEXT,
+    "routeLegId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RouteLegLocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Location" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "name" TEXT NOT NULL,
+    "street" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "zip" TEXT NOT NULL,
+    "country" TEXT NOT NULL,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+    "carrierId" TEXT NOT NULL,
+
+    CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DriverAssignment" (
+    "id" TEXT NOT NULL,
+    "loadId" TEXT,
+    "driverId" TEXT NOT NULL,
+    "routeLegId" TEXT NOT NULL,
+    "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DriverAssignment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -242,6 +314,8 @@ CREATE TABLE "LoadActivity" (
     "action" "LoadActivityAction" NOT NULL,
     "fromStatus" "LoadStatus",
     "toStatus" "LoadStatus",
+    "fromLegStatus" "RouteLegStatus",
+    "toLegStatus" "RouteLegStatus",
     "actionDocumentId" TEXT,
     "actionDocumentFileName" TEXT,
     "actionDriverId" TEXT,
@@ -253,13 +327,18 @@ CREATE TABLE "LoadActivity" (
 );
 
 -- CreateTable
-CREATE TABLE "_CarrierToUser" (
-    "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL
+CREATE TABLE "Device" (
+    "id" TEXT NOT NULL,
+    "fcmToken" TEXT NOT NULL,
+    "driverId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Device_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "_driverLoads" (
+CREATE TABLE "_CarrierToUser" (
     "A" TEXT NOT NULL,
     "B" TEXT NOT NULL
 );
@@ -295,6 +374,15 @@ CREATE INDEX "Carrier_name_email_carrierCode_idx" ON "Carrier"("name", "email", 
 CREATE INDEX "Load_refNum_carrierId_userId_customerId_idx" ON "Load"("refNum", "carrierId", "userId", "customerId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Route_loadId_key" ON "Route"("loadId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RouteLegLocation_routeLegId_key" ON "RouteLegLocation"("routeLegId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DriverAssignment_driverId_routeLegId_key" ON "DriverAssignment"("driverId", "routeLegId");
+
+-- CreateIndex
 CREATE INDEX "Customer_name_carrierId_idx" ON "Customer"("name", "carrierId");
 
 -- CreateIndex
@@ -313,16 +401,13 @@ CREATE UNIQUE INDEX "Invoice_carrierId_invoiceNum_key" ON "Invoice"("carrierId",
 CREATE UNIQUE INDEX "LoadDocument_loadIdForRatecon_key" ON "LoadDocument"("loadIdForRatecon");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Device_fcmToken_key" ON "Device"("fcmToken");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "_CarrierToUser_AB_unique" ON "_CarrierToUser"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_CarrierToUser_B_index" ON "_CarrierToUser"("B");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_driverLoads_AB_unique" ON "_driverLoads"("A", "B");
-
--- CreateIndex
-CREATE INDEX "_driverLoads_B_index" ON "_driverLoads"("B");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -353,6 +438,33 @@ ALTER TABLE "LoadStop" ADD CONSTRAINT "LoadStop_loadIdAsStop_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "LoadStop" ADD CONSTRAINT "LoadStop_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Route" ADD CONSTRAINT "Route_loadId_fkey" FOREIGN KEY ("loadId") REFERENCES "Load"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RouteLeg" ADD CONSTRAINT "RouteLeg_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "Route"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RouteLegLocation" ADD CONSTRAINT "RouteLegLocation_loadStopId_fkey" FOREIGN KEY ("loadStopId") REFERENCES "LoadStop"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RouteLegLocation" ADD CONSTRAINT "RouteLegLocation_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RouteLegLocation" ADD CONSTRAINT "RouteLegLocation_routeLegId_fkey" FOREIGN KEY ("routeLegId") REFERENCES "RouteLeg"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Location" ADD CONSTRAINT "Location_carrierId_fkey" FOREIGN KEY ("carrierId") REFERENCES "Carrier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DriverAssignment" ADD CONSTRAINT "DriverAssignment_loadId_fkey" FOREIGN KEY ("loadId") REFERENCES "Load"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DriverAssignment" ADD CONSTRAINT "DriverAssignment_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DriverAssignment" ADD CONSTRAINT "DriverAssignment_routeLegId_fkey" FOREIGN KEY ("routeLegId") REFERENCES "RouteLeg"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Customer" ADD CONSTRAINT "Customer_carrierId_fkey" FOREIGN KEY ("carrierId") REFERENCES "Carrier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -409,14 +521,10 @@ ALTER TABLE "LoadActivity" ADD CONSTRAINT "LoadActivity_actorUserId_fkey" FOREIG
 ALTER TABLE "LoadActivity" ADD CONSTRAINT "LoadActivity_loadId_fkey" FOREIGN KEY ("loadId") REFERENCES "Load"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Device" ADD CONSTRAINT "Device_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "_CarrierToUser" ADD CONSTRAINT "_CarrierToUser_A_fkey" FOREIGN KEY ("A") REFERENCES "Carrier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_CarrierToUser" ADD CONSTRAINT "_CarrierToUser_B_fkey" FOREIGN KEY ("B") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "_driverLoads" ADD CONSTRAINT "_driverLoads_A_fkey" FOREIGN KEY ("A") REFERENCES "Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "_driverLoads" ADD CONSTRAINT "_driverLoads_B_fkey" FOREIGN KEY ("B") REFERENCES "Load"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "LoadActivityAction" ADD VALUE 'UPDATED_ASSIGNMENT';
