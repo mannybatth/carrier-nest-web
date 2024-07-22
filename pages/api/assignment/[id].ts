@@ -27,6 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
+        const session = await getServerSession(req, res, authOptions);
+
         const routeLegId = req.query.routeLegId as string;
         const { routeLegStatus } = req.body;
 
@@ -66,11 +68,20 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
             // Create LoadActivity for status change
             await prisma.loadActivity.create({
                 data: {
-                    loadId: routeLeg.route.load.id,
+                    load: {
+                        connect: {
+                            id: routeLeg.route.load.id,
+                        },
+                    },
                     carrierId: routeLeg.route.load.carrierId,
                     action: LoadActivityAction.CHANGE_ASSIGNMENT_STATUS,
                     fromLegStatus: routeLeg.status,
                     toLegStatus: routeLegStatus,
+                    actorUser: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
                 },
             });
 

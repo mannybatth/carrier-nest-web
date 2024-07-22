@@ -289,7 +289,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 </span>{' '}
                                                 added driver assignment to load
                                             </>
-                                        )}
+                                        )} */}
                                         {activityItem.action === LoadActivityAction.REMOVE_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
@@ -298,7 +298,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                 removed a driver assignment from load
                                             </>
                                         )}
-                                        {activityItem.action === LoadActivityAction.UPDATED_ASSIGNMENT && (
+                                        {/* {activityItem.action === LoadActivityAction.UPDATED_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actorUser?.name || activityItem.actorUser?.email}

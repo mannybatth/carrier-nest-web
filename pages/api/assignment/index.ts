@@ -32,6 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
+        const session = await getServerSession(req, res, authOptions);
+
         const { routeLegData, sendSms, loadId }: CreateAssignmentRequest = req.body;
 
         if (!loadId || !routeLegData) {
@@ -73,11 +75,24 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
 
                 await prisma.loadActivity.create({
                     data: {
-                        loadId,
+                        load: {
+                            connect: {
+                                id: loadId,
+                            },
+                        },
                         carrierId: load.carrierId,
                         action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
-                        actionDriverId: driverId,
+                        actionDriver: {
+                            connect: {
+                                id: driverId,
+                            },
+                        },
                         actionDriverName: driver.name,
+                        actorUser: {
+                            connect: {
+                                id: session.user.id,
+                            },
+                        },
                     },
                 });
             }
@@ -146,6 +161,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
 
 async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
+        const session = await getServerSession(req, res, authOptions);
+
         const { routeLegId, routeLegData, sendSms, loadId }: UpdateAssignmentRequest = req.body;
 
         if (!routeLegId || !loadId || !routeLegData) {
@@ -191,11 +208,24 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     const driver = await prisma.driver.findUnique({ where: { id: driverId } });
                     await prisma.loadActivity.create({
                         data: {
-                            loadId,
+                            load: {
+                                connect: {
+                                    id: loadId,
+                                },
+                            },
                             carrierId: load.carrierId,
                             action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
-                            actionDriverId: driverId,
+                            actionDriver: {
+                                connect: {
+                                    id: driverId,
+                                },
+                            },
                             actionDriverName: driver.name,
+                            actorUser: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
                         },
                     });
                 }
@@ -207,11 +237,24 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     const driver = await prisma.driver.findUnique({ where: { id: assignment.driverId } });
                     await prisma.loadActivity.create({
                         data: {
-                            loadId,
+                            load: {
+                                connect: {
+                                    id: loadId,
+                                },
+                            },
                             carrierId: load.carrierId,
                             action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
-                            actionDriverId: assignment.driverId,
+                            actionDriver: {
+                                connect: {
+                                    id: assignment.driverId,
+                                },
+                            },
                             actionDriverName: driver.name,
+                            actorUser: {
+                                connect: {
+                                    id: session.user.id,
+                                },
+                            },
                         },
                     });
                 }
@@ -282,6 +325,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
 async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
+        const session = await getServerSession(req, res, authOptions);
+
         const { routeLegId } = req.query;
 
         if (!routeLegId || typeof routeLegId !== 'string') {
@@ -292,6 +337,26 @@ async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<an
         }
 
         await prisma.$transaction(async (prisma) => {
+            const routeLeg = await prisma.routeLeg.findUnique({
+                where: { id: routeLegId },
+                include: {
+                    route: {
+                        include: {
+                            load: {
+                                select: {
+                                    id: true,
+                                    carrierId: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            if (!routeLeg) {
+                throw new Error('Route leg not found');
+            }
+
             // Delete associated driver assignments
             await prisma.driverAssignment.deleteMany({
                 where: { routeLegId },
@@ -305,6 +370,23 @@ async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<an
             // Delete the route leg
             await prisma.routeLeg.delete({
                 where: { id: routeLegId },
+            });
+
+            await prisma.loadActivity.create({
+                data: {
+                    load: {
+                        connect: {
+                            id: routeLeg.route.load.id,
+                        },
+                    },
+                    carrierId: routeLeg.route.load.carrierId,
+                    action: LoadActivityAction.REMOVE_ASSIGNMENT,
+                    actorUser: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                },
             });
         });
 
