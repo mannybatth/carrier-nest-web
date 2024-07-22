@@ -1,4 +1,4 @@
-import { LoadStopType } from '@prisma/client';
+import { Load, LoadStopType } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session, getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
@@ -412,6 +412,7 @@ const getLoad = async ({
                       route: {
                           select: {
                               id: true,
+                              loadId: true,
                               routeLegs: {
                                   orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                                   select: {
@@ -427,6 +428,8 @@ const getLoad = async ({
                                       endedAt: true,
                                       endLatitude: true,
                                       endLongitude: true,
+                                      status: true,
+                                      routeId: true,
                                       driverAssignments: {
                                           select: {
                                               id: true,
@@ -462,12 +465,12 @@ const getLoad = async ({
 
         return {
             code: 200,
-            data: { load: loadWithoutRate },
+            data: { load: loadWithoutRate as Load },
         };
     } else {
         return {
             code: 200,
-            data: { load },
+            data: { load: load as Load },
         };
     }
 };
