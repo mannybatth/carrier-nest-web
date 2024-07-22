@@ -43,6 +43,15 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             });
         }
 
+        const load = await prisma.load.findUnique({ where: { id: loadId } });
+
+        if (!load) {
+            return res.status(404).json({
+                code: 404,
+                errors: [{ message: 'Load not found' }],
+            });
+        }
+
         await prisma.$transaction(async (prisma) => {
             // Find or create the route for the load
             let route = await prisma.route.findUnique({ where: { loadId } });
@@ -71,7 +80,6 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                 });
 
                 const driver = await prisma.driver.findUnique({ where: { id: driverId } });
-                const load = await prisma.load.findUnique({ where: { id: loadId } });
 
                 await prisma.loadActivity.create({
                     data: {
@@ -103,6 +111,23 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                     routeLegId: newRouteLeg.id,
                     [location.type === 'loadStop' ? 'loadStopId' : 'locationId']: location.id,
                 })),
+            });
+
+            await prisma.loadActivity.create({
+                data: {
+                    load: {
+                        connect: {
+                            id: loadId,
+                        },
+                    },
+                    carrierId: load.carrierId,
+                    action: LoadActivityAction.ADD_ASSIGNMENT,
+                    actorUser: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                },
             });
 
             return newRouteLeg;
@@ -172,6 +197,15 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         }
 
+        const load = await prisma.load.findUnique({ where: { id: loadId } });
+
+        if (!load) {
+            return res.status(404).json({
+                code: 404,
+                errors: [{ message: 'Load not found' }],
+            });
+        }
+
         await prisma.$transaction(async (prisma) => {
             // Update the route leg
             await prisma.routeLeg.update({
@@ -192,8 +226,6 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             await prisma.driverAssignment.deleteMany({
                 where: { routeLegId },
             });
-
-            const load = await prisma.load.findUnique({ where: { id: loadId } });
 
             for (const driverId of routeLegData.driverIds) {
                 await prisma.driverAssignment.create({
@@ -269,6 +301,23 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     routeLegId,
                     [location.type === 'loadStop' ? 'loadStopId' : 'locationId']: location.id,
                 })),
+            });
+
+            await prisma.loadActivity.create({
+                data: {
+                    load: {
+                        connect: {
+                            id: loadId,
+                        },
+                    },
+                    carrierId: load.carrierId,
+                    action: LoadActivityAction.UPDATE_ASSIGNMENT,
+                    actorUser: {
+                        connect: {
+                            id: session.user.id,
+                        },
+                    },
+                },
             });
         });
 
