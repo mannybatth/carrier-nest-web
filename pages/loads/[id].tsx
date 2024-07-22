@@ -1918,10 +1918,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </div>
                                     <div>
                                         {load.route && load.route.routeLegs.length > 0 && (
-                                            <div className="flex flex-col w-full" key={'routelegscontainer'}>
+                                            <div className="flex flex-col w-full" key={'route-legs-container'}>
                                                 <div
                                                     className="p-0 my-3 mt-6 border rounded-lg border-slate-100"
-                                                    key={'routelegs'}
+                                                    key={'route-legs'}
                                                 >
                                                     {load.route.routeLegs.map((leg, index) => {
                                                         const drivers = leg.driverAssignments.map(
@@ -1951,7 +1951,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 )}
                                                                 <div
                                                                     className="flex flex-col items-start gap-1 p-2 text-sm lg:flex-row lg:items-center bg-slate-100 rounded-tl-md rounded-tr-md"
-                                                                    key={`routeleg-${index}-drivers`}
+                                                                    key={`route-leg-${index}-drivers`}
                                                                 >
                                                                     <div className="absolute right-0  -top-6 flex items-center flex-row gap-2 rounded-md p-[3px] px-2 h-8  text-center text-xs font-semibold border-2 bg-slate-100 border-slate-100">
                                                                         <p
@@ -2035,7 +2035,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     <p className="font-semibold">Assigned Drivers:</p>
                                                                     <div
                                                                         className="flex gap-1"
-                                                                        key={`routelegs-${index}-drivers`}
+                                                                        key={`route-legs-${index}-drivers`}
                                                                     >
                                                                         {drivers.map((driver, index) => {
                                                                             return (
@@ -2055,7 +2055,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 </div>
                                                                 <div className="flex flex-row gap-1 px-4 py-1 pt-4 text-xs font-normal">
                                                                     <p>Assignment begin time:</p>
-                                                                    <p className=" text-slate-600">
+                                                                    <p className="text-slate-600">
                                                                         {`${
                                                                             new Date(leg.scheduledDate)
                                                                                 ?.toISOString()
@@ -2071,7 +2071,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 </div>
                                                                 <div className="flex flex-row gap-1 px-4 py-1 pb-4 text-xs">
                                                                     <p>Instructions:</p>
-                                                                    <p className=" text-slate-600">
+                                                                    <p className="text-slate-600">
                                                                         {leg.driverInstructions}
                                                                     </p>
                                                                 </div>
@@ -2085,13 +2085,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 </a> */}
                                                                 <div
                                                                     className="flex flex-col gap-2 p-3 m-4 mt-2 overflow-x-auto rounded-lg lg:flex-row bg-neutral-50"
-                                                                    key={`routelegs-${index}-stops`}
+                                                                    key={`route-legs-${index}-stops`}
                                                                 >
                                                                     {stops.map((stop, index) => {
                                                                         return (
                                                                             <div
                                                                                 className="flex-1"
-                                                                                key={`routelegs-stops-stop-${index}`}
+                                                                                key={`route-legs-stops-stop-${index}`}
                                                                             >
                                                                                 <label /* htmlFor={`stop-${index}`} */>
                                                                                     <div className="relative flex flex-col items-start flex-1 py-1 pl-1 cursor-default">
@@ -2158,7 +2158,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         </p>
                                     </div>
                                     <div
-                                        className={` w-full gap-1   bg-neutral-50 border border-slate-100 p-3 rounded-lg`}
+                                        className={`w-full gap-1 bg-neutral-50 border border-slate-100 p-3 rounded-lg`}
                                     >
                                         <LoadActivityLog loadId={loadId}></LoadActivityLog>
                                     </div>

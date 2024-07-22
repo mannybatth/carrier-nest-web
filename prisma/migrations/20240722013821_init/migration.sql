@@ -377,9 +377,6 @@ CREATE INDEX "Load_refNum_carrierId_userId_customerId_idx" ON "Load"("refNum", "
 CREATE UNIQUE INDEX "Route_loadId_key" ON "Route"("loadId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RouteLegLocation_routeLegId_key" ON "RouteLegLocation"("routeLegId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "DriverAssignment_driverId_routeLegId_key" ON "DriverAssignment"("driverId", "routeLegId");
 
 -- CreateIndex

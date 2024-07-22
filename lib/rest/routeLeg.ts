@@ -3,7 +3,7 @@ import { ExpandedRoute, JSONResponse } from '../../interfaces/models';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from '../../interfaces/assignment';
 import { LoadStatus, RouteLegStatus } from '@prisma/client';
 
-export const createRouteLeg = async (createAssignmentRequest: CreateAssignmentRequest) => {
+export const createRouteLeg = async (createAssignmentRequest: CreateAssignmentRequest): Promise<ExpandedRoute> => {
     const response = await fetch(apiUrl + '/assignment', {
         method: 'POST',
         headers: {
@@ -12,15 +12,15 @@ export const createRouteLeg = async (createAssignmentRequest: CreateAssignmentRe
         body: JSON.stringify(createAssignmentRequest),
     });
 
-    const { data, errors }: JSONResponse<{ expandedRouteDetails: ExpandedRoute }> = await response.json();
+    const { data, errors }: JSONResponse<{ route: ExpandedRoute }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.expandedRouteDetails;
+    return data.route as ExpandedRoute;
 };
 
-export const updateRouteLeg = async (updateAssignmentRequest: UpdateAssignmentRequest) => {
+export const updateRouteLeg = async (updateAssignmentRequest: UpdateAssignmentRequest): Promise<ExpandedRoute> => {
     const response = await fetch(apiUrl + '/assignment', {
         method: 'PUT',
         headers: {
@@ -29,12 +29,12 @@ export const updateRouteLeg = async (updateAssignmentRequest: UpdateAssignmentRe
         body: JSON.stringify(updateAssignmentRequest),
     });
 
-    const { data, errors }: JSONResponse<{ expandedRouteDetails: ExpandedRoute }> = await response.json();
+    const { data, errors }: JSONResponse<{ route: ExpandedRoute }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.expandedRouteDetails;
+    return data.route as ExpandedRoute;
 };
 
 export const removeRouteLegById = async (routeLegId: string) => {
@@ -45,12 +45,12 @@ export const removeRouteLegById = async (routeLegId: string) => {
     const response = await fetch(apiUrl + '/assignment?' + params.toString(), {
         method: 'DELETE',
     });
-    const { data, errors }: JSONResponse<{ result: string }> = await response.json();
+    const { data, errors }: JSONResponse<void> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.result;
+    return data;
 };
 
 export const updateRouteLegStatus = async (routeLegId: string, routeLegStatus: RouteLegStatus) => {

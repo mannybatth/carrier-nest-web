@@ -10,12 +10,13 @@ import {
 import React, { Fragment } from 'react';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import { Driver, LoadStop } from '@prisma/client';
+import { Driver, LoadStop, Route } from '@prisma/client';
 import LegStopsSelectionModalSearch from './LegStopsSelectionModalSearch';
 import { ExpandedRoute, ExpandedRouteLeg } from 'interfaces/models';
 import { notify } from 'components/Notification';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
+import LegDriverSelectionModalSearch from './LegDriverSelectionModalSearch';
 
 type Props = {
     show: boolean;
@@ -66,11 +67,17 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
             setSelectedDrivers(newDriverList);
         }
     };
+
     const handleStopCheckboxChange = (event) => {
         if (!event.target.checked) {
             const newStops = selectedStops.filter((stop) => stop.id !== event.target.value);
             setSelectedStops(newStops);
         }
+    };
+
+    const selectDrivers = (drivers: Driver[]) => {
+        // Update the array of drivers selected in state
+        setSelectedDrivers([...selectedDrivers, ...drivers]);
     };
 
     const selectStops = (loadStops: LoadStop[]) => {
@@ -91,28 +98,61 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
             return;
         }
 
-        const updateRequest: UpdateAssignmentRequest = {
-            routeLegId: routeLeg?.id,
-            routeLegData: {
-                driverIds: selectedDrivers.map((driver) => driver.id),
-                locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
-                driverInstructions: driverInstructions,
-                scheduledDate: scheduleStartDate.toISOString().split('T')[0],
-                scheduledTime: rawTime,
-            },
-            sendSms: sendSMS,
-            loadId: load.id,
-        };
+        if (routeLeg) {
+            const updateRequest: UpdateAssignmentRequest = {
+                routeLegId: routeLeg?.id,
+                routeLegData: {
+                    driverIds: selectedDrivers.map((driver) => driver.id),
+                    locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
+                    driverInstructions: driverInstructions,
+                    scheduledDate: scheduleStartDate.toISOString().split('T')[0],
+                    scheduledTime: rawTime,
+                },
+                sendSms: sendSMS,
+                loadId: load.id,
+            };
 
-        try {
-            const updatedLeg = await updateRouteLeg(updateRequest);
+            try {
+                const route = await updateRouteLeg(updateRequest);
 
-            close(true);
+                setLoad({
+                    ...load,
+                    route: route as Route,
+                });
 
-            setSaveLoading(false);
-        } catch (error) {
-            setSaveLoading(false);
-            notify({ title: 'Error', message: 'Error creating/updating driver assignment', type: 'error' });
+                close(true);
+                setSaveLoading(false);
+            } catch (error) {
+                setSaveLoading(false);
+                notify({ title: 'Error', message: 'Error updating driver assignment', type: 'error' });
+            }
+        } else {
+            const createRequest: CreateAssignmentRequest = {
+                routeLegData: {
+                    driverIds: selectedDrivers.map((driver) => driver.id),
+                    locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
+                    driverInstructions: driverInstructions,
+                    scheduledDate: scheduleStartDate.toISOString().split('T')[0],
+                    scheduledTime: rawTime,
+                },
+                sendSms: sendSMS,
+                loadId: load.id,
+            };
+
+            try {
+                const route = await createRouteLeg(createRequest);
+
+                setLoad({
+                    ...load,
+                    route: route as Route,
+                });
+
+                close(true);
+                setSaveLoading(false);
+            } catch (error) {
+                setSaveLoading(false);
+                notify({ title: 'Error', message: 'Error creating driver assignment', type: 'error' });
+            }
         }
     };
 
@@ -143,6 +183,18 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                    {showDriverSearch && (
+                                        <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
+                                            <LegDriverSelectionModalSearch
+                                                title="Select Drivers"
+                                                selectedDrivers={selectedDrivers}
+                                                selectDrivers={selectDrivers}
+                                                goBack={() => setShowDriverSearch(false)}
+                                                close={(value) => close(value)}
+                                            ></LegDriverSelectionModalSearch>
+                                        </div>
+                                    )}
+
                                     {showStopSearch && (
                                         <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
                                             <LegStopsSelectionModalSearch

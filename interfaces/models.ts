@@ -91,41 +91,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
                 referenceNumbers: true,
             },
         },
-        route: {
-            select: {
-                id: true,
-                routeLegs: {
-                    select: {
-                        id: true,
-                        driverInstructions: true,
-                        locations: { select: { id: true, loadStop: true, location: true } },
-                        scheduledDate: true,
-                        scheduledTime: true,
-                        startedAt: true,
-                        startLatitude: true,
-                        startLongitude: true,
-                        createdAt: true,
-                        endedAt: true,
-                        endLatitude: true,
-                        endLongitude: true,
-                        driverAssignments: {
-                            select: {
-                                id: true,
-                                assignedAt: true,
-                                driver: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        phone: true,
-                                        email: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+        route: true,
         driverAssignments: {
             select: {
                 assignedAt: true,
@@ -144,7 +110,9 @@ const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
         rateconDocument: true,
     },
 });
-export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>>;
+export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>> & {
+    route?: ExpandedRoute;
+};
 
 /**
  * Customer
@@ -173,9 +141,6 @@ const expandedLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
         poNumbers: true,
         pickUpNumbers: true,
         referenceNumbers: true,
-        routeLegLocations: {
-            select: { id: true, loadStop: true, location: true },
-        },
     },
 });
 export type ExpandedLoadStop = Partial<Prisma.LoadStopGetPayload<typeof expandedLoadStop>>;
@@ -218,21 +183,15 @@ const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
 export type ExpandedInvoice = Partial<Prisma.InvoiceGetPayload<typeof expandedInvoice>>;
 
 const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
-    select: {
-        id: true,
+    include: {
         routeLegs: {
-            select: {
-                id: true,
-                driverInstructions: true,
-                locations: { select: { id: true, loadStop: true, location: true } },
-                scheduledDate: true,
-                scheduledTime: true,
-                startedAt: true,
-                startLatitude: true,
-                startLongitude: true,
-                endedAt: true,
-                endLatitude: true,
-                endLongitude: true,
+            include: {
+                locations: {
+                    include: {
+                        loadStop: true,
+                        location: true,
+                    },
+                },
                 driverAssignments: {
                     select: {
                         id: true,
@@ -254,18 +213,13 @@ const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
 export type ExpandedRoute = Partial<Prisma.RouteGetPayload<typeof expandedRoute>>;
 
 const expandedRouteLeg = Prisma.validator<Prisma.RouteLegArgs>()({
-    select: {
-        id: true,
-        driverInstructions: true,
-        locations: { select: { id: true, loadStop: true, location: true } },
-        scheduledDate: true,
-        scheduledTime: true,
-        startedAt: true,
-        startLatitude: true,
-        startLongitude: true,
-        endedAt: true,
-        endLatitude: true,
-        endLongitude: true,
+    include: {
+        locations: {
+            include: {
+                loadStop: true,
+                location: true,
+            },
+        },
         driverAssignments: {
             select: {
                 id: true,
@@ -289,21 +243,29 @@ export type ExpandedRouteLeg = Partial<Prisma.RouteLegGetPayload<typeof expanded
 const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
     include: {
         assignments: {
-            select: {
-                assignedAt: true,
+            include: {
                 routeLeg: {
-                    select: {
-                        id: true,
-                        driverInstructions: true,
-                        locations: { select: { id: true, loadStop: true, location: true } },
-                        scheduledDate: true,
-                        scheduledTime: true,
-                        startedAt: true,
-                        startLatitude: true,
-                        startLongitude: true,
-                        endedAt: true,
-                        endLatitude: true,
-                        endLongitude: true,
+                    include: {
+                        locations: {
+                            include: {
+                                loadStop: true,
+                                location: true,
+                            },
+                        },
+                        driverAssignments: {
+                            select: {
+                                id: true,
+                                assignedAt: true,
+                                driver: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phone: true,
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },

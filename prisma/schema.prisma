@@ -192,8 +192,6 @@ model RouteLegLocation {
     loadStop   LoadStop? @relation(fields: [loadStopId], references: [id])
     location   Location? @relation(fields: [locationId], references: [id])
     routeLeg   RouteLeg  @relation("routeLegLocation", fields: [routeLegId], references: [id], onDelete: Cascade)
-
-    @@unique([routeLegId])
 }
 
 model Location {

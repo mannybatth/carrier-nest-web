@@ -100,8 +100,26 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             include: {
                 routeLegs: {
                     include: {
-                        locations: true,
-                        driverAssignments: true,
+                        locations: {
+                            include: {
+                                loadStop: true,
+                                location: true,
+                            },
+                        },
+                        driverAssignments: {
+                            select: {
+                                id: true,
+                                assignedAt: true,
+                                driver: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phone: true,
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },
@@ -110,7 +128,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
         return res.status(201).json({
             code: 201,
             data: {
-                expandedRouteDetails: routeExpanded,
+                route: routeExpanded,
             },
         });
     } catch (error) {
@@ -213,18 +231,40 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
         // TODO: Implement SMS sending logic here if sendSms is true
 
-        const routeLegExpanded = await prisma.routeLeg.findUnique({
-            where: { id: routeLegId },
+        const routeExpanded = await prisma.route.findUnique({
+            where: { loadId },
             include: {
-                locations: true,
-                driverAssignments: true,
+                routeLegs: {
+                    include: {
+                        locations: {
+                            include: {
+                                loadStop: true,
+                                location: true,
+                            },
+                        },
+                        driverAssignments: {
+                            select: {
+                                id: true,
+                                assignedAt: true,
+                                driver: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phone: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             },
         });
 
         return res.status(200).json({
             code: 200,
             data: {
-                expandedRouteLeg: routeLegExpanded,
+                route: routeExpanded,
             },
         });
     } catch (error) {
