@@ -1,7 +1,27 @@
+import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import prisma from '../../../../lib/prisma';
-import { JSONResponse, exclude } from '../../../../interfaces/models';
 import { getToken } from 'next-auth/jwt';
+import { JSONResponse, exclude } from '../../../../interfaces/models';
+import prisma from '../../../../lib/prisma';
+import { calcPaginationMetadata } from 'lib/pagination';
+
+const buildOrderBy = (
+    sortBy: string,
+    sortDir: 'asc' | 'desc',
+): Prisma.Enumerable<Prisma.DriverAssignmentOrderByWithRelationAndSearchRelevanceInput> => {
+    if (sortBy && sortDir) {
+        if (sortBy.includes('.')) {
+            const split = sortBy.split('.');
+            return {
+                [split[0]]: {
+                    [split[1]]: sortDir,
+                },
+            };
+        }
+        return { [sortBy]: sortDir };
+    }
+    return undefined;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
@@ -35,7 +55,41 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         });
     }
 
+    const sortBy = req.query.sortBy as string;
+    const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+    const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
+
+    const upcomingOnly = req.query.upcomingOnly === '1';
+
+    if (limit != null || offset != null) {
+        if (limit == null || offset == null) {
+            return {
+                code: 400,
+                errors: [{ message: 'Limit and Offset must be set together' }],
+            };
+        }
+
+        if (isNaN(limit) || isNaN(offset)) {
+            return {
+                code: 400,
+                errors: [{ message: 'Invalid limit or offset' }],
+            };
+        }
+    }
+
     try {
+        const total = await prisma.driverAssignment.count({
+            where: {
+                driverId: driverId,
+                driver: {
+                    carrierId: tokenCarrierId,
+                },
+            },
+        });
+
+        const metadata = calcPaginationMetadata({ total, limit, offset });
+
         const driverAssignments = await prisma.driverAssignment.findMany({
             where: {
                 driverId: driverId,
@@ -43,6 +97,11 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     carrierId: tokenCarrierId,
                 },
             },
+            orderBy: buildOrderBy(sortBy, sortDir) || {
+                createdAt: 'desc',
+            },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
                 driver: true,
                 load: {
@@ -50,10 +109,41 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                         shipper: true,
                         stops: true,
                         receiver: true,
+                        customer: true,
                     },
                 },
                 routeLeg: {
-                    include: {
+                    select: {
+                        id: true,
+                        driverInstructions: true,
+                        locations: { select: { id: true, loadStop: true, location: true } },
+                        scheduledDate: true,
+                        scheduledTime: true,
+                        startedAt: true,
+                        startLatitude: true,
+                        startLongitude: true,
+                        createdAt: true,
+                        endedAt: true,
+                        endLatitude: true,
+                        endLongitude: true,
+                        routeLegDistance: true,
+                        routeLegDuration: true,
+                        status: true,
+                        routeId: true,
+                        driverAssignments: {
+                            select: {
+                                id: true,
+                                assignedAt: true,
+                                driver: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phone: true,
+                                    },
+                                },
+                            },
+                        },
                         route: {
                             select: {
                                 id: true,
@@ -117,7 +207,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
         return res.status(200).send({
             code: 200,
-            data: assignmentsWithExcludedRate,
+            data: { metadata, assignments: assignmentsWithExcludedRate },
         });
     } catch (error) {
         console.error('Error fetching driver assignments:', error);

@@ -215,6 +215,8 @@ model Location {
 
 model DriverAssignment {
     id         String   @id @default(cuid())
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @default(now()) @updatedAt
     loadId     String?
     driverId   String
     routeLegId String
