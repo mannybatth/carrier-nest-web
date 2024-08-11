@@ -167,13 +167,20 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         }
     };
 
-    const repositionSelectedStops = (index: number, direction: 'up' | 'down') => {
-        // const toIndex = direction == 'up' ? index - 1 : index + 1;
-        // const currentStop = selectedStops[index] as LoadStop;
-        // routeLegData.locations.splice(index, 1);
-        // routeLegData.locations.splice(toIndex, 0, currentStop);
-        // const newSelectedStops = [...selectedStops];
-        // setSelectedStops(newSelectedStops);
+    const repositionLegLocations = (index: number, direction: 'up' | 'down') => {
+        setRouteLegData((prevData) => {
+            const newLocations = [...prevData.locations];
+
+            if (direction === 'up' && index > 0) {
+                // Swap with the previous item
+                [newLocations[index - 1], newLocations[index]] = [newLocations[index], newLocations[index - 1]];
+            } else if (direction === 'down' && index < newLocations.length - 1) {
+                // Swap with the next item
+                [newLocations[index + 1], newLocations[index]] = [newLocations[index], newLocations[index + 1]];
+            }
+
+            return { ...prevData, locations: newLocations };
+        });
     };
 
     return (
@@ -426,7 +433,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                             type="button"
                                                                                             className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
                                                                                             onClick={() =>
-                                                                                                repositionSelectedStops(
+                                                                                                repositionLegLocations(
                                                                                                     index,
                                                                                                     'up',
                                                                                                 )
@@ -462,7 +469,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                             type="button"
                                                                                             className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
                                                                                             onClick={() =>
-                                                                                                repositionSelectedStops(
+                                                                                                repositionLegLocations(
                                                                                                     index,
                                                                                                     'down',
                                                                                                 )
