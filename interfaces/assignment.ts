@@ -7,6 +7,8 @@ export interface RouteLegData {
     driverInstructions: string;
     scheduledDate: string;
     scheduledTime: string;
+    routeLegDistance?: number;
+    routeLegDuration?: number;
 }
 
 export interface CreateAssignmentRequest {

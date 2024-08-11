@@ -428,6 +428,8 @@ const getLoad = async ({
                                       endedAt: true,
                                       endLatitude: true,
                                       endLongitude: true,
+                                      routeLegDistance: true,
+                                      routeLegDuration: true,
                                       status: true,
                                       routeId: true,
                                       driverAssignments: {

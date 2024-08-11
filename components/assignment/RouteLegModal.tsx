@@ -18,6 +18,7 @@ import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/ass
 import RouteLegDriverSelection from './RouteLegDriverSelection';
 import RouteLegLocationSelection from './RouteLegLocationSelection';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
+import { getRouteForCoords } from 'lib/mapbox/searchGeo';
 
 type Props = {
     show: boolean;
@@ -121,49 +122,70 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             return;
         }
 
-        if (routeLeg) {
-            const updateRequest: UpdateAssignmentRequest = {
-                routeLegId: routeLeg?.id,
-                routeLegData: routeLegData,
-                sendSms: sendSMS,
-                loadId: load.id,
-            };
+        try {
+            const coords = routeLegData.locations.map((legLocation) => {
+                const lat = legLocation.loadStop?.latitude ?? legLocation.location?.latitude;
+                const long = legLocation.loadStop?.longitude ?? legLocation.location?.longitude;
 
-            try {
-                const route = await updateRouteLeg(updateRequest);
+                if (lat == null || long == null) {
+                    throw new Error('One or more locations are missing latitude or longitude');
+                }
 
-                setLoad({
-                    ...load,
-                    route: route as Route,
-                });
+                return [long, lat];
+            });
 
-                close(true);
-                setSaveLoading(false);
-            } catch (error) {
-                setSaveLoading(false);
-                notify({ title: 'Error', message: 'Error updating driver assignment', type: 'error' });
+            const { routeEncoded, distance, duration } = await getRouteForCoords(coords);
+
+            routeLegData.routeLegDistance = distance;
+            routeLegData.routeLegDuration = duration;
+
+            if (routeLeg) {
+                const updateRequest: UpdateAssignmentRequest = {
+                    routeLegId: routeLeg?.id,
+                    routeLegData: routeLegData,
+                    sendSms: sendSMS,
+                    loadId: load.id,
+                };
+
+                try {
+                    const route = await updateRouteLeg(updateRequest);
+
+                    setLoad({
+                        ...load,
+                        route: route as Route,
+                    });
+
+                    close(true);
+                    setSaveLoading(false);
+                } catch (error) {
+                    setSaveLoading(false);
+                    notify({ title: 'Error', message: 'Error updating driver assignment', type: 'error' });
+                }
+            } else {
+                const createRequest: CreateAssignmentRequest = {
+                    routeLegData: routeLegData,
+                    sendSms: sendSMS,
+                    loadId: load.id,
+                };
+
+                try {
+                    const route = await createRouteLeg(createRequest);
+
+                    setLoad({
+                        ...load,
+                        route: route as Route,
+                    });
+
+                    close(true);
+                    setSaveLoading(false);
+                } catch (error) {
+                    setSaveLoading(false);
+                    notify({ title: 'Error', message: 'Error creating driver assignment', type: 'error' });
+                }
             }
-        } else {
-            const createRequest: CreateAssignmentRequest = {
-                routeLegData: routeLegData,
-                sendSms: sendSMS,
-                loadId: load.id,
-            };
-
-            try {
-                const route = await createRouteLeg(createRequest);
-
-                setLoad({
-                    ...load,
-                    route: route as Route,
-                });
-
-                close(true);
-                setSaveLoading(false);
-            } catch (error) {
-                setSaveLoading(false);
-                notify({ title: 'Error', message: 'Error creating driver assignment', type: 'error' });
-            }
+        } catch (error) {
+            setSaveLoading(false);
+            notify({ title: 'Error', message: `Error fetching route details: ${error.message}`, type: 'error' });
         }
     };
 
