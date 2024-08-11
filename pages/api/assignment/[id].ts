@@ -29,7 +29,7 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
     try {
         const session = await getServerSession(req, res, authOptions);
 
-        const routeLegId = req.query.routeLegId as string;
+        const routeLegId = req.query.id as string;
         const { routeLegStatus } = req.body;
 
         if (!routeLegId || !routeLegStatus) {

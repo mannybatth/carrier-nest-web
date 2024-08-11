@@ -797,6 +797,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             const loadStatus = await updateRouteLegStatus(routeLegId, legStatus);
 
             // Update the route leg status
+            routeLeg.status = legStatus;
             switch (legStatus) {
                 case RouteLegStatus.ASSIGNED:
                     routeLeg.startedAt = null;
@@ -1929,13 +1930,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             (driver) => driver.driver,
                                                         );
                                                         const locations = leg.locations;
-
-                                                        const legStatus =
-                                                            leg.startedAt && !leg.endedAt
-                                                                ? RouteLegStatus.IN_PROGRESS
-                                                                : leg.endedAt
-                                                                ? RouteLegStatus.COMPLETED
-                                                                : RouteLegStatus.ASSIGNED;
+                                                        const legStatus = leg.status;
 
                                                         return (
                                                             <div className="relative pb-4" key={`routelegs-${index}`}>
