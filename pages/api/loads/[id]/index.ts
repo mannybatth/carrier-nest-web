@@ -293,7 +293,7 @@ const getLoad = async ({
         where: {
             id: String(query.id),
             carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
-            ...(driverId ? { drivers: { some: { id: driverId } } } : null),
+            ...(driverId ? { driverAssignments: { some: { driverId: driverId } } } : null),
         },
         include: {
             ...(expandCustomer ? { customer: true } : {}),

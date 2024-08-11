@@ -42,7 +42,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             where: {
                 id: String(req.query.id),
                 ...(!driver && { carrierId: session.user.defaultCarrierId }),
-                ...(driver && { drivers: { some: { id: driver.id } } }),
+                ...(driver && { driverAssignments: { some: { driverId: driver.id } } }),
             },
         });
 
