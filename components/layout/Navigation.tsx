@@ -2,6 +2,7 @@ import {
     CurrencyDollarIcon,
     HomeIcon,
     IdentificationIcon,
+    StopCircleIcon,
     TruckIcon,
     UserGroupIcon,
 } from '@heroicons/react/24/outline';
@@ -16,7 +17,7 @@ const navigation = [
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
     { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
-    { name: 'Stop Locations', href: '/locations', icon: CurrencyDollarIcon },
+    { name: 'Stop Locations', href: '/locations', icon: StopCircleIcon },
 ];
 
 const Navigation: React.FC = () => {
