@@ -333,7 +333,9 @@ const Dashboard: PageWithAuth = () => {
                                                                     {load.driverAssignments?.length > 0 ? (
                                                                         load.driverAssignments.map(
                                                                             (assignment, index) => (
-                                                                                <span key={assignment.driver.id}>
+                                                                                <span
+                                                                                    key={`${assignment.driver.id}-${index}`}
+                                                                                >
                                                                                     <Link
                                                                                         href={`/drivers/${assignment.driver.id}`}
                                                                                         className="font-medium"
