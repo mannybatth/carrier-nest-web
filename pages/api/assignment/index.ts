@@ -110,8 +110,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId: newRouteLeg.id,
-                    loadStopId: location.loadStopId || undefined,
-                    locationId: location.locationId || undefined,
+                    loadStopId: location.loadStop ? location.loadStop.id : undefined,
+                    locationId: location.location ? location.location.id : undefined,
                 })),
             });
 
@@ -302,8 +302,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId,
-                    loadStopId: location.loadStopId || undefined,
-                    locationId: location.locationId || undefined,
+                    loadStopId: location.loadStop ? location.loadStop.id : undefined,
+                    locationId: location.location ? location.location.id : undefined,
                 })),
             });
 

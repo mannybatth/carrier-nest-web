@@ -219,7 +219,7 @@ model DriverAssignment {
     assignedAt DateTime @default(now())
     load       Load?    @relation(fields: [loadId], references: [id], onDelete: Cascade)
     driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
-    routeLeg   RouteLeg @relation("driverAssignment", fields: [routeLegId], references: [id])
+    routeLeg   RouteLeg @relation("driverAssignment", fields: [routeLegId], references: [id], onDelete: Cascade)
 
     @@unique([driverId, routeLegId])
 }

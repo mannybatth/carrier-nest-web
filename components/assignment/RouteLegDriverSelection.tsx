@@ -28,7 +28,6 @@ const RouteLegDriverSelection: React.FC<Props> = ({
     const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
 
     useEffect(() => {
-        console.log(selectedDrivers);
         const loadDrivers = async () => {
             setLoadingAllDrivers(true);
             const { drivers } = await getAllDrivers({

@@ -42,7 +42,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 drivers: routeLeg.driverAssignments.map((assignment) => assignment.driver),
                 locations: routeLeg.locations,
                 driverInstructions: routeLeg.driverInstructions,
-                scheduledDate: routeLeg.scheduledDate.toISOString().split('T')[0],
+                scheduledDate: new Date(routeLeg.scheduledDate).toISOString().split('T')[0],
                 scheduledTime: routeLeg.scheduledTime,
             });
         } else {
@@ -50,7 +50,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 drivers: [],
                 locations: [],
                 driverInstructions: '',
-                scheduledDate: '',
+                scheduledDate: new Date().toISOString().split('T')[0],
                 scheduledTime: '',
             });
         }
@@ -81,7 +81,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const handleLegLocationCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.checked) {
             const currentLocationList = routeLegData.locations;
-            const newLocationList = currentLocationList.filter((location) => location.id !== event.target.value);
+            const newLocationList = currentLocationList.filter((location) => {
+                const locId = location.loadStop ? location.loadStop.id : location.location.id;
+                return locId !== event.target.value;
+            });
             setRouteLegData({
                 ...routeLegData,
                 locations: newLocationList,
@@ -361,10 +364,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                         <div className="p-2 mb-3 rounded-lg bg-slate-100">
                                                             <ul role="list" className="overflow-y-auto">
                                                                 {routeLegData.locations.map((legLocation, index) => {
-                                                                    const isLoadStop = !!legLocation.loadStopId; // Determine if this is a LoadStop
+                                                                    const isLoadStop = !!legLocation.loadStop;
                                                                     const item = isLoadStop
                                                                         ? legLocation.loadStop
-                                                                        : legLocation.location; // Get the correct item
+                                                                        : legLocation.location;
 
                                                                     return (
                                                                         <li key={index}>
@@ -442,7 +445,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                         id={`stop-${index}`}
                                                                                         name={`stop-${index}`}
                                                                                         type="checkbox"
-                                                                                        value={legLocation.id}
+                                                                                        value={
+                                                                                            legLocation.loadStop?.id ||
+                                                                                            legLocation.location.id
+                                                                                        }
                                                                                         checked={true} // Assuming checked state is determined elsewhere
                                                                                         onChange={
                                                                                             handleLegLocationCheckboxChange
@@ -516,7 +522,11 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                     scheduledDate: e.target.value,
                                                                 });
                                                             }}
-                                                            value={routeLeg.scheduledDate?.toISOString()?.split('T')[0]}
+                                                            value={
+                                                                new Date(routeLegData.scheduledDate)
+                                                                    .toISOString()
+                                                                    .split('T')[0]
+                                                            }
                                                             type="date"
                                                             max="9999-12-31"
                                                             min={new Date().toLocaleString().split('T')[0]}
@@ -526,7 +536,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                         <input
                                                             required
                                                             type="time"
-                                                            value={routeLeg.scheduledTime}
+                                                            value={routeLegData.scheduledTime}
                                                             onChange={(e) => {
                                                                 setRouteLegData({
                                                                     ...routeLegData,

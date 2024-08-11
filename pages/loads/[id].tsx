@@ -10,7 +10,7 @@ import {
     TrashIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
-import { LoadDocument, LoadStatus, LoadStop, Prisma, RouteLegStatus } from '@prisma/client';
+import { LoadDocument, LoadStatus, LoadStop, Location, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import Spinner from 'components/Spinner';
@@ -45,6 +45,7 @@ import {
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 import { removeRouteLegById, updateRouteLegStatus } from 'lib/rest/routeLeg';
+import { RouteLegDataProvider } from 'components/context/RouteLegDataContext';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;
@@ -1927,10 +1928,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         const drivers = leg.driverAssignments.map(
                                                             (driver) => driver.driver,
                                                         );
-                                                        const allStops = [load.shipper, ...load.stops, load.receiver];
-                                                        const stops = allStops.filter((stop) =>
-                                                            leg.locations.find((loc) => loc.id === stop.id),
-                                                        );
+                                                        const locations = leg.locations;
 
                                                         const legStatus =
                                                             leg.startedAt && !leg.endedAt
@@ -2080,14 +2078,16 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     <p className="px-1 rounded-md ">Assigned Stops</p>
                                                                     <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
                                                                 </div>
-                                                                {/* <a className="absolute pl-4 text-xs bottom-3 text-slate-400">
-                                                                    Open route in Google Maps
-                                                                </a> */}
                                                                 <div
                                                                     className="flex flex-col gap-2 p-3 m-4 mt-2 overflow-x-auto rounded-lg lg:flex-row bg-neutral-50"
                                                                     key={`route-legs-${index}-stops`}
                                                                 >
-                                                                    {stops.map((stop, index) => {
+                                                                    {locations.map((legLocation, index) => {
+                                                                        const isLoadStop = !!legLocation.loadStop;
+                                                                        const item = isLoadStop
+                                                                            ? legLocation.loadStop
+                                                                            : legLocation.location;
+
                                                                         return (
                                                                             <div
                                                                                 className="flex-1"
@@ -2099,7 +2099,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                             <p className="relative top-0 text-sm font-medium bg-slate-200 p-[2px] h-7 w-7 text-center border-2 border-slate-300 rounded-full">
                                                                                                 {index + 1}
                                                                                             </p>
-                                                                                            <div className="h-[3px] w-full flex-1 bg-slate-300  "></div>
+                                                                                            <div className="h-[3px] w-full flex-1 bg-slate-300"></div>
                                                                                             {
                                                                                                 <TruckIcon
                                                                                                     className="w-6 h-6 text-gray-500"
@@ -2110,22 +2110,38 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                                                                         <div className="flex-1 truncate pl-7">
                                                                                             <p className="text-base font-semibold text-gray-900 capitalize truncate">
-                                                                                                {stop.name.toLowerCase()}
+                                                                                                {item.name.toLowerCase()}
                                                                                             </p>
                                                                                             <p className="text-xs text-gray-800 truncate">
-                                                                                                {new Date(
-                                                                                                    stop.date,
-                                                                                                ).toLocaleDateString()}{' '}
-                                                                                                @ {stop.time}
+                                                                                                {isLoadStop
+                                                                                                    ? new Date(
+                                                                                                          (
+                                                                                                              item as LoadStop
+                                                                                                          ).date,
+                                                                                                      ).toLocaleDateString()
+                                                                                                    : new Date(
+                                                                                                          (
+                                                                                                              item as Location
+                                                                                                          ).createdAt,
+                                                                                                      ).toLocaleDateString()}{' '}
+                                                                                                @{' '}
+                                                                                                {isLoadStop
+                                                                                                    ? (item as LoadStop)
+                                                                                                          .time
+                                                                                                    : new Date(
+                                                                                                          (
+                                                                                                              item as Location
+                                                                                                          ).updatedAt,
+                                                                                                      ).toLocaleTimeString()}
                                                                                             </p>
-                                                                                            <p className="text-xs text-gray-500 capitalize truncate">
-                                                                                                {stop.street.toLowerCase()}
+                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                                {item.street.toLowerCase()}
                                                                                             </p>
-                                                                                            <p className="text-xs text-gray-500 capitalize truncate">
-                                                                                                {stop.city.toLowerCase()}
+                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                                {item.city.toLowerCase()}
                                                                                                 ,{' '}
-                                                                                                {stop.state.toUpperCase()}
-                                                                                                , {stop.zip}
+                                                                                                {item.state.toUpperCase()}
+                                                                                                , {item.zip}
                                                                                             </p>
                                                                                         </div>
                                                                                     </div>
@@ -2182,7 +2198,9 @@ const LoadDetailsPageWrapper: PageWithAuth = () => {
 
     return (
         <LoadProvider loadId={loadId}>
-            <LoadDetailsPage loadId={loadId}></LoadDetailsPage>
+            <RouteLegDataProvider>
+                <LoadDetailsPage loadId={loadId}></LoadDetailsPage>
+            </RouteLegDataProvider>
         </LoadProvider>
     );
 };

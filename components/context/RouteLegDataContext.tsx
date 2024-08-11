@@ -11,7 +11,13 @@ type RouteLegDataProviderProps = {
 };
 
 export function RouteLegDataProvider({ children }: RouteLegDataProviderProps) {
-    const [routeLegData, setRouteLegData] = useState<RouteLegData>(null);
+    const [routeLegData, setRouteLegData] = useState<RouteLegData>({
+        drivers: [],
+        locations: [],
+        driverInstructions: '',
+        scheduledDate: new Date().toISOString().split('T')[0],
+        scheduledTime: '',
+    });
 
     return (
         <RouteLegDataContext.Provider value={[routeLegData, setRouteLegData]}>{children}</RouteLegDataContext.Provider>

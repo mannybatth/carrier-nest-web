@@ -6,31 +6,64 @@ import { useLoadContext } from '../context/LoadContext';
 import { LoadingOverlay } from '../LoadingOverlay';
 import Spinner from '../Spinner';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
-
-type LegLocationItem = LoadStop | Location;
+import { ExpandedRouteLegLocation } from 'interfaces/models'; // Assuming this is where your ExpandedRouteLegLocation type is defined
 
 type Props = {
     title?: string;
-    onLegLocationsSelectionSave: (legLocations: LegLocationItem[]) => void;
+    onLegLocationsSelectionSave: (legLocations: ExpandedRouteLegLocation[]) => void;
     onGoBack: () => void;
 };
 
 const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelectionSave, onGoBack }: Props) => {
     const [load] = useLoadContext();
     const [routeLegData] = useRouteLegDataContext();
-    const [selectedLegLocations, setSelectedLegLocations] = React.useState<LegLocationItem[]>([]);
+    const [allLocations, setAllLocations] = React.useState<ExpandedRouteLegLocation[]>([]);
+    const [selectedLegLocations, setSelectedLegLocations] = React.useState<ExpandedRouteLegLocation[]>([]);
 
-    const [loadingInit, setLoadingInit] = React.useState<boolean>(false);
+    const [loadingInit, setLoadingInit] = React.useState<boolean>(true);
     const [saveLoading, setSaveLoading] = React.useState<boolean>(false);
 
     useEffect(() => {
-        // Initialization logic if necessary
-    }, [load]);
+        const loadStops = [load.shipper, ...load.stops, load.receiver].map((stop) => ({
+            loadStop: stop,
+            location: null,
+        })) as ExpandedRouteLegLocation[];
 
-    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>, item: LegLocationItem) => {
-        setSelectedLegLocations((prev) =>
-            event.target.checked ? [...prev, item] : prev.filter((loc) => loc !== item),
+        const existingLocations = routeLegData.locations;
+
+        // Merge lists and remove duplicates based on id
+        const allLocationsSet = new Map<string, ExpandedRouteLegLocation>();
+        [...loadStops, ...existingLocations].forEach((item) => {
+            const locId = item.loadStop ? item.loadStop.id : item.location?.id;
+            allLocationsSet.set(locId, item);
+        });
+        const mergedLocations = Array.from(allLocationsSet.values());
+
+        setAllLocations(mergedLocations);
+        setSelectedLegLocations(existingLocations); // Preselect existing locations
+        setLoadingInit(false);
+    }, [load, routeLegData]);
+
+    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>, item: ExpandedRouteLegLocation) => {
+        const itemId = item.loadStop ? item.loadStop.id : item.location?.id;
+
+        const updatedSelection = event.target.checked
+            ? [...selectedLegLocations, item]
+            : selectedLegLocations.filter((loc) => {
+                  const locId = loc.loadStop ? loc.loadStop.id : loc.location?.id;
+                  return locId !== itemId;
+              });
+
+        // Filter allLocations to generate the ordered selectedLegLocations
+        const orderedSelection = allLocations.filter((loc) =>
+            updatedSelection.some((selectedItem) => {
+                const selectedId = selectedItem.loadStop ? selectedItem.loadStop.id : selectedItem.location?.id;
+                const locId = loc.loadStop ? loc.loadStop.id : loc.location?.id;
+                return locId === selectedId;
+            }),
         );
+
+        setSelectedLegLocations(orderedSelection);
     };
 
     const saveSelectedItems = async () => {
@@ -99,15 +132,15 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
 
                     <div className="flex flex-col flex-1 overflow-auto">
                         <ul role="list" className="overflow-y-auto divide-y divide-gray-200 pb-36">
-                            {routeLegData.locations?.map((locationItem, index) => {
-                                const isLoadStop = !!locationItem.loadStopId;
+                            {allLocations.map((locationItem, index) => {
+                                const isLoadStop = !!locationItem.loadStop;
                                 const item = isLoadStop ? locationItem.loadStop : locationItem.location;
 
                                 return (
                                     <li key={index}>
                                         <div
                                             className={`flex items-center space-x-4 ${
-                                                selectedLegLocations.includes(item as LegLocationItem)
+                                                selectedLegLocations.includes(locationItem)
                                                     ? 'bg-slate-100'
                                                     : 'bg-white'
                                             }`}
@@ -161,10 +194,8 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                                                     id={`location-${index}`}
                                                     name={`location-${index}`}
                                                     type="checkbox"
-                                                    checked={selectedLegLocations.includes(item as LegLocationItem)}
-                                                    onChange={(event) =>
-                                                        handleCheckboxChange(event, item as LegLocationItem)
-                                                    }
+                                                    checked={selectedLegLocations.includes(locationItem)}
+                                                    onChange={(event) => handleCheckboxChange(event, locationItem)}
                                                     className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
                                                 />
                                             </div>
