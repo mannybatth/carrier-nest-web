@@ -16,6 +16,7 @@ const navigation = [
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
     { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
+    { name: 'Stop Locations', href: '/locations', icon: CurrencyDollarIcon },
 ];
 
 const Navigation: React.FC = () => {
