@@ -1,11 +1,9 @@
-interface RouteLegLocation {
-    id: string;
-    type: 'loadStop' | 'location';
-}
+import { Driver } from '@prisma/client';
+import { ExpandedRouteLegLocation } from './models';
 
-interface RouteLegData {
-    driverIds: string[];
-    locations: RouteLegLocation[];
+export interface RouteLegData {
+    drivers: Driver[];
+    locations: ExpandedRouteLegLocation[];
     driverInstructions: string;
     scheduledDate: string;
     scheduledTime: string;

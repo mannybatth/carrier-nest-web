@@ -10,90 +10,110 @@ import {
 import React, { Fragment } from 'react';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import { Driver, LoadStop, Route } from '@prisma/client';
-import LegStopsSelectionModalSearch from './LegStopsSelectionModalSearch';
-import { ExpandedRoute, ExpandedRouteLeg } from 'interfaces/models';
+import { Driver, LoadStop, Location, Route } from '@prisma/client';
+import { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
 import { notify } from 'components/Notification';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
-import LegDriverSelectionModalSearch from './LegDriverSelectionModalSearch';
+import RouteLegDriverSelection from './RouteLegDriverSelection';
+import RouteLegLocationSelection from './RouteLegLocationSelection';
+import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
 
 type Props = {
     show: boolean;
-    onClose: (value: boolean) => void;
     routeLeg?: ExpandedRouteLeg;
+    onClose: (value: boolean) => void;
 };
 
-const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props) => {
+const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const [load, setLoad] = useLoadContext();
-    const [showDriverSearch, setShowDriverSearch] = React.useState(false);
-    const [driverInstructions, setDriverInstructions] = React.useState<string>('');
-    const [showStopSearch, setShowStopSearch] = React.useState(false);
-    const [saveLoading, setSaveLoading] = React.useState(false);
-    const [sendSMS, setSendSMS] = React.useState<boolean>(true);
-    const [selectedDrivers, setSelectedDrivers] = React.useState<Partial<Driver>[]>([]);
-    const [selectedStops, setSelectedStops] = React.useState<LoadStop[]>([]);
+    const [routeLegData, setRouteLegData] = useRouteLegDataContext();
 
-    const [scheduleStartDate, setScheduleStartDate] = React.useState<Date | null>();
-    const [rawTime, setRawTime] = React.useState('00:00');
+    const [showDriverSelection, setShowDriverSelection] = React.useState(false);
+    const [showLegLocationSelection, setShowLegLocationSelection] = React.useState(false);
+
+    const [sendSMS, setSendSMS] = React.useState<boolean>(true);
+
+    const [saveLoading, setSaveLoading] = React.useState(false);
 
     React.useEffect(() => {
         if (routeLeg) {
-            setScheduleStartDate(new Date(routeLeg.scheduledDate));
-            setRawTime(routeLeg.scheduledTime);
-            setSelectedDrivers(routeLeg.driverAssignments.map((assignment) => assignment.driver));
-            const allLoadStops = [load.shipper, ...load.stops, load.receiver];
-            const selectedStopsOnLeg = allLoadStops.filter((stop) =>
-                routeLeg.locations.find((location, index) => location.id === stop.id),
-            ) as LoadStop[];
-            setSelectedStops(selectedStopsOnLeg);
-            setDriverInstructions(routeLeg.driverInstructions);
+            setRouteLegData({
+                drivers: routeLeg.driverAssignments.map((assignment) => assignment.driver),
+                locations: routeLeg.locations,
+                driverInstructions: routeLeg.driverInstructions,
+                scheduledDate: routeLeg.scheduledDate.toISOString().split('T')[0],
+                scheduledTime: routeLeg.scheduledTime,
+            });
+        } else {
+            setRouteLegData({
+                drivers: [],
+                locations: [],
+                driverInstructions: '',
+                scheduledDate: '',
+                scheduledTime: '',
+            });
         }
     }, [routeLeg]);
 
     const close = (value: boolean) => {
         onClose(value);
-        setShowDriverSearch(false);
-        setDriverInstructions('');
-        setSelectedDrivers([]);
-        setSelectedStops([]);
-        setRawTime('00:00');
-        setScheduleStartDate(null);
+        setRouteLegData({
+            drivers: [],
+            locations: [],
+            driverInstructions: '',
+            scheduledDate: '',
+            scheduledTime: '',
+        });
     };
 
-    const handleDriverCheckboxChange = (event) => {
+    const handleDriverCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.checked) {
-            const newDriverList = selectedDrivers.filter((driver) => driver.id !== event.target.value);
-            setSelectedDrivers(newDriverList);
+            const currentDriverList = routeLegData.drivers;
+            const newDriverList = currentDriverList.filter((driver) => driver.id !== event.target.value);
+            setRouteLegData({
+                ...routeLegData,
+                drivers: newDriverList,
+            });
         }
     };
 
-    const handleStopCheckboxChange = (event) => {
+    const handleLegLocationCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.checked) {
-            const newStops = selectedStops.filter((stop) => stop.id !== event.target.value);
-            setSelectedStops(newStops);
+            const currentLocationList = routeLegData.locations;
+            const newLocationList = currentLocationList.filter((location) => location.id !== event.target.value);
+            setRouteLegData({
+                ...routeLegData,
+                locations: newLocationList,
+            });
         }
     };
 
-    const selectDrivers = (drivers: Driver[]) => {
-        // Update the array of drivers selected in state
-        setSelectedDrivers([...selectedDrivers, ...drivers]);
+    const onSelectedDriversChange = (drivers: Driver[]) => {
+        setRouteLegData({
+            ...routeLegData,
+            drivers: drivers,
+        });
     };
 
-    const selectStops = (loadStops: LoadStop[]) => {
-        setSelectedStops([...selectedStops, ...loadStops]);
-        setScheduleStartDate(
-            new Date(
-                selectedStops.at(0)?.date.toString().split('T')[0] || loadStops.at(0)?.date.toString().split('T')[0],
-            ),
-        );
+    const onSelectedLegLocationsChange = (locations: ExpandedRouteLegLocation[]) => {
+        setRouteLegData({
+            ...routeLegData,
+            locations: locations,
+        });
     };
 
     const submit = async () => {
         setSaveLoading(true);
 
-        if (scheduleStartDate === null || rawTime === null || rawTime === '') {
-            notify({ title: 'Error', message: 'Please select a valid date and time', type: 'error' });
+        if (!routeLegData.scheduledDate) {
+            notify({ title: 'Error', message: 'Please select a valid date', type: 'error' });
+            setSaveLoading(false);
+            return;
+        }
+
+        if (!routeLegData.scheduledTime) {
+            notify({ title: 'Error', message: 'Please select a valid time', type: 'error' });
             setSaveLoading(false);
             return;
         }
@@ -101,13 +121,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
         if (routeLeg) {
             const updateRequest: UpdateAssignmentRequest = {
                 routeLegId: routeLeg?.id,
-                routeLegData: {
-                    driverIds: selectedDrivers.map((driver) => driver.id),
-                    locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
-                    driverInstructions: driverInstructions,
-                    scheduledDate: scheduleStartDate.toISOString().split('T')[0],
-                    scheduledTime: rawTime,
-                },
+                routeLegData: routeLegData,
                 sendSms: sendSMS,
                 loadId: load.id,
             };
@@ -128,13 +142,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
             }
         } else {
             const createRequest: CreateAssignmentRequest = {
-                routeLegData: {
-                    driverIds: selectedDrivers.map((driver) => driver.id),
-                    locations: selectedStops.map((stop) => ({ id: stop.id, type: 'loadStop' })),
-                    driverInstructions: driverInstructions,
-                    scheduledDate: scheduleStartDate.toISOString().split('T')[0],
-                    scheduledTime: rawTime,
-                },
+                routeLegData: routeLegData,
                 sendSms: sendSMS,
                 loadId: load.id,
             };
@@ -157,12 +165,12 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     };
 
     const repositionSelectedStops = (index: number, direction: 'up' | 'down') => {
-        const toIndex = direction == 'up' ? index - 1 : index + 1;
-        const currentStop = selectedStops[index] as LoadStop;
-        selectedStops.splice(index, 1);
-        selectedStops.splice(toIndex, 0, currentStop);
-        const newSelectedStops = [...selectedStops];
-        setSelectedStops(newSelectedStops);
+        // const toIndex = direction == 'up' ? index - 1 : index + 1;
+        // const currentStop = selectedStops[index] as LoadStop;
+        // routeLegData.locations.splice(index, 1);
+        // routeLegData.locations.splice(toIndex, 0, currentStop);
+        // const newSelectedStops = [...selectedStops];
+        // setSelectedStops(newSelectedStops);
     };
 
     return (
@@ -183,45 +191,43 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
-                                    {showDriverSearch && (
+                                    {showDriverSelection && (
                                         <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
-                                            <LegDriverSelectionModalSearch
+                                            <RouteLegDriverSelection
                                                 title="Select Drivers"
-                                                selectedDrivers={selectedDrivers}
-                                                selectDrivers={selectDrivers}
-                                                goBack={() => setShowDriverSearch(false)}
-                                                close={(value) => close(value)}
-                                            ></LegDriverSelectionModalSearch>
+                                                selectedDrivers={routeLegData.drivers}
+                                                onDriverSelectionSave={onSelectedDriversChange}
+                                                onGoBack={() => setShowDriverSelection(false)}
+                                            ></RouteLegDriverSelection>
                                         </div>
                                     )}
 
-                                    {showStopSearch && (
+                                    {showLegLocationSelection && (
                                         <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
-                                            <LegStopsSelectionModalSearch
+                                            <RouteLegLocationSelection
                                                 title="Select Stops"
-                                                selectedStops={selectedStops}
-                                                selectStops={selectStops}
-                                                goBack={() => {
-                                                    setShowStopSearch(false);
+                                                onLegLocationsSelectionSave={onSelectedLegLocationsChange}
+                                                onGoBack={() => {
+                                                    setShowLegLocationSelection(false);
                                                 }}
-                                                close={(value) => close(value)}
-                                            ></LegStopsSelectionModalSearch>
+                                            ></RouteLegLocationSelection>
                                         </div>
                                     )}
                                     <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
                                         {saveLoading && <LoadingOverlay />}
-                                        {!showDriverSearch && !showStopSearch && (
+                                        {!showDriverSelection && !showLegLocationSelection && (
                                             <div className="fixed bottom-0 right-0 z-10 w-full px-5 pb-5 text-center pr-9 ">
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"
                                                         disabled={
-                                                            selectedDrivers.length < 1 ||
-                                                            selectedStops.length < 2 ||
+                                                            routeLegData.drivers.length < 1 ||
+                                                            routeLegData.locations.length < 2 ||
                                                             saveLoading
                                                         }
                                                         className={`inline-flex items-center px-3 py-2  text-sm font-medium leading-4 text-white ${
-                                                            selectedDrivers.length < 1 || selectedStops.length < 2
+                                                            routeLegData.drivers.length < 1 ||
+                                                            routeLegData.locations.length < 2
                                                                 ? 'bg-blue-600/30 cursor-not-allowed'
                                                                 : 'bg-blue-700'
                                                         }  rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
@@ -262,10 +268,10 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         Add drivers to this assignment
                                                     </p>
                                                 </div>
-                                                {selectedDrivers.length != 0 && (
+                                                {routeLegData.drivers.length != 0 && (
                                                     <div className="p-2 mb-3 rounded-lg bg-slate-100">
                                                         <ul role="list" className="overflow-y-auto divide-gray-200 ">
-                                                            {selectedDrivers?.map((driver, index) => (
+                                                            {routeLegData.drivers?.map((driver, index) => (
                                                                 <li key={index}>
                                                                     <div className="flex items-center mx-1 my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
                                                                         <div className="flex-1">
@@ -303,15 +309,20 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         </ul>
                                                     </div>
                                                 )}
-                                                {selectedDrivers.length > 0 && (
+                                                {routeLegData.drivers.length > 0 && (
                                                     <div className="col-span-12 my-3 sm:col-span-4 lg:col-span-3">
                                                         <label className="block text-sm font-base text-slate-700">
                                                             Driver Instructions
                                                         </label>
                                                         <input
                                                             type="text"
-                                                            value={driverInstructions}
-                                                            onChange={(e) => setDriverInstructions(e.target.value)}
+                                                            value={routeLegData.driverInstructions}
+                                                            onChange={(e) => {
+                                                                setRouteLegData({
+                                                                    ...routeLegData,
+                                                                    driverInstructions: e.target.value,
+                                                                });
+                                                            }}
                                                             autoComplete="state"
                                                             placeholder="Enter special instructions for the driver(s) here"
                                                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -322,11 +333,11 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                     <button
                                                         type="button"
                                                         className={`inline-flex  items-center px-3 py-2 text-sm font-medium leading-4 text-white ${
-                                                            selectedDrivers.length == 0
+                                                            routeLegData.drivers.length == 0
                                                                 ? 'bg-blue-600'
                                                                 : 'bg-gray-400/80'
                                                         }  rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
-                                                        onClick={() => setShowDriverSearch(true)}
+                                                        onClick={() => setShowDriverSelection(true)}
                                                     >
                                                         <UserPlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                                                         <p className="w-full text-sm font-semibold text-center">
@@ -336,7 +347,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                 </div>
                                             </div>
 
-                                            {selectedDrivers.length != 0 && (
+                                            {routeLegData.drivers.length != 0 && (
                                                 <div className="my-4">
                                                     <div className="mb-2">
                                                         <h5 className="text-sm font-semibold text-slate-600">
@@ -346,102 +357,125 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                             Select drops for this assignment
                                                         </p>
                                                     </div>
-                                                    {selectedStops.length != 0 && (
+                                                    {routeLegData.locations.length !== 0 && (
                                                         <div className="p-2 mb-3 rounded-lg bg-slate-100">
-                                                            <ul role="list" className="overflow-y-auto ">
-                                                                {selectedStops?.map((stop, index) => (
-                                                                    <li key={index}>
-                                                                        <div className="flex items-center m-1 my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
-                                                                            <div className="flex-1">
-                                                                                <label /* htmlFor={`stop-${index}`} */>
-                                                                                    <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-default">
-                                                                                        <div className="flex flex-col items-center gap-4 justify-items-start">
-                                                                                            <p className="relative top-0 w-6 h-6 p-1 text-xs text-center rounded-full bg-slate-200">
-                                                                                                {index + 1}
-                                                                                            </p>
-                                                                                            {/*  <BuildingOffice2Icon
-                                                                                                className="w-6 h-6 text-gray-500"
-                                                                                                aria-hidden="true"
-                                                                                            /> */}
-                                                                                        </div>
+                                                            <ul role="list" className="overflow-y-auto">
+                                                                {routeLegData.locations.map((legLocation, index) => {
+                                                                    const isLoadStop = !!legLocation.loadStopId; // Determine if this is a LoadStop
+                                                                    const item = isLoadStop
+                                                                        ? legLocation.loadStop
+                                                                        : legLocation.location; // Get the correct item
 
-                                                                                        <div className="flex-1 truncate">
-                                                                                            <p className="text-base font-semibold text-gray-900 capitalize truncate">
-                                                                                                {stop.name.toLowerCase()}
-                                                                                            </p>
-                                                                                            <p className="text-xs text-gray-800 truncate">
-                                                                                                {new Date(
-                                                                                                    stop.date,
-                                                                                                ).toLocaleDateString()}{' '}
-                                                                                                @ {stop.time}
-                                                                                            </p>
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
-                                                                                                {stop.street.toLowerCase()}
-                                                                                            </p>
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
-                                                                                                {stop.city.toLowerCase()}
-                                                                                                ,{' '}
-                                                                                                {stop.state.toUpperCase()}
-                                                                                                , {stop.zip}
-                                                                                            </p>
+                                                                    return (
+                                                                        <li key={index}>
+                                                                            <div className="flex items-center m-1 my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
+                                                                                <div className="flex-1">
+                                                                                    <label>
+                                                                                        <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-default">
+                                                                                            <div className="flex flex-col items-center gap-4 justify-items-start">
+                                                                                                <p className="relative top-0 w-6 h-6 p-1 text-xs text-center rounded-full bg-slate-200">
+                                                                                                    {index + 1}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                            <div className="flex-1 truncate">
+                                                                                                <p className="text-base font-semibold text-gray-900 capitalize truncate">
+                                                                                                    {item.name.toLowerCase()}
+                                                                                                </p>
+                                                                                                <p className="text-xs text-gray-800 truncate">
+                                                                                                    {isLoadStop
+                                                                                                        ? new Date(
+                                                                                                              (
+                                                                                                                  item as LoadStop
+                                                                                                              ).date,
+                                                                                                          ).toLocaleDateString()
+                                                                                                        : new Date(
+                                                                                                              (
+                                                                                                                  item as Location
+                                                                                                              ).createdAt,
+                                                                                                          ).toLocaleDateString()}{' '}
+                                                                                                    @{' '}
+                                                                                                    {isLoadStop
+                                                                                                        ? (
+                                                                                                              item as LoadStop
+                                                                                                          ).time
+                                                                                                        : new Date(
+                                                                                                              (
+                                                                                                                  item as Location
+                                                                                                              ).updatedAt,
+                                                                                                          ).toLocaleTimeString()}
+                                                                                                </p>
+                                                                                                <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                                    {item.street.toLowerCase()}
+                                                                                                </p>
+                                                                                                <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                                    {item.city.toLowerCase()}
+                                                                                                    ,{' '}
+                                                                                                    {item.state.toUpperCase()}
+                                                                                                    , {item.zip}
+                                                                                                </p>
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                </label>
-                                                                            </div>
-                                                                            <div className="flex flex-col items-center justify-between min-h-full gap-3 pr-4">
-                                                                                {index != 0 ? (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
-                                                                                        onClick={() =>
-                                                                                            repositionSelectedStops(
-                                                                                                index,
-                                                                                                'up',
-                                                                                            )
+                                                                                    </label>
+                                                                                </div>
+                                                                                <div className="flex flex-col items-center justify-between min-h-full gap-3 pr-4">
+                                                                                    {index !== 0 ? (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
+                                                                                            onClick={() =>
+                                                                                                repositionSelectedStops(
+                                                                                                    index,
+                                                                                                    'up',
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <ChevronUpIcon
+                                                                                                className="w-5 h-5"
+                                                                                                aria-hidden="true"
+                                                                                                color="black"
+                                                                                            />
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <p className="w-4 h-4"></p>
+                                                                                    )}
+                                                                                    <input
+                                                                                        id={`stop-${index}`}
+                                                                                        name={`stop-${index}`}
+                                                                                        type="checkbox"
+                                                                                        value={legLocation.id}
+                                                                                        checked={true} // Assuming checked state is determined elsewhere
+                                                                                        onChange={
+                                                                                            handleLegLocationCheckboxChange
                                                                                         }
-                                                                                    >
-                                                                                        <ChevronUpIcon
-                                                                                            className="w-5 h-5 "
-                                                                                            aria-hidden="true"
-                                                                                            color="black"
-                                                                                        />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <p className="w-4 h-4 "></p>
-                                                                                )}
-                                                                                <input
-                                                                                    id={`stop-${index}`}
-                                                                                    name={`stop-${index}`}
-                                                                                    type="checkbox"
-                                                                                    value={stop.id}
-                                                                                    checked={true}
-                                                                                    onChange={handleStopCheckboxChange}
-                                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                                                                />
-                                                                                {index < selectedStops.length - 1 ? (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
-                                                                                        onClick={() =>
-                                                                                            repositionSelectedStops(
-                                                                                                index,
-                                                                                                'down',
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <ChevronDownIcon
-                                                                                            className="w-5 h-5 "
-                                                                                            aria-hidden="true"
-                                                                                            color="black"
-                                                                                        />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <p className="w-4 h-4 "></p>
-                                                                                )}
+                                                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                                                    />
+                                                                                    {index <
+                                                                                    routeLegData.locations.length -
+                                                                                        1 ? (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
+                                                                                            onClick={() =>
+                                                                                                repositionSelectedStops(
+                                                                                                    index,
+                                                                                                    'down',
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <ChevronDownIcon
+                                                                                                className="w-5 h-5"
+                                                                                                aria-hidden="true"
+                                                                                                color="black"
+                                                                                            />
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <p className="w-4 h-4"></p>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                    </li>
-                                                                ))}
+                                                                        </li>
+                                                                    );
+                                                                })}
                                                             </ul>
                                                         </div>
                                                     )}
@@ -449,11 +483,11 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         <button
                                                             type="button"
                                                             className={`inline-flex items-center px-3 py-2 text-sm font-medium   leading-4 text-white ${
-                                                                selectedStops.length == 0
+                                                                routeLegData.locations.length == 0
                                                                     ? 'bg-blue-600'
                                                                     : 'bg-gray-400/80'
                                                             }  rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
-                                                            onClick={() => setShowStopSearch(true)}
+                                                            onClick={() => setShowLegLocationSelection(true)}
                                                         >
                                                             <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                                                             <p className="w-full text-sm font-semibold text-center">
@@ -463,7 +497,7 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                     </div>
                                                 </div>
                                             )}
-                                            {selectedDrivers.length != 0 && selectedStops.length != 0 && (
+                                            {routeLegData.drivers.length != 0 && routeLegData.locations.length != 0 && (
                                                 <>
                                                     <div className="flex flex-col justify-start mb-2">
                                                         <h5 className="text-sm font-semibold text-slate-600">
@@ -477,10 +511,12 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                     <div className="flex flex-row items-end w-full gap-2">
                                                         <input
                                                             onChange={(e) => {
-                                                                if (e.target.value != '')
-                                                                    setScheduleStartDate(new Date(e.target.value));
+                                                                setRouteLegData({
+                                                                    ...routeLegData,
+                                                                    scheduledDate: e.target.value,
+                                                                });
                                                             }}
-                                                            value={scheduleStartDate?.toISOString()?.split('T')[0]}
+                                                            value={routeLeg.scheduledDate?.toISOString()?.split('T')[0]}
                                                             type="date"
                                                             max="9999-12-31"
                                                             min={new Date().toLocaleString().split('T')[0]}
@@ -490,15 +526,20 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
                                                         <input
                                                             required
                                                             type="time"
-                                                            value={rawTime}
-                                                            onChange={(e) => setRawTime(e.target.value)}
+                                                            value={routeLeg.scheduledTime}
+                                                            onChange={(e) => {
+                                                                setRouteLegData({
+                                                                    ...routeLegData,
+                                                                    scheduledTime: e.target.value,
+                                                                });
+                                                            }}
                                                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                         />
                                                     </div>
                                                 </>
                                             )}
 
-                                            {selectedDrivers.length != 0 && selectedStops.length != 0 && (
+                                            {routeLegData.drivers.length != 0 && routeLegData.locations.length != 0 && (
                                                 <div className="flex flex-col justify-start my-4">
                                                     <div className="mb-2">
                                                         <h5 className="text-sm font-semibold text-slate-700">
@@ -542,4 +583,4 @@ const LegAssignmentModal: React.FC<Props> = ({ show, onClose, routeLeg }: Props)
     );
 };
 
-export default LegAssignmentModal;
+export default RouteLegModal;

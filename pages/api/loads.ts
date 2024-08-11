@@ -257,14 +257,7 @@ export const getLoads = async ({
                           select: {
                               id: true,
                               assignedAt: true,
-                              driver: {
-                                  select: {
-                                      id: true,
-                                      name: true,
-                                      email: true,
-                                      phone: true,
-                                  },
-                              },
+                              driver: true,
                           },
                       },
                   }

@@ -70,7 +70,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             });
 
             // Create driver assignments and add LoadActivity for each
-            for (const driverId of routeLegData.driverIds) {
+            const driverIds = routeLegData.drivers.map((driver) => driver.id);
+            for (const driverId of driverIds) {
                 await prisma.driverAssignment.create({
                     data: {
                         driverId,
@@ -109,7 +110,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId: newRouteLeg.id,
-                    [location.type === 'loadStop' ? 'loadStopId' : 'locationId']: location.id,
+                    loadStopId: location.loadStopId || undefined,
+                    locationId: location.locationId || undefined,
                 })),
             });
 
@@ -227,7 +229,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 where: { routeLegId },
             });
 
-            for (const driverId of routeLegData.driverIds) {
+            const driverIds = routeLegData.drivers.map((driver) => driver.id);
+            for (const driverId of driverIds) {
                 await prisma.driverAssignment.create({
                     data: {
                         driverId,
@@ -265,7 +268,7 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
             // Create LoadActivity for removed drivers
             for (const assignment of currentAssignments) {
-                if (!routeLegData.driverIds.includes(assignment.driverId)) {
+                if (!driverIds.includes(assignment.driverId)) {
                     const driver = await prisma.driver.findUnique({ where: { id: assignment.driverId } });
                     await prisma.loadActivity.create({
                         data: {
@@ -299,7 +302,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId,
-                    [location.type === 'loadStop' ? 'loadStopId' : 'locationId']: location.id,
+                    loadStopId: location.loadStopId || undefined,
+                    locationId: location.locationId || undefined,
                 })),
             });
 

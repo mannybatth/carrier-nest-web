@@ -373,7 +373,6 @@ enum LoadStopType {
     SHIPPER
     RECEIVER
     STOP
-    LEGSTOP
 }
 
 enum LoadStatus {

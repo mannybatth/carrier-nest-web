@@ -1,31 +1,27 @@
 import { Dialog } from '@headlessui/react';
-import { ArrowLeftIcon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Driver } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
-import { LoadingOverlay } from '../LoadingOverlay';
 import Spinner from '../Spinner';
 
 type Props = {
     title?: string;
     selectedDrivers: Partial<Driver>[];
-    goBack: () => void;
-    selectDrivers: (drivers: Partial<Driver>[]) => void;
-    close: (value: boolean) => void;
+    onGoBack: () => void;
+    onDriverSelectionSave: (drivers: Partial<Driver>[]) => void;
 };
 
-const LegDriverSelectionModalSearch: React.FC<Props> = ({
-    goBack,
-    close,
+const RouteLegDriverSelection: React.FC<Props> = ({
     title,
-    selectDrivers,
     selectedDrivers,
+    onGoBack,
+    onDriverSelectionSave,
 }: Props) => {
     const [load, setLoad] = useLoadContext();
 
     const [loadingAllDrivers, setLoadingAllDrivers] = React.useState<boolean>(false);
-    const [saveLoading, setSaveLoading] = React.useState<boolean>(false);
 
     const [allDrivers, setAllDrivers] = React.useState<Driver[]>([]);
     const [availableDrivers, setAvailableDrivers] = React.useState<Driver[]>([]);
@@ -50,7 +46,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
         loadDrivers();
     }, [load]);
 
-    const handleCheckboxChange = (event) => {
+    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.checked) {
             setSelectedDriverIds((prev) => [...prev, event.target.value]);
         } else {
@@ -59,14 +55,12 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
     };
 
     const saveSelectedDrivers = async () => {
-        setSaveLoading(true);
-        const newDriverIds = [...selectedDriverIds];
-        const newDrivers = allDrivers.filter((d) => newDriverIds.includes(d.id));
+        const newDrivers = selectedDriverIds.map((id) => allDrivers.find((d) => d.id === id));
 
-        selectDrivers(newDrivers);
+        onDriverSelectionSave(newDrivers);
+        onGoBack();
+
         setSelectedDriverIds([]);
-        goBack();
-        setSaveLoading(false);
     };
 
     return (
@@ -77,7 +71,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                     className="inline-flex items-center flex-none px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     onClick={(e) => {
                         e.stopPropagation();
-                        goBack();
+                        onGoBack();
                     }}
                 >
                     <ArrowLeftIcon className="w-4 h-4"></ArrowLeftIcon>
@@ -86,32 +80,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                 <Dialog.Title className="flex-1 text-lg font-semibold leading-6 text-gray-900">
                     {title ? title : 'Add Drivers to Load'}
                 </Dialog.Title>
-                <div className="flex items-center ml-3 h-7">
-                    <button
-                        type="button"
-                        className="relative text-gray-400 bg-white rounded-md hover:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                        onClick={() => close(false)}
-                    >
-                        <span className="absolute -inset-2.5" />
-                        <span className="sr-only">Close panel</span>
-                        <XMarkIcon className="w-6 h-6" aria-hidden="true" />
-                    </button>
-                </div>
             </div>
-            {/* <div className="flex flex-none mt-2 rounded-md shadow-sm">
-                <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <UsersIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        type="text"
-                        id="driver-name"
-                        autoComplete="driver-name"
-                        className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                        placeholder="Search drivers to add to this load"
-                    />
-                </div>
-            </div> */}
             {loadingAllDrivers ? (
                 <div className="flex items-start justify-center flex-1 h-32">
                     <div className="flex items-center mt-10 space-x-2 text-gray-500">
@@ -121,8 +90,6 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                 </div>
             ) : (
                 <>
-                    {saveLoading && <LoadingOverlay />}
-
                     {availableDrivers.length > 0 ? (
                         <div className="flex flex-col flex-1 overflow-auto">
                             <ul role="list" className="pb-4 overflow-y-auto divide-y divide-gray-200">
@@ -174,7 +141,7 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
                                         </button>
                                         <button
                                             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                            onClick={() => goBack()}
+                                            onClick={() => onGoBack()}
                                         >
                                             Cancel
                                         </button>
@@ -197,4 +164,4 @@ const LegDriverSelectionModalSearch: React.FC<Props> = ({
     );
 };
 
-export default LegDriverSelectionModalSearch;
+export default RouteLegDriverSelection;

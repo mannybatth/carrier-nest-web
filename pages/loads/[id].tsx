@@ -14,7 +14,7 @@ import { LoadDocument, LoadStatus, LoadStop, Prisma, RouteLegStatus } from '@pri
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import Spinner from 'components/Spinner';
-import LegAssignmentModal from 'components/drivers/LegAssignmentModal';
+import RouteLegModal from 'components/assignment/RouteLegModal';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -885,14 +885,14 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             }
         >
             <>
-                <LegAssignmentModal
+                <RouteLegModal
                     show={openLegAssignment}
                     routeLeg={editingRouteLeg}
                     onClose={() => {
                         setOpenLegAssignment(false);
                         setEditingRouteLeg(null);
                     }}
-                ></LegAssignmentModal>
+                ></RouteLegModal>
                 <SimpleDialog
                     show={openDeleteLoadConfirmation}
                     title="Delete Load"
