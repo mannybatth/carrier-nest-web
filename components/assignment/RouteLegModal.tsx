@@ -62,7 +62,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             drivers: [],
             locations: [],
             driverInstructions: '',
-            scheduledDate: '',
+            scheduledDate: new Date().toISOString().split('T')[0],
             scheduledTime: '',
         });
     };
