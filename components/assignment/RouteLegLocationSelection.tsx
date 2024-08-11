@@ -6,7 +6,7 @@ import { useLoadContext } from '../context/LoadContext';
 import { LoadingOverlay } from '../LoadingOverlay';
 import Spinner from '../Spinner';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
-import { ExpandedRouteLegLocation } from 'interfaces/models'; // Assuming this is where your ExpandedRouteLegLocation type is defined
+import { ExpandedRouteLegLocation } from 'interfaces/models';
 
 type Props = {
     title?: string;
