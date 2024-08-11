@@ -746,34 +746,31 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const openRouteInMapsClicked = (legId: string) => {
-        // Get the stops for the route leg
-        const routeLegStops = load.route.routeLegs.find((rl) => rl.id === legId)?.locations || [];
-        const allStops = [...load.stops, load.shipper, load.receiver, ...routeLegStops] as LoadStop[];
+        // Find the relevant RouteLeg
+        const routeLeg = load.route.routeLegs.find((rl) => rl.id === legId);
+        if (!routeLeg) return;
+
+        // Get the locations for the route leg
+        const routeLegStops = routeLeg.locations || [];
 
         if (routeLegStops.length > 0) {
-            // origin is the load shipper address
-            const origin = `${allStops.find((s) => s.id === routeLegStops[0].id).latitude}, ${
-                allStops.find((s) => s.id === routeLegStops[0].id).longitude
-            }`;
-            // destination is the load receiver address
-            const destination = `${
-                allStops.find((s) => s.id === routeLegStops[routeLegStops.length - 1].id).latitude
-            }, ${allStops.find((s) => s.id === routeLegStops[routeLegStops.length - 1].id).longitude}`;
+            // Origin is the first stop in the route leg, which could be a loadStop or Location
+            const originStop = routeLegStops[0].loadStop || routeLegStops[0].location;
+            const origin = `${originStop.latitude}, ${originStop.longitude}`;
 
-            let waypoints = null;
-            // waypoints are the load stops, separate by a pipe
-            if (routeLegStops.length > 2) {
-                waypoints = routeLegStops
-                    .map(
-                        (stop, index) =>
-                            index > 0 &&
-                            index < routeLegStops.length - 1 &&
-                            `${allStops.find((s) => s.id === stop.id).latitude}, ${
-                                allStops.find((s) => s.id === stop.id).longitude
-                            }`,
-                    )
-                    .join('|');
-            }
+            // Destination is the last stop in the route leg
+            const destinationStop =
+                routeLegStops[routeLegStops.length - 1].loadStop || routeLegStops[routeLegStops.length - 1].location;
+            const destination = `${destinationStop.latitude}, ${destinationStop.longitude}`;
+
+            // Waypoints are the stops in between the origin and destination
+            const waypoints = routeLegStops
+                .slice(1, -1) // Exclude the first (origin) and last (destination)
+                .map((stop) => {
+                    const stopItem = stop.loadStop || stop.location;
+                    return `${stopItem.latitude}, ${stopItem.longitude}`;
+                })
+                .join('|');
 
             const searchParams = new URLSearchParams();
             searchParams.append('api', '1');
@@ -783,8 +780,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 searchParams.append('waypoints', waypoints);
             }
             searchParams.append('travelmode', 'driving');
+
             const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
-            window.open(url);
+            window.open(url, '_blank');
         }
     };
 
@@ -854,7 +852,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setRemovingRouteLegWithId(null);
     };
 
-    // console.log('editing route leg', editingRouteLeg);
     return (
         <Layout
             smHeaderComponent={
