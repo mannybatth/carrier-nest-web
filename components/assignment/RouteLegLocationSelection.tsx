@@ -40,17 +40,14 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
         initView();
     }, [load, routeLegData]);
 
-    const initView = () => {
-        const fetchLocations = async () => {
-            const response = await getAllLocations({
-                limit: 100,
-                offset: 0,
-                sort: { key: 'createdAt', order: 'desc' },
-            });
-            const locations = response.locations;
-            setLocationOptions(locations);
-        };
-        fetchLocations();
+    const initView = async () => {
+        const response = await getAllLocations({
+            limit: 100,
+            offset: 0,
+            sort: { key: 'createdAt', order: 'desc' },
+        });
+        const locations = response.locations;
+        setLocationOptions(locations);
 
         const legLocationsFromLoad = [load.shipper, ...load.stops, load.receiver].map((stop) => ({
             legLocation: { loadStop: stop, location: null },
