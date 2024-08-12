@@ -3,7 +3,6 @@ import {
     ArrowLeftIcon,
     BuildingOffice2Icon,
     StopCircleIcon,
-    TrashIcon,
     ChevronUpIcon,
     ChevronDownIcon,
 } from '@heroicons/react/24/outline';
@@ -290,50 +289,63 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                             })}
 
                             <div>
-                                <h3 className="mt-6 text-lg font-medium leading-6 text-gray-900">
+                                <h3 className="mt-6 mb-1 text-lg font-medium leading-6 text-gray-900">
                                     Available Locations
                                 </h3>
                             </div>
-                            {locationOptions.map((location, index) => (
-                                <li key={`available-location-${index}`}>
-                                    <div className="flex items-center space-x-4 bg-white">
-                                        <div className="flex-1">
-                                            <label htmlFor={`available-location-${index}`}>
-                                                <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-default">
-                                                    <StopCircleIcon
-                                                        className="w-6 h-6 text-gray-500"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <div className="flex-1 truncate">
-                                                        <p className="flex items-center gap-2 text-base font-semibold text-gray-900 capitalize truncate">
-                                                            <span>{location.name.toLowerCase()}</span>
-                                                        </p>
-                                                        <p className="text-sm text-gray-500 capitalize truncate">
-                                                            {location.street.toLowerCase()}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500 capitalize truncate">
-                                                            {location.city.toLowerCase()},{' '}
-                                                            {location.state.toUpperCase()}, {location.zip}
-                                                        </p>
+                            {locationOptions.length > 0 ? (
+                                locationOptions.map((location, index) => (
+                                    <li key={`available-location-${index}`}>
+                                        <div className="flex items-center space-x-4 bg-white">
+                                            <div className="flex-1">
+                                                <label htmlFor={`available-location-${index}`}>
+                                                    <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-default">
+                                                        <StopCircleIcon
+                                                            className="w-6 h-6 text-gray-500"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <div className="flex-1 truncate">
+                                                            <p className="flex items-center gap-2 text-base font-semibold text-gray-900 capitalize truncate">
+                                                                <span>{location.name.toLowerCase()}</span>
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                {location.street.toLowerCase()}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                {location.city.toLowerCase()},{' '}
+                                                                {location.state.toUpperCase()}, {location.zip}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </label>
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center h-6 pr-4">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        addLocationToSelected(location);
+                                                    }}
+                                                >
+                                                    Add
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center h-6 pr-4">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    addLocationToSelected(location);
-                                                }}
-                                            >
-                                                Add
-                                            </button>
-                                        </div>
-                                    </div>
-                                </li>
-                            ))}
+                                    </li>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-6">
+                                    <p className="text-sm text-gray-500">No available locations to select.</p>
+                                    <a
+                                        href="/locations"
+                                        className="mt-2 text-sm text-blue-600 hover:underline"
+                                        target="_blank"
+                                    >
+                                        Go to Locations page to add new locations
+                                    </a>
+                                </div>
+                            )}
                         </ul>
                     </div>
                 </>
