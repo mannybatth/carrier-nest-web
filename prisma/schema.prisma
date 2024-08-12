@@ -191,8 +191,8 @@ model RouteLegLocation {
     routeLegId String
     createdAt  DateTime  @default(now())
     updatedAt  DateTime  @updatedAt
-    loadStop   LoadStop? @relation(fields: [loadStopId], references: [id])
-    location   Location? @relation(fields: [locationId], references: [id])
+    loadStop   LoadStop? @relation(fields: [loadStopId], references: [id], onDelete: Cascade)
+    location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
     routeLeg   RouteLeg  @relation("routeLegLocation", fields: [routeLegId], references: [id], onDelete: Cascade)
 }
 
