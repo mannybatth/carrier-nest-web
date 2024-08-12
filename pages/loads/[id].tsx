@@ -993,632 +993,225 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             className="w-full h-auto mb-3"
                         ></Image>
                     )} */}
-                    <div className="grid grid-cols-8 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
+                    <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
                         {load ? (
                             <>
-                                <div className="col-span-8 lg:col-span-4 ">
-                                    <aside className="bg-white border-gray-200">
-                                        <div className="pb-0 space-y-6 lg:pb-10">
-                                            <dl className="border-gray-200 divide-y divide-gray-200">
-                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Load #</dt>
-                                                    <dd className="text-right text-gray-900">{load.refNum}</dd>
-                                                </div>
-                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Status</dt>
-                                                    <dd className="text-right text-gray-900">
-                                                        <LoadStatusBadge load={load} />
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Customer</dt>
-                                                    <dd className="text-right text-gray-900">
-                                                        {load.customer && (
-                                                            <Link href={`/customers/${load.customer.id}`}>
-                                                                {load.customer?.name}
-                                                            </Link>
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                                {/* <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Drivers</dt>
-                                                    <dd className="text-right text-gray-900">
-                                                        {load.drivers.length > 0 ? (
-                                                            load.drivers.map((driver) => (
-                                                                <div key={driver.id}>
-                                                                    <Link href={`/drivers/${driver.id}`} passHref>
-                                                                        {driver.name}
-                                                                    </Link>
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            <a onClick={() => setOpenSelectDriver(true)}>
-                                                                Assign Driver
-                                                            </a>
-                                                        )}
-                                                    </dd>
-                                                </div> */}
-                                                <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                    <dt className="text-gray-500">Rate</dt>
-                                                    <dd className="text-right text-gray-900">
-                                                        {formatValue({
-                                                            value: load.rate.toString(),
-                                                            groupSeparator: ',',
-                                                            decimalSeparator: '.',
-                                                            prefix: '$',
-                                                            decimalScale: 2,
-                                                        })}
-                                                    </dd>
-                                                </div>
-                                                {/* {load.routeDistance && (
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Route Distance</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {metersToMiles(
-                                                                new Prisma.Decimal(load.routeDistance).toNumber(),
-                                                            ).toFixed(0)}{' '}
-                                                            miles
-                                                        </dd>
-                                                    </div>
+                                <div>
+                                    <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                                        <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                            <dt className="text-gray-500">Load #</dt>
+                                            <dd className="text-right text-gray-900">{load.refNum}</dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                            <dt className="text-gray-500">Status</dt>
+                                            <dd className="text-right text-gray-900">
+                                                <LoadStatusBadge load={load} />
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                            <dt className="text-gray-500">Customer</dt>
+                                            <dd className="text-right text-gray-900">
+                                                {load.customer && (
+                                                    <Link href={`/customers/${load.customer.id}`}>
+                                                        {load.customer?.name}
+                                                    </Link>
                                                 )}
-                                                {load.routeDuration && (
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Travel Time</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {secondsToReadable(
-                                                                new Prisma.Decimal(load.routeDuration).toNumber(),
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                )} */}
-                                                {/* <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Invoice</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {load.invoice ? (
-                                                                <Link
-                                                                    href={`/accounting/invoices/${load.invoice.id}`}
-                                                                    passHref
-                                                                >
-                                                                    # {load.invoice?.invoiceNum}
-                                                                </Link>
-                                                            ) : (
-                                                                <Link href={`/accounting/create-invoice/${load.id}`}>
-                                                                    Create Invoice
-                                                                </Link>
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    {load.invoice ? (
-                                                        <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
-                                                            <DownloadInvoicePDFButton
-                                                                invoice={load.invoice}
-                                                                customer={load.customer}
-                                                                load={load}
-                                                                fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
-                                                            />
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">PODs</dt>
-                                                        <dd className="text-gray-900">
-                                                            <div>
-                                                                <input
-                                                                    type="file"
-                                                                    onChange={handleUploadPodsChange}
-                                                                    style={{ display: 'none' }}
-                                                                    ref={(input) => (podFileInput = input)}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={() => podFileInput.click()}
-                                                                    disabled={docsLoading}
-                                                                >
-                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                                                                    <span className="block md:hidden">Upload POD</span>
-                                                                    <span className="hidden md:block">Upload POD</span>
-                                                                </button>
-                                                            </div>
-                                                        </dd>
-                                                    </div>
-                                                    {podDocuments.length > 0 && (
-                                                        <ul
-                                                            role="list"
-                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                                        >
-                                                            {podDocuments.map((doc, index) => (
-                                                                <li key={`pod-doc-${index}`}>
-                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                                        <div
-                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
-                                                                            onClick={() => openDocument(doc)}
-                                                                        >
-                                                                            <PaperClipIcon
-                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {doc.fileName}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex-shrink-0 ml-2">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setDocumentIdToDelete(doc.id);
-                                                                                    setOpenDeleteDocumentConfirmation(
-                                                                                        true,
-                                                                                    );
-                                                                                }}
-                                                                                disabled={docsLoading}
-                                                                            >
-                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Documents</dt>
-                                                        <dd className="text-gray-900">
-                                                            <div>
-                                                                <input
-                                                                    type="file"
-                                                                    onChange={handleUploadDocsChange}
-                                                                    style={{ display: 'none' }}
-                                                                    ref={(input) => (docFileInput = input)}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={() => docFileInput.click()}
-                                                                    disabled={docsLoading}
-                                                                >
-                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                                                                    <span className="block md:hidden">Upload</span>
-                                                                    <span className="hidden md:block">Upload Doc</span>
-                                                                </button>
-                                                            </div>
-                                                        </dd>
-                                                    </div>
-                                                    {loadDocuments.length > 0 && (
-                                                        <ul
-                                                            role="list"
-                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                                        >
-                                                            {loadDocuments.map((doc, index) => (
-                                                                <li key={`doc-${index}`}>
-                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                                        <div
-                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
-                                                                            onClick={() => openDocument(doc)}
-                                                                        >
-                                                                            <PaperClipIcon
-                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {doc.fileName}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex-shrink-0 ml-2">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setDocumentIdToDelete(doc.id);
-                                                                                    setOpenDeleteDocumentConfirmation(
-                                                                                        true,
-                                                                                    );
-                                                                                }}
-                                                                                disabled={docsLoading}
-                                                                            >
-                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div> */}
-                                            </dl>
+                                            </dd>
                                         </div>
-                                    </aside>
-                                </div>
-                                <div className="col-span-8 lg:col-span-4 ">
-                                    <aside className="bg-white border-gray-200">
-                                        <div className="pb-0 space-y-6 lg:pb-10">
-                                            <dl className="border-gray-200 divide-y divide-gray-200">
-                                                <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Invoice</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {load.invoice ? (
-                                                                <Link
-                                                                    href={`/accounting/invoices/${load.invoice.id}`}
-                                                                    passHref
-                                                                >
-                                                                    # {load.invoice?.invoiceNum}
-                                                                </Link>
-                                                            ) : (
-                                                                <Link href={`/accounting/create-invoice/${load.id}`}>
-                                                                    Create Invoice
-                                                                </Link>
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    {load.invoice ? (
-                                                        <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
-                                                            <DownloadInvoicePDFButton
-                                                                invoice={load.invoice}
-                                                                customer={load.customer}
-                                                                load={load}
-                                                                fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
-                                                            />
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">PODs</dt>
-                                                        <dd className="text-gray-900">
-                                                            <div>
-                                                                <input
-                                                                    type="file"
-                                                                    onChange={handleUploadPodsChange}
-                                                                    style={{ display: 'none' }}
-                                                                    ref={(input) => (podFileInput = input)}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={() => podFileInput.click()}
-                                                                    disabled={docsLoading}
-                                                                >
-                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                                                                    <span className="block md:hidden">Upload POD</span>
-                                                                    <span className="hidden md:block">Upload POD</span>
-                                                                </button>
-                                                            </div>
-                                                        </dd>
-                                                    </div>
-                                                    {podDocuments.length > 0 && (
-                                                        <ul
-                                                            role="list"
-                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                                        >
-                                                            {podDocuments.map((doc, index) => (
-                                                                <li key={`pod-doc-${index}`}>
-                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                                        <div
-                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
-                                                                            onClick={() => openDocument(doc)}
-                                                                        >
-                                                                            <PaperClipIcon
-                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {doc.fileName}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex-shrink-0 ml-2">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setDocumentIdToDelete(doc.id);
-                                                                                    setOpenDeleteDocumentConfirmation(
-                                                                                        true,
-                                                                                    );
-                                                                                }}
-                                                                                disabled={docsLoading}
-                                                                            >
-                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                                                        <dt className="text-gray-500">Documents</dt>
-                                                        <dd className="text-gray-900">
-                                                            <div>
-                                                                <input
-                                                                    type="file"
-                                                                    onChange={handleUploadDocsChange}
-                                                                    style={{ display: 'none' }}
-                                                                    ref={(input) => (docFileInput = input)}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    onClick={() => docFileInput.click()}
-                                                                    disabled={docsLoading}
-                                                                >
-                                                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                                                                    <span className="block md:hidden">Upload</span>
-                                                                    <span className="hidden md:block">Upload Doc</span>
-                                                                </button>
-                                                            </div>
-                                                        </dd>
-                                                    </div>
-                                                    {loadDocuments.length > 0 && (
-                                                        <ul
-                                                            role="list"
-                                                            className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
-                                                        >
-                                                            {loadDocuments.map((doc, index) => (
-                                                                <li key={`doc-${index}`}>
-                                                                    <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                                        <div
-                                                                            className="flex items-center flex-1 py-2 pl-3 pr-4"
-                                                                            onClick={() => openDocument(doc)}
-                                                                        >
-                                                                            <PaperClipIcon
-                                                                                className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <span className="flex-1 w-0 ml-2 truncate">
-                                                                                {doc.fileName}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex-shrink-0 ml-2">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setDocumentIdToDelete(doc.id);
-                                                                                    setOpenDeleteDocumentConfirmation(
-                                                                                        true,
-                                                                                    );
-                                                                                }}
-                                                                                disabled={docsLoading}
-                                                                            >
-                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            </dl>
+                                        <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                            <dt className="text-gray-500">Rate</dt>
+                                            <dd className="text-right text-gray-900">
+                                                {formatValue({
+                                                    value: load.rate.toString(),
+                                                    groupSeparator: ',',
+                                                    decimalSeparator: '.',
+                                                    prefix: '$',
+                                                    decimalScale: 2,
+                                                })}
+                                            </dd>
                                         </div>
-                                    </aside>
-                                </div>
+                                        {load.routeDistance && (
+                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                                <dt className="text-gray-500">Route Distance</dt>
+                                                <dd className="text-right text-gray-900">
+                                                    {metersToMiles(
+                                                        new Prisma.Decimal(load.routeDistance).toNumber(),
+                                                    ).toFixed(0)}{' '}
+                                                    miles
+                                                </dd>
+                                            </div>
+                                        )}
+                                        {/* {load.routeDuration && (
+                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                                <dt className="text-gray-500">Travel Time</dt>
+                                                <dd className="text-right text-gray-900">
+                                                    {secondsToReadable(
+                                                        new Prisma.Decimal(load.routeDuration).toNumber(),
+                                                    )}
+                                                </dd>
+                                            </div>
+                                        )} */}
 
-                                {/* <div className="col-span-8 space-y-8 sm:col-span-5 md:col-span-8 lg:col-span-5">
-                                    <div className="mt-4 space-y-3">
-                                        <div className="flex flex-row justify-between pb-2 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                                Load Route
-                                            </h3>
-
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                onClick={openRouteInGoogleMaps}
-                                            >
-                                                Get Directions
-                                                <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
-                                            </button>
+                                        <div className="border-b border-gray-200">
+                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                <dt className="text-gray-500">Invoice</dt>
+                                                <dd className="text-right text-gray-900">
+                                                    {load.invoice ? (
+                                                        <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
+                                                            # {load.invoice?.invoiceNum}
+                                                        </Link>
+                                                    ) : (
+                                                        <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                            Create Invoice
+                                                        </Link>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            {load.invoice ? (
+                                                <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
+                                                    <DownloadInvoicePDFButton
+                                                        invoice={load.invoice}
+                                                        customer={load.customer}
+                                                        load={load}
+                                                        fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
+                                                    />
+                                                </div>
+                                            ) : null}
                                         </div>
-                                        <div className="flow-root">
-                                            <ul role="list" className="-mb-8">
-                                                <li>
-                                                    <div className="relative z-auto pb-8">
-                                                        <span
-                                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                            aria-hidden="true"
+                                    </dl>
+                                    <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                                        <div className="border-b border-gray-200 sm:border-none">
+                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                <dt className="text-gray-500">PODs</dt>
+                                                <dd className="text-gray-900">
+                                                    <div>
+                                                        <input
+                                                            type="file"
+                                                            onChange={handleUploadPodsChange}
+                                                            style={{ display: 'none' }}
+                                                            ref={(input) => (podFileInput = input)}
                                                         />
-                                                        <div className="relative flex items-start space-x-3">
-                                                            <>
-                                                                <div className="relative px-1">
-                                                                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                        <TruckIcon
-                                                                            className="w-5 h-5 text-green-800"
-                                                                            aria-hidden="true"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-sm text-gray-500">
-                                                                        <div className="flex place-content-between">
-                                                                            <div>
-                                                                                <span className="text-lg font-medium text-gray-900">
-                                                                                    {new Intl.DateTimeFormat('en-US', {
-                                                                                        year: 'numeric',
-                                                                                        month: 'long',
-                                                                                        day: '2-digit',
-                                                                                    }).format(
-                                                                                        new Date(load.shipper.date),
-                                                                                    )}
-                                                                                </span>
-                                                                                {load.shipper.time && (
-                                                                                    <> @ {load.shipper.time}</>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div>{load.shipper.name}</div>
-                                                                        <div>{load.shipper.street}</div>
-                                                                        <div>
-                                                                            {load.shipper.city}, {load.shipper.state}{' '}
-                                                                            {load.shipper.zip}
-                                                                        </div>
-                                                                        <div className="mt-1">
-                                                                            {load.shipper.poNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    PO #&rsquo;s:{' '}
-                                                                                    {load.shipper.poNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                            {load.shipper.pickUpNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    Pick Up #&rsquo;s:{' '}
-                                                                                    {load.shipper.pickUpNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                            {load.shipper.referenceNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    Ref #&rsquo;s:{' '}
-                                                                                    {load.shipper.referenceNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            onClick={() => podFileInput.click()}
+                                                            disabled={docsLoading}
+                                                        >
+                                                            <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                                            <span className="block md:hidden">Upload POD</span>
+                                                            <span className="hidden md:block">Upload POD</span>
+                                                        </button>
                                                     </div>
-                                                </li>
-                                                {load.stops.map((stop, index) => (
-                                                    <li key={index}>
-                                                        <div className="relative pb-8">
-                                                            <span
-                                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                                aria-hidden="true"
-                                                            />
-                                                            <div className="relative flex items-start space-x-3">
-                                                                <>
-                                                                    <div className="relative px-1">
-                                                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ring-8 ring-white">
-                                                                            <StopIcon
-                                                                                className="w-5 h-5 text-gray-500"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="text-sm text-gray-500">
-                                                                            <span className="text-lg font-medium text-gray-900">
-                                                                                {new Intl.DateTimeFormat('en-US', {
-                                                                                    year: 'numeric',
-                                                                                    month: 'long',
-                                                                                    day: '2-digit',
-                                                                                }).format(new Date(stop.date))}
-                                                                            </span>
-                                                                            {stop.time && <> @ {stop.time}</>}
-                                                                            <div>{stop.name}</div>
-                                                                            <div>{stop.street}</div>
-                                                                            <div>
-                                                                                {stop.city}, {stop.state} {stop.zip}
-                                                                            </div>
-                                                                            <div className="mt-1">
-                                                                                {stop.poNumbers && (
-                                                                                    <div className="text-xs">
-                                                                                        PO #&rsquo;s: {stop.poNumbers}
-                                                                                    </div>
-                                                                                )}
-                                                                                {stop.pickUpNumbers && (
-                                                                                    <div className="text-xs">
-                                                                                        Pick Up #&rsquo;s:{' '}
-                                                                                        {stop.pickUpNumbers}
-                                                                                    </div>
-                                                                                )}
-                                                                                {stop.referenceNumbers && (
-                                                                                    <div className="text-xs">
-                                                                                        Ref #&rsquo;s:{' '}
-                                                                                        {stop.referenceNumbers}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </>
+                                                </dd>
+                                            </div>
+                                            {podDocuments.length > 0 && (
+                                                <ul
+                                                    role="list"
+                                                    className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                >
+                                                    {podDocuments.map((doc, index) => (
+                                                        <li key={`pod-doc-${index}`}>
+                                                            <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                <div
+                                                                    className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                    onClick={() => openDocument(doc)}
+                                                                >
+                                                                    <PaperClipIcon
+                                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <span className="flex-1 w-0 ml-2 truncate">
+                                                                        {doc.fileName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-shrink-0 ml-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setDocumentIdToDelete(doc.id);
+                                                                            setOpenDeleteDocumentConfirmation(true);
+                                                                        }}
+                                                                        disabled={docsLoading}
+                                                                    >
+                                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                                <li>
-                                                    <div className="relative pb-8">
-                                                        <div className="relative flex items-start space-x-3">
-                                                            <>
-                                                                <div>
-                                                                    <div className="relative px-1">
-                                                                        <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                            <MapPinIcon
-                                                                                className="w-5 h-5 text-red-800"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-sm text-gray-500">
-                                                                        <span className="text-lg font-medium text-gray-900">
-                                                                            {new Intl.DateTimeFormat('en-US', {
-                                                                                year: 'numeric',
-                                                                                month: 'long',
-                                                                                day: '2-digit',
-                                                                            }).format(new Date(load.receiver.date))}
-                                                                        </span>
-                                                                        {load.receiver.time && (
-                                                                            <> @ {load.receiver.time}</>
-                                                                        )}
-                                                                        <div>{load.receiver.name}</div>
-                                                                        <div>{load.receiver.street}</div>
-                                                                        <div>
-                                                                            {load.receiver.city}, {load.receiver.state}{' '}
-                                                                            {load.receiver.zip}
-                                                                        </div>
-                                                                        <div className="mt-1">
-                                                                            {load.receiver.poNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    PO #&rsquo;s:{' '}
-                                                                                    {load.receiver.poNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                            {load.receiver.pickUpNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    Delivery #&rsquo;s:{' '}
-                                                                                    {load.receiver.pickUpNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                            {load.receiver.referenceNumbers && (
-                                                                                <div className="text-xs">
-                                                                                    Ref #&rsquo;s:{' '}
-                                                                                    {load.receiver.referenceNumbers}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
+                                                <dt className="text-gray-500">Documents</dt>
+                                                <dd className="text-gray-900">
+                                                    <div>
+                                                        <input
+                                                            type="file"
+                                                            onChange={handleUploadDocsChange}
+                                                            style={{ display: 'none' }}
+                                                            ref={(input) => (docFileInput = input)}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            onClick={() => docFileInput.click()}
+                                                            disabled={docsLoading}
+                                                        >
+                                                            <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                                            <span className="block md:hidden">Upload</span>
+                                                            <span className="hidden md:block">Upload Doc</span>
+                                                        </button>
                                                     </div>
-                                                </li>
-                                            </ul>
+                                                </dd>
+                                            </div>
+                                            {loadDocuments.length > 0 && (
+                                                <ul
+                                                    role="list"
+                                                    className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md"
+                                                >
+                                                    {loadDocuments.map((doc, index) => (
+                                                        <li key={`doc-${index}`}>
+                                                            <div className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                                <div
+                                                                    className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                                    onClick={() => openDocument(doc)}
+                                                                >
+                                                                    <PaperClipIcon
+                                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <span className="flex-1 w-0 ml-2 truncate">
+                                                                        {doc.fileName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-shrink-0 ml-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setDocumentIdToDelete(doc.id);
+                                                                            setOpenDeleteDocumentConfirmation(true);
+                                                                        }}
+                                                                        disabled={docsLoading}
+                                                                    >
+                                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="mt-4 space-y-3">
-                                        <div className="pb-2 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                                Load Activity
-                                            </h3>
-                                        </div>
-                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
-                                    </div>
-                                </div> */}
-                                <div className="col-span-8 my-10 md:my-2">
+                                    </dl>
+                                </div>
+
+                                <div>
                                     <div className="mt-4 space-y-3">
                                         <div className="flex flex-row justify-between gap-2 pb-2">
                                             <div className="flex flex-col">
@@ -1890,16 +1483,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             </ul>
                                         </div>
                                     </div>
-                                    {/* <div className="mt-4 space-y-3">
-                                        <div className="pb-2 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                                Load Activity
-                                            </h3>
-                                        </div>
-                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
-                                    </div> */}
                                 </div>
-                                <div className="col-span-8 my-10 md:my-2 ">
+                                <div className="mt-2">
                                     <div className="flex flex-row justify-between align-top justify-items-start">
                                         <div>
                                             <h1 className="text-base font-semibold text-gray-900">Load Assignments</h1>
@@ -1930,7 +1515,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         const legStatus = leg.status;
 
                                                         return (
-                                                            <div className="relative pb-4" key={`routelegs-${index}`}>
+                                                            <div className="relative" key={`routelegs-${index}`}>
                                                                 {removingRouteLegWithId == leg.id && (
                                                                     <div className="absolute z-[5]  flex flex-col items-center h-full w-full bg-slate-50/90 ounded-lg justify-center flex-1 flex-grow ">
                                                                         <div className="flex items-center mt-10 space-x-2 text-slate-700">
@@ -2149,7 +1734,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                             ))}
                                     </div>
                                 </div>
-                                <div className="col-span-8 my-10 mt-2 md:my-2 ">
+                                <div className="mt-2">
                                     <div className="pb-2 f">
                                         <h3 className="text-base font-semibold leading-6 text-gray-900">
                                             Load Activity
