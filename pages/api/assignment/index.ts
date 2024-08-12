@@ -5,6 +5,11 @@ import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
 import { LoadActivityAction } from '@prisma/client';
+import Twilio from 'twilio';
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = Twilio(accountSid, authToken);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     const session = await getServerSession(req, res, authOptions);
@@ -137,7 +142,23 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             return newRouteLeg;
         });
 
-        // TODO: Implement SMS sending logic here if sendSms is true
+        if (sendSms) {
+            for (const driver of routeLegData.drivers) {
+                if (!driver.phone) {
+                    continue;
+                }
+                const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
+                const textMessage = `You have a new assignment!
+
+View Load: ${linkToLoad}`;
+
+                client.messages.create({
+                    body: textMessage,
+                    from: '+18883429736',
+                    to: driver.phone,
+                });
+            }
+        }
 
         const routeExpanded = await prisma.route.findUnique({
             where: { loadId },
@@ -329,7 +350,23 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         });
 
-        // TODO: Implement SMS sending logic here if sendSms is true
+        if (sendSms) {
+            for (const driver of routeLegData.drivers) {
+                if (!driver.phone) {
+                    continue;
+                }
+                const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
+                const textMessage = `Your assignment has been updated!
+
+View Load: ${linkToLoad}`;
+
+                client.messages.create({
+                    body: textMessage,
+                    from: '+18883429736',
+                    to: driver.phone,
+                });
+            }
+        }
 
         const routeExpanded = await prisma.route.findUnique({
             where: { loadId },
