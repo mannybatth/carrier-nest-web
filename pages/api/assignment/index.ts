@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import { JSONResponse } from '../../../interfaces/models';
+import { getServerSession, Session } from 'next-auth';
+import { ExpandedDriver, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
 import { LoadActivityAction } from '@prisma/client';
+import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -22,11 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     switch (req.method) {
         case 'POST':
-            return _post(req, res);
+            return _post(req, res, session);
         case 'PUT':
-            return _put(req, res);
+            return _put(req, res, session);
         case 'DELETE':
-            return _delete(req, res);
+            return _delete(req, res, session);
         default:
             return res.status(405).json({
                 code: 405,
@@ -35,10 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 }
 
-async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
+async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
     try {
-        const session = await getServerSession(req, res, authOptions);
-
         const { routeLegData, sendSms, loadId }: CreateAssignmentRequest = req.body;
 
         if (!loadId || !routeLegData) {
@@ -48,7 +47,12 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             });
         }
 
-        const load = await prisma.load.findUnique({ where: { id: loadId } });
+        const load = await prisma.load.findUnique({
+            where: { id: loadId },
+            include: {
+                carrier: true,
+            },
+        });
 
         if (!load) {
             return res.status(404).json({
@@ -57,14 +61,19 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             });
         }
 
-        await prisma.$transaction(async (prisma) => {
-            // Find or create the route for the load
-            let route = await prisma.route.findUnique({ where: { loadId } });
-            if (!route) {
-                route = await prisma.route.create({ data: { loadId } });
-            }
+        const driverIds = routeLegData.drivers.map((driver) => driver.id);
+        const drivers = await prisma.driver.findMany({
+            where: { id: { in: driverIds } },
+            include: { devices: true },
+        });
 
-            // Create the new route leg
+        await prisma.$transaction(async (prisma) => {
+            const route = await prisma.route.upsert({
+                where: { loadId },
+                update: {},
+                create: { loadId },
+            });
+
             const newRouteLeg = await prisma.routeLeg.create({
                 data: {
                     routeId: route.id,
@@ -76,143 +85,69 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                 },
             });
 
-            // Create driver assignments and add LoadActivity for each
-            const driverIds = routeLegData.drivers.map((driver) => driver.id);
-            for (const driverId of driverIds) {
-                await prisma.driverAssignment.create({
-                    data: {
-                        driverId,
-                        routeLegId: newRouteLeg.id,
+            const driverAssignmentsData = drivers.map((driver) => ({
+                driverId: driver.id,
+                routeLegId: newRouteLeg.id,
+                loadId,
+            }));
+
+            const loadActivitiesData = drivers.map((driver) => ({
+                loadId,
+                carrierId: load.carrierId,
+                action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
+                actionDriverId: driver.id,
+                actionDriverName: driver.name,
+                actorUserId: session.user.id,
+            }));
+
+            await prisma.driverAssignment.createMany({
+                data: driverAssignmentsData,
+            });
+
+            await prisma.loadActivity.createMany({
+                data: [
+                    ...loadActivitiesData,
+                    {
                         loadId,
-                    },
-                });
-
-                const driver = await prisma.driver.findUnique({ where: { id: driverId } });
-
-                await prisma.loadActivity.create({
-                    data: {
-                        load: {
-                            connect: {
-                                id: loadId,
-                            },
-                        },
                         carrierId: load.carrierId,
-                        action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
-                        actionDriver: {
-                            connect: {
-                                id: driverId,
-                            },
-                        },
-                        actionDriverName: driver.name,
-                        actorUser: {
-                            connect: {
-                                id: session.user.id,
-                            },
-                        },
+                        action: LoadActivityAction.ADD_ASSIGNMENT,
+                        actorUserId: session.user.id,
                     },
-                });
-            }
+                ],
+            });
 
-            // Create route leg locations
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId: newRouteLeg.id,
-                    loadStopId: location.loadStop ? location.loadStop.id : undefined,
-                    locationId: location.location ? location.location.id : undefined,
+                    loadStopId: location.loadStop?.id,
+                    locationId: location.location?.id,
                 })),
             });
-
-            await prisma.loadActivity.create({
-                data: {
-                    load: {
-                        connect: {
-                            id: loadId,
-                        },
-                    },
-                    carrierId: load.carrierId,
-                    action: LoadActivityAction.ADD_ASSIGNMENT,
-                    actorUser: {
-                        connect: {
-                            id: session.user.id,
-                        },
-                    },
-                },
-            });
-
-            return newRouteLeg;
         });
+
+        sendPushNotification(drivers, loadId, false);
 
         if (sendSms) {
-            for (const driver of routeLegData.drivers) {
-                if (!driver.phone) {
-                    continue;
-                }
-                const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
-                const textMessage = `You have a new assignment!
-
-View Load: ${linkToLoad}`;
-
-                client.messages.create({
-                    body: textMessage,
-                    from: '+18883429736',
-                    to: driver.phone,
-                });
-            }
+            await sendSmsNotifications(drivers, load.id, false);
         }
 
-        const routeExpanded = await prisma.route.findUnique({
-            where: { loadId },
-            include: {
-                routeLegs: {
-                    include: {
-                        locations: {
-                            include: {
-                                loadStop: true,
-                                location: true,
-                            },
-                        },
-                        driverAssignments: {
-                            select: {
-                                id: true,
-                                assignedAt: true,
-                                driver: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        email: true,
-                                        phone: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        const routeExpanded = await getExpandedRoute(loadId);
 
         return res.status(201).json({
             code: 201,
-            data: {
-                route: routeExpanded,
-            },
+            data: { route: routeExpanded },
         });
     } catch (error) {
         console.error('Error creating route leg:', error);
         return res.status(500).json({
             code: 500,
-            errors: [
-                {
-                    message: 'Internal server error',
-                },
-            ],
+            errors: [{ message: 'Internal server error' }],
         });
     }
 }
 
-async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
+async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
     try {
-        const session = await getServerSession(req, res, authOptions);
-
         const { routeLegId, routeLegData, sendSms, loadId }: UpdateAssignmentRequest = req.body;
 
         if (!routeLegId || !loadId || !routeLegData) {
@@ -222,7 +157,10 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         }
 
-        const load = await prisma.load.findUnique({ where: { id: loadId } });
+        const load = await prisma.load.findUnique({
+            where: { id: loadId },
+            include: { carrier: true },
+        });
 
         if (!load) {
             return res.status(404).json({
@@ -231,8 +169,17 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         }
 
+        const driverIdsFromRequest = routeLegData.drivers.map((driver) => driver.id);
+
+        // Fetch all relevant drivers: those currently assigned and those in the request
+        const allRelevantDrivers = await prisma.driver.findMany({
+            where: {
+                OR: [{ id: { in: driverIdsFromRequest } }, { assignments: { some: { routeLegId } } }],
+            },
+            include: { devices: true },
+        });
+
         await prisma.$transaction(async (prisma) => {
-            // Update the route leg
             await prisma.routeLeg.update({
                 where: { id: routeLegId },
                 data: {
@@ -244,183 +191,113 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 },
             });
 
-            // Get current driver assignments
             const currentAssignments = await prisma.driverAssignment.findMany({
                 where: { routeLegId },
+                select: { driverId: true },
             });
 
-            // Update driver assignments
-            await prisma.driverAssignment.deleteMany({
-                where: { routeLegId },
-            });
+            const currentDriverIds = currentAssignments.map((assignment) => assignment.driverId);
 
-            const driverIds = routeLegData.drivers.map((driver) => driver.id);
-            for (const driverId of driverIds) {
-                await prisma.driverAssignment.create({
-                    data: {
+            const newAssignments = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
+            const removedAssignments = currentDriverIds.filter((id) => !driverIdsFromRequest.includes(id));
+
+            if (newAssignments.length > 0) {
+                await prisma.driverAssignment.createMany({
+                    data: newAssignments.map((driverId) => ({
                         driverId,
                         routeLegId,
                         loadId,
-                    },
+                    })),
                 });
 
-                if (!currentAssignments.some((a) => a.driverId === driverId)) {
-                    const driver = await prisma.driver.findUnique({ where: { id: driverId } });
-                    await prisma.loadActivity.create({
-                        data: {
-                            load: {
-                                connect: {
-                                    id: loadId,
-                                },
-                            },
-                            carrierId: load.carrierId,
-                            action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
-                            actionDriver: {
-                                connect: {
-                                    id: driverId,
-                                },
-                            },
-                            actionDriverName: driver.name,
-                            actorUser: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
-                    });
-                }
+                const newDriverActivities = allRelevantDrivers
+                    .filter((driver) => newAssignments.includes(driver.id))
+                    .map((driver) => ({
+                        loadId,
+                        carrierId: load.carrierId,
+                        action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
+                        actionDriverId: driver.id,
+                        actionDriverName: driver.name,
+                        actorUserId: session.user.id,
+                    }));
+
+                await prisma.loadActivity.createMany({ data: newDriverActivities });
             }
 
-            // Create LoadActivity for removed drivers
-            for (const assignment of currentAssignments) {
-                if (!driverIds.includes(assignment.driverId)) {
-                    const driver = await prisma.driver.findUnique({ where: { id: assignment.driverId } });
-                    await prisma.loadActivity.create({
-                        data: {
-                            load: {
-                                connect: {
-                                    id: loadId,
-                                },
-                            },
-                            carrierId: load.carrierId,
-                            action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
-                            actionDriver: {
-                                connect: {
-                                    id: assignment.driverId,
-                                },
-                            },
-                            actionDriverName: driver.name,
-                            actorUser: {
-                                connect: {
-                                    id: session.user.id,
-                                },
-                            },
-                        },
-                    });
-                }
+            if (removedAssignments.length > 0) {
+                await prisma.driverAssignment.deleteMany({
+                    where: {
+                        routeLegId,
+                        driverId: { in: removedAssignments },
+                    },
+                });
+                const removedDriverActivities = allRelevantDrivers
+                    .filter((driver) => removedAssignments.includes(driver.id))
+                    .map((driver) => ({
+                        loadId,
+                        carrierId: load.carrierId,
+                        action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
+                        actionDriverId: driver.id,
+                        actionDriverName: driver.name,
+                        actorUserId: session.user.id,
+                    }));
+
+                await prisma.loadActivity.createMany({ data: removedDriverActivities });
             }
 
-            // Update route leg locations
             await prisma.routeLegLocation.deleteMany({
                 where: { routeLegId },
             });
+
             await prisma.routeLegLocation.createMany({
                 data: routeLegData.locations.map((location) => ({
                     routeLegId,
-                    loadStopId: location.loadStop ? location.loadStop.id : undefined,
-                    locationId: location.location ? location.location.id : undefined,
+                    loadStopId: location.loadStop?.id,
+                    locationId: location.location?.id,
                 })),
             });
 
             await prisma.loadActivity.create({
                 data: {
-                    load: {
-                        connect: {
-                            id: loadId,
-                        },
-                    },
+                    loadId,
                     carrierId: load.carrierId,
                     action: LoadActivityAction.UPDATE_ASSIGNMENT,
-                    actorUser: {
-                        connect: {
-                            id: session.user.id,
-                        },
-                    },
+                    actorUserId: session.user.id,
                 },
             });
         });
 
+        sendPushNotification(
+            allRelevantDrivers.filter((driver) => driverIdsFromRequest.includes(driver.id)),
+            loadId,
+            true,
+        );
+
         if (sendSms) {
-            for (const driver of routeLegData.drivers) {
-                if (!driver.phone) {
-                    continue;
-                }
-                const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${load.id}?did=${driver.id}`;
-                const textMessage = `Your assignment has been updated!
-
-View Load: ${linkToLoad}`;
-
-                client.messages.create({
-                    body: textMessage,
-                    from: '+18883429736',
-                    to: driver.phone,
-                });
-            }
+            await sendSmsNotifications(
+                allRelevantDrivers.filter((driver) => driverIdsFromRequest.includes(driver.id)),
+                load.id,
+                true,
+            );
         }
 
-        const routeExpanded = await prisma.route.findUnique({
-            where: { loadId },
-            include: {
-                routeLegs: {
-                    include: {
-                        locations: {
-                            include: {
-                                loadStop: true,
-                                location: true,
-                            },
-                        },
-                        driverAssignments: {
-                            select: {
-                                id: true,
-                                assignedAt: true,
-                                driver: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        email: true,
-                                        phone: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        const routeExpanded = await getExpandedRoute(loadId);
 
         return res.status(200).json({
             code: 200,
-            data: {
-                route: routeExpanded,
-            },
+            data: { route: routeExpanded },
         });
     } catch (error) {
         console.error('Error updating route leg:', error);
         return res.status(500).json({
             code: 500,
-            errors: [
-                {
-                    message: 'Internal server error',
-                },
-            ],
+            errors: [{ message: 'Internal server error' }],
         });
     }
 }
 
-async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
+async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
     try {
-        const session = await getServerSession(req, res, authOptions);
-
         const { routeLegId } = req.query;
 
         if (!routeLegId || typeof routeLegId !== 'string') {
@@ -451,35 +328,24 @@ async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<an
                 throw new Error('Route leg not found');
             }
 
-            // Delete associated driver assignments
             await prisma.driverAssignment.deleteMany({
                 where: { routeLegId },
             });
 
-            // Delete associated route leg locations
             await prisma.routeLegLocation.deleteMany({
                 where: { routeLegId },
             });
 
-            // Delete the route leg
             await prisma.routeLeg.delete({
                 where: { id: routeLegId },
             });
 
             await prisma.loadActivity.create({
                 data: {
-                    load: {
-                        connect: {
-                            id: routeLeg.route.load.id,
-                        },
-                    },
+                    loadId: routeLeg.route.load.id,
                     carrierId: routeLeg.route.load.carrierId,
                     action: LoadActivityAction.REMOVE_ASSIGNMENT,
-                    actorUser: {
-                        connect: {
-                            id: session.user.id,
-                        },
-                    },
+                    actorUserId: session.user.id,
                 },
             });
         });
@@ -492,11 +358,109 @@ async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<an
         console.error('Error deleting route leg:', error);
         return res.status(500).json({
             code: 500,
-            errors: [
-                {
-                    message: 'Internal server error',
-                },
-            ],
+            errors: [{ message: 'Internal server error' }],
         });
     }
+}
+
+const sendPushNotification = async (drivers: ExpandedDriver[], loadId: string, isUpdate = false) => {
+    const message: firebaseAdmin.messaging.MulticastMessage = {
+        notification: {
+            title: isUpdate ? 'Assignment Updated' : 'New Assignment',
+            body: 'Tap to view assignment details',
+        },
+        data: {
+            type: 'assigned_load',
+            loadId: loadId,
+        },
+        tokens: drivers.flatMap((driver) => driver.devices?.map((device) => device.fcmToken) ?? []),
+    };
+
+    if (message.tokens.length > 0) {
+        try {
+            const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
+
+            // Collect all invalid tokens
+            const invalidTokens: string[] = response.responses
+                .map((res, idx) => (res.success ? null : message.tokens[idx]))
+                .filter((token): token is string => {
+                    if (token === null) {
+                        return false;
+                    }
+                    const res = response.responses[message.tokens.indexOf(token)];
+                    const errorCode = res.error?.code;
+                    return (
+                        token !== null &&
+                        (errorCode === 'messaging/registration-token-not-registered' ||
+                            errorCode === 'messaging/invalid-registration-token' ||
+                            errorCode === 'messaging/invalid-argument')
+                    );
+                });
+
+            // If there are invalid tokens, delete them in one batch operation
+            if (invalidTokens.length > 0) {
+                try {
+                    await prisma.device.deleteMany({
+                        where: {
+                            fcmToken: { in: invalidTokens },
+                        },
+                    });
+                } catch (deleteError) {
+                    console.error('Error removing invalid tokens:', deleteError);
+                }
+            }
+        } catch (error) {
+            console.error('Error sending notification:', error);
+        }
+    }
+};
+
+async function sendSmsNotifications(drivers: ExpandedDriver[], loadId: string, isUpdate = false) {
+    for (const driver of drivers) {
+        if (!driver.phone) {
+            continue;
+        }
+        const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${loadId}?did=${driver.id}`;
+        const textMessage = isUpdate
+            ? `Your assignment has been updated.\n\nView Load: ${linkToLoad}`
+            : `You have a new assignment.\n\nView Load: ${linkToLoad}`;
+
+        await client.messages.create({
+            body: textMessage,
+            from: '+18883429736',
+            to: driver.phone,
+        });
+    }
+}
+
+async function getExpandedRoute(loadId: string) {
+    return await prisma.route.findUnique({
+        where: { loadId },
+        include: {
+            routeLegs: {
+                include: {
+                    locations: {
+                        include: {
+                            loadStop: true,
+                            location: true,
+                        },
+                    },
+                    driverAssignments: {
+                        select: {
+                            id: true,
+                            assignedAt: true,
+                            driver: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
 }
