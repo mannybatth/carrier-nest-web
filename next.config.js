@@ -12,8 +12,8 @@ module.exports = {
     async rewrites() {
         return [
             {
-                source: '/apple-app-site-association',
-                destination: '/apple-app-site-association.json',
+                source: '/.well-known/apple-app-site-association',
+                destination: '/.well-known/apple-app-site-association.json',
             },
         ];
     },
