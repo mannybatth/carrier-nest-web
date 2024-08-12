@@ -10,7 +10,7 @@ import {
 import React, { Fragment } from 'react';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import { Driver, LoadStop, Location, Route } from '@prisma/client';
+import { Driver, LoadStop, Route } from '@prisma/client';
 import { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
 import { notify } from 'components/Notification';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
@@ -19,6 +19,7 @@ import RouteLegDriverSelection from './RouteLegDriverSelection';
 import RouteLegLocationSelection from './RouteLegLocationSelection';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
 import { getRouteForCoords } from 'lib/mapbox/searchGeo';
+import { useLocalStorage } from 'lib/useLocalStorage';
 
 type Props = {
     show: boolean;
@@ -33,7 +34,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const [showDriverSelection, setShowDriverSelection] = React.useState(false);
     const [showLegLocationSelection, setShowLegLocationSelection] = React.useState(false);
 
-    const [sendSMS, setSendSMS] = React.useState<boolean>(true);
+    const [sendSMS, setSendSMS] = useLocalStorage<boolean>('sendSMS', true);
 
     const [saveLoading, setSaveLoading] = React.useState(false);
 
@@ -94,9 +95,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     };
 
     const onSelectedDriversChange = (drivers: Driver[]) => {
+        const newDrivers = [...routeLegData.drivers, ...drivers];
         setRouteLegData({
             ...routeLegData,
-            drivers: drivers,
+            drivers: newDrivers,
         });
     };
 
@@ -223,6 +225,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                    {saveLoading && <LoadingOverlay />}
+
                                     {showDriverSelection && (
                                         <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
                                             <RouteLegDriverSelection
@@ -246,7 +250,6 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                         </div>
                                     )}
                                     <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
-                                        {saveLoading && <LoadingOverlay />}
                                         {!showDriverSelection && !showLegLocationSelection && (
                                             <div className="fixed bottom-0 right-0 z-10 w-full px-5 pb-5 text-center pr-9 ">
                                                 <div className="flex flex-col">
@@ -341,26 +344,6 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                         </ul>
                                                     </div>
                                                 )}
-                                                {routeLegData.drivers.length > 0 && (
-                                                    <div className="col-span-12 my-3 sm:col-span-4 lg:col-span-3">
-                                                        <label className="block text-sm font-base text-slate-700">
-                                                            Driver Instructions
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={routeLegData.driverInstructions}
-                                                            onChange={(e) => {
-                                                                setRouteLegData({
-                                                                    ...routeLegData,
-                                                                    driverInstructions: e.target.value,
-                                                                });
-                                                            }}
-                                                            autoComplete="state"
-                                                            placeholder="Enter special instructions for the driver(s) here"
-                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                        />
-                                                    </div>
-                                                )}
                                                 <div className="flex flex-col mb-4 ">
                                                     <button
                                                         type="button"
@@ -377,6 +360,31 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                         </p>
                                                     </button>
                                                 </div>
+
+                                                {routeLegData.drivers.length > 0 && (
+                                                    <div className="col-span-12 my-3 sm:col-span-4 lg:col-span-3">
+                                                        <label
+                                                            className="block text-sm font-semibold text-slate-600"
+                                                            htmlFor="driverInstructions"
+                                                        >
+                                                            Driver Instructions
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={routeLegData.driverInstructions}
+                                                            onChange={(e) => {
+                                                                setRouteLegData({
+                                                                    ...routeLegData,
+                                                                    driverInstructions: e.target.value,
+                                                                });
+                                                            }}
+                                                            autoComplete="state"
+                                                            id="driverInstructions"
+                                                            placeholder="Enter special instructions for the driver(s) here"
+                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {routeLegData.drivers.length != 0 && (
@@ -531,7 +539,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                             Assignment Date & Time
                                                         </h5>
                                                         <p className="text-xs font-light text-slate-400">
-                                                            Which should driver begin this task
+                                                            When should driver begin this task
                                                         </p>
                                                     </div>
 
@@ -580,14 +588,12 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                             Notify the drivers of this assignment
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center justify-between h-full p-2 py-2 rounded-lg bg-slate-100 ">
+                                                    <div className="flex items-center justify-between h-full p-2 py-1 rounded-lg bg-slate-100 ">
                                                         <label
                                                             htmlFor={'sms-send'}
-                                                            className="text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"
+                                                            className="flex-1 py-1 text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"
                                                         >
-                                                            {sendSMS
-                                                                ? 'Notify selected drivers'
-                                                                : 'Do not notify selected drivers'}
+                                                            Send notification to selected drivers
                                                         </label>
                                                         <input
                                                             id={'sms-send'}
