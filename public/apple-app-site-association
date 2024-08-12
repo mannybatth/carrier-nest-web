@@ -1,0 +1,13 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "D285Y9S8FK.com.carriernest.driverapp",
+                "paths": [
+                    "/l/*"
+                ]
+            }
+        ]
+    }
+}
