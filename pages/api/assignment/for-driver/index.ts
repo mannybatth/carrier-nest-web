@@ -191,9 +191,9 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         });
 
         if (!driverAssignments || driverAssignments.length === 0) {
-            return res.status(404).send({
-                code: 404,
-                errors: [{ message: 'No assignments found for this driver' }],
+            return res.status(200).send({
+                code: 200,
+                data: { metadata, assignments: [] },
             });
         }
 
