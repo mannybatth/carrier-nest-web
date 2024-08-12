@@ -2104,28 +2104,21 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                             <p className="text-base font-semibold text-gray-900 capitalize truncate">
                                                                                                 {item.name.toLowerCase()}
                                                                                             </p>
-                                                                                            <p className="text-xs text-gray-800 truncate">
-                                                                                                {isLoadStop
-                                                                                                    ? new Date(
-                                                                                                          (
-                                                                                                              item as LoadStop
-                                                                                                          ).date,
-                                                                                                      ).toLocaleDateString()
-                                                                                                    : new Date(
-                                                                                                          (
-                                                                                                              item as Location
-                                                                                                          ).createdAt,
-                                                                                                      ).toLocaleDateString()}{' '}
-                                                                                                @{' '}
-                                                                                                {isLoadStop
-                                                                                                    ? (item as LoadStop)
-                                                                                                          .time
-                                                                                                    : new Date(
-                                                                                                          (
-                                                                                                              item as Location
-                                                                                                          ).updatedAt,
-                                                                                                      ).toLocaleTimeString()}
-                                                                                            </p>
+                                                                                            {isLoadStop && (
+                                                                                                <p className="text-xs text-gray-800 truncate">
+                                                                                                    {new Date(
+                                                                                                        (
+                                                                                                            item as LoadStop
+                                                                                                        ).date,
+                                                                                                    ).toLocaleDateString()}{' '}
+                                                                                                    @{' '}
+                                                                                                    {
+                                                                                                        (
+                                                                                                            item as LoadStop
+                                                                                                        ).time
+                                                                                                    }
+                                                                                                </p>
+                                                                                            )}
                                                                                             <p className="text-sm text-gray-500 capitalize truncate">
                                                                                                 {item.street.toLowerCase()}
                                                                                             </p>
