@@ -9,16 +9,11 @@ module.exports = {
             },
         ],
     },
-    async headers() {
+    async rewrites() {
         return [
             {
                 source: '/apple-app-site-association',
-                headers: [
-                    {
-                        key: 'Content-Type',
-                        value: 'application/json',
-                    },
-                ],
+                destination: '/apple-app-site-association.json',
             },
         ];
     },
