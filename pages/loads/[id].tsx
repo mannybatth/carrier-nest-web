@@ -10,7 +10,7 @@ import {
     TrashIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
-import { LoadDocument, LoadStatus, LoadStop, Location, Prisma, RouteLegStatus } from '@prisma/client';
+import { LoadDocument, LoadStatus, LoadStop, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import Spinner from 'components/Spinner';
@@ -204,7 +204,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     );
 };
 
-type LegAssignStatusDropDownProps = {
+type AssignmentStatusDropDownProps = {
     disabled: boolean;
     status: RouteLegStatus;
     legId: string;
@@ -213,7 +213,7 @@ type LegAssignStatusDropDownProps = {
     changeStatusClicked: (newStatus: RouteLegStatus, legId: string) => void;
 };
 
-const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
+const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
     disabled,
     status,
     legId,
@@ -289,7 +289,7 @@ const LegAssignStatusDropDown: React.FC<LegAssignStatusDropDownProps> = ({
     );
 };
 
-type LegAssignDropDownProps = {
+type AssignmentDropDownProps = {
     load: ExpandedLoad;
     disabled: boolean;
     editLegClicked: (legId: string) => void;
@@ -298,7 +298,7 @@ type LegAssignDropDownProps = {
     legId: string;
 };
 
-const LegAssignDropDown: React.FC<LegAssignDropDownProps> = ({
+const AssignmentDropDown: React.FC<AssignmentDropDownProps> = ({
     load,
     disabled,
     editLegClicked,
@@ -1539,7 +1539,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             Assignment# {index + 1}
                                                                         </p>
                                                                         <div>
-                                                                            <LegAssignDropDown
+                                                                            <AssignmentDropDown
                                                                                 deleteLegClicked={() =>
                                                                                     deleteLegClicked(leg.id)
                                                                                 }
@@ -1591,7 +1591,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     </p>
                                                                                 )} */}
 
-                                                                                <LegAssignStatusDropDown
+                                                                                <AssignmentStatusDropDown
                                                                                     changeStatusClicked={(legStatus) =>
                                                                                         changeLegStatusClicked(
                                                                                             legStatus,

@@ -54,7 +54,7 @@ export const removeRouteLegById = async (routeLegId: string) => {
 };
 
 export const updateRouteLegStatus = async (routeLegId: string, routeLegStatus: RouteLegStatus) => {
-    const response = await fetch(apiUrl + '/assignment/' + routeLegId, {
+    const response = await fetch(apiUrl + '/route-leg/' + routeLegId, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
