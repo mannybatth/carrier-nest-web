@@ -1306,7 +1306,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="text-sm text-gray-500">
                                                                         <div className="text-base font-semibold capitalize text-slate-900">
-                                                                            {load.shipper.name.toLowerCase()}
+                                                                            {load.shipper.name}
                                                                         </div>
                                                                         <div>{load.shipper.street}</div>
                                                                         <div>
@@ -1383,7 +1383,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="text-sm text-gray-500">
                                                                             <div className="text-base font-semibold capitalize text-slate-900">
-                                                                                {stop.name.toLowerCase()}
+                                                                                {stop.name}
                                                                             </div>
                                                                             <div>{stop.street}</div>
                                                                             <div>
@@ -1449,7 +1449,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="text-sm text-gray-500">
                                                                     <div className="text-base font-semibold capitalize text-slate-900">
-                                                                        {load.receiver.name.toLowerCase()}
+                                                                        {load.receiver.name}
                                                                     </div>
                                                                     <div>{load.receiver.street}</div>
                                                                     <div>
@@ -1621,7 +1621,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     <Link
                                                                                         href={`/drivers/${driver.id}`}
                                                                                     >
-                                                                                        {driver.name.toLowerCase()}
+                                                                                        {driver.name}
                                                                                     </Link>
                                                                                 </p>
                                                                             );
@@ -1687,7 +1687,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                                                                         <div className="flex-1 truncate pl-7">
                                                                                             <p className="text-base font-semibold text-gray-900 capitalize truncate">
-                                                                                                {item.name.toLowerCase()}
+                                                                                                {item.name}
                                                                                             </p>
                                                                                             {isLoadStop && (
                                                                                                 <p className="text-xs text-gray-800 truncate">
@@ -1705,11 +1705,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                                 </p>
                                                                                             )}
                                                                                             <p className="text-sm text-gray-500 capitalize truncate">
-                                                                                                {item.street.toLowerCase()}
+                                                                                                {item.street}
                                                                                             </p>
                                                                                             <p className="text-sm text-gray-500 capitalize truncate">
-                                                                                                {item.city.toLowerCase()}
-                                                                                                ,{' '}
+                                                                                                {item.city},{' '}
                                                                                                 {item.state.toUpperCase()}
                                                                                                 , {item.zip}
                                                                                             </p>
