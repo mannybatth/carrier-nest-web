@@ -235,7 +235,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {/* {activityItem.action === LoadActivityAction.ASSIGN_DRIVER && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 assigned{' '}
                                                 <span className="font-medium text-gray-900">
@@ -248,7 +251,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.UNASSIGN_DRIVER && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 unassigned{' '}
                                                 <span className="font-medium text-gray-900">
@@ -261,7 +267,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 added{' '}
                                                 <span className="font-medium text-gray-900">
@@ -273,7 +282,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 removed{' '}
                                                 <span className="font-medium text-gray-900">
@@ -285,7 +297,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.ADD_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 added driver assignment to load
                                             </>
@@ -293,7 +308,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.REMOVE_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 removed a driver assignment from load
                                             </>
@@ -301,7 +319,10 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.UPDATE_ASSIGNMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
                                                 updated a driver assignment
                                             </>
@@ -309,9 +330,30 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                         {activityItem.action === LoadActivityAction.CHANGE_ASSIGNMENT_STATUS && (
                                             <>
                                                 <span className="font-medium text-gray-900">
-                                                    {activityItem.actorUser?.name || activityItem.actorUser?.email}
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
                                                 </span>{' '}
-                                                changed driver assignment status
+                                                changed driver assignment status to{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.toLegStatus}
+                                                </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
                                             </>
                                         )}
                                     </p>
