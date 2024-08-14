@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession, Session } from 'next-auth';
-import { ExpandedDriver, JSONResponse } from '../../../interfaces/models';
+import { ExpandedDriverAssignment, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
@@ -67,7 +67,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             include: { devices: true },
         });
 
-        await prisma.$transaction(async (prisma) => {
+        const assignments = await prisma.$transaction(async (prisma) => {
             const route = await prisma.route.upsert({
                 where: { loadId },
                 update: {},
@@ -100,7 +100,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                 actorUserId: session.user.id,
             }));
 
-            await prisma.driverAssignment.createMany({
+            const assignments = await prisma.driverAssignment.createManyAndReturn({
                 data: driverAssignmentsData,
             });
 
@@ -123,12 +123,14 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                     locationId: location.location?.id,
                 })),
             });
+
+            return assignments;
         });
 
-        sendPushNotification(drivers, loadId, false);
+        sendPushNotification(assignments, loadId, false);
 
         if (sendSms) {
-            await sendSmsNotifications(drivers, load.id, false);
+            await sendSmsNotifications(assignments, loadId, false);
         }
 
         const routeExpanded = await getExpandedRoute(loadId);
@@ -198,12 +200,12 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
             const currentDriverIds = currentAssignments.map((assignment) => assignment.driverId);
 
-            const newAssignments = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
-            const removedAssignments = currentDriverIds.filter((id) => !driverIdsFromRequest.includes(id));
+            const newAssignedDriverIds = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
+            const removedDriverIds = currentDriverIds.filter((id) => !driverIdsFromRequest.includes(id));
 
-            if (newAssignments.length > 0) {
+            if (newAssignedDriverIds.length > 0) {
                 await prisma.driverAssignment.createMany({
-                    data: newAssignments.map((driverId) => ({
+                    data: newAssignedDriverIds.map((driverId) => ({
                         driverId,
                         routeLegId,
                         loadId,
@@ -211,7 +213,7 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 });
 
                 const newDriverActivities = allRelevantDrivers
-                    .filter((driver) => newAssignments.includes(driver.id))
+                    .filter((driver) => newAssignedDriverIds.includes(driver.id))
                     .map((driver) => ({
                         loadId,
                         carrierId: load.carrierId,
@@ -224,15 +226,15 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 await prisma.loadActivity.createMany({ data: newDriverActivities });
             }
 
-            if (removedAssignments.length > 0) {
+            if (removedDriverIds.length > 0) {
                 await prisma.driverAssignment.deleteMany({
                     where: {
                         routeLegId,
-                        driverId: { in: removedAssignments },
+                        driverId: { in: removedDriverIds },
                     },
                 });
                 const removedDriverActivities = allRelevantDrivers
-                    .filter((driver) => removedAssignments.includes(driver.id))
+                    .filter((driver) => removedDriverIds.includes(driver.id))
                     .map((driver) => ({
                         loadId,
                         carrierId: load.carrierId,
@@ -267,21 +269,14 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         });
 
-        sendPushNotification(
-            allRelevantDrivers.filter((driver) => driverIdsFromRequest.includes(driver.id)),
-            loadId,
-            true,
-        );
+        const routeExpanded = await getExpandedRoute(loadId);
+        const routeLeg = routeExpanded.routeLegs.find((leg) => leg.id === routeLegId);
+
+        sendPushNotification(routeLeg.driverAssignments, loadId, true);
 
         if (sendSms) {
-            await sendSmsNotifications(
-                allRelevantDrivers.filter((driver) => driverIdsFromRequest.includes(driver.id)),
-                load.id,
-                true,
-            );
+            await sendSmsNotifications(routeLeg.driverAssignments, loadId, true);
         }
-
-        const routeExpanded = await getExpandedRoute(loadId);
 
         return res.status(200).json({
             code: 200,
@@ -363,64 +358,67 @@ async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<an
     }
 }
 
-const sendPushNotification = async (drivers: ExpandedDriver[], loadId: string, isUpdate = false) => {
-    const message: firebaseAdmin.messaging.MulticastMessage = {
-        notification: {
-            title: isUpdate ? 'Assignment Updated' : 'New Assignment',
-            body: 'Tap to view assignment details',
-        },
-        data: {
-            type: 'assigned_load',
-            loadId: loadId,
-        },
-        tokens: drivers.flatMap((driver) => driver.devices?.map((device) => device.fcmToken) ?? []),
-    };
+const sendPushNotification = async (assignments: ExpandedDriverAssignment[], loadId: string, isUpdate = false) => {
+    for (const assignment of assignments) {
+        const message: firebaseAdmin.messaging.MulticastMessage = {
+            notification: {
+                title: isUpdate ? 'Assignment Updated' : 'New Assignment',
+                body: 'Tap to view assignment details',
+            },
+            data: {
+                type: 'assigned_assignment',
+                loadId: assignment.id,
+            },
+            tokens: assignments.map((assignment) => assignment.driver.devices.map((device) => device.fcmToken)).flat(),
+        };
 
-    if (message.tokens.length > 0) {
-        try {
-            const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
+        if (message.tokens.length > 0) {
+            try {
+                const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
 
-            // Collect all invalid tokens
-            const invalidTokens: string[] = response.responses
-                .map((res, idx) => (res.success ? null : message.tokens[idx]))
-                .filter((token): token is string => {
-                    if (token === null) {
-                        return false;
-                    }
-                    const res = response.responses[message.tokens.indexOf(token)];
-                    const errorCode = res.error?.code;
-                    return (
-                        token !== null &&
-                        (errorCode === 'messaging/registration-token-not-registered' ||
-                            errorCode === 'messaging/invalid-registration-token' ||
-                            errorCode === 'messaging/invalid-argument')
-                    );
-                });
-
-            // If there are invalid tokens, delete them in one batch operation
-            if (invalidTokens.length > 0) {
-                try {
-                    await prisma.device.deleteMany({
-                        where: {
-                            fcmToken: { in: invalidTokens },
-                        },
+                // Collect all invalid tokens
+                const invalidTokens: string[] = response.responses
+                    .map((res, idx) => (res.success ? null : message.tokens[idx]))
+                    .filter((token): token is string => {
+                        if (token === null) {
+                            return false;
+                        }
+                        const res = response.responses[message.tokens.indexOf(token)];
+                        const errorCode = res.error?.code;
+                        return (
+                            token !== null &&
+                            (errorCode === 'messaging/registration-token-not-registered' ||
+                                errorCode === 'messaging/invalid-registration-token' ||
+                                errorCode === 'messaging/invalid-argument')
+                        );
                     });
-                } catch (deleteError) {
-                    console.error('Error removing invalid tokens:', deleteError);
+
+                // If there are invalid tokens, delete them in one batch operation
+                if (invalidTokens.length > 0) {
+                    try {
+                        await prisma.device.deleteMany({
+                            where: {
+                                fcmToken: { in: invalidTokens },
+                            },
+                        });
+                    } catch (deleteError) {
+                        console.error('Error removing invalid tokens:', deleteError);
+                    }
                 }
+            } catch (error) {
+                console.error('Error sending notification:', error);
             }
-        } catch (error) {
-            console.error('Error sending notification:', error);
         }
     }
 };
 
-async function sendSmsNotifications(drivers: ExpandedDriver[], loadId: string, isUpdate = false) {
-    for (const driver of drivers) {
+async function sendSmsNotifications(assignments: ExpandedDriverAssignment[], loadId: string, isUpdate = false) {
+    for (const assignment of assignments) {
+        const driver = assignment.driver;
         if (!driver.phone) {
             continue;
         }
-        const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${loadId}?did=${driver.id}`;
+        const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${assignment.id}?did=${driver.id}`;
         const textMessage = isUpdate
             ? `Your assignment has been updated.\n\nView Load: ${linkToLoad}`
             : `You have a new assignment.\n\nView Load: ${linkToLoad}`;
@@ -450,11 +448,8 @@ async function getExpandedRoute(loadId: string) {
                             id: true,
                             assignedAt: true,
                             driver: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    email: true,
-                                    phone: true,
+                                include: {
+                                    devices: true,
                                 },
                             },
                         },

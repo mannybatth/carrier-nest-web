@@ -13,7 +13,7 @@ export type SearchResult<T> = {
 /**
  * Load
  */
-const expandedLoad = Prisma.validator<Prisma.LoadArgs>()({
+const expandedLoad = Prisma.validator<Prisma.LoadDefaultArgs>()({
     include: {
         customer: { select: { id: true, name: true } },
         carrier: { select: { id: true, name: true } },
@@ -111,14 +111,14 @@ export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>> &
 /**
  * Customer
  */
-const expandedCustomer = Prisma.validator<Prisma.CustomerArgs>()({
+const expandedCustomer = Prisma.validator<Prisma.CustomerDefaultArgs>()({
     include: {
         loads: true,
     },
 });
 export type ExpandedCustomer = Partial<Prisma.CustomerGetPayload<typeof expandedCustomer>>;
 
-const expandedLoadStop = Prisma.validator<Prisma.LoadStopArgs>()({
+const expandedLoadStop = Prisma.validator<Prisma.LoadStopDefaultArgs>()({
     select: {
         type: true,
         name: true,
@@ -148,7 +148,7 @@ export enum UIInvoiceStatus {
     OVERDUE = 'overdue',
     PAID = 'paid',
 }
-const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
+const expandedInvoice = Prisma.validator<Prisma.InvoiceDefaultArgs>()({
     include: {
         load: {
             include: {
@@ -176,7 +176,7 @@ const expandedInvoice = Prisma.validator<Prisma.InvoiceArgs>()({
 });
 export type ExpandedInvoice = Partial<Prisma.InvoiceGetPayload<typeof expandedInvoice>>;
 
-const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
+const expandedRoute = Prisma.validator<Prisma.RouteDefaultArgs>()({
     include: {
         routeLegs: {
             include: {
@@ -199,7 +199,7 @@ const expandedRoute = Prisma.validator<Prisma.RouteArgs>()({
 });
 export type ExpandedRoute = Partial<Prisma.RouteGetPayload<typeof expandedRoute>>;
 
-const expandedRouteLeg = Prisma.validator<Prisma.RouteLegArgs>()({
+const expandedRouteLeg = Prisma.validator<Prisma.RouteLegDefaultArgs>()({
     include: {
         locations: {
             include: {
@@ -218,7 +218,7 @@ const expandedRouteLeg = Prisma.validator<Prisma.RouteLegArgs>()({
 });
 export type ExpandedRouteLeg = Partial<Prisma.RouteLegGetPayload<typeof expandedRouteLeg>>;
 
-const expandedRouteLegLocation = Prisma.validator<Prisma.RouteLegLocationArgs>()({
+const expandedRouteLegLocation = Prisma.validator<Prisma.RouteLegLocationDefaultArgs>()({
     include: {
         loadStop: true,
         location: true,
@@ -229,7 +229,7 @@ export type ExpandedRouteLegLocation = Partial<Prisma.RouteLegLocationGetPayload
 /**
  * Driver
  */
-const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
+const expandedDriver = Prisma.validator<Prisma.DriverDefaultArgs>()({
     include: {
         assignments: {
             include: {
@@ -258,9 +258,41 @@ const expandedDriver = Prisma.validator<Prisma.DriverArgs>()({
 export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>>;
 
 /**
+ * DriverAssignment
+ */
+
+const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefaultArgs>()({
+    include: {
+        driver: {
+            include: {
+                devices: true,
+            },
+        },
+        routeLeg: {
+            include: {
+                locations: {
+                    include: {
+                        loadStop: true,
+                        location: true,
+                    },
+                },
+                driverAssignments: {
+                    select: {
+                        id: true,
+                        assignedAt: true,
+                        driver: true,
+                    },
+                },
+            },
+        },
+    },
+});
+export type ExpandedDriverAssignment = Partial<Prisma.DriverAssignmentGetPayload<typeof expandedDriverAssignment>>;
+
+/**
  * LoadDocument
  */
-const expandedLoadDocument = Prisma.validator<Prisma.LoadDocumentArgs>()({
+const expandedLoadDocument = Prisma.validator<Prisma.LoadDocumentDefaultArgs>()({
     include: {
         load: true,
     },
@@ -270,7 +302,7 @@ export type ExpandedLoadDocument = Partial<Prisma.LoadDocumentGetPayload<typeof 
 /**
  * LoadActivity
  */
-const expandedLoadActivity = Prisma.validator<Prisma.LoadActivityArgs>()({
+const expandedLoadActivity = Prisma.validator<Prisma.LoadActivityDefaultArgs>()({
     include: {
         load: true,
         actorUser: true,
