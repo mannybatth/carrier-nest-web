@@ -467,7 +467,7 @@ const getLoad = async ({
 
         return {
             code: 200,
-            data: { load: loadWithoutRate as Load },
+            data: { load: loadWithoutRate as Omit<Load, 'rate'> },
         };
     } else {
         return {

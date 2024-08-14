@@ -1,5 +1,4 @@
-import { LoadStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime';
+import { Prisma, LoadStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../interfaces/models';
@@ -77,7 +76,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 totalLoads: loads.length,
                 totalInProgress: totalInProgress,
                 totalReadyToInvoice: totalReadyToInvoice,
-                totalRevenue: loads.reduce((acc, load) => load.rate.add(acc), new Decimal(0))?.toNumber() || 0,
+                totalRevenue: loads.reduce((acc, load) => load.rate.add(acc), new Prisma.Decimal(0))?.toNumber() || 0,
                 totalPaid: totalPaid?.toNumber() || 0,
             };
 

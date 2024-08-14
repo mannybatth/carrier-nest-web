@@ -13,7 +13,7 @@ import startOfDay from 'date-fns/startOfDay';
 const buildOrderBy = (
     sortBy: string,
     sortDir: 'asc' | 'desc',
-): Prisma.Enumerable<Prisma.LoadOrderByWithRelationAndSearchRelevanceInput> => {
+): Prisma.Enumerable<Prisma.LoadOrderByWithRelationInput> => {
     if (sortBy === 'status') {
         return [
             {

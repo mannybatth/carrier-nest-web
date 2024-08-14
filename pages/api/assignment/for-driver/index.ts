@@ -8,7 +8,7 @@ import { calcPaginationMetadata } from 'lib/pagination';
 const buildOrderBy = (
     sortBy: string,
     sortDir: 'asc' | 'desc',
-): Prisma.Enumerable<Prisma.DriverAssignmentOrderByWithRelationAndSearchRelevanceInput> => {
+): Prisma.Enumerable<Prisma.DriverAssignmentOrderByWithRelationInput> => {
     if (sortBy && sortDir) {
         if (sortBy.includes('.')) {
             const split = sortBy.split('.');

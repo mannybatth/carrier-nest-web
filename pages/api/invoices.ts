@@ -11,7 +11,7 @@ import { authOptions } from './auth/[...nextauth]';
 const buildOrderBy = (
     sortBy: string,
     sortDir: 'asc' | 'desc',
-): Prisma.Enumerable<Prisma.InvoiceOrderByWithRelationAndSearchRelevanceInput> => {
+): Prisma.Enumerable<Prisma.InvoiceOrderByWithRelationInput> => {
     if (sortBy && sortDir) {
         if (sortBy.includes('.')) {
             const split = sortBy.split('.');
