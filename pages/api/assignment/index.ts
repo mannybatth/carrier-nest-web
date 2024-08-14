@@ -102,6 +102,23 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
 
             const assignments = await prisma.driverAssignment.createManyAndReturn({
                 data: driverAssignmentsData,
+                select: {
+                    id: true,
+                    assignedAt: true,
+                    driver: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true,
+                            devices: {
+                                select: {
+                                    fcmToken: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
 
             await prisma.loadActivity.createMany({
@@ -448,8 +465,16 @@ async function getExpandedRoute(loadId: string) {
                             id: true,
                             assignedAt: true,
                             driver: {
-                                include: {
-                                    devices: true,
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone: true,
+                                    devices: {
+                                        select: {
+                                            fcmToken: true,
+                                        },
+                                    },
                                 },
                             },
                         },

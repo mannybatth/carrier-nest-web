@@ -264,8 +264,16 @@ export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriv
 const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefaultArgs>()({
     include: {
         driver: {
-            include: {
-                devices: true,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                devices: {
+                    select: {
+                        fcmToken: true,
+                    },
+                },
             },
         },
         routeLeg: {
