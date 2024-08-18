@@ -318,7 +318,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                     <span className="inline-block w-48 h-6 bg-gray-200 rounded animate-pulse"></span>
                 )}
             </h1>
-            <div className="flex flex-col px-4 space-y-2">
+            <div className="flex flex-col px-4 mb-12 space-y-2">
                 <div className="flex flex-row">
                     <h3 className="font-semibold">Your Load Assignment</h3>
                 </div>
