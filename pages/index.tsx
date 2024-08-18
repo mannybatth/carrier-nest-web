@@ -331,8 +331,17 @@ const Dashboard: PageWithAuth = () => {
                                                                 </div>
                                                                 <div>
                                                                     {load.driverAssignments?.length > 0 ? (
-                                                                        load.driverAssignments.map(
-                                                                            (assignment, index) => (
+                                                                        Array.from(
+                                                                            new Map(
+                                                                                load.driverAssignments.map(
+                                                                                    (assignment) => [
+                                                                                        assignment.driver.id,
+                                                                                        assignment,
+                                                                                    ],
+                                                                                ),
+                                                                            ).values(),
+                                                                        ).map(
+                                                                            (assignment, index, uniqueAssignments) => (
                                                                                 <span
                                                                                     key={`${assignment.driver.id}-${index}`}
                                                                                 >
@@ -346,7 +355,7 @@ const Dashboard: PageWithAuth = () => {
                                                                                         {assignment.driver?.name}
                                                                                     </Link>
                                                                                     {index <
-                                                                                    load.driverAssignments.length - 1
+                                                                                    uniqueAssignments.length - 1
                                                                                         ? ', '
                                                                                         : ''}
                                                                                 </span>

@@ -1030,27 +1030,37 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 })}
                                             </dd>
                                         </div>
-                                        {load.routeDistance && (
-                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                                                <dt className="text-gray-500">Route Distance</dt>
-                                                <dd className="text-right text-gray-900">
-                                                    {metersToMiles(
-                                                        new Prisma.Decimal(load.routeDistance).toNumber(),
-                                                    ).toFixed(0)}{' '}
-                                                    miles
-                                                </dd>
-                                            </div>
-                                        )}
-                                        {/* {load.routeDuration && (
-                                            <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                                                <dt className="text-gray-500">Travel Time</dt>
-                                                <dd className="text-right text-gray-900">
-                                                    {secondsToReadable(
-                                                        new Prisma.Decimal(load.routeDuration).toNumber(),
-                                                    )}
-                                                </dd>
-                                            </div>
-                                        )} */}
+                                        <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                                            <dt className="text-gray-500">Drivers</dt>
+                                            <dd className="text-right text-gray-900">
+                                                {load.driverAssignments &&
+                                                    (load.driverAssignments?.length > 0 ? (
+                                                        Array.from(
+                                                            new Map(
+                                                                load.driverAssignments.map((assignment) => [
+                                                                    assignment.driver.id,
+                                                                    assignment,
+                                                                ]),
+                                                            ).values(),
+                                                        ).map((assignment, index, uniqueAssignments) => (
+                                                            <span key={`${assignment.driver.id}-${index}`}>
+                                                                <Link
+                                                                    href={`/drivers/${assignment.driver.id}`}
+                                                                    className="font-medium"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                    }}
+                                                                >
+                                                                    {assignment.driver?.name}
+                                                                </Link>
+                                                                {index < uniqueAssignments.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-gray-400">No driver assigned</div>
+                                                    ))}
+                                            </dd>
+                                        </div>
 
                                         <div className="border-b border-gray-200">
                                             <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
