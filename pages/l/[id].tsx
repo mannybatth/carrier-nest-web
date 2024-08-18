@@ -508,7 +508,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                     const item = location.loadStop || location.location;
                                     return (
                                         <div className="flex flex-col" key={index}>
-                                            <div className="flex flex-col items-start px-4 py-4 mb-4 border-l-4 border-blue-600 rounded-lg bg-gray-50 sm:flex-row sm:items-center sm:px-6">
+                                            <div className="flex flex-col items-start px-4 py-4 border-l-4 border-blue-600 rounded-lg bg-gray-50 sm:flex-row sm:items-center sm:px-6">
                                                 {/* Step Number */}
                                                 <div className="flex items-center justify-center w-8 h-8 mb-3 font-bold text-white bg-blue-600 rounded-full sm:w-10 sm:h-10 sm:mb-0 sm:mr-6">
                                                     {index + 1}
