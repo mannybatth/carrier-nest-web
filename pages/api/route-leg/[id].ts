@@ -23,12 +23,19 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
         const session = await getServerSession(req, res, authOptions);
         const token = await getToken({ req, secret: process.env.JWT_SECRET });
         const tokenCarrierId = token?.carrierId as string;
-        const driverId = token?.driverId as string;
+        const driverId = (token?.driverId || req.body.driverId) as string;
 
-        if (!session && !tokenCarrierId) {
-            return res.status(401).json({
-                code: 401,
-                errors: [{ message: 'Unauthorized' }],
+        // if (!session && !tokenCarrierId) {
+        //     return res.status(401).json({
+        //         code: 401,
+        //         errors: [{ message: 'Unauthorized' }],
+        //     });
+        // }
+
+        if (!driverId && !session) {
+            return res.status(400).json({
+                code: 400,
+                errors: [{ message: 'Missing driver ID' }],
             });
         }
 

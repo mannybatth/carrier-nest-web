@@ -28,20 +28,20 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
     const token = await getToken({ req, secret: process.env.JWT_SECRET });
     const tokenCarrierId = token?.carrierId as string;
 
-    if (!tokenCarrierId) {
-        return res.status(401).json({
-            code: 401,
-            errors: [{ message: 'Unauthorized' }],
-        });
-    }
+    // if (!tokenCarrierId) {
+    //     return res.status(401).json({
+    //         code: 401,
+    //         errors: [{ message: 'Unauthorized' }],
+    //     });
+    // }
 
     try {
         const driverAssignment = await prisma.driverAssignment.findFirst({
             where: {
                 id: assignmentId,
-                load: {
-                    carrierId: tokenCarrierId,
-                },
+                // load: {
+                //     carrierId: tokenCarrierId,
+                // },
             },
             include: {
                 driver: true,
@@ -51,6 +51,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                         stops: true,
                         receiver: true,
                         customer: true,
+                        podDocuments: true,
+                        carrier: true,
                     },
                 },
                 routeLeg: {

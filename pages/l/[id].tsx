@@ -1,19 +1,22 @@
 import { Menu, Transition } from '@headlessui/react';
 import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/react/24/solid';
-import { LoadDocument, LoadStatus, Prisma } from '@prisma/client';
+import { LoadDocument, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { useSearchParams } from 'next/navigation';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
-import LoadStatusBadge from '../../components/loads/LoadStatusBadge';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad, ExpandedLoadDocument } from '../../interfaces/models';
+import { ExpandedDriverAssignment, ExpandedLoadDocument } from '../../interfaces/models';
 import { metersToMiles } from '../../lib/helpers/distance';
 import { secondsToReadable } from '../../lib/helpers/time';
-import { isDate24HrInThePast, loadStatus, UILoadStatus } from '../../lib/load/load-utils';
-import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad, getLoadById, updateLoadStatus } from '../../lib/rest/load';
+import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import { getAssignmentById } from '../../lib/rest/assignment';
+import { useRouter } from 'next/router';
+import { updateRouteLegStatus } from 'lib/rest/routeLeg';
+import { isDate24HrInThePast } from 'lib/load/load-utils';
+import RouteLegStatusBadge from 'components/loads/RouteLegStatusBadge';
 
 const loadingSvg = (
     <svg
@@ -31,7 +34,7 @@ const loadingSvg = (
     </svg>
 );
 
-const DriverLoadDetailsPageSkeleton = () => {
+const DriverAssignmentDetailsPageSkeleton = () => {
     return (
         <div className="flex flex-col space-y-4">
             <div className="flex items-start justify-between">
@@ -68,15 +71,16 @@ const DriverLoadDetailsPageSkeleton = () => {
     );
 };
 
-const DriverLoadDetailsPage: PageWithAuth = () => {
+const DriverAssignmentDetailsPage: PageWithAuth = () => {
     const searchParams = useSearchParams();
-    const loadId = searchParams.get('id');
     const driverId = searchParams.get('did');
+    const router = useRouter();
+    const { id: assignmentId } = router.query as { id: string };
 
-    const [load, setLoad] = useState<ExpandedLoad>();
-    const [loadLoading, setLoadLoading] = useState(true);
+    const [assignment, setAssignment] = useState<ExpandedDriverAssignment>();
+    const [assignmentLoading, setAssignmentLoading] = useState(true);
     const [fetchingLocation, setFetchingLocation] = useState(false);
-    const [loadStatusLoading, setLoadStatusLoading] = useState(false);
+    const [statusLoading, setStatusLoading] = useState(false);
 
     const [loadDocuments, setLoadDocuments] = useState<ExpandedLoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
@@ -85,23 +89,23 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
     let fileInput: HTMLInputElement;
 
     useEffect(() => {
-        if (loadId && driverId) {
-            reloadLoad();
+        if (assignmentId && driverId) {
+            reloadAssignment();
         }
-    }, [loadId, driverId]);
+    }, [assignmentId, driverId]);
 
-    const reloadLoad = async () => {
-        setLoadLoading(true);
+    const reloadAssignment = async () => {
+        setAssignmentLoading(true);
 
         try {
-            const load = await getLoadById(loadId, driverId, true);
-            setLoad(load);
-            setLoadDocuments([...load.podDocuments].filter((ld) => ld));
-            setDropOffDatePassed(isDate24HrInThePast(new Date(load.receiver.date)));
+            const assignment = await getAssignmentById(assignmentId);
+            setAssignment(assignment);
+            setLoadDocuments([...assignment.load.podDocuments].filter((ld) => ld));
+            setDropOffDatePassed(isDate24HrInThePast(new Date(assignment.load.receiver.date)));
         } catch (e) {
-            notify({ title: 'Load does not exist', message: e.message, type: 'error' });
+            notify({ title: 'Assignment does not exist', message: e.message, type: 'error' });
         }
-        setLoadLoading(false);
+        setAssignmentLoading(false);
     };
 
     const getDeviceLocation = (): Promise<{
@@ -129,7 +133,6 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                         },
                         (error) => {
                             setFetchingLocation(false);
-                            // notify({ title: 'Unable to get location', message: error.message, type: 'error' });
                             resolve({
                                 longitude: null,
                                 latitude: null,
@@ -153,33 +156,45 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
     };
 
     const beginWork = async () => {
-        setLoadStatusLoading(true);
+        setStatusLoading(true);
         const { longitude, latitude } = await getDeviceLocation();
-        const response = await updateLoadStatus(loadId, LoadStatus.IN_PROGRESS, { driverId, longitude, latitude });
+        const response = await updateRouteLegStatus(assignment.routeLeg.id, RouteLegStatus.IN_PROGRESS, {
+            driverId,
+            startLatitude: latitude,
+            startLongitude: longitude,
+        });
         if (response) {
-            await reloadLoad();
+            await reloadAssignment();
         }
-        setLoadStatusLoading(false);
+        setStatusLoading(false);
     };
 
     const stopWork = async () => {
-        setLoadStatusLoading(true);
+        setStatusLoading(true);
         const { longitude, latitude } = await getDeviceLocation();
-        const response = await updateLoadStatus(loadId, LoadStatus.CREATED, { driverId, longitude, latitude });
+        const response = await updateRouteLegStatus(assignment.routeLeg.id, RouteLegStatus.ASSIGNED, {
+            driverId,
+            longitude,
+            latitude,
+        });
         if (response) {
-            await reloadLoad();
+            await reloadAssignment();
         }
-        setLoadStatusLoading(false);
+        setStatusLoading(false);
     };
 
     const completeWork = async () => {
-        setLoadStatusLoading(true);
+        setStatusLoading(true);
         const { longitude, latitude } = await getDeviceLocation();
-        const response = await updateLoadStatus(loadId, LoadStatus.DELIVERED, { driverId, longitude, latitude });
+        const response = await updateRouteLegStatus(assignment.routeLeg.id, RouteLegStatus.COMPLETED, {
+            driverId,
+            endLatitude: latitude,
+            endLongitude: longitude,
+        });
         if (response) {
-            await reloadLoad();
+            await reloadAssignment();
         }
-        setLoadStatusLoading(false);
+        setStatusLoading(false);
     };
 
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -202,14 +217,14 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                     fileSize: file.size,
                 };
                 const { longitude, latitude } = locationResponse;
-                await addLoadDocumentToLoad(load.id, simpleDoc, {
+                await addLoadDocumentToLoad(assignment.load.id, simpleDoc, {
                     driverId: driverId,
                     isPod: true,
                     longitude,
                     latitude,
                 });
 
-                reloadLoad();
+                reloadAssignment();
 
                 notify({ title: 'Document uploaded', message: 'Document uploaded successfully' });
             } else {
@@ -229,13 +244,13 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
     const deleteLoadDocument = async (id: string) => {
         setDocsLoading(true);
         try {
-            await deleteLoadDocumentFromLoad(load.id, id, {
+            await deleteLoadDocumentFromLoad(assignment.load.id, id, {
                 driverId: driverId,
                 isPod: true,
             });
             const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
             setLoadDocuments(newLoadDocuments);
-            reloadLoad();
+            reloadAssignment();
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
         } catch (e) {
             notify({ title: 'Error deleting document', message: e.message, type: 'error' });
@@ -248,92 +263,128 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
     };
 
     const openRouteInGoogleMaps = () => {
-        if (load) {
-            // origin is the load shipper address
-            const origin = `${load.shipper.latitude}, ${load.shipper.longitude}`;
-            // destination is the load receiver address
-            const destination = `${load.receiver.latitude}, ${load.receiver.longitude}`;
-            // waypoints are the load stops, separate by a pipe
-            const waypoints =
-                load.stops && load.stops.length > 0
-                    ? load.stops.map((stop) => `${stop.latitude}, ${stop.longitude}`).join('|')
-                    : null;
-            const searchParams = new URLSearchParams();
-            searchParams.append('api', '1');
-            searchParams.append('origin', origin);
-            searchParams.append('destination', destination);
+        if (assignment && assignment.routeLeg?.locations && assignment.routeLeg.locations.length > 0) {
+            const locations = assignment.routeLeg.locations;
+            // Extract origin
+            const originLegLocation = locations[0];
+            const originLatitude = originLegLocation.loadStop?.latitude ?? originLegLocation.location?.latitude;
+            const originLongitude = originLegLocation.loadStop?.longitude ?? originLegLocation.location?.longitude;
+            const origin = `${originLatitude},${originLongitude}`;
+
+            // Extract destination
+            const destinationLegLocation = locations[locations.length - 1];
+            const destinationLatitude =
+                destinationLegLocation.loadStop?.latitude ?? destinationLegLocation.location?.latitude;
+            const destinationLongitude =
+                destinationLegLocation.loadStop?.longitude ?? destinationLegLocation.location?.longitude;
+            const destination = `${destinationLatitude},${destinationLongitude}`;
+
+            // Extract waypoints, skipping the first and last locations
+            const waypoints = locations
+                .slice(1, locations.length - 1)
+                .map((location) => {
+                    const lat = location.loadStop?.latitude ?? location.location?.latitude;
+                    const long = location.loadStop?.longitude ?? location.location?.longitude;
+                    return `${lat},${long}`;
+                })
+                .join('|'); // Use '|' as the separator for waypoints
+
+            // Ensure origin and destination are not empty
+            if (!origin || !destination) {
+                return;
+            }
+
+            // Build the Google Maps URL using query parameters
+            const searchParams = new URLSearchParams({
+                api: '1',
+                origin: origin,
+                destination: destination,
+                travelmode: 'driving',
+            });
+
             if (waypoints) {
                 searchParams.append('waypoints', waypoints);
             }
-            searchParams.append('travelmode', 'driving');
-            const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
-            window.open(url);
+
+            const googleMapsWebUri = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
+            window.open(googleMapsWebUri);
         }
     };
 
     return (
         <div className="max-w-4xl py-6 mx-auto">
             <h1 className="px-4 mb-2 text-2xl font-semibold text-center text-gray-900">
-                {load?.carrier?.name || (
+                {assignment?.load.carrier?.name || (
                     <span className="inline-block w-48 h-6 bg-gray-200 rounded animate-pulse"></span>
                 )}
             </h1>
             <div className="flex flex-col px-4 space-y-2">
                 <div className="flex flex-row">
-                    <h3 className="font-semibold">Your Assigned Load</h3>
+                    <h3 className="font-semibold">Your Load Assignment</h3>
                 </div>
 
-                {!loadLoading ? (
-                    load ? (
+                {!assignmentLoading ? (
+                    assignment ? (
                         <div className="p-4 space-y-5 overflow-hidden border-2 rounded-lg">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <div className="text-base font-semibold uppercase">{load.customer?.name}</div>
+                                    <div className="text-base font-semibold uppercase">
+                                        {assignment.load.customer?.name}
+                                    </div>
                                     <div className="space-x-2">
-                                        <span className="text-sm font-semibold text-slate-400">Load/Order #:</span>
-                                        <span className="text-sm font-semibold">{load.refNum}</span>
+                                        <span className="text-sm font-semibold text-slate-500">Load/Order #:</span>
+                                        <span className="text-sm font-semibold">{assignment.load.refNum}</span>
+                                    </div>
+                                    <div className="space-x-2">
+                                        <span className="text-sm font-semibold text-slate-500">Scheduled For:</span>
+                                        <span className="text-sm font-semibold">
+                                            {new Intl.DateTimeFormat('en-US', {
+                                                month: 'short',
+                                                day: '2-digit',
+                                            }).format(new Date(assignment.routeLeg.scheduledDate))}
+                                            , {assignment.routeLeg.scheduledTime}
+                                        </span>
                                     </div>
                                 </div>
                                 <div>
-                                    <LoadStatusBadge load={load} />
+                                    <RouteLegStatusBadge routeLeg={assignment.routeLeg} />
                                 </div>
                             </div>
                             <div className="flex space-x-3">
-                                {loadStatus(load) === UILoadStatus.BOOKED && (
+                                {assignment.routeLeg.status === RouteLegStatus.ASSIGNED && (
                                     <button
                                         type="button"
                                         className="flex-grow flex justify-center items-center rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
                                         onClick={() => beginWork()}
-                                        disabled={loadStatusLoading}
+                                        disabled={statusLoading}
                                     >
-                                        {loadStatusLoading && loadingSvg}
-                                        {!loadStatusLoading && 'Begin Work'}
+                                        {statusLoading && loadingSvg}
+                                        {!statusLoading && 'Begin Work'}
                                         {fetchingLocation && 'Fetching Location...'}
                                     </button>
                                 )}
-                                {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
+                                {assignment.routeLeg.status === RouteLegStatus.IN_PROGRESS && (
                                     <button
                                         type="button"
                                         className="flex-grow flex justify-center items-center rounded-md bg-green-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
                                         onClick={() => completeWork()}
-                                        disabled={loadStatusLoading}
+                                        disabled={statusLoading}
                                     >
-                                        {loadStatusLoading && loadingSvg}
-                                        {!loadStatusLoading && 'Set as Delivered'}
+                                        {statusLoading && loadingSvg}
+                                        {!statusLoading && 'Set as Delivered'}
                                         {fetchingLocation && 'Fetching Location...'}
                                     </button>
                                 )}
-                                {(loadStatus(load) === UILoadStatus.DELIVERED ||
-                                    loadStatus(load) === UILoadStatus.POD_READY) && (
+                                {assignment.routeLeg.status === RouteLegStatus.COMPLETED && (
                                     <>
                                         <button
                                             type="button"
                                             className="flex-grow flex justify-center items-center rounded-md bg-purple-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
                                             onClick={() => fileInput.click()}
-                                            disabled={docsLoading || loadStatusLoading}
+                                            disabled={docsLoading || statusLoading}
                                         >
-                                            {(docsLoading || loadStatusLoading) && loadingSvg}
-                                            {!(docsLoading || loadStatusLoading) && 'Upload POD'}
+                                            {(docsLoading || statusLoading) && loadingSvg}
+                                            {!(docsLoading || statusLoading) && 'Upload POD'}
                                             {fetchingLocation && 'Fetching Location...'}
                                         </button>
                                         <input
@@ -345,8 +396,8 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     </>
                                 )}
                                 {!dropOffDatePassed &&
-                                    (loadStatus(load) === UILoadStatus.IN_PROGRESS ||
-                                        loadStatus(load) === UILoadStatus.DELIVERED) && (
+                                    (assignment.routeLeg.status === RouteLegStatus.IN_PROGRESS ||
+                                        assignment.routeLeg.status === RouteLegStatus.COMPLETED) && (
                                         <Menu as="div" className="relative inline-block text-left">
                                             <div>
                                                 <Menu.Button
@@ -369,7 +420,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                             >
                                                 <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                     <div className="py-1">
-                                                        {loadStatus(load) === UILoadStatus.IN_PROGRESS && (
+                                                        {assignment.routeLeg.status === RouteLegStatus.IN_PROGRESS && (
                                                             <Menu.Item>
                                                                 {({ active }) => (
                                                                     <a
@@ -389,7 +440,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                                 )}
                                                             </Menu.Item>
                                                         )}
-                                                        {loadStatus(load) === UILoadStatus.DELIVERED && (
+                                                        {assignment.routeLeg.status === RouteLegStatus.COMPLETED && (
                                                             <Menu.Item>
                                                                 {({ active }) => (
                                                                     <a
@@ -435,7 +486,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                                     <div className="flex-shrink-0 ml-2">
                                                         <button
                                                             type="button"
-                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 deleteLoadDocument(doc.id);
@@ -453,197 +504,114 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                             )}
 
                             <div className="flex flex-col justify-between space-y-4">
-                                <div className="flex flex-col">
-                                    <div className="relative flex">
-                                        <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
-                                            1
-                                        </span>
-                                        <div className="mr-3">
-                                            <div className="w-20 p-2 text-base text-center text-gray-700 bg-slate-100">
-                                                <div className="text-base font-medium text-gray-900">
-                                                    {new Intl.DateTimeFormat('en-US', {
-                                                        month: 'short',
-                                                        day: '2-digit',
-                                                    }).format(new Date(load.shipper.date))}
+                                {assignment.routeLeg.locations.map((location, index) => {
+                                    const item = location.loadStop || location.location;
+                                    return (
+                                        <div className="flex flex-col" key={index}>
+                                            <div className="flex flex-col items-start px-4 py-4 mb-4 border-l-4 border-blue-600 rounded-lg bg-gray-50 sm:flex-row sm:items-center sm:px-6">
+                                                {/* Step Number */}
+                                                <div className="flex items-center justify-center w-8 h-8 mb-3 font-bold text-white bg-blue-600 rounded-full sm:w-10 sm:h-10 sm:mb-0 sm:mr-6">
+                                                    {index + 1}
                                                 </div>
-                                                <div className="text-sm">{load.shipper.time}</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 mr-3">
-                                            <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
-                                                {load.shipper.name}
-                                            </p>
-                                            <p className="text-sm text-gray-700 select-all">
-                                                {load.shipper.street}
-                                                <br />
-                                                {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
-                                            </p>
-                                            {load.shipper.poNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    PO #&rsquo;s: {load.shipper.poNumbers}
-                                                </p>
-                                            )}
-                                            {load.shipper.pickUpNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    PU #&rsquo;s: {load.shipper.pickUpNumbers}
-                                                </p>
-                                            )}
-                                            {load.shipper.referenceNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    Ref #&rsquo;s: {load.shipper.referenceNumbers}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-none place-items-center ">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openAddressInMaps(
-                                                        `${load.shipper.street} ${load.shipper.city} ${load.shipper.state} ${load.shipper.zip}`,
-                                                    );
-                                                }}
-                                                disabled={docsLoading}
-                                            >
-                                                <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {load.stops.map((stop, index) => (
-                                    <div className="flex flex-col" key={index}>
-                                        <div className="relative flex">
-                                            <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
-                                                {index + 2}
-                                            </span>
-                                            <div className="mr-3">
-                                                <div className="w-20 p-2 text-base text-center text-gray-700 bg-slate-100">
-                                                    <div className="text-base font-medium text-gray-900">
-                                                        {new Intl.DateTimeFormat('en-US', {
-                                                            month: 'short',
-                                                            day: '2-digit',
-                                                        }).format(new Date(stop.date))}
+
+                                                {/* Location Details */}
+                                                <div className="flex-1">
+                                                    {/* Location Name */}
+                                                    <h3 className="text-base font-semibold text-gray-800 sm:text-lg">
+                                                        {item.name}
+                                                    </h3>
+
+                                                    {/* Address */}
+                                                    <p className="mb-2 text-sm text-gray-700">
+                                                        {item.street}, {item.city}, {item.state} {item.zip}
+                                                    </p>
+
+                                                    {/* LoadStop Date and Time */}
+                                                    {location.loadStop && (
+                                                        <>
+                                                            <p className="mb-1 text-sm text-gray-700">
+                                                                <span className="font-semibold text-gray-600">
+                                                                    Date:
+                                                                </span>{' '}
+                                                                {new Intl.DateTimeFormat('en-US', {
+                                                                    month: 'short',
+                                                                    day: '2-digit',
+                                                                }).format(new Date(location.loadStop.date))}{' '}
+                                                                <span className="font-semibold text-gray-600">
+                                                                    Time:
+                                                                </span>{' '}
+                                                                {location.loadStop.time}
+                                                            </p>
+                                                        </>
+                                                    )}
+
+                                                    {/* Additional Info */}
+                                                    <div className="space-y-1 text-sm text-gray-700">
+                                                        {location.loadStop?.poNumbers && (
+                                                            <p>
+                                                                <span className="font-semibold text-gray-600">
+                                                                    PO #’s:
+                                                                </span>{' '}
+                                                                {location.loadStop.poNumbers}
+                                                            </p>
+                                                        )}
+                                                        {location.loadStop?.pickUpNumbers && (
+                                                            <p>
+                                                                <span className="font-semibold text-gray-600">
+                                                                    PU #’s:
+                                                                </span>{' '}
+                                                                {location.loadStop.pickUpNumbers}
+                                                            </p>
+                                                        )}
+                                                        {location.loadStop?.referenceNumbers && (
+                                                            <p>
+                                                                <span className="font-semibold text-gray-600">
+                                                                    Ref #’s:
+                                                                </span>{' '}
+                                                                {location.loadStop.referenceNumbers}
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                    <div className="text-sm">{stop.time}</div>
+                                                </div>
+
+                                                {/* Map Button */}
+                                                <div className="mt-3 sm:mt-0 sm:ml-auto">
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openAddressInMaps(
+                                                                `${item.street} ${item.city} ${item.state} ${item.zip}`,
+                                                            );
+                                                        }}
+                                                        disabled={docsLoading}
+                                                    >
+                                                        <MapPinIcon className="w-5 h-5" aria-hidden="true" />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex-1 mr-3">
-                                                <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
-                                                    {stop.name}
-                                                </p>
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    {stop.street}
-                                                    <br />
-                                                    {stop.city}, {stop.state} {stop.zip}
-                                                </p>
-                                                {stop.poNumbers && (
-                                                    <p className="text-sm text-gray-700 select-all">
-                                                        PO #&rsquo;s: {stop.poNumbers}
-                                                    </p>
-                                                )}
-                                                {stop.pickUpNumbers && (
-                                                    <p className="text-sm text-gray-700 select-all">
-                                                        PU #&rsquo;s: {stop.pickUpNumbers}
-                                                    </p>
-                                                )}
-                                                {stop.referenceNumbers && (
-                                                    <p className="text-sm text-gray-700 select-all">
-                                                        Ref #&rsquo;s: {stop.referenceNumbers}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-none place-items-center ">
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openAddressInMaps(
-                                                            `${stop.street} ${stop.city} ${stop.state} ${stop.zip}`,
-                                                        );
-                                                    }}
-                                                    disabled={docsLoading}
-                                                >
-                                                    <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
-                                                </button>
-                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                                <div className="flex flex-col">
-                                    <div className="relative flex">
-                                        <span className="absolute w-6 h-6 px-2 py-1 text-xs font-medium text-center text-gray-600 bg-white rounded-full -left-2 -top-2 ring-1 ring-inset ring-gray-500/10">
-                                            {load.stops.length + 2}
-                                        </span>
-                                        <div className="mr-3">
-                                            <div className="w-20 p-2 text-base text-center text-gray-700 bg-slate-100">
-                                                <div className="text-base font-medium text-gray-900">
-                                                    {new Intl.DateTimeFormat('en-US', {
-                                                        month: 'short',
-                                                        day: '2-digit',
-                                                    }).format(new Date(load.receiver.date))}
-                                                </div>
-                                                <div className="text-sm">{load.receiver.time}</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 mr-3">
-                                            <p className="text-base font-semibold tracking-wide text-indigo-500 uppercase select-all">
-                                                {load.receiver.name}
-                                            </p>
-                                            <p className="text-sm text-gray-700 select-all">
-                                                {load.receiver.street}
-                                                <br />
-                                                {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
-                                            </p>
-                                            {load.receiver.poNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    PO #&rsquo;s: {load.receiver.poNumbers}
-                                                </p>
-                                            )}
-                                            {load.receiver.pickUpNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    Del #&rsquo;s: {load.receiver.pickUpNumbers}
-                                                </p>
-                                            )}
-                                            {load.receiver.referenceNumbers && (
-                                                <p className="text-sm text-gray-700 select-all">
-                                                    Ref #&rsquo;s: {load.receiver.referenceNumbers}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-none place-items-center ">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center px-2 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openAddressInMaps(
-                                                        `${load.receiver.street} ${load.receiver.city} ${load.receiver.state} ${load.receiver.zip}`,
-                                                    );
-                                                }}
-                                                disabled={docsLoading}
-                                            >
-                                                <MapPinIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                })}
+
                                 <div className="flex flex-row space-x-2">
                                     <div className="text-sm">
-                                        {load.routeDistance && (
+                                        {assignment.load.routeDistance && (
                                             <div>
                                                 Distance:{' '}
                                                 {metersToMiles(
-                                                    new Prisma.Decimal(load.routeDistance).toNumber(),
+                                                    new Prisma.Decimal(assignment.routeLeg.routeLegDistance).toNumber(),
                                                 ).toFixed(0)}{' '}
                                                 miles
                                             </div>
                                         )}
-                                        {load.routeDuration && (
+                                        {assignment.load.routeDuration && (
                                             <div>
                                                 Travel Time:{' '}
-                                                {secondsToReadable(new Prisma.Decimal(load.routeDuration).toNumber())}
+                                                {secondsToReadable(
+                                                    new Prisma.Decimal(assignment.routeLeg.routeLegDuration).toNumber(),
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -651,7 +619,7 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                                     <div className="flex-none">
                                         <button
                                             type="button"
-                                            className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
                                             onClick={openRouteInGoogleMaps}
                                         >
                                             Get Directions
@@ -665,14 +633,14 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
                         <div className="p-4 space-y-4 overflow-hidden border-2 rounded-lg">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <div className="text-base font-semibold uppercase">No Load Found</div>
+                                    <div className="text-base font-semibold uppercase">No Assignment Found</div>
                                 </div>
                             </div>
                         </div>
                     )
                 ) : (
                     <div className="p-4 space-y-4 overflow-hidden border-2 rounded-lg">
-                        <DriverLoadDetailsPageSkeleton></DriverLoadDetailsPageSkeleton>
+                        <DriverAssignmentDetailsPageSkeleton></DriverAssignmentDetailsPageSkeleton>
                     </div>
                 )}
             </div>
@@ -680,6 +648,6 @@ const DriverLoadDetailsPage: PageWithAuth = () => {
     );
 };
 
-DriverLoadDetailsPage.authenticationEnabled = false;
+DriverAssignmentDetailsPage.authenticationEnabled = false;
 
-export default DriverLoadDetailsPage;
+export default DriverAssignmentDetailsPage;
