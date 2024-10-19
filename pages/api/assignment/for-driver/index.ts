@@ -1,9 +1,10 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, RouteLegStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getToken } from 'next-auth/jwt';
 import { JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { calcPaginationMetadata } from 'lib/pagination';
+import { startOfDay, subDays } from 'date-fns';
 
 const buildOrderBy = (
     sortBy: string,
@@ -60,7 +61,36 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
     const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
     const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
 
-    const upcomingOnly = req.query.upcomingOnly === '1';
+    const assignedOnly = req.query.assignedOnly === '1';
+    const completedOnly = req.query.completedOnly === '1';
+
+    let whereClause: Prisma.DriverAssignmentWhereInput = {};
+
+    if (assignedOnly) {
+        const tenDaysAgo = subDays(new Date(), 10);
+
+        whereClause = {
+            routeLeg: {
+                scheduledDate: {
+                    gte: tenDaysAgo,
+                },
+                status: {
+                    not: RouteLegStatus.COMPLETED,
+                },
+            },
+        };
+    } else if (completedOnly) {
+        const thirtyDaysAgo = subDays(new Date(), 30);
+
+        whereClause = {
+            routeLeg: {
+                scheduledDate: {
+                    gte: thirtyDaysAgo,
+                },
+                status: RouteLegStatus.COMPLETED,
+            },
+        };
+    }
 
     if (limit != null || offset != null) {
         if (limit == null || offset == null) {
@@ -85,6 +115,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 driver: {
                     carrierId: tokenCarrierId,
                 },
+                ...whereClause,
             },
         });
 
@@ -96,6 +127,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 driver: {
                     carrierId: tokenCarrierId,
                 },
+                ...whereClause,
             },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
