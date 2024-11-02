@@ -88,16 +88,19 @@ export const authOptions: NextAuthOptions = {
 
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
-                    const generatedCode = generateRandomCode();
-                    await twilioClient.messages.create({
-                        body: `Your login code is: ${generatedCode}`,
-                        from: '+18883429736',
-                        to: phoneNumber,
-                    });
+                    const isDemoDriver = driver.email === 'demo@driver.com' && carrierCode === 'demo';
+                    if (isDemoDriver) {
+                        const generatedCode = generateRandomCode();
 
-                    // Store the generated code in the database linked to the driver's phone number
-                    // with a short expiration time.
-                    await storeCodeForDriver(driver.id, generatedCode);
+                        await twilioClient.messages.create({
+                            body: `Your login code is: ${generatedCode}`,
+                            from: '+18883429736',
+                            to: phoneNumber,
+                        });
+                        // Store the generated code in the database linked to the driver's phone number
+                        // with a short expiration time.
+                        await storeCodeForDriver(driver.id, generatedCode);
+                    }
 
                     // Notify the frontend that an SMS has been sent.
                     return null; // No session is created yet.
