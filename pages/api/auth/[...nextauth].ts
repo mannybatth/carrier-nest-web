@@ -246,11 +246,22 @@ async function verifyCodeForDriver(driverId: string, code: string): Promise<bool
         select: {
             smsCode: true,
             smsCodeExpiry: true,
+            email: true,
+            carrier: {
+                select: {
+                    email: true,
+                },
+            },
         },
     });
 
     if (!driver) {
         throw new Error('Driver not found');
+    }
+
+    // Add bypass for demo@driver.com
+    if (driver.email === 'demo@driver.com' && driver.carrier.email === 'demo@carrier.com') {
+        return true;
     }
 
     // Check if the code matches and if it hasn't expired
