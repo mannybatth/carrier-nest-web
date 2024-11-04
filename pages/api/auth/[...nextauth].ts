@@ -89,7 +89,7 @@ export const authOptions: NextAuthOptions = {
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
                     const isDemoDriver = driver.email === 'demo@driver.com' && carrierCode === 'demo';
-                    if (isDemoDriver) {
+                    if (!isDemoDriver) {
                         const generatedCode = generateRandomCode();
 
                         await twilioClient.messages.create({
