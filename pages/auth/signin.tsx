@@ -57,7 +57,11 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
         setLoadingSubmit(true);
         const { email } = event.target as HTMLFormElement;
         try {
-            await signIn('email', { email: email.value, callbackUrl });
+            if (email.value === 'demo@user.com') {
+                await signIn('demo_login', { email: email.value });
+            } else {
+                await signIn('email', { email: email.value, callbackUrl });
+            }
         } catch (error) {
             console.error(error);
         }

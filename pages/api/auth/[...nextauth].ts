@@ -117,6 +117,26 @@ export const authOptions: NextAuthOptions = {
                 return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
             },
         }),
+        CredentialsProvider({
+            id: 'demo_login',
+            name: 'demo_login',
+            type: 'credentials',
+            credentials: {
+                email: { label: 'Email', type: 'email' },
+            },
+            async authorize(credentials, req) {
+                const { email } = credentials;
+                if (email === 'demo@user.com') {
+                    const user = await prisma.user.findFirst({
+                        where: { email, defaultCarrier: { carrierCode: 'demo' } },
+                    });
+                    return user;
+                }
+
+                // For other emails, deny access
+                return null;
+            },
+        }),
     ],
     adapter: PrismaAdapter(prisma),
     callbacks: {
@@ -131,9 +151,10 @@ export const authOptions: NextAuthOptions = {
             // console.log('------------------');
 
             if (user) {
-                token.driverId = (user as any).driverId; // Store the driver's ID in the JWT
-                token.phoneNumber = (user as any).phoneNumber; // Store the driver's phone number in the JWT
-                token.carrierId = (user as any).carrierId; // Store the driver's carrier ID in the JWT
+                token.user = user as User;
+                if ((user as any).driverId) token.driverId = (user as any).driverId; // Store the driver's ID in the JWT
+                if ((user as any).phoneNumber) token.phoneNumber = (user as any).phoneNumber; // Store the driver's phone number in the JWT
+                if ((user as any).carrierId) token.carrierId = (user as any).carrierId; // Store the driver's carrier ID in the JWT
             }
 
             return token;
@@ -144,8 +165,11 @@ export const authOptions: NextAuthOptions = {
             // console.log('callbacks session user:', user);
             // console.log('callbacks session token:', token);
             // console.log('------------------');
-            if (user && session) {
+
+            if (user) {
                 session.user = user as User;
+            } else if (token?.user) {
+                session.user = token.user as User;
             }
             return session;
         },
@@ -161,6 +185,7 @@ export const authOptions: NextAuthOptions = {
         },
     },
     session: {
+        strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     jwt: {

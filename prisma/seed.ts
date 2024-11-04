@@ -35,6 +35,21 @@ async function main() {
 
     console.log(`Created demo user: ${demoUser.name}`);
 
+    // Connect carrier to user
+    await prisma.user.update({
+        where: {
+            id: demoUser.id,
+        },
+        data: {
+            defaultCarrierId: demoCarrier.id,
+            carriers: {
+                connect: {
+                    id: demoCarrier.id,
+                },
+            },
+        },
+    });
+
     // Check if a demo driver with the specified phone and carrier already exists
     let demoDriver = await prisma.driver.findFirst({
         where: {
