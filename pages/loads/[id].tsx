@@ -233,9 +233,9 @@ const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
                     data-tooltip-place="top-start"
                     className={`inline-flex justify-center capitalize w-full px-2 py-[4px] text-xs font-semibold text-slate-700 ${
                         status === RouteLegStatus.IN_PROGRESS
-                            ? 'bg-amber-400/70 text-white hover:bg-amber-400'
+                            ? 'bg-yellow-400 text-slate-600 hover:bg-amber-400'
                             : status === RouteLegStatus.COMPLETED
-                            ? 'bg-green-700/70 text-white hover:bg-green-500'
+                            ? 'bg-green-500/80 text-white hover:bg-green-500'
                             : 'bg-white text-slate-900 hover:bg-gray-50'
                     } shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
                     disabled={disabled}
@@ -313,7 +313,7 @@ const AssignmentDropDown: React.FC<AssignmentDropDownProps> = ({
                     className="inline-flex justify-center w-full px-1 py-[2px] text-sm font-bold text-slate-700 bg-white shadow-lg border border-gray-300 rounded-md  hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
                     disabled={disabled}
                 >
-                    <EllipsisHorizontalIcon className="w-5 h-4 mx-0" aria-hidden="true" />
+                    <EllipsisHorizontalIcon className="w-5 h-5 mx-0" aria-hidden="true" />
                 </Menu.Button>
             </div>
 
@@ -1261,13 +1261,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                             {load && load.routeEncoded && (
                                                 <Image
-                                                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/path-5(${encodeURIComponent(
+                                                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
                                                         load.routeEncoded,
-                                                    )})/auto/1275x400?padding=25,25,25,25&access_token=${
+                                                    )})/auto/1275x200?padding=25,25,25,25&access_token=${
                                                         process.env.NEXT_PUBLIC_MAPBOX_TOKEN
                                                     }`}
                                                     width={1200}
-                                                    height={300}
+                                                    height={200}
                                                     alt="Load Route"
                                                     loading="lazy"
                                                     className="w-full h-auto mb-3"
@@ -1495,7 +1495,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </div>
                                 </div>
                                 <div className="mt-2">
-                                    <div className="flex flex-row justify-between align-top justify-items-start">
+                                    <div className="flex flex-row justify-between align-top justify-items-start mb-2">
                                         <div>
                                             <h1 className="text-base font-semibold text-gray-900">Load Assignments</h1>
                                             <p className="text-xs text-slate-500">
@@ -1513,10 +1513,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     <div>
                                         {load.route && load.route.routeLegs.length > 0 && (
                                             <div className="flex flex-col w-full" key={'route-legs-container'}>
-                                                <div
-                                                    className="p-0 my-3 mt-6 border rounded-lg border-slate-100"
-                                                    key={'route-legs'}
-                                                >
+                                                <div className="p-0 my-3 mt-6  rounded-lg " key={'route-legs'}>
                                                     {load.route.routeLegs.map((leg, index) => {
                                                         const drivers = leg.driverAssignments.map(
                                                             (driver) => driver.driver,
@@ -1525,20 +1522,23 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                         const legStatus = leg.status;
 
                                                         return (
-                                                            <div className="relative" key={`routelegs-${index}`}>
+                                                            <div
+                                                                className="relative border rounded-lg border-slate-600 mb-8"
+                                                                key={`routelegs-${index}`}
+                                                            >
                                                                 {removingRouteLegWithId == leg.id && (
                                                                     <div className="absolute z-[5]  flex flex-col items-center h-full w-full bg-slate-50/90 ounded-lg justify-center flex-1 flex-grow ">
-                                                                        <div className="flex items-center mt-10 space-x-2 text-slate-700">
+                                                                        <div className="flex items-center mt-10 space-x-2 text-slate-600">
                                                                             <Spinner />
                                                                             <span>Removing assignment...</span>
                                                                         </div>
                                                                     </div>
                                                                 )}
                                                                 <div
-                                                                    className="flex flex-col items-start gap-1 p-2 text-sm lg:flex-row lg:items-center bg-slate-100 rounded-tl-md rounded-tr-md"
+                                                                    className="flex flex-col items-start gap-1 p-2 text-sm lg:flex-row lg:items-center bg-slate-600 rounded-tl-md rounded-tr-md"
                                                                     key={`route-leg-${index}-drivers`}
                                                                 >
-                                                                    <div className="absolute right-0  -top-6 flex items-center flex-row gap-2 rounded-md p-[3px] px-2 h-8  text-center text-xs font-semibold border-2 bg-slate-100 border-slate-100">
+                                                                    <div className="absolute right-2 -top-6 flex items-center flex-row   rounded-tr-md rounded-tl-md pb-[4px] px-2 h-8  text-center font-bold text-xs border border-slate-600 text-slate-600  bg-transparent">
                                                                         <p
                                                                             data-tooltip-id="tooltip"
                                                                             data-tooltip-content={`Assigned at: ${new Date(
@@ -1546,31 +1546,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             ).toLocaleString()}`}
                                                                             data-tooltip-place="top-start"
                                                                         >
-                                                                            Assignment# {index + 1}
+                                                                            Leg assignment# {index + 1}
                                                                         </p>
-                                                                        <div>
-                                                                            <AssignmentDropDown
-                                                                                deleteLegClicked={() =>
-                                                                                    deleteLegClicked(leg.id)
-                                                                                }
-                                                                                editLegClicked={() =>
-                                                                                    editLegClicked(leg.id)
-                                                                                }
-                                                                                openRouteInMapsClicked={() =>
-                                                                                    openRouteInMapsClicked(leg.id)
-                                                                                }
-                                                                                disabled={false}
-                                                                                legId={leg.id}
-                                                                                load={load}
-                                                                            />
-                                                                        </div>
                                                                     </div>
                                                                     <div className="absolute text-xs font-bold text-center rounded-md right-2 ">
                                                                         <div className="flex flex-row items-center gap-1">
                                                                             {/* <p className="text-xs font-semibold text-slate-800 ">
                                                                                 Status:
                                                                             </p> */}
-                                                                            <div className="font-light rounded-full bg-slate-100">
+                                                                            <div className="font-light  flex flex-row items-center gap-2">
                                                                                 {/* {leg.startedAt && !leg.endedAt && (
                                                                                     <p
                                                                                         data-tooltip-id="tooltip"
@@ -1614,10 +1598,30 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                     disabled={false}
                                                                                     status={legStatus}
                                                                                 />
+                                                                                <div>
+                                                                                    <AssignmentDropDown
+                                                                                        deleteLegClicked={() =>
+                                                                                            deleteLegClicked(leg.id)
+                                                                                        }
+                                                                                        editLegClicked={() =>
+                                                                                            editLegClicked(leg.id)
+                                                                                        }
+                                                                                        openRouteInMapsClicked={() =>
+                                                                                            openRouteInMapsClicked(
+                                                                                                leg.id,
+                                                                                            )
+                                                                                        }
+                                                                                        disabled={false}
+                                                                                        legId={leg.id}
+                                                                                        load={load}
+                                                                                    />
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <p className="font-semibold">Assigned Drivers:</p>
+                                                                    <p className="font-semibold text-white">
+                                                                        Assigned:
+                                                                    </p>
                                                                     <div
                                                                         className="flex gap-1"
                                                                         key={`route-legs-${index}-drivers`}
@@ -1625,7 +1629,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         {drivers.map((driver, index) => {
                                                                             return (
                                                                                 <p
-                                                                                    className="px-2 py-1 text-xs capitalize bg-white border rounded-md whitespace-nowrap border-slate-300"
+                                                                                    className="px-2 py-1 text-xs capitalize bg-slate-100 border rounded-md whitespace-nowrap border-slate-300"
                                                                                     key={`driver-${index}`}
                                                                                 >
                                                                                     <Link
@@ -1638,8 +1642,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         })}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 px-4 py-1 pt-4 text-xs font-normal">
-                                                                    <p>Assignment begin time:</p>
+                                                                <div className="flex flex-row gap-1 px-4 py-1  text-sm font-normal">
+                                                                    <p>Start Time:</p>
                                                                     <p className="text-slate-600">
                                                                         {`${
                                                                             new Date(leg.scheduledDate)
@@ -1654,17 +1658,35 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         ).toLocaleTimeString()}`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 px-4 py-1 pb-4 text-xs">
-                                                                    <p>Instructions:</p>
+                                                                <div className="flex flex-row gap-1 px-4 py-1 text-sm font-normal">
+                                                                    <p>End Time:</p>
                                                                     <p className="text-slate-600">
-                                                                        {leg.driverInstructions}
+                                                                        {`${
+                                                                            new Date(leg.scheduledDate)
+                                                                                ?.toISOString()
+                                                                                ?.split('T')[0]
+                                                                        } @ ${new Date(
+                                                                            `${
+                                                                                leg.scheduledDate
+                                                                                    ?.toString()
+                                                                                    ?.split('T')[0]
+                                                                            }T${leg.scheduledTime}`,
+                                                                        ).toLocaleTimeString()}`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex flex-row items-center justify-center gap-1 px-4 text-sm font-semibold text-slate-600 ">
-                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
-                                                                    <p className="px-1 rounded-md ">Assigned Stops</p>
-                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
+                                                                <div className="flex flex-row gap-1 px-4 py-1  text-sm">
+                                                                    <p>Instructions:</p>
+                                                                    <p className="text-slate-600">
+                                                                        {leg.driverInstructions == ''
+                                                                            ? 'None'
+                                                                            : leg.driverInstructions}
+                                                                    </p>
                                                                 </div>
+                                                                {/*  <div className="flex flex-row items-center justify-center gap-1 px-4 text-sm font-semibold text-slate-600 ">
+                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
+                                                                    <p className="px-1 rounded-md ">Route</p>
+                                                                    <div className="h-[1px] w-full border-b border-dashed flex-1 bg-slate-50  "></div>
+                                                                </div> */}
                                                                 <div
                                                                     className="flex flex-col gap-2 p-3 m-4 mt-2 overflow-x-auto rounded-lg lg:flex-row bg-neutral-50"
                                                                     key={`route-legs-${index}-stops`}
@@ -1682,20 +1704,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             >
                                                                                 <label /* htmlFor={`stop-${index}`} */>
                                                                                     <div className="relative flex flex-col items-start flex-1 py-1 pl-1 cursor-default">
-                                                                                        <div className="flex flex-row items-center w-full gap-0 justify-items-start">
-                                                                                            <p className="relative top-0 text-sm font-medium bg-slate-200 p-[2px] h-7 w-7 text-center border-2 border-slate-300 rounded-full">
-                                                                                                {index + 1}
+                                                                                        <div className="flex flex-row items-center w-full gap-1 mb-1 justify-items-start">
+                                                                                            <p className="relative top-0 text-sm font-medium text-gray-600 bg-slate-300 px-[6px] text-center border-2 border-slate-300 rounded-md">
+                                                                                                {index == 0
+                                                                                                    ? 'Pick-Up'
+                                                                                                    : index ==
+                                                                                                      locations.length -
+                                                                                                          1
+                                                                                                    ? 'Drop-Off'
+                                                                                                    : 'Stop'}
                                                                                             </p>
-                                                                                            <div className="h-[3px] w-full flex-1 bg-slate-300"></div>
-                                                                                            {
-                                                                                                <TruckIcon
-                                                                                                    className="w-6 h-6 text-gray-500"
-                                                                                                    aria-hidden="true"
-                                                                                                />
-                                                                                            }
                                                                                         </div>
 
-                                                                                        <div className="flex-1 truncate pl-7">
+                                                                                        <div className="flex-1 pl-2">
                                                                                             <p className="text-base font-semibold text-gray-900 capitalize truncate">
                                                                                                 {item.name}
                                                                                             </p>
@@ -1714,10 +1735,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                                                     }
                                                                                                 </p>
                                                                                             )}
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                            <p className="text-sm text-gray-600 capitalize truncate">
                                                                                                 {item.street}
                                                                                             </p>
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                            <p className="text-sm text-gray-600 capitalize truncate">
                                                                                                 {item.city},{' '}
                                                                                                 {item.state.toUpperCase()}
                                                                                                 , {item.zip}
