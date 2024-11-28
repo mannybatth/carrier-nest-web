@@ -1,10 +1,10 @@
 import { Prisma, RouteLegStatus } from '@prisma/client';
+import { subDays } from 'date-fns';
+import { calcPaginationMetadata } from 'lib/pagination';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getToken } from 'next-auth/jwt';
 import { JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
-import { calcPaginationMetadata } from 'lib/pagination';
-import { startOfDay, subDays } from 'date-fns';
 
 const buildOrderBy = (
     sortBy: string,

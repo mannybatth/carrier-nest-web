@@ -100,6 +100,14 @@ export const authOptions: NextAuthOptions = {
                         // Store the generated code in the database linked to the driver's phone number
                         // with a short expiration time.
                         await storeCodeForDriver(driver.id, generatedCode);
+                    } else {
+                        // Process login of demo driver without PIN verification
+                        return {
+                            id: driver.id,
+                            driverId: driver.id,
+                            phoneNumber: driver.phone,
+                            carrierId: driver.carrierId,
+                        };
                     }
 
                     // Notify the frontend that an SMS has been sent.
