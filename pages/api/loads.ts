@@ -1,14 +1,13 @@
 import { Load, LoadStatus, Prisma } from '@prisma/client';
+import startOfDay from 'date-fns/startOfDay';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
-import { ExpandedLoad, JSONResponse, exclude } from '../../interfaces/models';
+import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
 import prisma from '../../lib/prisma';
 import { authOptions } from './auth/[...nextauth]';
-import { getToken } from 'next-auth/jwt';
-import startOfDay from 'date-fns/startOfDay';
 
 const buildOrderBy = (
     sortBy: string,
@@ -83,10 +82,8 @@ export const getLoads = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ loads: Partial<ExpandedLoad[]>; metadata: PaginationMetadata }>> => {
     const session = await getServerSession(req, res, authOptions);
-    const token = await getToken({ req, secret: process.env.JWT_SECRET });
-    const tokenCarrierId = token?.carrierId as string;
 
-    if (!session && !tokenCarrierId) {
+    if (!session) {
         return {
             code: 401,
             errors: [{ message: 'Unauthorized' }],
@@ -165,7 +162,7 @@ export const getLoads = async ({
 
     const total = await prisma.load.count({
         where: {
-            carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
+            carrierId: session?.user?.defaultCarrierId,
             ...(customerId ? { customerId } : null),
             ...(driverId ? { driverAssignments: { some: { driverId: driverId } } } : null),
             ...upcomingOnlyWhereClause,
@@ -176,7 +173,7 @@ export const getLoads = async ({
 
     const loads = await prisma.load.findMany({
         where: {
-            carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
+            carrierId: session?.user?.defaultCarrierId,
             ...(customerId ? { customerId } : null),
             ...(driverId ? { driverAssignments: { some: { driverId: driverId } } } : null),
             ...upcomingOnlyWhereClause,
@@ -289,21 +286,10 @@ export const getLoads = async ({
         },
     });
 
-    if (token) {
-        const loadsExcludedRate = loads.map((load) => {
-            return exclude(load, ['rate']);
-        });
-
-        return {
-            code: 200,
-            data: { metadata, loads: loadsExcludedRate },
-        };
-    } else {
-        return {
-            code: 200,
-            data: { metadata, loads },
-        };
-    }
+    return {
+        code: 200,
+        data: { metadata, loads },
+    };
 };
 
 export const postLoads = async ({
