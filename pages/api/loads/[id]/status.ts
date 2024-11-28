@@ -1,7 +1,6 @@
 import { Driver, Load, LoadActivityAction, LoadStatus } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
-import { getToken } from 'next-auth/jwt';
 import { ExpandedLoad, JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]';
@@ -24,8 +23,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         let driver: Driver;
 
         const session = await getServerSession(req, res, authOptions);
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenCarrierId = token?.carrierId as string;
+        const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
 
         if (!session && !tokenCarrierId) {
             return res.status(401).send({

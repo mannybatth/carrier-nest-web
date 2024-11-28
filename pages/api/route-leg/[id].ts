@@ -4,7 +4,6 @@ import { JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { RouteLegStatus, LoadActivityAction, RouteLeg } from '@prisma/client';
-import { getToken } from 'next-auth/jwt';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
@@ -21,21 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
         const session = await getServerSession(req, res, authOptions);
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenCarrierId = token?.carrierId as string;
-        const driverId = (token?.driverId || req.body.driverId) as string;
+        const driverId = (session.user?.driverId || req.body.driverId) as string;
 
-        // if (!session && !tokenCarrierId) {
-        //     return res.status(401).json({
-        //         code: 401,
-        //         errors: [{ message: 'Unauthorized' }],
-        //     });
-        // }
-
-        if (!driverId && !session) {
-            return res.status(400).json({
-                code: 400,
-                errors: [{ message: 'Missing driver ID' }],
+        if (!session) {
+            return res.status(401).json({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
             });
         }
 
@@ -109,7 +99,7 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
                     action: LoadActivityAction.CHANGE_ASSIGNMENT_STATUS,
                     fromLegStatus: routeLeg.status,
                     toLegStatus: routeLegStatus,
-                    ...(session
+                    ...(!driverId
                         ? {
                               actorUser: {
                                   connect: {

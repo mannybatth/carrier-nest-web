@@ -2,7 +2,8 @@ import { Device } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
-import { getToken } from 'next-auth/jwt';
+import { getServerSession } from 'next-auth';
+import { authOptions } from 'pages/api/auth/[...nextauth]';
 
 async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<Device>>) {
     switch (req.method) {
@@ -20,9 +21,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
     }
 
     async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<Device>>) {
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenCarrierId = token?.carrierId as string;
-        const tokenDriverId = token?.driverId as string;
+        const session = await getServerSession(req, res, authOptions);
+        const tokenCarrierId = session?.user?.carrierId as string;
+        const tokenDriverId = session?.user?.driverId as string;
+
+        if (!tokenCarrierId || !tokenDriverId) {
+            return res.status(401).send({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            });
+        }
 
         // Extract the FCM token and driver ID from the request body
         const { fcmToken } = req.body;
@@ -33,13 +41,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
             return res.status(400).send({
                 code: 400,
                 errors: [{ message: 'FCM token and driver ID are required.' }],
-            });
-        }
-
-        if (!tokenCarrierId || !tokenDriverId) {
-            return res.status(401).send({
-                code: 401,
-                errors: [{ message: 'Unauthorized' }],
             });
         }
 
@@ -103,8 +104,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
     }
 
     async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<Device>>) {
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenDriverId = token?.driverId as string;
+        const session = await getServerSession(req, res, authOptions);
+        const tokenDriverId = session?.user?.driverId;
+
+        if (!tokenDriverId) {
+            return res.status(401).send({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            });
+        }
 
         const { deviceId, newFcmToken } = req.body;
         const driverId = req.query.id as string;
@@ -113,13 +121,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
             return res.status(400).send({
                 code: 400,
                 errors: [{ message: 'Device ID, new FCM token, and driver ID are required.' }],
-            });
-        }
-
-        if (!tokenDriverId) {
-            return res.status(401).send({
-                code: 401,
-                errors: [{ message: 'Unauthorized' }],
             });
         }
 
@@ -168,8 +169,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<De
     }
 
     async function _delete(req: NextApiRequest, res: NextApiResponse<JSONResponse<Device>>) {
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenDriverId = token?.driverId as string;
+        const session = await getServerSession(req, res, authOptions);
+        const tokenDriverId = session?.user?.driverId;
 
         // Extract the FCM token from the request body or query
         const { fcmToken } = req.body;

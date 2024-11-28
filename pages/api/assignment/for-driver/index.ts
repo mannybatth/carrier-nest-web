@@ -2,9 +2,10 @@ import { Prisma, RouteLegStatus } from '@prisma/client';
 import { subDays } from 'date-fns';
 import { calcPaginationMetadata } from 'lib/pagination';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getToken } from 'next-auth/jwt';
 import { JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from 'pages/api/auth/[...nextauth]';
 
 const buildOrderBy = (
     sortBy: string,
@@ -46,8 +47,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         });
     }
 
-    const token = await getToken({ req, secret: process.env.JWT_SECRET });
-    const tokenCarrierId = token?.carrierId as string;
+    const session = await getServerSession(req, res, authOptions);
+    const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
 
     if (!tokenCarrierId) {
         return res.status(401).send({

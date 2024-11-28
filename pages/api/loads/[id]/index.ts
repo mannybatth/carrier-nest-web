@@ -1,7 +1,6 @@
 import { Load, LoadStopType } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Session, getServerSession } from 'next-auth';
-import { getToken } from 'next-auth/jwt';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedLoad, JSONResponse, exclude } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
@@ -27,10 +26,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const session = await getServerSession(req, res, authOptions);
-        const token = await getToken({ req, secret: process.env.JWT_SECRET });
-        const tokenCarrierId = token?.carrierId as string;
+        const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
 
-        if (!session && !tokenCarrierId) {
+        if (!session || !tokenCarrierId) {
             return res.status(401).send({
                 code: 401,
                 errors: [{ message: 'Unauthorized' }],
@@ -43,11 +41,19 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _put() {
         const session = await getServerSession(req, res, authOptions);
+        const tokenCarrierId = session.user?.defaultCarrierId;
+
+        if (!session || !tokenCarrierId) {
+            return res.status(401).send({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            });
+        }
 
         const load = await prisma.load.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.defaultCarrierId,
+                carrierId: tokenCarrierId,
             },
         });
 
@@ -228,11 +234,19 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _delete() {
         const session = await getServerSession(req, res, authOptions);
+        const tokenCarrierId = session.user?.defaultCarrierId;
+
+        if (!session || !tokenCarrierId) {
+            return res.status(401).send({
+                code: 401,
+                errors: [{ message: 'Unauthorized' }],
+            });
+        }
 
         const load = await prisma.load.findFirst({
             where: {
                 id: String(req.query.id),
-                carrierId: session.user.defaultCarrierId,
+                carrierId: tokenCarrierId,
             },
             include: {
                 loadDocuments: true,

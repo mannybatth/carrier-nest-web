@@ -11,6 +11,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '../../../lib/prisma';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from './verification-request';
+import { AuthUser } from 'types';
 
 const authHandler: NextApiHandler = (req, res) => {
     try {
@@ -175,9 +176,9 @@ export const authOptions: NextAuthOptions = {
             // console.log('------------------');
 
             if (user) {
-                session.user = user as User;
+                session.user = user as AuthUser;
             } else if (token?.user) {
-                session.user = token.user as User;
+                session.user = token.user as AuthUser;
             }
             return session;
         },
