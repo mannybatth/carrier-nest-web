@@ -102,12 +102,12 @@ const Homepage = () => {
                                     >
                                         Get Started
                                     </button>
-                                    <button
+                                    {/* <button
                                         className="px-6 py-3 font-semibold text-gray-700 transition border border-gray-300 rounded-md hover:bg-gray-100"
                                         onClick={() => router.push('/learn-more')}
                                     >
                                         Learn More
-                                    </button>
+                                    </button> */}
                                 </div>
                             </div>
                         </div>
@@ -174,10 +174,10 @@ const Homepage = () => {
                 <div className="px-6 py-16 text-center text-white bg-blue-600 rounded-xl">
                     <h2 className="mb-6 text-4xl font-extrabold">Get Started with Carrier Nest Today!</h2>
                     <p className="max-w-4xl px-3 mx-auto mb-8 text-lg">
-                        Carrier Nest isn't just a management system; it's a partner in your success. Our dedicated
-                        support team is here to assist you every step of the way, ensuring you get the most out of our
-                        system. Join the growing number of trucking companies that trust Carrier Nest to keep their
-                        operations running smoothly. Experience the future of trucking management today.
+                        Carrier Nest isn&apos;t just a management system; it&apos;s a partner in your success. Our
+                        dedicated support team is here to assist you every step of the way, ensuring you get the most
+                        out of our system. Join the growing number of trucking companies that trust Carrier Nest to keep
+                        their operations running smoothly. Experience the future of trucking management today.
                     </p>
                     <button
                         className="px-8 py-3 font-semibold text-blue-600 transition bg-white rounded-md hover:bg-gray-100"
