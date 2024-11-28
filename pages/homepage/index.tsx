@@ -1,12 +1,22 @@
-import { BeakerIcon } from '@heroicons/react/24/outline';
+import {
+    DocumentArrowUpIcon,
+    ArrowPathIcon,
+    BriefcaseIcon,
+    MapPinIcon,
+    ReceiptRefundIcon,
+    DocumentDuplicateIcon,
+    CurrencyDollarIcon,
+    ChartBarIcon,
+} from '@heroicons/react/24/outline';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
-type loadFeatureProps = {
+type LoadFeatureProps = {
     name: string;
     desc: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 };
 
 const Homepage = () => {
@@ -26,21 +36,47 @@ const Homepage = () => {
         }
     }, [status, session]);
 
-    const appFeatures: loadFeatureProps[] = [
-        { name: 'AI Load Import', desc: 'Import load with drag-drop rate con feature, no data entry needed.' },
+    const appFeatures: LoadFeatureProps[] = [
+        {
+            name: 'AI Load Import',
+            desc: 'Import load with drag-drop rate con feature, no data entry needed.',
+            icon: DocumentArrowUpIcon,
+        },
         {
             name: 'Full Load Lifecycle',
             desc: 'Manage your load from booked, driver assignment, loaded, unloaded, POD ready, and invoiced.',
+            icon: ArrowPathIcon,
         },
-        { name: 'Broker Management', desc: 'Manage all broker loads under one page.' },
-        { name: 'Driver Management', desc: 'Add/remove drivers to loads, track driver location on assigned load.' },
-        { name: 'Invoice Generation', desc: 'See POD ready loads and generate invoices with one click.' },
+        {
+            name: 'Broker Management',
+            desc: 'Manage all broker loads under one page.',
+            icon: BriefcaseIcon,
+        },
+        {
+            name: 'Driver Management',
+            desc: 'Add/remove drivers to loads, track driver location on assigned load.',
+            icon: MapPinIcon,
+        },
+        {
+            name: 'Invoice Generation',
+            desc: 'See POD ready loads and generate invoices with one click.',
+            icon: ReceiptRefundIcon,
+        },
         {
             name: 'Document Management',
             desc: 'All load documents are connected to each load so you can easily see/download them.',
+            icon: DocumentDuplicateIcon,
         },
-        { name: 'Track Payments', desc: 'Mark loads paid (partial or full).' },
-        { name: 'Company Reports', desc: 'Track different metrics to stay informed about company activity.' },
+        {
+            name: 'Track Payments',
+            desc: 'Mark loads paid (partial or full).',
+            icon: CurrencyDollarIcon,
+        },
+        {
+            name: 'Company Reports',
+            desc: 'Track different metrics to stay informed about company activity.',
+            icon: ChartBarIcon,
+        },
     ];
 
     // Define an array of border color classes
@@ -132,13 +168,14 @@ const Homepage = () => {
                         {appFeatures.map((feature, index) => {
                             const borderColorClass = borderColors[index % borderColors.length];
                             const textColorClass = textColors[index % textColors.length];
+                            const IconComponent = feature.icon;
                             return (
                                 <div
                                     key={index}
                                     className={`p-6 transition duration-200 ease-out border-2 rounded-2xl hover:shadow-lg ${borderColorClass}`}
                                 >
                                     <div className="mb-4">
-                                        <BeakerIcon className={`w-10 h-10 mb-2 ${textColorClass}`} />
+                                        <IconComponent className={`w-10 h-10 mb-2 ${textColorClass}`} />
                                         <h3 className={`text-xl font-semibold ${textColorClass}`}>{feature.name}</h3>
                                     </div>
                                     <p className="text-gray-600">{feature.desc}</p>

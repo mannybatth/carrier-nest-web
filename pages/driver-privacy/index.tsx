@@ -36,8 +36,8 @@ const PrivacyPolicy = () => {
                         <p className="mb-4">
                             At <strong>Carrier Nest</strong>, we are committed to protecting your personal information
                             and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and
-                            safeguard your information when you use the Carrier Nest Driver App ("
-                            <strong>Driver App</strong>"). By accessing or using the Driver App, you agree to this
+                            safeguard your information when you use the Carrier Nest Driver App (&quot;
+                            <strong>Driver App</strong>&quot;). By accessing or using the Driver App, you agree to this
                             Privacy Policy.
                         </p>
 
@@ -161,7 +161,7 @@ const PrivacyPolicy = () => {
                         </p>
 
                         {/* Section 7 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">7. Children's Privacy</h2>
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">7. Children&apos;s Privacy</h2>
                         <p className="mb-4">
                             Our services are not intended for individuals under the age of 18. We do not knowingly
                             collect personal information from minors.
