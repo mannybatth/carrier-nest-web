@@ -76,7 +76,7 @@ export const getCarrier = async ({
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ carrier: Carrier }>> => {
     const session = await getServerSession(req, res, authOptions);
-    const userCarrierId = session.user?.defaultCarrierId;
+    const userCarrierId = session?.user?.defaultCarrierId;
 
     if (!userCarrierId) {
         return {

@@ -23,7 +23,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         let driver: Driver;
 
         const session = await getServerSession(req, res, authOptions);
-        const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
+        const tokenCarrierId = session?.user?.carrierId || session?.user?.defaultCarrierId;
 
         if (!session && !tokenCarrierId) {
             return res.status(401).send({

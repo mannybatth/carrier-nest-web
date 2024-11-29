@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     try {
         const session = await getServerSession(req, res, authOptions);
-        const driverId = (session.user?.driverId || req.body.driverId) as string;
+        const driverId = (session?.user?.driverId || req.body.driverId) as string;
 
         if (!session) {
             return res.status(401).json({

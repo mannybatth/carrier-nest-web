@@ -48,7 +48,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
     }
 
     const session = await getServerSession(req, res, authOptions);
-    const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
+    const tokenCarrierId = session?.user?.carrierId || session?.user?.defaultCarrierId;
 
     if (!tokenCarrierId) {
         return res.status(401).send({

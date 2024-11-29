@@ -26,7 +26,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _get() {
         const session = await getServerSession(req, res, authOptions);
-        const tokenCarrierId = session?.user?.carrierId || session.user?.defaultCarrierId;
+        const tokenCarrierId = session?.user?.carrierId || session?.user?.defaultCarrierId;
 
         if (!session || !tokenCarrierId) {
             return res.status(401).send({
@@ -41,7 +41,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _put() {
         const session = await getServerSession(req, res, authOptions);
-        const tokenCarrierId = session.user?.defaultCarrierId;
+        const tokenCarrierId = session?.user?.defaultCarrierId;
 
         if (!session || !tokenCarrierId) {
             return res.status(401).send({
@@ -234,7 +234,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
     async function _delete() {
         const session = await getServerSession(req, res, authOptions);
-        const tokenCarrierId = session.user?.defaultCarrierId;
+        const tokenCarrierId = session?.user?.defaultCarrierId;
 
         if (!session || !tokenCarrierId) {
             return res.status(401).send({
