@@ -54,6 +54,7 @@ const CarrierSetup: PageWithAuth = () => {
 
             if (!isUnique) {
                 notify({ title: 'Carrier code is not unique', type: 'error' });
+                setIsLoading(false);
                 return;
             }
 
@@ -63,10 +64,12 @@ const CarrierSetup: PageWithAuth = () => {
                 notify({ title: 'Carrier created successfully', type: 'success' });
                 await update();
                 await replace('/');
+            } else {
+                notify({ title: 'Failed to create carrier', type: 'error' });
+                setIsLoading(false);
             }
         } catch (error) {
             notify({ title: error.message, type: 'error' });
-        } finally {
             setIsLoading(false);
         }
     };

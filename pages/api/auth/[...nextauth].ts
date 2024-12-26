@@ -1,5 +1,4 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { User } from '@prisma/client';
 import { NextApiHandler } from 'next';
 import NextAuth, { NextAuthOptions, Session } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
@@ -11,7 +10,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '../../../lib/prisma';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from './verification-request';
-import { AuthUser } from 'types';
+import { AuthUser } from 'next-env';
 
 const authHandler: NextApiHandler = (req, res) => {
     try {
@@ -160,10 +159,19 @@ export const authOptions: NextAuthOptions = {
             // console.log('------------------');
 
             if (user) {
-                token.user = user as User;
-                if ((user as any).driverId) token.driverId = (user as any).driverId; // Store the driver's ID in the JWT
-                if ((user as any).phoneNumber) token.phoneNumber = (user as any).phoneNumber; // Store the driver's phone number in the JWT
-                if ((user as any).carrierId) token.carrierId = (user as any).carrierId; // Store the driver's carrier ID in the JWT
+                token.user = user as AuthUser;
+                if (token.user.driverId) token.driverId = token.user.driverId; // Store the driver's ID in the JWT
+                if (token.user.phoneNumber) token.phoneNumber = token.user.phoneNumber; // Store the driver's phone number in the JWT
+                if (token.user.carrierId) token.carrierId = token.user.carrierId; // Store the driver's carrier ID in the JWT
+            }
+
+            if (trigger === 'update' && token.user?.id) {
+                const freshUser = await prisma.user.findUnique({
+                    where: { id: token.user.id },
+                });
+                if (freshUser) {
+                    token.user = freshUser as AuthUser;
+                }
             }
 
             return token;
