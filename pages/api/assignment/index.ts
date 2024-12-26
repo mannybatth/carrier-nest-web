@@ -4,7 +4,7 @@ import { ExpandedDriverAssignment, JSONResponse } from '../../../interfaces/mode
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
-import { LoadActivityAction } from '@prisma/client';
+import { ChargeType, LoadActivityAction } from '@prisma/client';
 import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
 
@@ -89,6 +89,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                 driverId: driver.id,
                 routeLegId: newRouteLeg.id,
                 loadId,
+                carrierId: load.carrierId,
+                chargeType: ChargeType.FIXED_PAY,
             }));
 
             const loadActivitiesData = drivers.map((driver) => ({
@@ -226,6 +228,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                         driverId,
                         routeLegId,
                         loadId,
+                        carrierId: load.carrierId,
+                        chargeType: ChargeType.FIXED_PAY,
                     })),
                 });
 
