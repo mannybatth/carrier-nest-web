@@ -10,7 +10,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '../../../lib/prisma';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from './verification-request';
-import { AuthUser } from 'next-env';
+import { AuthUser } from 'types';
 
 const authHandler: NextApiHandler = (req, res) => {
     try {
