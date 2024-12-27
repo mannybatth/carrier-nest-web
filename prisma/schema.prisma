@@ -248,7 +248,7 @@ model DriverAssignment {
     driver      Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
     routeLeg    RouteLeg            @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
     chargeType  ChargeType
-    chargeValue Decimal?
+    chargeValue Decimal
     payments    AssignmentPayment[]
 
     @@unique([driverId, routeLegId])
