@@ -291,8 +291,8 @@ model Driver {
     loadDocuments      LoadDocument[]
     devices            Device[]
     assignmentPayments AssignmentPayment[]
+    defaultChargeType  ChargeType?
     defaultFixedPay    Decimal?
-    lastFixedPay       Decimal?
     perMileRate        Decimal?
     takeHomePercent    Decimal?
 
