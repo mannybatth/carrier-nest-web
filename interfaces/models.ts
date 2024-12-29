@@ -191,6 +191,8 @@ const expandedRoute = Prisma.validator<Prisma.RouteDefaultArgs>()({
                         id: true,
                         assignedAt: true,
                         driver: true,
+                        chargeType: true,
+                        chargeValue: true,
                     },
                 },
             },

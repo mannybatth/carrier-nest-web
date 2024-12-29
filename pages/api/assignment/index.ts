@@ -61,7 +61,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
             });
         }
 
-        const driverIds = routeLegData.drivers.map((driver) => driver.id);
+        const driverIds = routeLegData.driversWithCharge.map((driverWithCharge) => driverWithCharge.driver.id);
         const drivers = await prisma.driver.findMany({
             where: { id: { in: driverIds } },
             include: { devices: true },
@@ -85,12 +85,13 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                 },
             });
 
-            const driverAssignmentsData = drivers.map((driver) => ({
-                driverId: driver.id,
+            const driverAssignmentsData = routeLegData.driversWithCharge.map((driverWithCharge) => ({
+                driverId: driverWithCharge.driver.id,
                 routeLegId: newRouteLeg.id,
                 loadId,
                 carrierId: load.carrierId,
-                chargeType: ChargeType.FIXED_PAY,
+                chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
+                chargeValue: driverWithCharge.chargeValue || 0,
             }));
 
             const loadActivitiesData = drivers.map((driver) => ({
@@ -190,7 +191,9 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         }
 
-        const driverIdsFromRequest = routeLegData.drivers.map((driver) => driver.id);
+        const driverIdsFromRequest = routeLegData.driversWithCharge.map(
+            (driverWithCharge) => driverWithCharge.driver.id,
+        );
 
         // Fetch all relevant drivers: those currently assigned and those in the request
         const allRelevantDrivers = await prisma.driver.findMany({
@@ -224,13 +227,16 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 
             if (newAssignedDriverIds.length > 0) {
                 await prisma.driverAssignment.createMany({
-                    data: newAssignedDriverIds.map((driverId) => ({
-                        driverId,
-                        routeLegId,
-                        loadId,
-                        carrierId: load.carrierId,
-                        chargeType: ChargeType.FIXED_PAY,
-                    })),
+                    data: routeLegData.driversWithCharge
+                        .filter((driverWithCharge) => newAssignedDriverIds.includes(driverWithCharge.driver.id))
+                        .map((driverWithCharge) => ({
+                            driverId: driverWithCharge.driver.id,
+                            routeLegId,
+                            loadId,
+                            carrierId: load.carrierId,
+                            chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
+                            chargeValue: driverWithCharge.chargeValue || 0,
+                        })),
                 });
 
                 const newDriverActivities = allRelevantDrivers
