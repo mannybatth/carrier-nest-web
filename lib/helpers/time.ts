@@ -8,5 +8,5 @@ export const secondsToReadable = (seconds: number) => {
         return `${(seconds / 60).toFixed(1)} min`;
     }
 
-    return `${(seconds / 60 / 60).toFixed(1)} hrs`;
+    return `${(seconds / 60 / 60).toFixed(2)} hrs`;
 };
