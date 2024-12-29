@@ -1,4 +1,4 @@
-import { Driver } from '@prisma/client';
+import { Driver, ChargeType, Prisma } from '@prisma/client';
 import { DriverProvider, useDriverContext } from 'components/context/DriverContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useParams } from 'next/navigation';
@@ -30,18 +30,37 @@ const EditDriver: PageWithAuth = () => {
         formHook.setValue('name', driver.name);
         formHook.setValue('email', driver.email);
         formHook.setValue('phone', driver.phone);
+        formHook.setValue('defaultChargeType', driver.defaultChargeType);
+        formHook.setValue('perMileRate', driver.perMileRate);
+        formHook.setValue('perHourRate', driver.perHourRate);
+        formHook.setValue('defaultFixedPay', driver.defaultFixedPay);
+        formHook.setValue('takeHomePercent', driver.takeHomePercent);
     }, [driver]);
 
     const submit = async (data: Driver) => {
-        console.log('data to save', data);
-
         setLoading(true);
 
         const driverData: ExpandedDriver = {
             name: data.name,
             email: data.email,
             phone: data.phone,
+            defaultChargeType: data.defaultChargeType,
         };
+
+        switch (data.defaultChargeType) {
+            case ChargeType.PER_MILE:
+                driverData.perMileRate = new Prisma.Decimal(data.perMileRate);
+                break;
+            case ChargeType.PER_HOUR:
+                driverData.perHourRate = new Prisma.Decimal(data.perHourRate);
+                break;
+            case ChargeType.FIXED_PAY:
+                driverData.defaultFixedPay = new Prisma.Decimal(data.defaultFixedPay);
+                break;
+            case ChargeType.PERCENTAGE_OF_LOAD:
+                driverData.takeHomePercent = new Prisma.Decimal(data.takeHomePercent);
+                break;
+        }
 
         const newDriver = await updateDriver(driver.id, driverData);
 

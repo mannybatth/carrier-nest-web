@@ -205,7 +205,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 >
                                                     <option value="" disabled>
-                                                        Select Charge Type
+                                                        Select Pay Type
                                                     </option>
                                                     <option value={ChargeType.PER_MILE}>Per Mile</option>
                                                     <option value={ChargeType.PER_HOUR}>Per Hour</option>

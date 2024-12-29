@@ -1,4 +1,4 @@
-import { Driver } from '@prisma/client';
+import { Driver, ChargeType } from '@prisma/client';
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -11,6 +11,7 @@ const DriverForm: React.FC<Props> = ({
     formHook: {
         register,
         formState: { errors },
+        watch,
     },
     condensed,
 }) => {
@@ -69,6 +70,66 @@ const DriverForm: React.FC<Props> = ({
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.phone && <p className="mt-2 text-sm text-red-600">{errors.phone?.message}</p>}
+                        </div>
+                        <div className="col-span-6 lg:col-span-3">
+                            <label htmlFor="defaultChargeType" className="block text-sm font-medium text-gray-700">
+                                Default Pay Type
+                            </label>
+                            <select
+                                {...register('defaultChargeType')}
+                                id="defaultChargeType"
+                                defaultValue=""
+                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            >
+                                <option value="" disabled>
+                                    Select Pay Type
+                                </option>
+                                <option value={ChargeType.PER_MILE}>Per Mile</option>
+                                <option value={ChargeType.PER_HOUR}>Per Hour</option>
+                                <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
+                                <option value={ChargeType.PERCENTAGE_OF_LOAD}>Percentage of Load</option>
+                            </select>
+                        </div>
+                        <div className="col-span-6 lg:col-span-3">
+                            <label htmlFor="chargeValue" className="block text-sm font-medium text-gray-700">
+                                &nbsp;
+                            </label>
+                            {watch('defaultChargeType') === ChargeType.PER_MILE && (
+                                <input
+                                    type="number"
+                                    {...register('perMileRate')}
+                                    id="chargeValue"
+                                    placeholder="Enter rate per mile"
+                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                            )}
+                            {watch('defaultChargeType') === ChargeType.PER_HOUR && (
+                                <input
+                                    type="number"
+                                    {...register('perHourRate')}
+                                    id="chargeValue"
+                                    placeholder="Enter rate per hour"
+                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                            )}
+                            {watch('defaultChargeType') === ChargeType.FIXED_PAY && (
+                                <input
+                                    type="number"
+                                    {...register('defaultFixedPay')}
+                                    id="chargeValue"
+                                    placeholder="Enter fixed pay"
+                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                            )}
+                            {watch('defaultChargeType') === ChargeType.PERCENTAGE_OF_LOAD && (
+                                <input
+                                    type="number"
+                                    {...register('takeHomePercent')}
+                                    id="chargeValue"
+                                    placeholder="Enter percentage of load"
+                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                            )}
                         </div>
                     </>
                 )}

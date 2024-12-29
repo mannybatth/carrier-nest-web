@@ -49,8 +49,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const driverData = req.body as ExpandedDriver;
 
-        console.log('driver to update', driverData);
-
         const updatedDriver = await prisma.driver.update({
             where: {
                 id: String(req.query.id),
@@ -59,6 +57,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 name: driverData.name,
                 email: driverData.email || '',
                 phone: driverData.phone || '',
+                defaultChargeType: driverData.defaultChargeType,
+                perMileRate: driverData.perMileRate,
+                perHourRate: driverData.perHourRate,
+                defaultFixedPay: driverData.defaultFixedPay,
+                takeHomePercent: driverData.takeHomePercent,
             },
         });
 
