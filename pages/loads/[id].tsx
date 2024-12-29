@@ -419,7 +419,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }, [load]);
 
     return (
-        <div className={`sticky z-0 top-0 flex flex-row place-content-between ${className}`}>
+        <div className={`z-10 top-0 flex flex-row place-content-between md:sticky ${className}`}>
             <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
                 <button
                     type="button"
