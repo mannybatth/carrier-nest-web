@@ -36,6 +36,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         register,
         handleSubmit,
         setValue,
+        trigger,
         watch,
         formState: { isValid },
     } = useForm<FormValues>({
@@ -139,6 +140,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             delete updatedDrivers[value];
         }
         setValue('selectedDrivers', updatedDrivers);
+        trigger();
     };
 
     const saveSelectedDrivers = async (data: FormValues) => {
