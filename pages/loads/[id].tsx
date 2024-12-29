@@ -1554,7 +1554,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             {/* <p className="text-xs font-semibold text-slate-800 ">
                                                                                 Status:
                                                                             </p> */}
-                                                                            <div className="flex flex-row items-center gap-2 font-light">
+                                                                            <div className="flex flex-row items-center gap-2 font-normal">
                                                                                 {/* {leg.startedAt && !leg.endedAt && (
                                                                                     <p
                                                                                         data-tooltip-id="tooltip"
