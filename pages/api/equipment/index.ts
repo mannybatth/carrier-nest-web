@@ -51,9 +51,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             data: {
                 name: equipmentData.name,
                 type: equipmentData.type,
-                drivers: {
-                    connect: equipmentData.drivers.map((driver) => ({ id: driver.id })),
-                },
+                ...(equipmentData.drivers && {
+                    drivers: {
+                        connect: equipmentData.drivers.map((driver) => ({ id: driver.id })),
+                    },
+                }),
                 carrierId: session.user.defaultCarrierId,
             },
         });

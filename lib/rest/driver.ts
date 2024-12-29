@@ -1,6 +1,6 @@
 import { Driver } from '@prisma/client';
 import { apiUrl } from '../../constants';
-import { JSONResponse } from '../../interfaces/models';
+import { ExpandedDriver, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 
 export const getAllDrivers = async ({
@@ -34,9 +34,13 @@ export const getAllDrivers = async ({
     return data;
 };
 
-export const getDriverById = async (id: string) => {
-    const response = await fetch(apiUrl + '/drivers/' + id);
-    const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
+export const getDriverById = async (id: string, expand?: string) => {
+    const params = new URLSearchParams();
+    if (expand) {
+        params.append('expand', expand);
+    }
+    const response = await fetch(apiUrl + '/drivers/' + id + '?' + params.toString());
+    const { data, errors }: JSONResponse<{ driver: ExpandedDriver }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));

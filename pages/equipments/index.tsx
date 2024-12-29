@@ -11,6 +11,7 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 import Pagination from '../../components/Pagination';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
 
 const EquipmentsPage = () => {
     const router = useRouter();
@@ -35,6 +36,9 @@ const EquipmentsPage = () => {
     const [limit, setLimit] = useState(limitProp);
     const [offset, setOffset] = useState(offsetProp);
     const [metadata, setMetadata] = useState<PaginationMetadata>({} as PaginationMetadata);
+
+    const [openDeleteEquipmentConfirmation, setOpenDeleteEquipmentConfirmation] = useState(false);
+    const [equipmentIdToDelete, setEquipmentIdToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         reloadEquipments({ sort, limit, offset });
@@ -134,42 +138,66 @@ const EquipmentsPage = () => {
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Equipment Management</h1>
-                        <button
-                            onClick={() => router.push('/equipments/create')}
-                            className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            + Create Equipment
-                        </button>
+            <>
+                <SimpleDialog
+                    show={openDeleteEquipmentConfirmation}
+                    title="Delete Equipment"
+                    description="Are you sure you want to delete this equipment?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (equipmentIdToDelete) {
+                            deleteEquipment(equipmentIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteEquipmentConfirmation(false);
+                        setEquipmentIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteEquipmentConfirmation(false);
+                        setEquipmentIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <div className="py-2 mx-auto max-w-7xl">
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                        <div className="flex">
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Equipment Management</h1>
+                            <button
+                                onClick={() => router.push('/equipments/create')}
+                                className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                + Create Equipment
+                            </button>
+                        </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="px-5 sm:px-6 md:px-8">
-                    {loadingEquipments ? (
-                        <CustomersTableSkeleton limit={lastEquipmentsTableLimit} />
-                    ) : (
-                        <EquipmentsTable
-                            equipments={equipmentsList}
-                            sort={sort}
-                            changeSort={changeSort}
-                            deleteEquipment={deleteEquipment}
-                            loading={tableLoading}
-                        />
-                    )}
+                    <div className="px-5 sm:px-6 md:px-8">
+                        {loadingEquipments ? (
+                            <CustomersTableSkeleton limit={lastEquipmentsTableLimit} />
+                        ) : (
+                            <EquipmentsTable
+                                equipments={equipmentsList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteEquipment={(id: string) => {
+                                    setOpenDeleteEquipmentConfirmation(true);
+                                    setEquipmentIdToDelete(id);
+                                }}
+                                loading={tableLoading}
+                            />
+                        )}
 
-                    {equipmentsList.length !== 0 && !loadingEquipments && (
-                        <Pagination
-                            metadata={metadata}
-                            loading={loadingEquipments || tableLoading}
-                            onPrevious={() => previousPage()}
-                            onNext={() => nextPage()}
-                        />
-                    )}
+                        {equipmentsList.length !== 0 && !loadingEquipments && (
+                            <Pagination
+                                metadata={metadata}
+                                loading={loadingEquipments || tableLoading}
+                                onPrevious={() => previousPage()}
+                                onNext={() => nextPage()}
+                            />
+                        )}
+                    </div>
                 </div>
-            </div>
+            </>
         </Layout>
     );
 };

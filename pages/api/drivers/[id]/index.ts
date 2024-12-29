@@ -108,11 +108,18 @@ const getDriver = async ({
     session: Session;
     query: ParsedUrlQuery;
 }): Promise<JSONResponse<{ driver: Driver }>> => {
+    const expand = query.expand ? String(query.expand).split(',') : [];
+    const include = expand.reduce((acc, relation) => {
+        acc[relation] = true;
+        return acc;
+    }, {});
+
     const driver = await prisma.driver.findFirst({
         where: {
             id: String(query.id),
             carrierId: session.user.defaultCarrierId,
         },
+        include,
     });
     return {
         code: 200,

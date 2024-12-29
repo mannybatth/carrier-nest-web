@@ -18,6 +18,8 @@ import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/hel
 import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
+import EquipmentsTable from '../../components/equipments/EquipmentsTable';
+import { deleteEquipmentById } from '../../lib/rest/equipment';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -111,7 +113,9 @@ const DriverDetailsPage: PageWithAuth = () => {
 
     const [openDeleteDriverConfirmation, setOpenDeleteDriverConfirmation] = React.useState(false);
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = React.useState(false);
+    const [openDeleteEquipmentConfirmation, setOpenDeleteEquipmentConfirmation] = React.useState(false);
     const [loadIdToDelete, setLoadIdToDelete] = React.useState<string | null>(null);
+    const [equipmentIdToDelete, setEquipmentIdToDelete] = React.useState<string | null>(null);
 
     const [driver, setDriver] = React.useState<ExpandedDriver | null>(null);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
@@ -153,7 +157,7 @@ const DriverDetailsPage: PageWithAuth = () => {
 
     const reloadDriver = async () => {
         setLoadingDriver(true);
-        const driver = await getDriverById(driverId);
+        const driver = await getDriverById(driverId, 'equipments');
         setDriver(driver);
         setLoadingDriver(false);
     };
@@ -226,6 +230,16 @@ const DriverDetailsPage: PageWithAuth = () => {
         router.push('/drivers');
     };
 
+    const deleteEquipment = async (id: string) => {
+        try {
+            await deleteEquipmentById(id);
+            notify({ title: 'Equipment deleted', message: 'Equipment deleted successfully' });
+            reloadDriver();
+        } catch (error) {
+            notify({ title: 'Error', message: error.message, type: 'error' });
+        }
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -266,6 +280,25 @@ const DriverDetailsPage: PageWithAuth = () => {
                     onClose={() => {
                         setOpenDeleteLoadConfirmation(false);
                         setLoadIdToDelete(null);
+                    }}
+                ></SimpleDialog>
+                <SimpleDialog
+                    show={openDeleteEquipmentConfirmation}
+                    title="Delete equipment"
+                    description="Are you sure you want to delete this equipment?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={() => {
+                        if (equipmentIdToDelete) {
+                            deleteEquipment(equipmentIdToDelete);
+                        }
+                    }}
+                    secondaryButtonAction={() => {
+                        setOpenDeleteEquipmentConfirmation(false);
+                        setEquipmentIdToDelete(null);
+                    }}
+                    onClose={() => {
+                        setOpenDeleteEquipmentConfirmation(false);
+                        setEquipmentIdToDelete(null);
                     }}
                 ></SimpleDialog>
                 <div className="py-2 mx-auto max-w-7xl">
@@ -366,6 +399,29 @@ const DriverDetailsPage: PageWithAuth = () => {
                                         onPrevious={() => previousPage()}
                                         onNext={() => nextPage()}
                                     ></Pagination>
+                                )}
+                            </div>
+
+                            <div className="col-span-12">
+                                {loadingDriver ? (
+                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                                ) : (
+                                    driver.equipments?.length > 0 && (
+                                        <>
+                                            <h3 className="mb-2">Equipments assigned to driver</h3>
+                                            <EquipmentsTable
+                                                equipments={driver.equipments || []}
+                                                sort={sort}
+                                                loading={false}
+                                                changeSort={changeSort}
+                                                deleteEquipment={(id: string) => {
+                                                    setOpenDeleteEquipmentConfirmation(true);
+                                                    setEquipmentIdToDelete(id);
+                                                }}
+                                                hideDriversColumn={true}
+                                            />
+                                        </>
+                                    )
                                 )}
                             </div>
                         </div>

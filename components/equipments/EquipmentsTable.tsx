@@ -12,26 +12,41 @@ type Props = {
     loading: boolean;
     changeSort: (sort: Sort) => void;
     deleteEquipment: (id: string) => void;
+    hideDriversColumn?: boolean;
 };
 
-const EquipmentsTable: React.FC<Props> = ({ equipments, sort, loading, changeSort, deleteEquipment }) => {
+const EquipmentsTable: React.FC<Props> = ({
+    equipments,
+    sort,
+    loading,
+    changeSort,
+    deleteEquipment,
+    hideDriversColumn,
+}) => {
     const router = useRouter();
+
+    const headers = [
+        { key: 'name', title: 'Name' },
+        { key: 'type', title: 'Type' },
+    ];
+
+    if (!hideDriversColumn) {
+        headers.push({ key: 'drivers', title: 'Drivers' });
+    }
 
     return (
         <Table
             loading={loading}
-            headers={[
-                { key: 'name', title: 'Name' },
-                { key: 'type', title: 'Type' },
-                { key: 'drivers', title: 'Drivers' },
-            ]}
+            headers={headers}
             rows={equipments.map((equipment) => ({
                 id: equipment.id,
                 items: [
                     { value: equipment.name },
                     { value: equipment.type },
-                    { value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned' },
-                ],
+                    !hideDriversColumn && {
+                        value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned',
+                    },
+                ].filter(Boolean),
                 menuItems: [
                     {
                         title: 'Edit',

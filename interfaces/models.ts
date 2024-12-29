@@ -261,6 +261,7 @@ const expandedDriver = Prisma.validator<Prisma.DriverDefaultArgs>()({
             },
         },
         devices: true,
+        equipments: true,
     },
 });
 export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>>;
