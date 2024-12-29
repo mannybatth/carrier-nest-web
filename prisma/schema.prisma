@@ -231,6 +231,7 @@ model AssignmentPayment {
 
 enum ChargeType {
     PER_MILE
+    PER_HOUR
     FIXED_PAY
     PERCENTAGE_OF_LOAD
 }
