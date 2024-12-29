@@ -72,10 +72,10 @@ model VerificationToken {
 }
 
 model Carrier {
-    id                  String     @id @default(cuid())
-    createdAt           DateTime   @default(now())
-    updatedAt           DateTime   @updatedAt
-    email               String     @unique
+    id                  String      @id @default(cuid())
+    createdAt           DateTime    @default(now())
+    updatedAt           DateTime    @updatedAt
+    email               String      @unique
     name                String
     dotNum              String?
     mcNum               String?
@@ -85,14 +85,15 @@ model Carrier {
     zip                 String
     country             String
     phone               String?
-    carrierCode         String     @unique
+    carrierCode         String      @unique
     customers           Customer[]
     drivers             Driver[]
     invoices            Invoice[]
     loads               Load[]
-    defaultCarrierUsers User[]     @relation("defaultCarrier")
-    users               User[]     @relation("CarrierToUser")
+    defaultCarrierUsers User[]      @relation("defaultCarrier")
+    users               User[]      @relation("CarrierToUser")
     locations           Location[]
+    equipments          Equipment[]
 
     @@index([name, email, carrierCode])
 }
@@ -297,8 +298,20 @@ model Driver {
     perMileRate        Decimal?
     perHourRate        Decimal?
     takeHomePercent    Decimal?
+    equipments         Equipment[]
 
     @@index([name, carrierId])
+}
+
+model Equipment {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    name      String
+    type      String
+    carrierId String
+    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    drivers   Driver[]
 }
 
 model Invoice {
