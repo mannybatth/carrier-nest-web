@@ -49,8 +49,8 @@ export async function getRouteForCoords(coords: number[][]) {
 
     return {
         routeEncoded: routePolyline,
-        distance: data.routes[0].distance,
-        duration: data.routes[0].duration,
+        distance: data.routes[0].distance, // in meters
+        duration: data.routes[0].duration, // in seconds
     };
 }
 

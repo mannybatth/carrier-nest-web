@@ -1,8 +1,14 @@
-import { Driver } from '@prisma/client';
+import { ChargeType, Driver } from '@prisma/client';
 import { ExpandedRouteLegLocation } from './models';
 
+export interface DriverWithCharge {
+    driver: Driver;
+    chargeType?: ChargeType;
+    chargeValue?: number;
+}
+
 export interface RouteLegData {
-    drivers: Driver[];
+    driversWithCharge: DriverWithCharge[];
     locations: ExpandedRouteLegLocation[];
     driverInstructions: string;
     scheduledDate: string;

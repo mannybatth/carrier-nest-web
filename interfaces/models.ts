@@ -212,6 +212,8 @@ const expandedRouteLeg = Prisma.validator<Prisma.RouteLegDefaultArgs>()({
                 id: true,
                 assignedAt: true,
                 driver: true,
+                chargeType: true,
+                chargeValue: true,
             },
         },
     },
