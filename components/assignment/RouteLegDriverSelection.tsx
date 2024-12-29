@@ -139,8 +139,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         } else {
             delete updatedDrivers[value];
         }
-        setValue('selectedDrivers', updatedDrivers);
-        trigger();
+        setValue('selectedDrivers', updatedDrivers, { shouldValidate: true });
     };
 
     const saveSelectedDrivers = async (data: FormValues) => {
