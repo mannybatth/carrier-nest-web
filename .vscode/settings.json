@@ -10,9 +10,7 @@
     "html.format.wrapAttributes": "auto",
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
-    "cSpell.words": [
-        "tailwindcss"
-    ],
+    "cSpell.words": ["tailwindcss"],
     "headwind.runOnSave": true,
     "workbench.settings.enableNaturalLanguageSearch": false,
     "css.validate": false,
@@ -21,4 +19,5 @@
     "javascript.validate.enable": false,
     "javascript.format.enable": false,
     "typescript.surveys.enabled": false,
+    "typescript.tsdk": "node_modules/typescript/lib"
 }

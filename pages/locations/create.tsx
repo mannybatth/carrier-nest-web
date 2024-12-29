@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import LocationForm from '../../components/forms/location/LocationForm'; // Assume you have a similar form component for Location
+import LocationForm from '../../components/forms/location/LocationForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -10,7 +10,7 @@ import { Location } from '@prisma/client';
 import { createLocation } from 'lib/rest/locations';
 import { getGeocoding } from 'lib/mapbox/searchGeo';
 
-const CreateLocation: PageWithAuth = () => {
+const CreateLocationPage: PageWithAuth = () => {
     const formHook = useForm<Location>();
     const router = useRouter();
 
@@ -92,6 +92,6 @@ const CreateLocation: PageWithAuth = () => {
     );
 };
 
-CreateLocation.authenticationEnabled = true;
+CreateLocationPage.authenticationEnabled = true;
 
-export default CreateLocation;
+export default CreateLocationPage;

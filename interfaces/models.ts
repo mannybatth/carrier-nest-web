@@ -413,6 +413,16 @@ const expandedLoadActivity = Prisma.validator<Prisma.LoadActivityDefaultArgs>()(
 });
 export type ExpandedLoadActivity = Partial<Prisma.LoadActivityGetPayload<typeof expandedLoadActivity>>;
 
+/**
+ * Equipment
+ */
+const expandedEquipment = Prisma.validator<Prisma.EquipmentDefaultArgs>()({
+    include: {
+        drivers: true,
+    },
+});
+export type ExpandedEquipment = Partial<Prisma.EquipmentGetPayload<typeof expandedEquipment>>;
+
 export function exclude<ExpandedLoad, Key extends keyof ExpandedLoad>(
     load: ExpandedLoad,
     keys: Key[],

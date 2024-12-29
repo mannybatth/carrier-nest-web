@@ -12,7 +12,7 @@ import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { updateLocation } from 'lib/rest/locations';
 
-const EditLocation: PageWithAuth = () => {
+const EditLocationPage: PageWithAuth = () => {
     const [location] = useLocationContext();
 
     const formHook = useForm<Location>();
@@ -103,19 +103,19 @@ const EditLocation: PageWithAuth = () => {
     );
 };
 
-EditLocation.authenticationEnabled = true;
+EditLocationPage.authenticationEnabled = true;
 
-const EditLocationWrapper: PageWithAuth = () => {
+const EditLocationPageWrapper: PageWithAuth = () => {
     const params = useParams();
     const locationId = params.id as string;
 
     return (
         <LocationProvider locationId={locationId}>
-            <EditLocation></EditLocation>
+            <EditLocationPage></EditLocationPage>
         </LocationProvider>
     );
 };
 
-EditLocationWrapper.authenticationEnabled = true;
+EditLocationPageWrapper.authenticationEnabled = true;
 
-export default EditLocationWrapper;
+export default EditLocationPageWrapper;
