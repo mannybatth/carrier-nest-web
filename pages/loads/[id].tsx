@@ -419,7 +419,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }, [load]);
 
     return (
-        <div className={`sticky z-0  sm:z-10 top-0 flex flex-row place-content-between ${className}`}>
+        <div className={`sticky z-0 top-0 flex flex-row place-content-between ${className}`}>
             <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
                 <button
                     type="button"
@@ -1495,7 +1495,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </div>
                                 </div>
                                 <div className="mt-2">
-                                    <div className="flex flex-row justify-between align-top justify-items-start mb-2">
+                                    <div className="flex flex-row justify-between mb-2 align-top justify-items-start">
                                         <div>
                                             <h1 className="text-base font-semibold text-gray-900">Load Assignments</h1>
                                             <p className="text-xs text-slate-500">
@@ -1513,7 +1513,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     <div>
                                         {load.route && load.route.routeLegs.length > 0 && (
                                             <div className="flex flex-col w-full" key={'route-legs-container'}>
-                                                <div className="p-0 my-3 mt-6  rounded-lg " key={'route-legs'}>
+                                                <div className="p-0 my-3 mt-6 rounded-lg " key={'route-legs'}>
                                                     {load.route.routeLegs.map((leg, index) => {
                                                         const drivers = leg.driverAssignments.map(
                                                             (driver) => driver.driver,
@@ -1523,7 +1523,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
                                                         return (
                                                             <div
-                                                                className="relative border rounded-lg border-slate-600 mb-8"
+                                                                className="relative mb-8 border rounded-lg border-slate-600"
                                                                 key={`routelegs-${index}`}
                                                             >
                                                                 {removingRouteLegWithId == leg.id && (
@@ -1554,7 +1554,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                             {/* <p className="text-xs font-semibold text-slate-800 ">
                                                                                 Status:
                                                                             </p> */}
-                                                                            <div className="font-light  flex flex-row items-center gap-2">
+                                                                            <div className="flex flex-row items-center gap-2 font-light">
                                                                                 {/* {leg.startedAt && !leg.endedAt && (
                                                                                     <p
                                                                                         data-tooltip-id="tooltip"
@@ -1629,7 +1629,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         {drivers.map((driver, index) => {
                                                                             return (
                                                                                 <p
-                                                                                    className="px-2 py-1 text-xs capitalize bg-slate-100 border rounded-md whitespace-nowrap border-slate-300"
+                                                                                    className="px-2 py-1 text-xs capitalize border rounded-md bg-slate-100 whitespace-nowrap border-slate-300"
                                                                                     key={`driver-${index}`}
                                                                                 >
                                                                                     <Link
@@ -1642,7 +1642,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         })}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 px-4 py-1  text-sm font-normal">
+                                                                <div className="flex flex-row gap-1 px-4 py-1 text-sm font-normal">
                                                                     <p>Start Time:</p>
                                                                     <p className="text-slate-600">
                                                                         {`${
@@ -1674,7 +1674,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                                         ).toLocaleTimeString()}`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex flex-row gap-1 px-4 py-1  text-sm">
+                                                                <div className="flex flex-row gap-1 px-4 py-1 text-sm">
                                                                     <p>Instructions:</p>
                                                                     <p className="text-slate-600">
                                                                         {leg.driverInstructions == ''
