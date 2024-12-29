@@ -295,6 +295,7 @@ model Driver {
     defaultChargeType  ChargeType?
     defaultFixedPay    Decimal?
     perMileRate        Decimal?
+    perHourRate        Decimal?
     takeHomePercent    Decimal?
 
     @@index([name, carrierId])
