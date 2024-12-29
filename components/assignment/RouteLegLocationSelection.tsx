@@ -144,7 +144,7 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                 <>
                     {saveLoading && <LoadingOverlay />}
                     <div className="fixed bottom-0 right-0 z-50 w-full px-5 pb-5 text-center pr-9">
-                        {allListItems.some((item) => item.selected) && (
+                        {allListItems.filter((item) => item.selected).length >= 2 && (
                             <div className="sticky py-3 bg-white border-t-[1px] flex">
                                 <div className="gap-1 space-x-2">
                                     <button
