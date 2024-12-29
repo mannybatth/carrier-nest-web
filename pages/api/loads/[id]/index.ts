@@ -402,6 +402,8 @@ const getLoad = async ({
                                       phone: true,
                                   },
                               },
+                              chargeType: true,
+                              chargeValue: true,
                           },
                       },
                   }
@@ -458,6 +460,8 @@ const getLoad = async ({
                                                       phone: true,
                                                   },
                                               },
+                                              chargeType: true,
+                                              chargeValue: true,
                                           },
                                       },
                                   },

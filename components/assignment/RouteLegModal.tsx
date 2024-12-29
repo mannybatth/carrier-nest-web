@@ -57,6 +57,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 driverInstructions: routeLeg.driverInstructions,
                 scheduledDate: new Date(routeLeg.scheduledDate).toISOString().split('T')[0],
                 scheduledTime: routeLeg.scheduledTime,
+                routeLegDistance: new Prisma.Decimal(routeLeg.routeLegDistance).toNumber(),
+                routeLegDuration: new Prisma.Decimal(routeLeg.routeLegDuration).toNumber(),
             });
         } else {
             setRouteLegData({

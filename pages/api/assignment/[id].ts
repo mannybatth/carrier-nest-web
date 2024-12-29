@@ -86,6 +86,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                                         phone: true,
                                     },
                                 },
+                                chargeType: true,
+                                chargeValue: true,
                             },
                         },
                         route: {
@@ -123,6 +125,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                                                         phone: true,
                                                     },
                                                 },
+                                                chargeType: true,
+                                                chargeValue: true,
                                             },
                                         },
                                     },

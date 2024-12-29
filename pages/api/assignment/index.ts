@@ -274,6 +274,29 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 await prisma.loadActivity.createMany({ data: removedDriverActivities });
             }
 
+            // Update existing driver assignments with new chargeType and chargeValue
+            const existingDriverAssignments = routeLegData.driversWithCharge
+                .filter((driverWithCharge) => currentDriverIds.includes(driverWithCharge.driver.id))
+                .map((driverWithCharge) => ({
+                    driverId: driverWithCharge.driver.id,
+                    routeLegId,
+                    chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
+                    chargeValue: driverWithCharge.chargeValue || 0,
+                }));
+
+            for (const assignment of existingDriverAssignments) {
+                await prisma.driverAssignment.updateMany({
+                    where: {
+                        driverId: assignment.driverId,
+                        routeLegId: assignment.routeLegId,
+                    },
+                    data: {
+                        chargeType: assignment.chargeType,
+                        chargeValue: assignment.chargeValue,
+                    },
+                });
+            }
+
             await prisma.routeLegLocation.deleteMany({
                 where: { routeLegId },
             });
@@ -487,6 +510,8 @@ async function getExpandedRoute(loadId: string) {
                                     },
                                 },
                             },
+                            chargeType: true,
+                            chargeValue: true,
                         },
                     },
                 },

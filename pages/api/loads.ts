@@ -255,6 +255,8 @@ export const getLoads = async ({
                               id: true,
                               assignedAt: true,
                               driver: true,
+                              chargeType: true,
+                              chargeValue: true,
                           },
                       },
                   }
