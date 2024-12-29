@@ -42,6 +42,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const [sendSMS, setSendSMS] = useLocalStorage<boolean>('sendSMS', true);
 
     const [saveLoading, setSaveLoading] = React.useState(false);
+    const [loadingRouteDetails, setLoadingRouteDetails] = React.useState(false);
 
     React.useEffect(() => {
         if (routeLeg) {
@@ -120,6 +121,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             locations: locations,
         });
 
+        setLoadingRouteDetails(true);
         try {
             const coords = locations.map((legLocation) => {
                 const lat = legLocation.loadStop?.latitude ?? legLocation.location?.latitude;
@@ -141,6 +143,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             }));
         } catch (error) {
             notify({ title: 'Error', message: `Error fetching route details: ${error.message}`, type: 'error' });
+        } finally {
+            setLoadingRouteDetails(false);
         }
     };
 
@@ -452,7 +456,12 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                 );
                                                             })}
                                                         </ul>
-                                                        {routeLegData.routeLegDistance &&
+                                                        {loadingRouteDetails ? (
+                                                            <p className="p-2 text-sm rounded bg-cyan-300/20">
+                                                                Loading route details...
+                                                            </p>
+                                                        ) : (
+                                                            routeLegData.routeLegDistance &&
                                                             routeLegData.routeLegDuration && (
                                                                 <p className="p-2 text-sm rounded bg-cyan-300/20">
                                                                     Route Distance:{' '}
@@ -470,7 +479,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                         ).toNumber(),
                                                                     )}
                                                                 </p>
-                                                            )}
+                                                            )
+                                                        )}
                                                     </>
                                                 )}
                                                 {/* Placeholder for when there are no locations selected */}
