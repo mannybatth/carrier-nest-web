@@ -17,7 +17,7 @@ const navigation = [
     { name: 'Loads', href: '/loads', icon: TruckIcon },
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
-    { name: 'Accounting', href: '/accounting', icon: CurrencyDollarIcon },
+    { name: 'Invoices', href: '/invoices', icon: CurrencyDollarIcon },
     { name: 'Stop Locations', href: '/locations', icon: MapPinIcon },
     { name: 'Equipments', href: '/equipments', icon: WrenchIcon },
 ];

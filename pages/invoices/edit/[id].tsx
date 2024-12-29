@@ -1,5 +1,5 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
-import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
+import { InvoiceProvider, useInvoiceContext } from 'components/context/InvoiceContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
@@ -12,16 +12,10 @@ import { LoadCard } from '../../../components/loads/LoadCard';
 import { notify } from '../../../components/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
-import { createInvoice, getNextInvoiceNum } from '../../../lib/rest/invoice';
-import { useLocalStorage } from '../../../lib/useLocalStorage';
+import { updateInvoice } from '../../../lib/rest/invoice';
 
-type Props = {
-    nextInvoiceNum: number;
-};
-
-const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
-    const [load, setLoad] = useLoadContext();
-    const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
+const EditInvoicePage: PageWithAuth = () => {
+    const [invoice, setInvoice] = useInvoiceContext();
 
     const formHook = useForm<ExpandedInvoice>();
     const router = useRouter();
@@ -30,12 +24,6 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
     const [total, setTotal] = React.useState(0);
 
     const watchFields = useWatch({ control: formHook.control, name: 'extraItems' });
-
-    useEffect(() => {
-        if (nextInvoiceNum) {
-            formHook.setValue('invoiceNum', nextInvoiceNum);
-        }
-    }, [nextInvoiceNum]);
 
     useEffect(() => {
         const data = formHook.getValues() as ExpandedInvoice;
@@ -47,14 +35,26 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
                 0,
             ) || 0) / 100;
 
-        const totalRate = load ? new Prisma.Decimal(load.rate).toNumber() : 0;
+        const totalRate = invoice ? new Prisma.Decimal(invoice.load.rate).toNumber() : 0;
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
-    }, [watchFields, load]);
+    }, [watchFields, invoice]);
+
+    useEffect(() => {
+        if (!invoice) {
+            formHook.reset();
+            return;
+        }
+
+        formHook.setValue('invoiceNum', invoice.invoiceNum);
+        formHook.setValue('invoicedAt', new Date(invoice.invoicedAt));
+        formHook.setValue('dueNetDays', invoice.dueNetDays);
+        formHook.setValue('extraItems', invoice.extraItems);
+    }, [invoice]);
 
     const submit = async (data: ExpandedInvoice) => {
-        console.log('submit', data);
+        console.log('data to save', data);
 
         setLoading(true);
 
@@ -62,64 +62,53 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
             invoiceNum: Number(data.invoiceNum),
             invoicedAt: data.invoicedAt,
             totalAmount: new Prisma.Decimal(total),
-            remainingAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
-            loadId: load.id,
+            load: invoice.load,
             extraItems: data.extraItems.map((item) => ({
                 title: item.title,
                 amount: new Prisma.Decimal(item.amount),
             })) as InvoiceItem[],
         };
 
-        try {
-            const newInvoice = await createInvoice(invoiceData);
-            console.log('new invoice', newInvoice);
+        const newInvoice = await updateInvoice(invoice.id, invoiceData);
+        console.log('updated invoice', newInvoice);
 
-            setLastDueNetDays(data.dueNetDays);
+        notify({ title: 'Invoice updated', message: 'Invoice updated successfully' });
 
-            notify({ title: 'New invoice created', message: 'New invoice created successfully' });
+        // Redirect to invoice page
+        await router.push(`/invoices/${newInvoice.id}`);
 
-            // Redirect to invoice page
-            await router.push(`/accounting/invoices/${newInvoice.id}`);
-            setLoading(false);
-        } catch (error) {
-            setLoading(false);
-            notify({ title: 'Error', message: 'Error creating invoice', type: 'error' });
-        }
+        setLoading(false);
     };
 
     return (
-        <Layout
-            smHeaderComponent={
-                <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Create Invoice</h1>
-                </div>
-            }
-        >
+        <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Invoice</h1>}>
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
                     paths={[
                         {
-                            label: 'Accounting',
-                            href: '/accounting',
+                            label: 'Invoices',
+                            href: '/invoices',
                         },
                         {
-                            label: 'Create New Invoice',
+                            label: invoice ? `# ${invoice?.invoiceNum ?? ''}` : '',
+                            href: invoice ? `/invoices/${invoice.id}` : '',
+                        },
+                        {
+                            label: 'Edit Invoice',
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Create Invoice</h1>
-                    </div>
+                    <h1 className="flex-1 text-2xl font-semibold text-gray-900">Edit Invoice</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !load) && <LoadingOverlay />}
+                    {(loading || !invoice) && <LoadingOverlay />}
 
                     <div className="pt-1 space-y-6">
-                        {load && <LoadCard load={load} />}
+                        {invoice && <LoadCard load={invoice.load} />}
 
                         <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
                             <InvoiceForm formHook={formHook}></InvoiceForm>
@@ -137,7 +126,7 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
                                     type="submit"
                                     className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                                 >
-                                    Create Invoice
+                                    Save Invoice
                                 </button>
                             </div>
                         </form>
@@ -148,26 +137,19 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
     );
 };
 
-CreateInvoice.authenticationEnabled = true;
+EditInvoicePage.authenticationEnabled = true;
 
-const CreateInvoiceWrapper: PageWithAuth = () => {
+const EditInvoicePageWrapper: PageWithAuth = () => {
     const params = useParams();
-    const loadId = params.id as string;
-    const [nextInvoiceNum, setNextInvoiceNum] = React.useState<number>(null);
-
-    React.useEffect(() => {
-        getNextInvoiceNum().then((num) => {
-            setNextInvoiceNum(num);
-        });
-    });
+    const invoiceId = params.id as string;
 
     return (
-        <LoadProvider loadId={loadId}>
-            <CreateInvoice nextInvoiceNum={nextInvoiceNum}></CreateInvoice>
-        </LoadProvider>
+        <InvoiceProvider invoiceId={invoiceId}>
+            <EditInvoicePage></EditInvoicePage>
+        </InvoiceProvider>
     );
 };
 
-CreateInvoiceWrapper.authenticationEnabled = true;
+EditInvoicePageWrapper.authenticationEnabled = true;
 
-export default CreateInvoiceWrapper;
+export default EditInvoicePageWrapper;

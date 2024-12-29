@@ -866,11 +866,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                             }}
                             viewInvoiceClicked={() => {
                                 if (load.invoice) {
-                                    router.push(`/accounting/invoices/${load.invoice.id}`);
+                                    router.push(`/invoices/${load.invoice.id}`);
                                 }
                             }}
                             createInvoiceClicked={() => {
-                                router.push(`/accounting/create-invoice/${load.id}`);
+                                router.push(`/invoices/create-invoice/${load.id}`);
                             }}
                             addAssignmentClicked={addAssignmentAction}
                             downloadCombinedPDF={downloadCombinedPDF}
@@ -945,11 +945,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 }}
                                 viewInvoiceClicked={() => {
                                     if (load.invoice) {
-                                        router.push(`/accounting/invoices/${load.invoice.id}`);
+                                        router.push(`/invoices/${load.invoice.id}`);
                                     }
                                 }}
                                 createInvoiceClicked={() => {
-                                    router.push(`/accounting/create-invoice/${load.id}`);
+                                    router.push(`/invoices/create-invoice/${load.id}`);
                                 }}
                                 addAssignmentClicked={addAssignmentAction}
                                 downloadCombinedPDF={downloadCombinedPDF}
@@ -971,11 +971,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         }}
                         viewInvoiceClicked={() => {
                             if (load.invoice) {
-                                router.push(`/accounting/invoices/${load.invoice.id}`);
+                                router.push(`/invoices/${load.invoice.id}`);
                             }
                         }}
                         createInvoiceClicked={() => {
-                            router.push(`/accounting/create-invoice/${load.id}`);
+                            router.push(`/invoices/create-invoice/${load.id}`);
                         }}
                         assignDriverClicked={() => setOpenLegAssignment(true)}
                         changeLoadStatus={changeLoadStatus}
@@ -1067,11 +1067,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 <dt className="text-gray-500">Invoice</dt>
                                                 <dd className="text-right text-gray-900">
                                                     {load.invoice ? (
-                                                        <Link href={`/accounting/invoices/${load.invoice.id}`} passHref>
+                                                        <Link href={`/invoices/${load.invoice.id}`} passHref>
                                                             # {load.invoice?.invoiceNum}
                                                         </Link>
                                                     ) : (
-                                                        <Link href={`/accounting/create-invoice/${load.id}`}>
+                                                        <Link href={`/invoices/create-invoice/${load.id}`}>
                                                             Create Invoice
                                                         </Link>
                                                     )}

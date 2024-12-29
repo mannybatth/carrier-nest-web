@@ -7,20 +7,20 @@ import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import { formatValue } from 'react-currency-input-field';
-import SimpleDialog from '../../../components/dialogs/SimpleDialog';
-import AddPaymentModal from '../../../components/forms/invoice/AddPaymentModal';
-import { downloadInvoice } from '../../../components/invoices/invoicePdf';
-import InvoiceStatusBadge from '../../../components/invoices/InvoiceStatusBadge';
-import BreadCrumb from '../../../components/layout/BreadCrumb';
-import Layout from '../../../components/layout/Layout';
-import { LoadCard } from '../../../components/loads/LoadCard';
-import { notify } from '../../../components/Notification';
-import InvoiceDetailsSkeleton from '../../../components/skeletons/InvoiceDetailsSkeleton';
-import { PageWithAuth } from '../../../interfaces/auth';
-import { ExpandedInvoice, ExpandedLoad } from '../../../interfaces/models';
-import { invoiceTermOptions } from '../../../lib/invoice/invoice-utils';
-import { downloadCombinedPDFForLoad } from '../../../lib/load/download-files';
-import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../../lib/rest/invoice';
+import SimpleDialog from '../../components/dialogs/SimpleDialog';
+import AddPaymentModal from '../../components/forms/invoice/AddPaymentModal';
+import { downloadInvoice } from '../../components/invoices/invoicePdf';
+import InvoiceStatusBadge from '../../components/invoices/InvoiceStatusBadge';
+import BreadCrumb from '../../components/layout/BreadCrumb';
+import Layout from '../../components/layout/Layout';
+import { LoadCard } from '../../components/loads/LoadCard';
+import { notify } from '../../components/Notification';
+import InvoiceDetailsSkeleton from '../../components/skeletons/InvoiceDetailsSkeleton';
+import { PageWithAuth } from '../../interfaces/auth';
+import { ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';
+import { invoiceTermOptions } from '../../lib/invoice/invoice-utils';
+import { downloadCombinedPDFForLoad } from '../../lib/load/download-files';
+import { deleteInvoiceById, deleteInvoicePayment, getInvoiceById } from '../../lib/rest/invoice';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 
 type ActionsDropdownProps = {
@@ -68,7 +68,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                 <a
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/accounting/invoices/edit/${invoice.id}`);
+                                        router.push(`/invoices/edit/${invoice.id}`);
                                     }}
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
@@ -197,7 +197,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
 
         notify({ title: 'Invoice deleted', message: 'Invoice deleted successfully' });
 
-        router.push('/accounting');
+        router.push('/invoices');
     };
 
     const deletePayment = async (paymentId: string) => {
@@ -296,8 +296,8 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                         className="sm:px-6 md:px-8"
                         paths={[
                             {
-                                label: 'Accounting',
-                                href: '/accounting',
+                                label: 'Invoices',
+                                href: '/invoices',
                             },
                             {
                                 label: `# ${invoice?.invoiceNum ?? ''}`,

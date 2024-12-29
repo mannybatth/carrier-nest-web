@@ -1,21 +1,27 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
-import { InvoiceProvider, useInvoiceContext } from 'components/context/InvoiceContext';
+import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import InvoiceForm from '../../../../components/forms/invoice/InvoiceForm';
-import BreadCrumb from '../../../../components/layout/BreadCrumb';
-import Layout from '../../../../components/layout/Layout';
-import { LoadCard } from '../../../../components/loads/LoadCard';
-import { notify } from '../../../../components/Notification';
-import { PageWithAuth } from '../../../../interfaces/auth';
-import { ExpandedInvoice } from '../../../../interfaces/models';
-import { updateInvoice } from '../../../../lib/rest/invoice';
+import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
+import BreadCrumb from '../../../components/layout/BreadCrumb';
+import Layout from '../../../components/layout/Layout';
+import { LoadCard } from '../../../components/loads/LoadCard';
+import { notify } from '../../../components/Notification';
+import { PageWithAuth } from '../../../interfaces/auth';
+import { ExpandedInvoice } from '../../../interfaces/models';
+import { createInvoice, getNextInvoiceNum } from '../../../lib/rest/invoice';
+import { useLocalStorage } from '../../../lib/useLocalStorage';
 
-const EditInvoicePage: PageWithAuth = () => {
-    const [invoice, setInvoice] = useInvoiceContext();
+type Props = {
+    nextInvoiceNum: number;
+};
+
+const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
+    const [load, setLoad] = useLoadContext();
+    const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
 
     const formHook = useForm<ExpandedInvoice>();
     const router = useRouter();
@@ -24,6 +30,12 @@ const EditInvoicePage: PageWithAuth = () => {
     const [total, setTotal] = React.useState(0);
 
     const watchFields = useWatch({ control: formHook.control, name: 'extraItems' });
+
+    useEffect(() => {
+        if (nextInvoiceNum) {
+            formHook.setValue('invoiceNum', nextInvoiceNum);
+        }
+    }, [nextInvoiceNum]);
 
     useEffect(() => {
         const data = formHook.getValues() as ExpandedInvoice;
@@ -35,26 +47,14 @@ const EditInvoicePage: PageWithAuth = () => {
                 0,
             ) || 0) / 100;
 
-        const totalRate = invoice ? new Prisma.Decimal(invoice.load.rate).toNumber() : 0;
+        const totalRate = load ? new Prisma.Decimal(load.rate).toNumber() : 0;
 
         const total = (totalExtraItems * 100 + totalRate * 100) / 100;
         setTotal(total);
-    }, [watchFields, invoice]);
-
-    useEffect(() => {
-        if (!invoice) {
-            formHook.reset();
-            return;
-        }
-
-        formHook.setValue('invoiceNum', invoice.invoiceNum);
-        formHook.setValue('invoicedAt', new Date(invoice.invoicedAt));
-        formHook.setValue('dueNetDays', invoice.dueNetDays);
-        formHook.setValue('extraItems', invoice.extraItems);
-    }, [invoice]);
+    }, [watchFields, load]);
 
     const submit = async (data: ExpandedInvoice) => {
-        console.log('data to save', data);
+        console.log('submit', data);
 
         setLoading(true);
 
@@ -62,53 +62,64 @@ const EditInvoicePage: PageWithAuth = () => {
             invoiceNum: Number(data.invoiceNum),
             invoicedAt: data.invoicedAt,
             totalAmount: new Prisma.Decimal(total),
+            remainingAmount: new Prisma.Decimal(total),
             dueNetDays: data.dueNetDays,
-            load: invoice.load,
+            loadId: load.id,
             extraItems: data.extraItems.map((item) => ({
                 title: item.title,
                 amount: new Prisma.Decimal(item.amount),
             })) as InvoiceItem[],
         };
 
-        const newInvoice = await updateInvoice(invoice.id, invoiceData);
-        console.log('updated invoice', newInvoice);
+        try {
+            const newInvoice = await createInvoice(invoiceData);
+            console.log('new invoice', newInvoice);
 
-        notify({ title: 'Invoice updated', message: 'Invoice updated successfully' });
+            setLastDueNetDays(data.dueNetDays);
 
-        // Redirect to invoice page
-        await router.push(`/accounting/invoices/${newInvoice.id}`);
+            notify({ title: 'New invoice created', message: 'New invoice created successfully' });
 
-        setLoading(false);
+            // Redirect to invoice page
+            await router.push(`/invoices/${newInvoice.id}`);
+            setLoading(false);
+        } catch (error) {
+            setLoading(false);
+            notify({ title: 'Error', message: 'Error creating invoice', type: 'error' });
+        }
     };
 
     return (
-        <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Invoice</h1>}>
+        <Layout
+            smHeaderComponent={
+                <div className="flex items-center">
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Create Invoice</h1>
+                </div>
+            }
+        >
             <div className="max-w-4xl py-2 mx-auto">
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
                     paths={[
                         {
-                            label: 'Accounting',
-                            href: '/accounting',
+                            label: 'Invoices',
+                            href: '/invoices',
                         },
                         {
-                            label: invoice ? `# ${invoice?.invoiceNum ?? ''}` : '',
-                            href: invoice ? `/accounting/invoices/${invoice.id}` : '',
-                        },
-                        {
-                            label: 'Edit Invoice',
+                            label: 'Create New Invoice',
                         },
                     ]}
                 ></BreadCrumb>
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="flex-1 text-2xl font-semibold text-gray-900">Edit Invoice</h1>
+                    <div className="flex">
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Create Invoice</h1>
+                    </div>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !invoice) && <LoadingOverlay />}
+                    {(loading || !load) && <LoadingOverlay />}
 
                     <div className="pt-1 space-y-6">
-                        {invoice && <LoadCard load={invoice.load} />}
+                        {load && <LoadCard load={load} />}
 
                         <form id="invoice-form" onSubmit={formHook.handleSubmit(submit)}>
                             <InvoiceForm formHook={formHook}></InvoiceForm>
@@ -126,7 +137,7 @@ const EditInvoicePage: PageWithAuth = () => {
                                     type="submit"
                                     className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                                 >
-                                    Save Invoice
+                                    Create Invoice
                                 </button>
                             </div>
                         </form>
@@ -137,19 +148,26 @@ const EditInvoicePage: PageWithAuth = () => {
     );
 };
 
-EditInvoicePage.authenticationEnabled = true;
+CreateInvoice.authenticationEnabled = true;
 
-const EditInvoicePageWrapper: PageWithAuth = () => {
+const CreateInvoiceWrapper: PageWithAuth = () => {
     const params = useParams();
-    const invoiceId = params.id as string;
+    const loadId = params.id as string;
+    const [nextInvoiceNum, setNextInvoiceNum] = React.useState<number>(null);
+
+    React.useEffect(() => {
+        getNextInvoiceNum().then((num) => {
+            setNextInvoiceNum(num);
+        });
+    });
 
     return (
-        <InvoiceProvider invoiceId={invoiceId}>
-            <EditInvoicePage></EditInvoicePage>
-        </InvoiceProvider>
+        <LoadProvider loadId={loadId}>
+            <CreateInvoice nextInvoiceNum={nextInvoiceNum}></CreateInvoice>
+        </LoadProvider>
     );
 };
 
-EditInvoicePageWrapper.authenticationEnabled = true;
+CreateInvoiceWrapper.authenticationEnabled = true;
 
-export default EditInvoicePageWrapper;
+export default CreateInvoiceWrapper;

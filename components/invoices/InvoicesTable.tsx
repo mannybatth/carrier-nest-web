@@ -87,7 +87,7 @@ const InvoicesTable: React.FC<Props> = ({
                     {
                         title: 'Edit',
                         onClick: () => {
-                            router.push(`/accounting/invoices/edit/${invoice.id}`);
+                            router.push(`/invoices/edit/${invoice.id}`);
                         },
                     },
                     {
@@ -96,7 +96,7 @@ const InvoicesTable: React.FC<Props> = ({
                     },
                 ],
             }))}
-            rowLink={(id) => `/accounting/invoices/${id}`}
+            rowLink={(id) => `/invoices/${id}`}
             sort={sort}
             changeSort={changeSort}
             emptyState={

@@ -234,7 +234,7 @@ const AccountingPage: PageWithAuth = () => {
                                 {!isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
                                 {withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'Partially Paid' : null}
                                 {withStatus === UIInvoiceStatus.OVERDUE ? 'Overdue' : null}
-                                {withStatus === UIInvoiceStatus.PAID ? 'Completed' : null} Invoices
+                                {withStatus === UIInvoiceStatus.PAID ? 'Fully Paid' : null} Invoices
                             </h2>
                             <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
                                 <a
@@ -304,7 +304,7 @@ const AccountingPage: PageWithAuth = () => {
                                     )}
                                     aria-current={withStatus === UIInvoiceStatus.OVERDUE ? 'page' : undefined}
                                 >
-                                    Overdue Only
+                                    Overdue
                                 </a>
                                 <a
                                     onClick={() => {
@@ -321,7 +321,7 @@ const AccountingPage: PageWithAuth = () => {
                                     )}
                                     aria-current={UIInvoiceStatus.PAID ? 'page' : undefined}
                                 >
-                                    Completed
+                                    Fully Paid
                                 </a>
                             </nav>
                         </div>
