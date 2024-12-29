@@ -237,7 +237,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         } else if (chargeType === ChargeType.FIXED_PAY) {
             return chargeValue;
         } else if (chargeType === ChargeType.PERCENTAGE_OF_LOAD) {
-            return (load.rate.toNumber() * chargeValue) / 100;
+            return (new Prisma.Decimal(load.rate).toNumber() * chargeValue) / 100;
         }
         return 0;
     };

@@ -2,6 +2,7 @@ import { Dialog } from '@headlessui/react';
 import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { Driver, ChargeType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
 import Spinner from '../Spinner';
@@ -27,14 +28,25 @@ const RouteLegDriverSelection: React.FC<Props> = ({
     onDriverSelectionSave,
 }: Props) => {
     const [load, setLoad] = useLoadContext();
+    const {
+        control,
+        handleSubmit,
+        setValue,
+        watch,
+        formState: { isValid },
+    } = useForm({
+        mode: 'onChange',
+        defaultValues: {
+            selectedDriverIds: [] as string[],
+            driverCharges: {} as { [key: string]: { chargeType?: ChargeType; chargeValue?: string } },
+        },
+    });
 
     const [loadingAllDrivers, setLoadingAllDrivers] = React.useState<boolean>(false);
-
     const [allDrivers, setAllDrivers] = React.useState<Driver[]>([]);
-    const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([]);
-    const [driverCharges, setDriverCharges] = React.useState<{
-        [key: string]: { chargeType?: ChargeType; chargeValue?: string };
-    }>({});
+
+    const selectedDriverIds = watch('selectedDriverIds');
+    const driverCharges = watch('driverCharges');
 
     useEffect(() => {
         const loadDrivers = async () => {
@@ -58,37 +70,47 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             }
             return acc;
         }, {} as { [key: string]: { chargeType?: ChargeType; chargeValue?: string } });
-        setDriverCharges(initialDriverCharges);
 
-        setSelectedDriverIds(selectedDrivers.map((sd) => sd.driver.id));
-    }, [load, selectedDrivers]);
+        setValue('driverCharges', initialDriverCharges);
+        setValue(
+            'selectedDriverIds',
+            selectedDrivers.map((sd) => sd.driver.id),
+        );
+    }, [load, selectedDrivers, setValue]);
+
+    const getDefaultChargeType = (driverId: string) => {
+        const driver = allDrivers.find((d) => d.id === driverId);
+        return driver?.defaultChargeType || undefined;
+    };
+
+    const getDefaultChargeValue = (driverId: string) => {
+        const driver = allDrivers.find((d) => d.id === driverId);
+        if (driver?.defaultChargeType === ChargeType.PER_MILE) {
+            return driver.perMileRate?.toString() || '';
+        } else if (driver?.defaultChargeType === ChargeType.PER_HOUR) {
+            return driver.perHourRate?.toString() || '';
+        } else if (driver?.defaultChargeType === ChargeType.FIXED_PAY) {
+            return driver.defaultFixedPay?.toString() || '';
+        } else if (driver?.defaultChargeType === ChargeType.PERCENTAGE_OF_LOAD) {
+            return driver.takeHomePercent?.toString() || '';
+        }
+        return '';
+    };
 
     const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.checked) {
-            setSelectedDriverIds((prev) => [...prev, event.target.value]);
-        } else {
-            setSelectedDriverIds((prev) => prev.filter((item) => item !== event.target.value));
-        }
+        const value = event.target.value;
+        setValue(
+            'selectedDriverIds',
+            event.target.checked ? [...selectedDriverIds, value] : selectedDriverIds.filter((id) => id !== value),
+        );
     };
 
     const handleChargeTypeChange = (driverId: string, chargeType: ChargeType) => {
-        setDriverCharges((prev) => ({
-            ...prev,
-            [driverId]: {
-                ...prev[driverId],
-                chargeType,
-            },
-        }));
+        setValue(`driverCharges.${driverId}.chargeType`, chargeType);
     };
 
     const handleChargeValueChange = (driverId: string, chargeValue: string) => {
-        setDriverCharges((prev) => ({
-            ...prev,
-            [driverId]: {
-                ...prev[driverId],
-                chargeValue,
-            },
-        }));
+        setValue(`driverCharges.${driverId}.chargeValue`, chargeValue);
     };
 
     const calculateTotalPay = () => {
@@ -112,25 +134,21 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         return totalPay.toFixed(2);
     };
 
-    const saveSelectedDrivers = async () => {
-        const newDrivers = selectedDriverIds.map((id) => {
+    const saveSelectedDrivers = async (data: any) => {
+        const newDrivers = data.selectedDriverIds.map((id: string) => {
             const driver = allDrivers.find((d) => d.id === id);
             return {
                 driver,
-                chargeType: driverCharges[id]?.chargeType,
-                chargeValue: driverCharges[id]?.chargeValue ? Number(driverCharges[id].chargeValue) : undefined,
+                chargeType: data.driverCharges[id]?.chargeType,
+                chargeValue: data.driverCharges[id]?.chargeValue
+                    ? Number(data.driverCharges[id].chargeValue)
+                    : undefined,
             };
         });
 
         onDriverSelectionSave(newDrivers);
         onGoBack();
-
-        setSelectedDriverIds([]);
     };
-
-    const isSelectButtonDisabled = selectedDriverIds.some(
-        (id) => !driverCharges[id]?.chargeType || !driverCharges[id]?.chargeValue,
-    );
 
     return (
         <div className="flex flex-col h-full space-y-4">
@@ -160,7 +178,10 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             ) : (
                 <>
                     {allDrivers.length > 0 ? (
-                        <div className="flex flex-col flex-1 overflow-auto">
+                        <form
+                            onSubmit={handleSubmit(saveSelectedDrivers)}
+                            className="flex flex-col flex-1 overflow-auto"
+                        >
                             <ul role="list" className="pb-4 overflow-y-auto divide-y divide-gray-200">
                                 {allDrivers?.map((driver, index) => (
                                     <li key={index}>
@@ -184,42 +205,72 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                 </label>
                                             </div>
                                             <div className="flex items-center h-6 pr-4">
-                                                <input
-                                                    id={`driver-${index}`}
-                                                    name={`driver-${index}`}
-                                                    type="checkbox"
-                                                    value={driver.id}
-                                                    checked={selectedDriverIds.includes(driver.id)}
-                                                    onChange={handleCheckboxChange}
-                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                <Controller
+                                                    name={`selectedDriverIds`}
+                                                    control={control}
+                                                    render={() => (
+                                                        <input
+                                                            id={`driver-${index}`}
+                                                            name={`driver-${index}`}
+                                                            type="checkbox"
+                                                            value={driver.id}
+                                                            checked={selectedDriverIds.includes(driver.id)}
+                                                            onChange={handleCheckboxChange}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                        />
+                                                    )}
                                                 />
                                             </div>
                                         </div>
                                         {selectedDriverIds.includes(driver.id) && (
                                             <div className="flex flex-row items-end w-full gap-2 px-1 mb-2">
-                                                <select
-                                                    value={driverCharges[driver.id]?.chargeType || ''}
-                                                    onChange={(e) =>
-                                                        handleChargeTypeChange(driver.id, e.target.value as ChargeType)
-                                                    }
-                                                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                >
-                                                    <option value="" disabled>
-                                                        Select Pay Type
-                                                    </option>
-                                                    <option value={ChargeType.PER_MILE}>Per Mile</option>
-                                                    <option value={ChargeType.PER_HOUR}>Per Hour</option>
-                                                    <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
-                                                    <option value={ChargeType.PERCENTAGE_OF_LOAD}>
-                                                        Percentage of Load
-                                                    </option>
-                                                </select>
-                                                <input
-                                                    type="number"
-                                                    value={driverCharges[driver.id]?.chargeValue || ''}
-                                                    onChange={(e) => handleChargeValueChange(driver.id, e.target.value)}
-                                                    placeholder="Charge Value"
-                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                <Controller
+                                                    name={`driverCharges.${driver.id}.chargeType`}
+                                                    control={control}
+                                                    defaultValue={getDefaultChargeType(driver.id)}
+                                                    rules={{ required: true }}
+                                                    render={({ field }) => (
+                                                        <select
+                                                            {...field}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                handleChargeTypeChange(
+                                                                    driver.id,
+                                                                    e.target.value as ChargeType,
+                                                                );
+                                                            }}
+                                                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                        >
+                                                            <option value="" disabled>
+                                                                Select Pay Type
+                                                            </option>
+                                                            <option value={ChargeType.PER_MILE}>Per Mile</option>
+                                                            <option value={ChargeType.PER_HOUR}>Per Hour</option>
+                                                            <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
+                                                            <option value={ChargeType.PERCENTAGE_OF_LOAD}>
+                                                                Percentage of Load
+                                                            </option>
+                                                        </select>
+                                                    )}
+                                                />
+                                                <Controller
+                                                    name={`driverCharges.${driver.id}.chargeValue`}
+                                                    control={control}
+                                                    defaultValue={getDefaultChargeValue(driver.id)}
+                                                    rules={{ required: true, min: 0 }}
+                                                    render={({ field }) => (
+                                                        <input
+                                                            {...field}
+                                                            type="number"
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                handleChargeValueChange(driver.id, e.target.value);
+                                                            }}
+                                                            placeholder="Charge Value"
+                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                            min="0"
+                                                        />
+                                                    )}
                                                 />
                                             </div>
                                         )}
@@ -235,14 +286,14 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                     </div>
                                     <div className="space-x-3">
                                         <button
-                                            type="button"
+                                            type="submit"
                                             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
-                                            onClick={saveSelectedDrivers}
-                                            disabled={isSelectButtonDisabled}
+                                            disabled={!isValid}
                                         >
                                             Select ({selectedDriverIds.length})
                                         </button>
                                         <button
+                                            type="button"
                                             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                             onClick={() => onGoBack()}
                                         >
@@ -251,7 +302,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </form>
                     ) : (
                         <div className="flex items-start justify-center flex-1 h-32">
                             <div className="flex flex-col items-center gap-1 mt-10 space-x-2 text-center text-gray-500">
