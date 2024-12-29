@@ -225,56 +225,39 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             const newAssignedDriverIds = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
             const removedDriverIds = currentDriverIds.filter((id) => !driverIdsFromRequest.includes(id));
 
-            if (newAssignedDriverIds.length > 0) {
-                await prisma.driverAssignment.createMany({
-                    data: routeLegData.driversWithCharge
-                        .filter((driverWithCharge) => newAssignedDriverIds.includes(driverWithCharge.driver.id))
-                        .map((driverWithCharge) => ({
-                            driverId: driverWithCharge.driver.id,
-                            routeLegId,
-                            loadId,
-                            carrierId: load.carrierId,
-                            chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
-                            chargeValue: driverWithCharge.chargeValue || 0,
-                        })),
-                });
+            const newDriverAssignmentsData = routeLegData.driversWithCharge
+                .filter((driverWithCharge) => newAssignedDriverIds.includes(driverWithCharge.driver.id))
+                .map((driverWithCharge) => ({
+                    driverId: driverWithCharge.driver.id,
+                    routeLegId,
+                    loadId,
+                    carrierId: load.carrierId,
+                    chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
+                    chargeValue: driverWithCharge.chargeValue || 0,
+                }));
 
-                const newDriverActivities = allRelevantDrivers
-                    .filter((driver) => newAssignedDriverIds.includes(driver.id))
-                    .map((driver) => ({
-                        loadId,
-                        carrierId: load.carrierId,
-                        action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
-                        actionDriverId: driver.id,
-                        actionDriverName: driver.name,
-                        actorUserId: session.user.id,
-                    }));
+            const newDriverActivities = allRelevantDrivers
+                .filter((driver) => newAssignedDriverIds.includes(driver.id))
+                .map((driver) => ({
+                    loadId,
+                    carrierId: load.carrierId,
+                    action: LoadActivityAction.ADD_DRIVER_TO_ASSIGNMENT,
+                    actionDriverId: driver.id,
+                    actionDriverName: driver.name,
+                    actorUserId: session.user.id,
+                }));
 
-                await prisma.loadActivity.createMany({ data: newDriverActivities });
-            }
+            const removedDriverActivities = allRelevantDrivers
+                .filter((driver) => removedDriverIds.includes(driver.id))
+                .map((driver) => ({
+                    loadId,
+                    carrierId: load.carrierId,
+                    action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
+                    actionDriverId: driver.id,
+                    actionDriverName: driver.name,
+                    actorUserId: session.user.id,
+                }));
 
-            if (removedDriverIds.length > 0) {
-                await prisma.driverAssignment.deleteMany({
-                    where: {
-                        routeLegId,
-                        driverId: { in: removedDriverIds },
-                    },
-                });
-                const removedDriverActivities = allRelevantDrivers
-                    .filter((driver) => removedDriverIds.includes(driver.id))
-                    .map((driver) => ({
-                        loadId,
-                        carrierId: load.carrierId,
-                        action: LoadActivityAction.REMOVE_DRIVER_FROM_ASSIGNMENT,
-                        actionDriverId: driver.id,
-                        actionDriverName: driver.name,
-                        actorUserId: session.user.id,
-                    }));
-
-                await prisma.loadActivity.createMany({ data: removedDriverActivities });
-            }
-
-            // Update existing driver assignments with new chargeType and chargeValue
             const existingDriverAssignments = routeLegData.driversWithCharge
                 .filter((driverWithCharge) => currentDriverIds.includes(driverWithCharge.driver.id))
                 .map((driverWithCharge) => ({
@@ -283,6 +266,17 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
                     chargeValue: driverWithCharge.chargeValue || 0,
                 }));
+
+            await prisma.driverAssignment.createMany({
+                data: newDriverAssignmentsData,
+            });
+
+            await prisma.driverAssignment.deleteMany({
+                where: {
+                    routeLegId,
+                    driverId: { in: removedDriverIds },
+                },
+            });
 
             for (const assignment of existingDriverAssignments) {
                 await prisma.driverAssignment.updateMany({
@@ -296,6 +290,10 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     },
                 });
             }
+
+            await prisma.loadActivity.createMany({
+                data: [...newDriverActivities, ...removedDriverActivities],
+            });
 
             await prisma.routeLegLocation.deleteMany({
                 where: { routeLegId },
