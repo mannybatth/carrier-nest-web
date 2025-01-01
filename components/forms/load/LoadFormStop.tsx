@@ -35,6 +35,8 @@ export type LoadFormStopProps = {
     setValue: UseFormSetValue<ExpandedLoad>;
     getValues: UseFormGetValues<ExpandedLoad>;
     watch: UseFormWatch<ExpandedLoad>;
+    mouseHoverOverField?: (event: React.MouseEvent<HTMLInputElement>) => void;
+    mouseHoverOutField?: (event: React.MouseEvent<HTMLInputElement>) => void;
 };
 
 const LoadFormStop: React.FC<LoadFormStopProps> = ({
@@ -47,6 +49,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     index,
     onRemoveStop,
     showAdditionalInfoPanel = true,
+    mouseHoverOutField,
+    mouseHoverOverField,
     ...props
 }) => {
     const [locationSearchTerm, setLocationSearchTerm] = useState('');
@@ -248,6 +252,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     })}
                     type="hidden"
                     value={index}
+                    onMouseEnter={mouseHoverOverField}
+                    onMouseLeave={mouseHoverOutField}
                 ></input>
             )}
             <div className={`${props.type === LoadStopType.STOP && onRemoveStop ? 'flex' : 'hidden'} flex-row`}>
@@ -272,10 +278,14 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         Business Name
                     </label>
                     <input
-                        {...register(fieldId('name'), { required: 'Business Name is required' })}
+                        {...register(fieldId('name'), {
+                            required: 'Business Name is required',
+                        })}
                         type="text"
                         id={fieldId('name')}
                         autoComplete="business-name"
+                        onMouseEnter={mouseHoverOverField}
+                        onMouseLeave={mouseHoverOutField}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'name')}
@@ -297,6 +307,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             <>
                                 <div className="relative mt-1">
                                     <input
+                                        onMouseEnter={mouseHoverOverField}
+                                        onMouseLeave={mouseHoverOutField}
                                         onChange={(e) => {
                                             if (!e.target.validity.badInput) {
                                                 onChange(parseISO(e.target.value));
@@ -337,6 +349,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         type="text"
                         id={fieldId('time')}
                         autoComplete="time"
+                        onMouseEnter={mouseHoverOverField}
+                        onMouseLeave={mouseHoverOutField}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'time')}
@@ -427,6 +441,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                             setLocationSearchTerm(e.target.value);
                                             validateLocationCoordinatesWithForm();
                                         }}
+                                        onMouseEnter={mouseHoverOverField}
+                                        onMouseLeave={mouseHoverOutField}
                                     />
                                     <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
                                         <ChevronUpDownIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
@@ -494,6 +510,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         type="text"
                         id={fieldId('city')}
                         autoComplete="city"
+                        onMouseEnter={mouseHoverOverField}
+                        onMouseLeave={mouseHoverOutField}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'city')}
@@ -508,6 +526,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         type="text"
                         id={fieldId('state')}
                         autoComplete="state"
+                        onMouseEnter={mouseHoverOverField}
+                        onMouseLeave={mouseHoverOutField}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'state')}
@@ -522,6 +542,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                         type="text"
                         id={fieldId('zip')}
                         autoComplete="postal-code"
+                        onMouseEnter={mouseHoverOverField}
+                        onMouseLeave={mouseHoverOutField}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     {errorMessage(errors, 'zip')}
@@ -569,6 +591,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             type="text"
                             id={fieldId('poNumbers')}
                             autoComplete="poNumbers"
+                            onMouseEnter={mouseHoverOverField}
+                            onMouseLeave={mouseHoverOutField}
                             className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                         />
                     </div>
@@ -584,6 +608,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             type="text"
                             id={fieldId('pickUpNumbers')}
                             autoComplete="pickUpNumbers"
+                            onMouseEnter={mouseHoverOverField}
+                            onMouseLeave={mouseHoverOutField}
                             className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                         />
                     </div>
@@ -599,6 +625,8 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                             type="text"
                             id={fieldId('referenceNumbers')}
                             autoComplete="referenceNumbers"
+                            onMouseEnter={mouseHoverOverField}
+                            onMouseLeave={mouseHoverOutField}
                             className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                         />
                     </div>

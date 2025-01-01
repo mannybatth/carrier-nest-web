@@ -21,6 +21,8 @@ type Props = {
     prefillName?: string;
     setPrefillName?: React.Dispatch<React.SetStateAction<string>>;
     parentStopsFieldArray?: ReturnType<typeof useFieldArray<Partial<ExpandedLoad>, 'stops', 'id'>>;
+    mouseHoverOverField?: (event: React.MouseEvent<HTMLInputElement>) => void;
+    mouseHoverOutField?: (event: React.MouseEvent<HTMLInputElement>) => void;
 };
 
 const LoadForm: React.FC<Props> = ({
@@ -39,6 +41,8 @@ const LoadForm: React.FC<Props> = ({
     prefillName,
     setPrefillName,
     parentStopsFieldArray,
+    mouseHoverOverField,
+    mouseHoverOutField,
 }) => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
 
@@ -129,6 +133,8 @@ const LoadForm: React.FC<Props> = ({
                                                 }
                                                 setCustomerSearchTerm(e.target.value);
                                             }}
+                                            onMouseEnter={mouseHoverOverField}
+                                            onMouseLeave={mouseHoverOutField}
                                             displayValue={(customer: Customer) => customer?.name || null}
                                         />
                                         <Combobox.Button className="absolute inset-y-0 right-0 flex items-center px-2 rounded-r-md focus:outline-none">
@@ -214,6 +220,8 @@ const LoadForm: React.FC<Props> = ({
                             type="text"
                             id="reference-num"
                             autoComplete="reference-num"
+                            onMouseEnter={mouseHoverOverField}
+                            onMouseLeave={mouseHoverOutField}
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                         {errors.refNum && <p className="mt-2 text-sm text-red-600">{errors.refNum?.message}</p>}
@@ -232,6 +240,8 @@ const LoadForm: React.FC<Props> = ({
                                     <>
                                         <MoneyInput
                                             id="rate"
+                                            onMouseEnter={mouseHoverOverField}
+                                            onMouseLeave={mouseHoverOutField}
                                             value={(value as Prisma.Decimal)?.toString() || ''}
                                             onChange={(e) =>
                                                 onChange(e.target.value ? new Prisma.Decimal(e.target.value) : '')
@@ -247,6 +257,8 @@ const LoadForm: React.FC<Props> = ({
                     <LoadFormStop
                         {...{ register, errors, control, setValue, getValues, watch }}
                         type={LoadStopType.SHIPPER}
+                        mouseHoverOutField={mouseHoverOutField}
+                        mouseHoverOverField={mouseHoverOverField}
                     />
 
                     {stopFields.map((field, i) => (
@@ -257,6 +269,8 @@ const LoadForm: React.FC<Props> = ({
                             totalStops={stopFields.length}
                             index={i}
                             onRemoveStop={() => removeStop(i)}
+                            mouseHoverOutField={mouseHoverOutField}
+                            mouseHoverOverField={mouseHoverOverField}
                         />
                     ))}
 
@@ -300,6 +314,8 @@ const LoadForm: React.FC<Props> = ({
                     <LoadFormStop
                         {...{ register, errors, control, setValue, getValues, watch }}
                         type={LoadStopType.RECEIVER}
+                        mouseHoverOutField={mouseHoverOutField}
+                        mouseHoverOverField={mouseHoverOverField}
                     />
                 </div>
             </div>

@@ -23,6 +23,29 @@ import { getAllCustomers } from '../../lib/rest/customer';
 import { createLoad, getLoadById } from '../../lib/rest/load';
 import AnimatedProgress from 'components/loads/AnimationProgress';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
+import PDFViewer from 'components/PDFViewer';
+import { set } from 'date-fns';
+
+interface Line {
+    text: string;
+    pageNumber: number;
+    boundingPoly: {
+        vertices: { x: number; y: number }[];
+        normalizedVertices: { x: number; y: number }[];
+    };
+}
+
+interface pageDimensions {
+    width: number;
+    height: number;
+    unit: string;
+}
+
+interface OCRLines {
+    pageProps: pageDimensions;
+    lines: Line[];
+    blocks: Line[];
+}
 
 const expectedProperties = new Set([
     'logistics_company',
@@ -71,6 +94,10 @@ const CreateLoad: PageWithAuth = () => {
 
     const [aiProgress, setAiProgress] = React.useState(0);
     const [isRetrying, setIsRetrying] = React.useState(false);
+
+    const [ocrLines, setOcrLines] = React.useState<OCRLines>(null);
+    const [ocrVertices, setOcrVertices] = React.useState<{ x: number; y: number }[][]>(null);
+    const [ocrVerticesPage, setOcrVerticesPage] = React.useState<number>(null);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
@@ -192,6 +219,10 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
+        //setCurrentRateconFile(file);
+
+        //return;
+
         setLoading(true);
         setIsRetrying(false);
         setAiProgress(0);
@@ -273,6 +304,15 @@ const CreateLoad: PageWithAuth = () => {
 
             const ocrResult = await ocrResponse.json();
             customersList = customersResponse?.customers;
+
+            if (ocrResult?.annotations?.lines) {
+                // console.log('ocr lines found', ocrResult.annotations.lines);
+                setOcrLines({
+                    lines: ocrResult.annotations.lines,
+                    blocks: ocrResult.annotations.blocks,
+                    pageProps: ocrResult.pageProps,
+                });
+            }
 
             const [documentsInBlocks, documentsInLines] = await Promise.all([
                 ocrResult.blocks.map((pageText: string, index: number) => {
@@ -361,9 +401,9 @@ const CreateLoad: PageWithAuth = () => {
         let buffer = '';
 
         const processChunk = (chunk: string) => {
-            console.log('chunk', chunk);
+            // console.log('chunk', chunk);
             const progress = checkForProperties(chunk, foundProperties);
-            console.log('progress', progress);
+            // console.log('progress', progress);
             setAiProgress(10 + (progress || 0) * (90 / 100));
         };
 
@@ -371,7 +411,7 @@ const CreateLoad: PageWithAuth = () => {
             const { value, done } = await streamReader.read();
             if (done) {
                 setAiProgress(100);
-                console.log('AI response', buffer);
+                // console.log('AI response', buffer);
                 const jsonString = buffer.match(/```json\s*([\s\S]*?)\s*```/);
                 try {
                     aiLoad = JSON.parse(jsonString[1]);
@@ -551,9 +591,53 @@ const CreateLoad: PageWithAuth = () => {
         });
     };
 
+    const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
+        //console.log('Mouse hover over field:', event.currentTarget.value, ocrLines?.lines);
+        const replaceExp = /[^a-zA-Z0-9 ]/g;
+        let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+        const fieldName = (event.target as HTMLInputElement).name;
+
+        const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
+
+        if (!value || !ocrLines?.lines) {
+            return;
+        }
+
+        console.log('Field:', fieldName, 'Value:', value);
+
+        let matchingLine: Line = null;
+
+        // Find the matching line in the OCR response
+        if (!isAddressField) {
+            matchingLine = ocrLines?.lines?.find((line) =>
+                line.text.trim().replace(replaceExp, '').toLocaleLowerCase().includes(value),
+            );
+        }
+
+        if (!matchingLine) {
+            value = fieldName.includes('state') ? ` ${value} ` : value;
+            // Fuzzy search for the value in the OCR response
+            matchingLine = ocrLines?.blocks?.find((line) =>
+                line.text.trim().replace(replaceExp, '').toLocaleLowerCase().includes(value),
+            );
+        }
+
+        // Update matching vertices
+        if (matchingLine) {
+            //console.log('Matching line:', matchingLine.boundingPoly.normalizedVertices, matchingLine);
+            setOcrVertices([matchingLine.boundingPoly.normalizedVertices]);
+            setOcrVerticesPage(matchingLine.pageNumber);
+        }
+    };
+
+    const mouseHoverOverFieldExited = (event: React.MouseEvent<HTMLInputElement>) => {
+        setOcrVertices(null);
+        setOcrVerticesPage(null);
+    };
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
-            <div className="max-w-4xl py-2 mx-auto">
+            <div className={`${currentRateconFile ? 'max-w-full' : 'max-w-4xl'}  py-2 mx-auto`}>
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
                     paths={[
@@ -630,27 +714,46 @@ const CreateLoad: PageWithAuth = () => {
                         </div>
                     )}
 
-                    <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <LoadForm
-                            formHook={formHook}
-                            openAddCustomerFromProp={openAddCustomer}
-                            setOpenAddCustomerFromProp={setOpenAddCustomer}
-                            showMissingCustomerLabel={showMissingCustomerLabel}
-                            setShowMissingCustomerLabel={setShowMissingCustomerLabel}
-                            prefillName={prefillName}
-                            setPrefillName={setPrefillName}
-                            parentStopsFieldArray={stopsFieldArray}
-                        ></LoadForm>
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Create Load
-                            </button>
+                    <div className="relative flex flex-row items-start gap-3 mb-4 bg-white rounded-lg h-full w-full">
+                        {currentRateconFile ? (
+                            <PDFViewer
+                                fileBlob={currentRateconFile}
+                                scrollToPage={ocrVerticesPage}
+                                ocrVertices={ocrVertices}
+                            />
+                        ) : null}
+                        <div
+                            className={`flex-1 flex ${
+                                currentRateconFile
+                                    ? 'sticky top-2 overflow-y-scroll max-h-screen bg-slate-50 border border-slate-500 shadow-md p-4'
+                                    : ''
+                            }  rounded-md `}
+                        >
+                            <form id="load-form" onSubmit={formHook.handleSubmit(submit)} className="h-full">
+                                <LoadForm
+                                    formHook={formHook}
+                                    openAddCustomerFromProp={openAddCustomer}
+                                    setOpenAddCustomerFromProp={setOpenAddCustomer}
+                                    showMissingCustomerLabel={showMissingCustomerLabel}
+                                    setShowMissingCustomerLabel={setShowMissingCustomerLabel}
+                                    prefillName={prefillName}
+                                    setPrefillName={setPrefillName}
+                                    parentStopsFieldArray={stopsFieldArray}
+                                    mouseHoverOverField={mouseHoverOverField}
+                                    mouseHoverOutField={mouseHoverOverFieldExited}
+                                />
+                                <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                    <div className="flex-1"></div>
+                                    <button
+                                        type="submit"
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        Create Load
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </Layout>

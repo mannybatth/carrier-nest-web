@@ -22,6 +22,45 @@ export const config = {
     runtime: 'edge',
 };
 
+function extractTextAnnotations(document, getText) {
+    const annotations = {
+        blocks: [],
+        lines: [],
+    };
+
+    // Extract blocks
+    for (const [index, page] of document.pages.entries()) {
+        if (page.blocks) {
+            const pageBlocks = page.blocks.map((block) => ({
+                text: getText(block.layout.textAnchor),
+                boundingPoly: {
+                    vertices: block.layout.boundingPoly.vertices,
+                    normalizedVertices: block.layout.boundingPoly.normalizedVertices, // Exclude normalizedVertices
+                },
+                pageNumber: index,
+            }));
+            annotations.blocks.push(...pageBlocks);
+        }
+    }
+
+    // Extract lines
+    for (const [index, page] of document.pages.entries()) {
+        if (page.lines) {
+            const pageLines = page.lines.map((line) => ({
+                text: getText(line.layout.textAnchor),
+                boundingPoly: {
+                    vertices: line.layout.boundingPoly.vertices, // Exclude normalizedVertices
+                    normalizedVertices: line.layout.boundingPoly.normalizedVertices,
+                },
+                pageNumber: index,
+            }));
+            annotations.lines.push(...pageLines);
+        }
+    }
+
+    return annotations;
+}
+
 export default async function POST(req: NextRequest) {
     // Generate a short lived access token from the service account key credentials
     const accessToken = await webAuthLibrary.google.getAccessToken({
@@ -41,6 +80,7 @@ export default async function POST(req: NextRequest) {
             const response = await fetchDocumentAI(file, accessToken);
 
             const { document } = response;
+            // console.log('Document AI response:', response);
             const { text } = document; // Assuming the text is in the document object
             const pagesInBlocks = [];
             const pagesInLines = [];
@@ -56,6 +96,10 @@ export default async function POST(req: NextRequest) {
 
                 return text.substring(startIndex as number, endIndex as number);
             };
+
+            const pageProps = document.pages[0].dimension;
+
+            const annotations = extractTextAnnotations(document, getText);
 
             const getTopY = (block) => block.layout.boundingPoly.normalizedVertices[0].y;
             const getLeftX = (block) => block.layout.boundingPoly.normalizedVertices[0].x;
@@ -139,6 +183,8 @@ export default async function POST(req: NextRequest) {
                 blocks: pagesInBlocks,
                 lines: pagesInLines,
                 pages,
+                annotations,
+                pageProps,
             });
         } catch (error) {
             console.error('Error during the Document AI process:', error);
