@@ -614,21 +614,33 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
-        console.log('Mouse hover over field: ', (event.target as HTMLInputElement).value);
         // Remove special characters and convert to lowercase
         const replaceExp = /[^a-zA-Z0-9 ]/g;
         let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+
+        // Get the field name
+        const fieldName = (event.target as HTMLInputElement).name;
+
+        // console.log('Mouse hover over field: ', value, fieldName);
 
         // If value is empty, return
         if (!value || !ocrLines.lines) {
             return;
         }
 
+        if (fieldName.includes('date')) {
+            // Extract year, month, and day from the input
+            const year = value.slice(0, 4);
+            const month = value.slice(4, 6);
+            const day = value.slice(6, 8);
+
+            // Return in the desired format
+            value = `${month}${day}${year}`;
+            // console.log('Date:', value);
+        }
+
         // Highlight the field border on hover
         event.currentTarget.style.backgroundColor = '#cccccc7d';
-
-        // Get the field name
-        const fieldName = (event.target as HTMLInputElement).name;
 
         // Check if the field is an address field
         const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));

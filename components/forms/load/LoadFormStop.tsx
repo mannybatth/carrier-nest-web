@@ -322,6 +322,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         type="date"
                                         max="9999-12-31"
                                         id={fieldId('date')}
+                                        name={fieldId('date')}
                                         autoComplete="date"
                                         className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                                             error
@@ -432,6 +433,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                 <div className="relative mt-1">
                                     <Combobox.Input
                                         autoComplete="xyz"
+                                        name={fieldId('street')}
                                         className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                         onChange={(e) => {
                                             onChange(e.target.value);

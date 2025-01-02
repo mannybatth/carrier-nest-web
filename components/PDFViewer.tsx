@@ -138,8 +138,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
         const height = yMax - yMin;
 
         return (
-            <>
+            <div key={`${xMin}-${yMin}-container`} className="relative">
                 <ChevronDoubleRightIcon
+                    key={`${xMin}-${yMin}-icon`}
                     className="z-[9999] relative -left-[14px] bounce-side"
                     height={28}
                     width={28}
@@ -161,7 +162,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
                         height: `${height}px`,
                     }}
                 />
-            </>
+            </div>
         );
     };
 

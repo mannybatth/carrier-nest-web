@@ -126,6 +126,7 @@ const LoadForm: React.FC<Props> = ({
                                     <div className="relative mt-1">
                                         <Combobox.Input
                                             autoComplete="off"
+                                            name="customerName"
                                             className="w-full py-2 pl-3 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                             onChange={(e) => {
                                                 if (e.target.value.length > 0) {
@@ -240,6 +241,7 @@ const LoadForm: React.FC<Props> = ({
                                     <>
                                         <MoneyInput
                                             id="rate"
+                                            name="loadRate"
                                             onMouseEnter={mouseHoverOverField}
                                             onMouseLeave={mouseHoverOutField}
                                             value={(value as Prisma.Decimal)?.toString() || ''}
