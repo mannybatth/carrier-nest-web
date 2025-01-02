@@ -11,6 +11,8 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import { SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { DocumentLoadEvent } from '@react-pdf-viewer/core';
 import { set } from 'date-fns';
+import { ArrowRightCircleIcon } from '@heroicons/react/24/solid';
+import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 
 interface PDFViewerProps {
     fileBlob: Blob;
@@ -87,11 +89,15 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
     }, [scrollToPage, isPdfLoaded]); */
 
     const drawBox = (vertices: { x: number; y: number }[]) => {
-        //console.log('Vertices: ', vertices);
+        // If vertices are not available, return null
+        if (vertices.length !== 4) return null;
+
+        // Get the boundry of the current (scrollToPage) page
         const pagesBoundry = containerRef.current
             .querySelectorAll('.rpv-core__page-layer')
             [scrollToPage]?.getBoundingClientRect();
 
+        // If page boundry is not available, return null
         if (!pagesBoundry) return null;
 
         const isPageInView =
@@ -114,9 +120,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
             });
         }
 
-        // console.log('Pages Boundry:', pagesBoundry.width, pagesBoundry.height, pagesBoundry);
-        if (vertices.length !== 4) return null;
-
         const xMin = Math.min(...vertices.map((v) => v.x * pagesBoundry.width + 5.5));
         const yMin = Math.min(
             ...vertices.map(
@@ -130,23 +133,35 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
             ),
         );
 
+        // Get width and height of the box
         const width = xMax - xMin;
         const height = yMax - yMin;
 
-        // console.log('min:', xMin, yMin, 'max:', xMax, yMax, 'width:', width, 'height:', height);
-
         return (
-            <div
-                key={`${xMin}-${yMin}`}
-                id="ocr-box"
-                className="absolute z-[1000] border-[1px] transition-all border-double animate-pulse border-red-400 pointer-events-none bg-red-400/50 rounded-sm"
-                style={{
-                    left: `${xMin}px`,
-                    top: `${yMin}px`,
-                    width: `${width}px`,
-                    height: `${height}px`,
-                }}
-            />
+            <>
+                <ChevronDoubleRightIcon
+                    className="z-[9999] relative -left-[14px] bounce-side"
+                    height={28}
+                    width={28}
+                    color="blue"
+                    style={{
+                        top: `${Math.round(yMin) + height * 0.6 - 14}px`,
+                        position: 'absolute', // Ensure proper positioning
+                    }}
+                />
+
+                <div
+                    key={`${xMin}-${yMin}`}
+                    id="ocr-box"
+                    className="absolute z-[1000] border-[1px] transition-all border-double animate-pulse border-red-500 pointer-events-none bg-red-500/50 rounded-sm shadow-md"
+                    style={{
+                        left: `${xMin}px`,
+                        top: `${yMin}px`,
+                        width: `${width}px`,
+                        height: `${height}px`,
+                    }}
+                />
+            </>
         );
     };
 

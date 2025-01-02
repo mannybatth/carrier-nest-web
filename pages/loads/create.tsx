@@ -614,13 +614,26 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
-        //console.log('Mouse hover over field:', event.currentTarget.value, ocrLines?.lines);
+        console.log('Mouse hover over field: ', (event.target as HTMLInputElement).value);
+        // Remove special characters and convert to lowercase
         const replaceExp = /[^a-zA-Z0-9 ]/g;
         let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+
+        // If value is empty, return
+        if (!value || !ocrLines.lines) {
+            return;
+        }
+
+        // Highlight the field border on hover
+        event.currentTarget.style.backgroundColor = '#cccccc7d';
+
+        // Get the field name
         const fieldName = (event.target as HTMLInputElement).name;
 
+        // Check if the field is an address field
         const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
 
+        // If the field is an address field, build city state zip string to search against OCR response
         if (isAddressField) {
             const lastDotIndex = fieldName.lastIndexOf('.');
             const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
@@ -643,18 +656,15 @@ const CreateLoad: PageWithAuth = () => {
             value = `${addCity} ${addState} ${addZip}`;
         }
 
-        if (!value || !ocrLines?.lines) {
-            return;
-        }
-
+        // Variable to hold the best maching line
         let matchingLine: Line = null;
 
         // Find the matching line in the OCR response
-
         matchingLine = ocrLines?.lines?.find((line) =>
             looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
         );
 
+        // If no matching line found, search in the blocks
         if (!matchingLine) {
             value = fieldName.includes('state') ? ` ${value} ` : value;
             // Fuzzy search for the value in the OCR response
@@ -663,7 +673,7 @@ const CreateLoad: PageWithAuth = () => {
             );
         }
 
-        // Update matching vertices
+        // Update matching vertices if matching line is found
         if (matchingLine) {
             //console.log('Matching line:', matchingLine.boundingPoly.normalizedVertices, matchingLine);
             setOcrVertices([matchingLine.boundingPoly.normalizedVertices]);
@@ -672,7 +682,13 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const mouseHoverOverFieldExited = (event: React.MouseEvent<HTMLInputElement>) => {
+        // Set the border on hover out back to normal
+
+        event.currentTarget.style.backgroundColor = 'white';
+
+        // Reset the vertices
         setOcrVertices(null);
+        // Reset the page number
         setOcrVerticesPage(null);
     };
 
