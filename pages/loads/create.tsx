@@ -25,6 +25,7 @@ import AnimatedProgress from 'components/loads/AnimationProgress';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import PDFViewer from 'components/PDFViewer';
 import { set } from 'date-fns';
+import { is } from 'date-fns/locale';
 
 interface Line {
     text: string;
@@ -591,6 +592,27 @@ const CreateLoad: PageWithAuth = () => {
         });
     };
 
+    const looselyCompareAddresses = (str1: string, str2: string) => {
+        // Normalize strings: remove special characters and convert to lowercase
+        const normalize = (str) =>
+            str
+                .replace(/[^a-zA-Z0-9\s]/g, '') // Remove punctuation
+                .toLowerCase()
+                .split(/\s+/) // Split into words
+                .filter(Boolean); // Remove empty strings
+
+        const tokens1 = normalize(str1);
+        const tokens2 = normalize(str2);
+
+        // Count matches
+        const matches = tokens1.filter((token) => tokens2.toString().includes(token.toString())).length;
+
+        // Determine similarity based on the proportion of matching tokens
+        const threshold = Math.max(tokens1.length, tokens2.length) * 0.5; // Adjust threshold as needed
+
+        return matches >= tokens1.length;
+    };
+
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
         //console.log('Mouse hover over field:', event.currentTarget.value, ocrLines?.lines);
         const replaceExp = /[^a-zA-Z0-9 ]/g;
@@ -599,26 +621,45 @@ const CreateLoad: PageWithAuth = () => {
 
         const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
 
+        if (isAddressField) {
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+
+            const addCity = formHook
+                .getValues(`${firstPartOfFieldName}.city` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            const addState = formHook
+                .getValues(`${firstPartOfFieldName}.state` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            const addZip = formHook
+                .getValues(`${firstPartOfFieldName}.zip` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            value = `${addCity} ${addState} ${addZip}`;
+        }
+
         if (!value || !ocrLines?.lines) {
             return;
         }
 
-        console.log('Field:', fieldName, 'Value:', value);
-
         let matchingLine: Line = null;
 
         // Find the matching line in the OCR response
-        if (!isAddressField) {
-            matchingLine = ocrLines?.lines?.find((line) =>
-                line.text.trim().replace(replaceExp, '').toLocaleLowerCase().includes(value),
-            );
-        }
+
+        matchingLine = ocrLines?.lines?.find((line) =>
+            looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+        );
 
         if (!matchingLine) {
             value = fieldName.includes('state') ? ` ${value} ` : value;
             // Fuzzy search for the value in the OCR response
             matchingLine = ocrLines?.blocks?.find((line) =>
-                line.text.trim().replace(replaceExp, '').toLocaleLowerCase().includes(value),
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
             );
         }
 
