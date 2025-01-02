@@ -724,9 +724,7 @@ const CreateLoad: PageWithAuth = () => {
                         ) : null}
                         <div
                             className={`flex-1 flex ${
-                                currentRateconFile
-                                    ? 'sticky top-2 overflow-y-scroll max-h-screen bg-slate-50 border border-slate-500 shadow-md p-4'
-                                    : ''
+                                currentRateconFile ? 'sticky top-2 overflow-y-scroll max-h-screen bg-white p-1' : ''
                             }  rounded-md `}
                         >
                             <form id="load-form" onSubmit={formHook.handleSubmit(submit)} className="h-full">
@@ -742,7 +740,7 @@ const CreateLoad: PageWithAuth = () => {
                                     mouseHoverOverField={mouseHoverOverField}
                                     mouseHoverOutField={mouseHoverOverFieldExited}
                                 />
-                                <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                <div className="flex px-4 py-4 mt-4 border-t-2 border-neutral-200">
                                     <div className="flex-1"></div>
                                     <button
                                         type="submit"

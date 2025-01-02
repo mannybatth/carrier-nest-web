@@ -139,7 +139,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
             <div
                 key={`${xMin}-${yMin}`}
                 id="ocr-box"
-                className="absolute z-[1000] border-[1px] transition-all border-double animate-pulse border-red-500 pointer-events-none bg-red-500/40 rounded-sm"
+                className="absolute z-[1000] border-[1px] transition-all border-double animate-pulse border-red-400 pointer-events-none bg-red-400/50 rounded-sm"
                 style={{
                     left: `${xMin}px`,
                     top: `${yMin}px`,

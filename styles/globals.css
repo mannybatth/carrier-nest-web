@@ -26,6 +26,14 @@
     .DayPickerInput .DayPicker-Week {
         @apply leading-5;
     }
+    .rpv-core__page-layer::after {
+        box-shadow: 0 0 5 5px #dddddd7c !important;
+        border: 1px dotted #dbdbdb !important;
+        border-radius: 0.5rem !important;
+        margin: 0rem !important;
+        padding: 0rem !important;
+        background-color: #cccccc28 !important;
+    }
 }
 
 @tailwind components;
