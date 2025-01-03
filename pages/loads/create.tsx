@@ -220,9 +220,29 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
-        //setCurrentRateconFile(file);
+        // Reset entire form
+        formHook.reset({
+            customer: null,
+            refNum: null,
+            rate: null,
+            shipper: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+            },
+            receiver: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+            },
+            stops: [],
+        });
 
-        //return;
+        setCurrentRateconFile(file);
 
         setLoading(true);
         setIsRetrying(false);
@@ -592,6 +612,23 @@ const CreateLoad: PageWithAuth = () => {
         });
     };
 
+    const twoStringWindowSearch = (s1: string, s2: string, windowSize: number) => {
+        // Edge case: If window size is greater than either string's length
+        if (s1.length < windowSize || s2.length < windowSize) {
+            return false;
+        }
+
+        // Slide the window over s1
+        for (let i = 0; i <= s1.length - windowSize; i++) {
+            const s1Window = s1.slice(i, i + windowSize);
+            if (s2.includes(s1Window)) {
+                return true; // If match found, return true
+            }
+        }
+
+        return false; // If no match found, return false
+    };
+
     const looselyCompareAddresses = (str1: string, str2: string) => {
         // Normalize strings: remove special characters and convert to lowercase
         const normalize = (str) =>
@@ -603,32 +640,127 @@ const CreateLoad: PageWithAuth = () => {
 
         const tokens1 = normalize(str1);
         const tokens2 = normalize(str2);
+        // console.log('Tokens:', tokens1, tokens2);
 
         // Count matches
-        const matches = tokens1.filter((token) => tokens2.toString().includes(token.toString())).length;
+        const matches = tokens1.filter((token) => {
+            const result = tokens2.find((token2) => {
+                return twoStringWindowSearch(token, token2, Math.round(token.length * 0.9));
+            });
+            // console.log('result:', result);
+            return result;
+        }).length;
 
         // Determine similarity based on the proportion of matching tokens
         const threshold = Math.max(tokens1.length, tokens2.length) * 0.5; // Adjust threshold as needed
-
+        // console.log('Matches:', matches, 'Threshold:', threshold);
         return matches >= tokens1.length;
     };
 
+    const findClosestDate = (
+        ocrData: Line[],
+        targetBoundary: { vertices: { x: number; y: number }[] },
+    ): Line | null => {
+        const dateRegex = /\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\/\d{2}\/\d{4}\b/g;
+
+        let closestMatch: Line | null = null;
+        let minDistance = Infinity;
+
+        const getBoundingBoxCenter = (vertices: { x: number; y: number }[]) => {
+            console.log('Vertices:', vertices);
+            const x = (vertices[0].x + vertices[2].x) / 2;
+            const y = (vertices[0].y + vertices[2].y) / 2;
+
+            return { x, y };
+        };
+
+        ocrData.forEach((item) => {
+            const { text, pageNumber, boundingPoly } = item;
+
+            // Check if the text matches the date format
+            const match = text.match(dateRegex);
+            if (!match) return;
+
+            // Compute the center of the current bounding box
+            const currentCenter = getBoundingBoxCenter(boundingPoly.vertices);
+
+            console.log(targetBoundary);
+            // Compute the center of the target boundary
+            const targetCenter = getBoundingBoxCenter(targetBoundary.vertices);
+
+            // Calculate Euclidean distance
+            const distance = Math.sqrt(
+                Math.pow(currentCenter.x - targetCenter.x, 2) + Math.pow(currentCenter.y - targetCenter.y, 2),
+            );
+
+            // Update the closest match if the distance is smaller
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestMatch = {
+                    text: match[0],
+                    pageNumber,
+                    boundingPoly,
+                };
+            }
+        });
+
+        return closestMatch;
+    };
+
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
+        // Replace , with space
+        let value = (event.target as HTMLInputElement).value.replaceAll(/(?<=\w),(?=\w)/g, ' ');
         // Remove special characters and convert to lowercase
         const replaceExp = /[^a-zA-Z0-9 ]/g;
-        let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+        value = value.replace(replaceExp, '').toLowerCase();
 
         // Get the field name
         const fieldName = (event.target as HTMLInputElement).name;
 
         // console.log('Mouse hover over field: ', value, fieldName);
 
+        if ((fieldName.includes('date') || fieldName.includes('time')) && !value) {
+            // Get stop name field to serach against OCR response
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+
+            // Get name or street value to search against OCR response
+            value =
+                formHook
+                    .getValues(`${firstPartOfFieldName}.name` as keyof ExpandedLoad)
+                    ?.toString()
+                    .replace(replaceExp, '')
+                    .toLowerCase() ||
+                formHook
+                    .getValues(`${firstPartOfFieldName}.street` as keyof ExpandedLoad)
+                    ?.toString()
+                    .replace(replaceExp, '')
+                    .toLowerCase();
+            console.log('Value name:', value);
+
+            // Find in lines data for value
+            const matchingLine = ocrLines?.blocks?.find((line) =>
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+            );
+
+            // if line is found, find the closest date
+            if (matchingLine) {
+                const result = findClosestDate(ocrLines?.lines, matchingLine?.boundingPoly);
+                if (result) {
+                    //console.log('Matching line:', matchingLine.boundingPoly.normalizedVertices, matchingLine);
+                    setOcrVertices([result.boundingPoly.normalizedVertices]);
+                    setOcrVerticesPage(result.pageNumber);
+                    return;
+                }
+            }
+        }
+
         // If value is empty, return
         if (!value || !ocrLines.lines) {
             return;
         }
 
-        if (fieldName.includes('date')) {
+        if (fieldName.includes('date') && Number(value)) {
             // Extract year, month, and day from the input
             const year = value.slice(0, 4);
             const month = value.slice(4, 6);
@@ -636,7 +768,6 @@ const CreateLoad: PageWithAuth = () => {
 
             // Return in the desired format
             value = `${month}${day}${year}`;
-            // console.log('Date:', value);
         }
 
         // Highlight the field border on hover
@@ -681,6 +812,23 @@ const CreateLoad: PageWithAuth = () => {
             value = fieldName.includes('state') ? ` ${value} ` : value;
             // Fuzzy search for the value in the OCR response
             matchingLine = ocrLines?.blocks?.find((line) =>
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+            );
+        }
+
+        if (!matchingLine && fieldName.includes('date')) {
+            let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+
+            // Extract year, month, and day from the input
+            const year = value.slice(2, 4);
+            const month = value.slice(4, 6);
+            const day = value.slice(6, 8);
+
+            // Return in the desired format
+            value = `${month}${day}${year}`;
+
+            // Find in lines data for value
+            matchingLine = ocrLines?.lines?.find((line) =>
                 looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
             );
         }
