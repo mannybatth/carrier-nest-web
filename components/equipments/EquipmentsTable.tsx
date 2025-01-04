@@ -42,7 +42,9 @@ const EquipmentsTable: React.FC<Props> = ({
                     { value: equipment.equipmentNumber },
                     { value: equipment.make },
                     { value: equipment.model },
-                    { value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned' },
+                    !hideDriversColumn && {
+                        value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned',
+                    },
                 ],
                 menuItems: [
                     {

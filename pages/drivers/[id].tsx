@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, EnvelopeIcon, PhoneIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, CurrencyDollarIcon, EnvelopeIcon, PhoneIcon, TruckIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
@@ -360,13 +360,25 @@ const DriverDetailsPage: PageWithAuth = () => {
                                                 <p className="text-sm text-gray-500">{driver.phone}</p>
                                             </div>
                                         </div>
+                                        <div className="flex">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                                                <CurrencyDollarIcon
+                                                    className="w-5 h-5 text-gray-500"
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Default Pay Type</p>
+                                                <p className="text-sm text-gray-500">{driver.defaultChargeType}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
                                 <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
                             )}
 
-                            <div className="col-span-12">
+                            <div className="col-span-12 mt-4">
                                 <h3 className="mb-2">Driver assigned to following loads</h3>
                                 {loadingLoads ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />

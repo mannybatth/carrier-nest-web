@@ -23,10 +23,16 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                 { key: 'name', title: 'Name' },
                 { key: 'email', title: 'Email' },
                 { key: 'phone', title: 'Phone' },
+                { key: 'defaultPayType', title: 'Default Pay Type' }, // Added new column header
             ]}
             rows={drivers.map((driver) => ({
                 id: driver.id,
-                items: [{ value: driver.name }, { value: driver.email }, { value: driver.phone }],
+                items: [
+                    { value: driver.name },
+                    { value: driver.email },
+                    { value: driver.phone },
+                    { value: driver.defaultChargeType }, // Added new column value
+                ],
                 menuItems: [
                     {
                         title: 'Edit',
