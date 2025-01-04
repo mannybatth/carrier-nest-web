@@ -304,14 +304,26 @@ model Driver {
 }
 
 model Equipment {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    name      String
-    type      String
-    carrierId String
-    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    drivers   Driver[]
+    id              String          @id @default(cuid())
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt
+    equipmentNumber String?
+    type            String?
+    make            String
+    model           String?
+    year            Int?
+    vin             String?
+    licensePlate    String?
+    status          EquipmentStatus
+    carrierId       String
+    carrier         Carrier         @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    drivers         Driver[]
+}
+
+enum EquipmentStatus {
+    AVAILABLE
+    MAINTENANCE
+    INACTIVE
 }
 
 model Invoice {
