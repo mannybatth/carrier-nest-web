@@ -12,14 +12,19 @@ export const sortFromQuery = (query: ParsedUrlQuery): Sort => {
     return sort;
 };
 
-export const queryFromSort = (sort: Sort, routerQuery: ParsedUrlQuery): ParsedUrlQueryInput => {
+export const queryFromSort = (
+    sort: Sort,
+    routerQuery: ParsedUrlQuery,
+    sortByKey = 'sortBy',
+    sortOrderKey = 'sortOrder',
+): ParsedUrlQueryInput => {
     const query = {
         ...routerQuery,
-        ...(sort?.key ? { sortBy: sort.key, sortOrder: sort.order } : {}),
+        ...(sort?.key ? { [sortByKey]: sort.key, [sortOrderKey]: sort.order } : {}),
     };
     if (!sort) {
-        delete query.sortBy;
-        delete query.sortOrder;
+        delete query[sortByKey];
+        delete query[sortOrderKey];
     }
     return query;
 };

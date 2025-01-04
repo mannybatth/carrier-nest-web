@@ -102,6 +102,10 @@ const DriverDetailsPage: PageWithAuth = () => {
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
     });
+    const equipmentSortProps = sortFromQuery({
+        sortBy: searchParams.get('equipmentSortBy'),
+        sortOrder: searchParams.get('equipmentSortOrder'),
+    });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
     const driverId = params.id as string;
@@ -122,6 +126,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
     const [sort, setSort] = React.useState<Sort>(sortProps);
+    const [equipmentSort, setEquipmentSort] = React.useState<Sort>(equipmentSortProps);
     const [limit, setLimit] = React.useState(limitProp);
     const [offset, setOffset] = React.useState(offsetProp);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>({
@@ -154,6 +159,19 @@ const DriverDetailsPage: PageWithAuth = () => {
         );
         setSort(sort);
         reloadLoads({ sort, limit, offset, useTableLoading: true });
+    };
+
+    const changeEquipmentSort = (sort: Sort) => {
+        router.push(
+            {
+                pathname: router.pathname,
+                query: queryFromSort(sort, router.query, 'equipmentSortBy', 'equipmentSortOrder'),
+            },
+            undefined,
+            { shallow: true },
+        );
+        setEquipmentSort(sort);
+        reloadDriver();
     };
 
     const reloadDriver = async () => {
@@ -426,9 +444,9 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             <h3 className="mb-2">Equipments assigned to driver</h3>
                                             <EquipmentsTable
                                                 equipments={driver.equipments || []}
-                                                sort={sort}
+                                                sort={equipmentSort}
                                                 loading={false}
-                                                changeSort={changeSort}
+                                                changeSort={changeEquipmentSort}
                                                 deleteEquipment={(id: string) => {
                                                     setOpenDeleteEquipmentConfirmation(true);
                                                     setEquipmentIdToDelete(id);

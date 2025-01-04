@@ -194,8 +194,6 @@ export const getInvoices = async ({
 
     let invoices: Invoice[] = [];
 
-    console.log('session', session);
-
     invoices = await prisma.invoice.findMany({
         where: buildWhere(session, status as UIInvoiceStatus),
         orderBy: buildOrderBy(sortBy, sortDir) || {
