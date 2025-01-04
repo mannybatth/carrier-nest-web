@@ -20,6 +20,7 @@ import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import EquipmentsTable from '../../components/equipments/EquipmentsTable';
 import { deleteEquipmentById } from '../../lib/rest/equipment';
+import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -369,7 +370,9 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             </div>
                                             <div className="ml-3">
                                                 <p className="text-sm font-medium text-gray-900">Default Pay Type</p>
-                                                <p className="text-sm text-gray-500">{driver.defaultChargeType}</p>
+                                                <p className="text-sm text-gray-500">
+                                                    {getChargeTypeLabel(driver.defaultChargeType)}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

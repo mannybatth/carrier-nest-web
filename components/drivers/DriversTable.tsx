@@ -1,3 +1,4 @@
+import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
@@ -31,7 +32,7 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                     { value: driver.name },
                     { value: driver.email },
                     { value: driver.phone },
-                    { value: driver.defaultChargeType }, // Added new column value
+                    { value: getChargeTypeLabel(driver.defaultChargeType) }, // Added new column value
                 ],
                 menuItems: [
                     {
