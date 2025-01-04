@@ -26,13 +26,11 @@ const EquipmentsTable: React.FC<Props> = ({
     const router = useRouter();
 
     const headers = [
-        { key: 'name', title: 'Name' },
-        { key: 'type', title: 'Type' },
+        { key: 'equipmentNumber', title: 'Equipment Number' },
+        { key: 'make', title: 'Make' },
+        { key: 'model', title: 'Model' },
+        { key: 'drivers', title: 'Drivers' },
     ];
-
-    if (!hideDriversColumn) {
-        headers.push({ key: 'drivers', title: 'Drivers' });
-    }
 
     return (
         <Table
@@ -41,12 +39,11 @@ const EquipmentsTable: React.FC<Props> = ({
             rows={equipments.map((equipment) => ({
                 id: equipment.id,
                 items: [
-                    { value: equipment.name },
-                    { value: equipment.type },
-                    !hideDriversColumn && {
-                        value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned',
-                    },
-                ].filter(Boolean),
+                    { value: equipment.equipmentNumber },
+                    { value: equipment.make },
+                    { value: equipment.model },
+                    { value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned' },
+                ],
                 menuItems: [
                     {
                         title: 'Edit',

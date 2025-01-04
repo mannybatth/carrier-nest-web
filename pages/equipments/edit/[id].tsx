@@ -63,7 +63,7 @@ const EditEquipmentPage = () => {
                             href: '/equipments',
                         },
                         {
-                            label: equipment ? `${equipment.name}` : '',
+                            label: equipment ? `${equipment.equipmentNumber || equipment.make}` : '',
                             href: equipment ? `/equipments/${equipment.id}` : '',
                         },
                         {

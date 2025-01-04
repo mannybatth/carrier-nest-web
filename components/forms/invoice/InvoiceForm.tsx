@@ -43,6 +43,7 @@ const InvoiceForm: React.FC<Props> = ({
                     {...register('invoiceNum', {
                         required: 'Invoice number is required',
                         min: { value: 1, message: 'Invoice number must be greater than 0' },
+                        valueAsNumber: true,
                     })}
                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />

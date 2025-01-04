@@ -97,7 +97,9 @@ const DriverForm: React.FC<Props> = ({
                             {watch('defaultChargeType') === ChargeType.PER_MILE && (
                                 <input
                                     type="number"
-                                    {...register('perMileRate')}
+                                    {...register('perMileRate', {
+                                        valueAsNumber: true,
+                                    })}
                                     id="chargeValue"
                                     placeholder="Enter rate per mile"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -106,7 +108,9 @@ const DriverForm: React.FC<Props> = ({
                             {watch('defaultChargeType') === ChargeType.PER_HOUR && (
                                 <input
                                     type="number"
-                                    {...register('perHourRate')}
+                                    {...register('perHourRate', {
+                                        valueAsNumber: true,
+                                    })}
                                     id="chargeValue"
                                     placeholder="Enter rate per hour"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -115,7 +119,9 @@ const DriverForm: React.FC<Props> = ({
                             {watch('defaultChargeType') === ChargeType.FIXED_PAY && (
                                 <input
                                     type="number"
-                                    {...register('defaultFixedPay')}
+                                    {...register('defaultFixedPay', {
+                                        valueAsNumber: true,
+                                    })}
                                     id="chargeValue"
                                     placeholder="Enter fixed pay"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -124,7 +130,9 @@ const DriverForm: React.FC<Props> = ({
                             {watch('defaultChargeType') === ChargeType.PERCENTAGE_OF_LOAD && (
                                 <input
                                     type="number"
-                                    {...register('takeHomePercent')}
+                                    {...register('takeHomePercent', {
+                                        valueAsNumber: true,
+                                    })}
                                     id="chargeValue"
                                     placeholder="Enter percentage of load"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"

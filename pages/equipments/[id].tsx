@@ -128,7 +128,9 @@ const EquipmentDetailsPage = () => {
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">{equipment?.name}</h1>
+                    <h1 className="flex-1 text-xl font-semibold text-gray-900">
+                        {equipment?.equipmentNumber || equipment?.make}
+                    </h1>
                     <ActionsDropdown
                         equipment={equipment}
                         disabled={!equipment}
@@ -156,13 +158,15 @@ const EquipmentDetailsPage = () => {
                                 href: '/equipments',
                             },
                             {
-                                label: equipment ? `${equipment.name}` : '',
+                                label: equipment ? `${equipment?.equipmentNumber || equipment?.make}` : '',
                             },
                         ]}
                     />
                     <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                         <div className="flex">
-                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">{equipment?.name}</h1>
+                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">
+                                {equipment?.equipmentNumber || equipment?.make}
+                            </h1>
                             <ActionsDropdown
                                 equipment={equipment}
                                 disabled={!equipment}
@@ -181,14 +185,44 @@ const EquipmentDetailsPage = () => {
                                     >
                                         <div className="flex">
                                             <div className="ml-3">
-                                                <p className="text-sm font-medium text-gray-900">Name</p>
-                                                <p className="text-sm text-gray-500">{equipment.name}</p>
+                                                <p className="text-sm font-medium text-gray-900">Equipment Number</p>
+                                                <p className="text-sm text-gray-500">{equipment.equipmentNumber}</p>
                                             </div>
                                         </div>
                                         <div className="flex">
                                             <div className="ml-3">
-                                                <p className="text-sm font-medium text-gray-900">Type</p>
-                                                <p className="text-sm text-gray-500">{equipment.type}</p>
+                                                <p className="text-sm font-medium text-gray-900">Make</p>
+                                                <p className="text-sm text-gray-500">{equipment.make}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Model</p>
+                                                <p className="text-sm text-gray-500">{equipment.model}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Year</p>
+                                                <p className="text-sm text-gray-500">{equipment.year}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">VIN</p>
+                                                <p className="text-sm text-gray-500">{equipment.vin}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">License Plate</p>
+                                                <p className="text-sm text-gray-500">{equipment.licensePlate}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-900">Status</p>
+                                                <p className="text-sm text-gray-500">{equipment.status}</p>
                                             </div>
                                         </div>
                                         <div className="flex">

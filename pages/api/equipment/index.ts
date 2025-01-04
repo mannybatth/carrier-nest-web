@@ -49,8 +49,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const newEquipment = await prisma.equipment.create({
             data: {
-                name: equipmentData.name,
+                equipmentNumber: equipmentData.equipmentNumber,
                 type: equipmentData.type,
+                make: equipmentData.make,
+                model: equipmentData.model,
+                year: equipmentData.year,
+                vin: equipmentData.vin,
+                licensePlate: equipmentData.licensePlate,
+                status: equipmentData.status,
                 ...(equipmentData.drivers && {
                     drivers: {
                         connect: equipmentData.drivers.map((driver) => ({ id: driver.id })),

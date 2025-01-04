@@ -244,6 +244,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                     {...register(`selectedDrivers.${driver.id}.chargeValue`, {
                                                         required: true,
                                                         min: 0,
+                                                        valueAsNumber: true,
                                                     })}
                                                     placeholder="Charge Value"
                                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"

@@ -53,8 +53,14 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 id: String(req.query.id),
             },
             data: {
-                name: equipmentData.name,
+                equipmentNumber: equipmentData.equipmentNumber,
                 type: equipmentData.type,
+                make: equipmentData.make,
+                model: equipmentData.model,
+                year: equipmentData.year,
+                vin: equipmentData.vin,
+                licensePlate: equipmentData.licensePlate,
+                status: equipmentData.status,
                 drivers: {
                     set: equipmentData.drivers.map((driver) => ({ id: driver.id })),
                 },
