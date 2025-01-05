@@ -109,18 +109,23 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         return driver?.defaultChargeType || null;
     };
 
-    const getDefaultChargeValue = (driverId: string) => {
+    const getDefaultValueForChargeType = (driverId: string, chargeType: ChargeType) => {
         const driver = allDrivers.find((d) => d.id === driverId);
-        if (driver?.defaultChargeType === ChargeType.PER_MILE && driver.perMileRate) {
+        if (chargeType === ChargeType.PER_MILE && driver.perMileRate) {
             return new Prisma.Decimal(driver.perMileRate).toNumber() || null;
-        } else if (driver?.defaultChargeType === ChargeType.PER_HOUR && driver.perHourRate) {
+        } else if (chargeType === ChargeType.PER_HOUR && driver.perHourRate) {
             return new Prisma.Decimal(driver.perHourRate).toNumber() || null;
-        } else if (driver?.defaultChargeType === ChargeType.FIXED_PAY && driver.defaultFixedPay) {
+        } else if (chargeType === ChargeType.FIXED_PAY && driver.defaultFixedPay) {
             return new Prisma.Decimal(driver.defaultFixedPay).toNumber() || null;
-        } else if (driver?.defaultChargeType === ChargeType.PERCENTAGE_OF_LOAD && driver.takeHomePercent) {
+        } else if (chargeType === ChargeType.PERCENTAGE_OF_LOAD && driver.takeHomePercent) {
             return new Prisma.Decimal(driver.takeHomePercent).toNumber() || null;
         }
         return null;
+    };
+
+    const handleChargeTypeChange = (driverId: string, chargeType: ChargeType) => {
+        const defaultChargeValue = getDefaultValueForChargeType(driverId, chargeType);
+        setValue(`selectedDrivers.${driverId}.chargeValue`, defaultChargeValue, { shouldValidate: true });
     };
 
     const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>, driver: Driver) => {
@@ -131,7 +136,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             updatedDrivers[value] = {
                 driver,
                 chargeType: getDefaultChargeType(value) || null,
-                chargeValue: getDefaultChargeValue(value),
+                chargeValue: getDefaultValueForChargeType(value, getDefaultChargeType(value)),
             };
         } else {
             delete updatedDrivers[value];
@@ -212,7 +217,6 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                     checked={!!selectedDriversWatch[driver.id]}
                                                     onChange={(e) => handleCheckboxChange(e, driver)}
                                                     className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                                    // {...register(`selectedDrivers.${driver.id}`)}
                                                 />
                                             </div>
                                         </div>
@@ -222,6 +226,11 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                     name={`selectedDrivers.${driver.id}.chargeType`}
                                                     {...register(`selectedDrivers.${driver.id}.chargeType`, {
                                                         required: true,
+                                                        onChange: (e) =>
+                                                            handleChargeTypeChange(
+                                                                driver.id,
+                                                                e.target.value as ChargeType,
+                                                            ),
                                                     })}
                                                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 >
