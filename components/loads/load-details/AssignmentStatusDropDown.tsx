@@ -13,6 +13,18 @@ type AssignmentStatusDropDownProps = {
     changeStatusClicked: (newStatus: RouteLegStatus, legId: string) => void;
 };
 
+const statusDotColors = {
+    [RouteLegStatus.ASSIGNED]: 'bg-gray-400',
+    [RouteLegStatus.IN_PROGRESS]: 'bg-yellow-500',
+    [RouteLegStatus.COMPLETED]: 'bg-green-500',
+};
+
+const humanReadableStatus = {
+    [RouteLegStatus.ASSIGNED]: 'Assigned',
+    [RouteLegStatus.IN_PROGRESS]: 'In Progress',
+    [RouteLegStatus.COMPLETED]: 'Completed',
+};
+
 const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
     disabled,
     status,
@@ -31,16 +43,11 @@ const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
                     data-tooltip-id="tooltip"
                     data-tooltip-content={qTipText}
                     data-tooltip-place="top-start"
-                    className={`inline-flex justify-center capitalize w-full px-2 py-[4px] text-xs font-semibold text-slate-700 ${
-                        status === RouteLegStatus.IN_PROGRESS
-                            ? 'bg-yellow-400 text-slate-600 hover:bg-amber-400'
-                            : status === RouteLegStatus.COMPLETED
-                            ? 'bg-green-500/80 text-white hover:bg-green-500'
-                            : 'bg-white text-slate-900 hover:bg-gray-50'
-                    } shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500`}
+                    className="inline-flex justify-center items-center w-full px-2 py-[4px] text-xs font-semibold text-slate-700 bg-white shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
                     disabled={disabled}
                 >
-                    {status.toLowerCase()}
+                    <span className={`inline-block w-2 h-2 mr-2 rounded-full ${statusDotColors[status]}`}></span>
+                    {humanReadableStatus[status]}
                     <ChevronDownIcon className="w-5 h-4 pl-1 mx-0" aria-hidden="true" />
                 </Menu.Button>
             </div>
@@ -70,12 +77,13 @@ const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
                                                 }}
                                                 className={classNames(
                                                     active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                                    'block px-4 py-2 text-sm',
+                                                    'px-4 py-2 text-sm flex items-center',
                                                 )}
                                             >
-                                                <p className="font-bold capitalize">
-                                                    {RouteLegStatus[thisStatus].toLowerCase()}
-                                                </p>
+                                                <span
+                                                    className={`inline-block w-2 h-2 mr-2 rounded-full ${statusDotColors[thisStatus]}`}
+                                                ></span>
+                                                <p className="font-bold">{humanReadableStatus[thisStatus]}</p>
                                             </a>
                                         )}
                                     </Menu.Item>
