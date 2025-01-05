@@ -102,6 +102,8 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="chargeValue"
                                     placeholder="Enter rate per mile"
+                                    step="0.01"
+                                    min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             )}
@@ -113,6 +115,8 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="chargeValue"
                                     placeholder="Enter rate per hour"
+                                    step="0.01"
+                                    min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             )}
@@ -124,6 +128,8 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="chargeValue"
                                     placeholder="Enter fixed pay"
+                                    step="0.01"
+                                    min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             )}
@@ -135,6 +141,8 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="chargeValue"
                                     placeholder="Enter percentage of load"
+                                    step="1"
+                                    min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             )}
