@@ -42,6 +42,47 @@ const formatCurrency = (amount: number | Prisma.Decimal) => {
     return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
 
+const getPayStatus = (assignment: ExpandedDriverAssignment) => {
+    const totalPay = calculateDriverPay(assignment);
+    const totalPaid =
+        assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
+        new Prisma.Decimal(0);
+
+    if (totalPaid.gte(totalPay)) {
+        return 'paid';
+    } else if (totalPaid.gt(0)) {
+        return 'partially paid';
+    } else {
+        return 'not paid';
+    }
+};
+
+const getStatusStyles = (status: string) => {
+    switch (status) {
+        case 'paid':
+            return { textColor: 'text-green-800', bgColor: 'bg-green-100' };
+        case 'partially paid':
+            return { textColor: 'text-yellow-800', bgColor: 'bg-yellow-100' };
+        case 'not paid':
+            return { textColor: 'text-red-800', bgColor: 'bg-red-100' };
+        default:
+            return { textColor: 'text-gray-800', bgColor: 'bg-gray-100' };
+    }
+};
+
+const getStatusMessage = (status: string) => {
+    switch (status) {
+        case 'paid':
+            return 'This assignment has been fully paid.';
+        case 'partially paid':
+            return 'This assignment has been partially paid.';
+        case 'not paid':
+            return 'This assignment has not been paid for yet.';
+        default:
+            return 'Unknown payment status.';
+    }
+};
+
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
@@ -166,8 +207,23 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                         </div>
                                         <div className="relative flex-1 px-4 sm:px-6">
                                             <div className="absolute inset-0 px-4 sm:px-6">
+                                                {assignment && (
+                                                    <div
+                                                        className={`p-2 mt-6 rounded ${
+                                                            getStatusStyles(getPayStatus(assignment)).bgColor
+                                                        }`}
+                                                    >
+                                                        <p
+                                                            className={`text-sm font-medium ${
+                                                                getStatusStyles(getPayStatus(assignment)).textColor
+                                                            }`}
+                                                        >
+                                                            {getStatusMessage(getPayStatus(assignment))}
+                                                        </p>
+                                                    </div>
+                                                )}
                                                 <div className="h-full" aria-hidden="true">
-                                                    <table className="min-w-full mt-6 divide-y divide-gray-200">
+                                                    <table className="min-w-full mt-4 divide-y divide-gray-200">
                                                         <thead className="bg-gray-50">
                                                             <tr>
                                                                 <th
