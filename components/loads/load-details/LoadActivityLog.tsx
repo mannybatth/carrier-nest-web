@@ -1,10 +1,10 @@
 import { LoadActivityAction } from '@prisma/client';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import { ExpandedLoad, ExpandedLoadActivity } from '../../interfaces/models';
-import { PaginationMetadata } from '../../interfaces/table';
-import { loadStatusToUIStatus } from '../../lib/load/load-utils';
-import { getLoadActivity } from '../../lib/rest/load';
+import { ExpandedLoadActivity } from '../../../interfaces/models';
+import { PaginationMetadata } from '../../../interfaces/table';
+import { loadStatusToUIStatus } from '../../../lib/load/load-utils';
+import { getLoadActivity } from '../../../lib/rest/load';
 import { useLoadContext } from 'components/context/LoadContext';
 
 const LoadActivityLogSkeleton: React.FC = () => {
