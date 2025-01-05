@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import Table from '../Table';
-import { UserGroupIcon } from '@heroicons/react/24/outline';
+import { ChevronDoubleRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
 import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
 
@@ -67,9 +67,10 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
     const headers = [
         { key: 'driver.name', title: 'Driver' },
         { key: 'load.refNum', title: 'Load/Order #' },
-        { key: 'chargeValue', title: 'Pay Amount' },
-        { key: 'payStatus', title: 'Pay Status' },
+        { key: 'chargeValue', title: 'Pay Amount', disableSort: true },
+        { key: 'payStatus', title: 'Pay Status', disableSort: true },
         { key: 'assignedAt', title: 'Assigned At' },
+        { key: 'actions', title: ' ', disableSort: true }, // Add new column header
     ];
 
     return (
@@ -111,6 +112,22 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
                             node: <PayStatusBadge status={payStatus} />,
                         },
                         { value: new Date(assignment.assignedAt).toLocaleString() },
+                        {
+                            node: (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onRowClick) {
+                                            onRowClick(assignment);
+                                        }
+                                    }}
+                                    className="flex items-center h-6 px-3 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm whitespace-nowrap hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    View Payments
+                                    <ChevronDoubleRightIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
+                                </button>
+                            ),
+                        }, // Add new column with button
                     ],
                 };
             })}

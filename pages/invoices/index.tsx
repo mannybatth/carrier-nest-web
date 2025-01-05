@@ -181,6 +181,9 @@ const InvoicesPage: PageWithAuth = () => {
                         <div className="flex">
                             <h1 className="flex-1 text-2xl font-semibold text-gray-900">Invoices</h1>
                         </div>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Manage and view all your invoices, including their statuses and payment details.
+                        </p>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
                     <div className="mb-6 px-7 sm:px-6 md:px-8">
@@ -325,22 +328,20 @@ const InvoicesPage: PageWithAuth = () => {
                                 </a>
                             </nav>
                         </div>
-                        <div className="py-2">
-                            {loadingInvoices ? (
-                                <LoadsTableSkeleton limit={lastInvoicesTableLimit} />
-                            ) : (
-                                <InvoicesTable
-                                    invoices={invoicesList}
-                                    sort={sort}
-                                    changeSort={changeSort}
-                                    deleteInvoice={(id: string) => {
-                                        setOpenDeleteInvoiceConfirmation(true);
-                                        setInvoiceIdToDelete(id);
-                                    }}
-                                    loading={tableLoading}
-                                />
-                            )}
-                        </div>
+                        {loadingInvoices ? (
+                            <LoadsTableSkeleton limit={lastInvoicesTableLimit} />
+                        ) : (
+                            <InvoicesTable
+                                invoices={invoicesList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteInvoice={(id: string) => {
+                                    setOpenDeleteInvoiceConfirmation(true);
+                                    setInvoiceIdToDelete(id);
+                                }}
+                                loading={tableLoading}
+                            />
+                        )}
                         {invoicesList.length !== 0 && !loadingInvoices && (
                             <Pagination
                                 metadata={metadata}

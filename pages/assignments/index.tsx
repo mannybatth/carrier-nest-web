@@ -138,6 +138,9 @@ const AssignmentsPage = () => {
             <div className="py-2 mx-auto max-w-7xl">
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                     <h1 className="text-2xl font-semibold text-gray-900">Driver Assignments</h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Here you can see assignments for all drivers and manage their payments.
+                    </p>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">

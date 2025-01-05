@@ -169,6 +169,9 @@ const LocationsPage: PageWithAuth = () => {
                                 </button>
                             </Link>
                         </div>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Here you can manage the locations where drivers can stop.
+                        </p>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
                     <div className="px-5 sm:px-6 md:px-8">

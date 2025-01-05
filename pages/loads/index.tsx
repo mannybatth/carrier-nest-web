@@ -176,22 +176,20 @@ const LoadsPage: PageWithAuth = () => {
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
                     <div className="px-5 sm:px-6 md:px-8">
-                        <div className="py-2">
-                            {loadingLoads ? (
-                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
-                            ) : (
-                                <LoadsTable
-                                    loads={loadsList}
-                                    sort={sort}
-                                    changeSort={changeSort}
-                                    deleteLoad={(id: string) => {
-                                        setOpenDeleteLoadConfirmation(true);
-                                        setLoadIdToDelete(id);
-                                    }}
-                                    loading={tableLoading}
-                                />
-                            )}
-                        </div>
+                        {loadingLoads ? (
+                            <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                        ) : (
+                            <LoadsTable
+                                loads={loadsList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteLoad={(id: string) => {
+                                    setOpenDeleteLoadConfirmation(true);
+                                    setLoadIdToDelete(id);
+                                }}
+                                loading={tableLoading}
+                            />
+                        )}
                         {loadsList.length !== 0 && !loadingLoads && (
                             <Pagination
                                 metadata={metadata}

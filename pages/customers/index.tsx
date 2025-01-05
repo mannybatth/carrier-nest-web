@@ -176,22 +176,20 @@ const CustomersPage: PageWithAuth = () => {
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
                     <div className="px-5 sm:px-6 md:px-8">
-                        <div className="py-2">
-                            {loadingCustomers ? (
-                                <CustomersTableSkeleton limit={lastCustomersTableLimit} />
-                            ) : (
-                                <CustomersTable
-                                    customers={customersList}
-                                    sort={sort}
-                                    changeSort={changeSort}
-                                    deleteCustomer={(id: string) => {
-                                        setOpenDeleteCustomerConfirmation(true);
-                                        setCustomerIdToDelete(id);
-                                    }}
-                                    loading={tableLoading}
-                                />
-                            )}
-                        </div>
+                        {loadingCustomers ? (
+                            <CustomersTableSkeleton limit={lastCustomersTableLimit} />
+                        ) : (
+                            <CustomersTable
+                                customers={customersList}
+                                sort={sort}
+                                changeSort={changeSort}
+                                deleteCustomer={(id: string) => {
+                                    setOpenDeleteCustomerConfirmation(true);
+                                    setCustomerIdToDelete(id);
+                                }}
+                                loading={tableLoading}
+                            />
+                        )}
                         {customersList.length !== 0 && !loadingCustomers && (
                             <Pagination
                                 metadata={metadata}
