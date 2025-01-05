@@ -57,7 +57,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                     )}
                     <ul
                         role="list"
-                        className="flex flex-col justify-between flex-grow gap-3 p-2 px-4 pb-4 overflow-x-auto lg:flex-row lg:gap-4 bg-whtie"
+                        className="grid grid-cols-1 gap-4 p-2 px-4 pb-4 overflow-x-auto bg-white sm:grid-cols-2 lg:grid-cols-3"
                     >
                         <li className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100">
                             <div className="relative z-auto">
@@ -73,7 +73,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                                                         <span className="text-sm font-bold text-blue-500">
                                                             {new Intl.DateTimeFormat('en-US', {
                                                                 year: 'numeric',
-                                                                month: 'long',
+                                                                month: 'short',
                                                                 day: '2-digit',
                                                             }).format(new Date(load.shipper.date))}
                                                         </span>
@@ -139,7 +139,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                                                             <span className="text-sm font-bold text-blue-500">
                                                                 {new Intl.DateTimeFormat('en-US', {
                                                                     year: 'numeric',
-                                                                    month: 'long',
+                                                                    month: 'short',
                                                                     day: '2-digit',
                                                                 }).format(new Date(stop.date))}
                                                             </span>
@@ -203,7 +203,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                                                 <span className="text-sm font-bold text-blue-500">
                                                     {new Intl.DateTimeFormat('en-US', {
                                                         year: 'numeric',
-                                                        month: 'long',
+                                                        month: 'short',
                                                         day: '2-digit',
                                                     }).format(new Date(load.receiver.date))}
                                                 </span>
