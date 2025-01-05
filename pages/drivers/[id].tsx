@@ -142,7 +142,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     const [assignmentPaymentsMetadata, setAssignmentPaymentsMetadata] = React.useState<PaginationMetadata>({
         total: 0,
         currentOffset: 0,
-        currentLimit: 2,
+        currentLimit: 10,
     });
     const [loadingAssignmentPayments, setLoadingAssignmentPayments] = React.useState(true);
 
@@ -217,7 +217,7 @@ const DriverDetailsPage: PageWithAuth = () => {
         setTableLoading(false);
     };
 
-    const reloadAssignmentPayments = async (offset = 0, limit = 2) => {
+    const reloadAssignmentPayments = async (offset = 0, limit = 10) => {
         setLoadingAssignmentPayments(true);
         const response = await getAssignmentPayments(driverId, limit, offset);
         setAssignmentPayments(response.data.payments);
