@@ -1,5 +1,5 @@
 import { Dialog } from '@headlessui/react';
-import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UserCircleIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 import { Driver, ChargeType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -41,7 +41,6 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         register,
         handleSubmit,
         setValue,
-        trigger,
         watch,
         formState: { isValid },
     } = useForm<FormValues>({
@@ -63,6 +62,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
     const [loadingAllDrivers, setLoadingAllDrivers] = React.useState<boolean>(false);
     const [allDrivers, setAllDrivers] = React.useState<Driver[]>([]);
     const [totalPay, setTotalPay] = React.useState<number>(0);
+    const [noDefaultDrivers, setNoDefaultDrivers] = React.useState<boolean>(false);
 
     const selectedDriversWatch = watch('selectedDrivers');
 
@@ -92,6 +92,18 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         });
         return () => subscription.unsubscribe();
     }, [watch]);
+
+    useEffect(() => {
+        const checkNoDefaultDrivers = () => {
+            const noDefaults = allDrivers.every(
+                (driver) =>
+                    !driver.perMileRate && !driver.perHourRate && !driver.defaultFixedPay && !driver.takeHomePercent,
+            );
+            setNoDefaultDrivers(noDefaults);
+        };
+
+        checkNoDefaultDrivers();
+    }, [allDrivers]);
 
     const calculateTotalPay = (selectedDrivers: DriverWithCharge[]) => {
         return selectedDrivers
@@ -177,6 +189,12 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                     {title ? title : 'Add Drivers to Load'}
                 </Dialog.Title>
             </div>
+            {noDefaultDrivers && (
+                <div className="flex items-center p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                    <LightBulbIcon className="w-10 h-10 mr-2" />
+                    Tip: Add default charge types and values for drivers on the Drivers page for faster assignments.
+                </div>
+            )}
             {loadingAllDrivers ? (
                 <div className="flex items-start justify-center flex-1 h-32">
                     <div className="flex items-center mt-10 space-x-2 text-gray-500">
