@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import Table from '../Table';
-import { StopCircleIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
 
 interface AssignmentsTableProps {
@@ -134,16 +134,16 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
             changeSort={changeSort}
             emptyState={
                 <div className="my-5 text-center">
-                    <StopCircleIcon className="w-12 h-12 mx-auto text-gray-400" aria-hidden="true" />
+                    <UserGroupIcon className="w-12 h-12 mx-auto text-gray-400" aria-hidden="true" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No assignments to show on this page.</h3>
-                    <p className="mt-1 text-sm text-gray-500">Get started by creating new assignments.</p>
+                    <p className="mt-1 text-sm text-gray-500">Get started by creating new assignments on loads</p>
                     <div className="mt-6">
-                        <Link href="/assignments/create">
+                        <Link href="/loads">
                             <button
                                 type="button"
                                 className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
-                                + Create Assignment
+                                Go to Loads Page
                             </button>
                         </Link>
                     </div>

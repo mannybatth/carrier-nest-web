@@ -152,12 +152,14 @@ const AssignmentsPage = () => {
                                 loading={tableLoading}
                                 onRowClick={handleRowClick}
                             />
-                            <Pagination
-                                metadata={metadata}
-                                loading={loading || tableLoading}
-                                onPrevious={previousPage}
-                                onNext={nextPage}
-                            />
+                            {assignments.length !== 0 && !loading && (
+                                <Pagination
+                                    metadata={metadata}
+                                    loading={loading || tableLoading}
+                                    onPrevious={previousPage}
+                                    onNext={nextPage}
+                                />
+                            )}
                         </>
                     )}
                 </div>
