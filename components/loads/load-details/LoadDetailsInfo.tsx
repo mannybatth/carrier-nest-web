@@ -27,7 +27,14 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
                     <dt className="text-gray-500">Customer</dt>
                     <dd className="text-right text-gray-900">
-                        {load.customer && <Link href={`/customers/${load.customer.id}`}>{load.customer?.name}</Link>}
+                        {load.customer && (
+                            <Link
+                                className="font-medium text-blue-500 hover:underline"
+                                href={`/customers/${load.customer.id}`}
+                            >
+                                {load.customer?.name}
+                            </Link>
+                        )}
                     </dd>
                 </div>
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
@@ -55,7 +62,7 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                                     <span key={`${assignment.driver.id}-${index}`}>
                                         <Link
                                             href={`/drivers/${assignment.driver.id}`}
-                                            className="font-medium"
+                                            className="font-medium text-blue-500 hover:underline"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                             }}
@@ -75,7 +82,11 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                         <dt className="text-gray-500">Invoice</dt>
                         <dd className="text-right text-gray-900">
                             {load.invoice ? (
-                                <Link href={`/invoices/${load.invoice.id}`} passHref>
+                                <Link
+                                    className="font-medium text-blue-500 hover:underline"
+                                    href={`/invoices/${load.invoice.id}`}
+                                    passHref
+                                >
                                     # {load.invoice?.invoiceNum}
                                 </Link>
                             ) : (

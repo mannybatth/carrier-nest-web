@@ -17,9 +17,9 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
             <div className="mt-4 space-y-3">
                 <div className="flex flex-row justify-between gap-2">
                     <div className="flex flex-col">
-                        <h3 className="text-base font-semibold leading-6 text-gray-900">Load Route</h3>
+                        <h3 className="text-base font-semibold leading-6 text-gray-900">Entire Load Route</h3>
                         <p className="text-xs text-slate-500">
-                            All the load stops are listed below | Pick-Up/Stops/Drop-Off
+                            This section provides an overview of the entire load route
                         </p>
                     </div>
 
