@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
-import { createAssignmentPayment } from '../../lib/rest/assignment';
+import { createAssignmentPayment, deleteAssignmentPayment } from '../../lib/rest/assignment';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
+import SimpleDialog from 'components/dialogs/SimpleDialog';
 
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
@@ -36,6 +37,10 @@ const calculateDriverPay = (assignment: ExpandedDriverAssignment) => {
     return new Prisma.Decimal(0);
 };
 
+const formatCurrency = (amount: number | Prisma.Decimal) => {
+    return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};
+
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
@@ -46,6 +51,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
     const [loading, setLoading] = useState<boolean>(false);
     const amountFieldRef = useRef(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
     const handleAddPayment = async () => {
         if (amount && paymentDate && assignment) {
@@ -67,6 +74,22 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     };
 
+    const handleDeletePayment = async () => {
+        if (paymentToDelete && assignment) {
+            setLoading(true);
+            try {
+                await deleteAssignmentPayment(assignment.id, paymentToDelete);
+                onAddPayment(-1); // Trigger a refresh or update the state accordingly
+                setPaymentToDelete(null);
+                setConfirmOpen(false);
+            } catch (error) {
+                console.error('Error deleting payment:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const setToFullDue = () => {
         if (assignment) {
             const totalAmountDue = calculateDriverPay(assignment);
@@ -75,16 +98,18 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                 new Prisma.Decimal(0),
             );
             const remainingAmount = totalAmountDue.minus(paidAmount);
-            setAmount(remainingAmount.toNumber());
-            amountFieldRef?.current?.focus();
+            if (remainingAmount.toNumber() > 0) {
+                setAmount(remainingAmount.toNumber());
+                amountFieldRef?.current?.focus();
+            }
         }
     };
 
     return (
-        <Transition.Root show={isOpen} as={React.Fragment}>
-            <Dialog as="div" className="relative z-10" onClose={onClose}>
+        <Transition.Root show={isOpen} as="div">
+            <Dialog as="div" className="relative z-10" onClose={() => !confirmOpen && onClose()}>
                 <Transition.Child
-                    as={React.Fragment}
+                    as="div"
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
@@ -110,15 +135,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
                                     {loading && <LoadingOverlay />}
                                     <div className="flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
-                                        <div className="px-4 py-6 sm:px-6">
+                                        <div className="px-4 py-6 text-white bg-blue-600 sm:px-6">
                                             <div className="flex items-start justify-between">
-                                                <Dialog.Title className="text-lg font-medium text-gray-900">
+                                                <Dialog.Title className="text-lg font-medium">
                                                     Payments for Assignment
                                                 </Dialog.Title>
                                                 <div className="flex items-center ml-3 h-7">
                                                     <button
                                                         type="button"
-                                                        className="text-gray-400 bg-white rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                        className="text-white bg-blue-600 rounded-md hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
                                                         onClick={onClose}
                                                     >
                                                         <span className="sr-only">Close panel</span>
@@ -126,17 +151,43 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                     </button>
                                                 </div>
                                             </div>
+                                            {assignment && (
+                                                <div className="mt-4">
+                                                    <p className="text-sm">Driver: {assignment.driver.name}</p>
+                                                    <p className="text-sm">Load/Order #: {assignment.load.refNum}</p>
+                                                    <p className="text-sm">
+                                                        Rate: {formatCurrency(assignment.load.rate)}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="relative flex-1 px-4 sm:px-6">
                                             <div className="absolute inset-0 px-4 sm:px-6">
                                                 <div className="h-full" aria-hidden="true">
-                                                    <ul className="mt-2">
+                                                    <ul className="mt-6 space-y-2">
                                                         {assignment?.payments?.map((payment) => (
-                                                            <li key={payment.id} className="flex justify-between">
+                                                            <li
+                                                                key={payment.id}
+                                                                className="flex justify-between p-2 bg-gray-100 rounded-md"
+                                                            >
                                                                 <span>
                                                                     {new Date(payment.paymentDate).toLocaleDateString()}
                                                                 </span>
-                                                                <span>${payment.amount.toFixed(2)}</span>
+                                                                <span>{formatCurrency(payment.amount)}</span>
+                                                                <div className="flex-shrink-0 ml-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setPaymentToDelete(payment.id);
+                                                                            setConfirmOpen(true);
+                                                                        }}
+                                                                        disabled={loading}
+                                                                    >
+                                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                    </button>
+                                                                </div>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -153,23 +204,34 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                     onChange={(e) => setAmount(Number(e.target.value))}
                                                                 />
                                                             </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={setToFullDue}
-                                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                            >
-                                                                <span>
-                                                                    {assignment &&
-                                                                    assignment.payments
-                                                                        .reduce(
+                                                            {assignment &&
+                                                                calculateDriverPay(assignment)
+                                                                    .minus(
+                                                                        assignment.payments.reduce(
                                                                             (acc, payment) => acc.plus(payment.amount),
                                                                             new Prisma.Decimal(0),
-                                                                        )
-                                                                        .equals(calculateDriverPay(assignment))
-                                                                        ? 'Full Due'
-                                                                        : 'Full Remaining'}
-                                                                </span>
-                                                            </button>
+                                                                        ),
+                                                                    )
+                                                                    .toNumber() > 0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={setToFullDue}
+                                                                        className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <span>
+                                                                            {assignment &&
+                                                                            assignment.payments
+                                                                                .reduce(
+                                                                                    (acc, payment) =>
+                                                                                        acc.plus(payment.amount),
+                                                                                    new Prisma.Decimal(0),
+                                                                                )
+                                                                                .equals(calculateDriverPay(assignment))
+                                                                                ? 'Full Due'
+                                                                                : 'Full Remaining'}
+                                                                        </span>
+                                                                    </button>
+                                                                )}
                                                         </div>
                                                     </div>
                                                     <div className="mt-4">
@@ -203,6 +265,16 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                     </div>
                 </div>
             </Dialog>
+
+            <SimpleDialog
+                show={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                title="Delete Payment"
+                description="Are you sure you want to delete this payment? This action cannot be undone."
+                primaryButtonText="Delete"
+                primaryButtonAction={handleDeletePayment}
+                secondaryButtonText="Cancel"
+            />
         </Transition.Root>
     );
 };

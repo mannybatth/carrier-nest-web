@@ -121,3 +121,15 @@ export const createAssignmentPayment = async (
 
     return data.payment;
 };
+
+export const deleteAssignmentPayment = async (driverAssignmentId: string, paymentId: string): Promise<void> => {
+    const response = await fetch(`${apiUrl}/assignments/${driverAssignmentId}/payments/${paymentId}`, {
+        method: 'DELETE',
+    });
+
+    const { errors }: JSONResponse<void> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+};
