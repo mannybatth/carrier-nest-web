@@ -45,7 +45,7 @@ const EquipmentsTable: React.FC<Props> = ({
                     !hideDriversColumn && {
                         value: equipment.drivers.map((driver) => driver.name).join(', ') || 'Unassigned',
                     },
-                ],
+                ].filter((x) => x),
                 menuItems: [
                     {
                         title: 'Edit',

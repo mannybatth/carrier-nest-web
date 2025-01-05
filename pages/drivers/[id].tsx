@@ -432,7 +432,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                             )}
 
                             <div className="col-span-12 mt-4">
-                                <h3 className="mb-2">Driver assigned to following loads</h3>
+                                <h3 className="mb-2">Assigned Loads</h3>
                                 {loadingLoads ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                                 ) : (
@@ -468,6 +468,28 @@ const DriverDetailsPage: PageWithAuth = () => {
                             </div>
 
                             <div className="col-span-12">
+                                <h3 className="mb-2">Assignment Payments</h3>
+                                {loadingAssignmentPayments ? (
+                                    <LoadsTableSkeleton limit={assignmentPaymentsMetadata.currentLimit} />
+                                ) : (
+                                    <>
+                                        <AssignmentPaymentsTable
+                                            payments={assignmentPayments}
+                                            sort={sort}
+                                            changeSort={changeSort}
+                                            loading={loadingAssignmentPayments}
+                                        />
+                                        <Pagination
+                                            metadata={assignmentPaymentsMetadata}
+                                            loading={loadingAssignmentPayments}
+                                            onPrevious={previousAssignmentPaymentsPage}
+                                            onNext={nextAssignmentPaymentsPage}
+                                        />
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="col-span-12">
                                 <h3 className="mb-2">Equipments assigned to driver</h3>
                                 {loadingDriver ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />
@@ -487,28 +509,6 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             />
                                         </>
                                     )
-                                )}
-                            </div>
-
-                            <div className="col-span-12">
-                                <h3 className="mb-2">Assignment Payments</h3>
-                                {loadingAssignmentPayments ? (
-                                    <LoadsTableSkeleton limit={assignmentPaymentsMetadata.currentLimit} />
-                                ) : (
-                                    <>
-                                        <AssignmentPaymentsTable
-                                            payments={assignmentPayments}
-                                            sort={sort}
-                                            changeSort={changeSort}
-                                            loading={loadingAssignmentPayments}
-                                        />
-                                        <Pagination
-                                            metadata={assignmentPaymentsMetadata}
-                                            loading={loadingAssignmentPayments}
-                                            onPrevious={previousAssignmentPaymentsPage}
-                                            onNext={nextAssignmentPaymentsPage}
-                                        />
-                                    </>
                                 )}
                             </div>
                         </div>
