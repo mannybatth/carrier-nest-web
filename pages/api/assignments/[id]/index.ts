@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { JSONResponse } from '../../../interfaces/models';
-import prisma from '../../../lib/prisma';
+import { JSONResponse } from '../../../../interfaces/models';
+import prisma from '../../../../lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]';
+import { authOptions } from '../../auth/[...nextauth]';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
@@ -40,9 +40,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         const driverAssignment = await prisma.driverAssignment.findFirst({
             where: {
                 id: assignmentId,
-                load: {
-                    carrierId: tokenCarrierId,
-                },
+                carrierId: tokenCarrierId,
             },
             include: {
                 driver: true,

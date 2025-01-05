@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
+import { createAssignmentPayment } from '../../lib/rest/assignment';
+import { LoadingOverlay } from '../LoadingOverlay';
+import { Prisma } from '@prisma/client';
+import parseISO from 'date-fns/parseISO';
+import MoneyInput from '../forms/MoneyInput';
 
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
@@ -10,12 +15,71 @@ interface AssignmentPaymentsModalProps {
     onAddPayment: (amount: number) => void;
 }
 
+const calculateDriverPay = (assignment: ExpandedDriverAssignment) => {
+    const { chargeType, chargeValue, load, routeLeg } = assignment;
+    if (!chargeType || !chargeValue) return new Prisma.Decimal(0);
+
+    const chargeValueDecimal = new Prisma.Decimal(chargeValue);
+
+    if (chargeType === 'PER_MILE') {
+        const distanceInMiles = new Prisma.Decimal(routeLeg?.routeLegDistance ?? 0).div(1609.34);
+        return distanceInMiles.mul(chargeValueDecimal);
+    } else if (chargeType === 'PER_HOUR') {
+        const durationInHours = new Prisma.Decimal(routeLeg?.routeLegDuration ?? 0).div(3600);
+        return durationInHours.mul(chargeValueDecimal);
+    } else if (chargeType === 'FIXED_PAY') {
+        return chargeValueDecimal;
+    } else if (chargeType === 'PERCENTAGE_OF_LOAD') {
+        const loadRate = new Prisma.Decimal(load?.rate ?? 0);
+        return loadRate.mul(chargeValueDecimal).div(100);
+    }
+    return new Prisma.Decimal(0);
+};
+
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
     assignment,
     onAddPayment,
 }) => {
+    const [amount, setAmount] = useState<number | null>(null);
+    const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+    const [loading, setLoading] = useState<boolean>(false);
+    const amountFieldRef = useRef(null);
+
+    const handleAddPayment = async () => {
+        if (amount && paymentDate && assignment) {
+            setLoading(true);
+            try {
+                const payment = await createAssignmentPayment(
+                    assignment.id,
+                    amount,
+                    parseISO(paymentDate).toISOString(),
+                );
+                onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
+                setAmount(null);
+                setPaymentDate(new Date().toLocaleDateString('en-CA'));
+            } catch (error) {
+                console.error('Error adding payment:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const setToFullDue = () => {
+        if (assignment) {
+            const totalAmountDue = calculateDriverPay(assignment);
+            const paidAmount = assignment.payments.reduce(
+                (acc, payment) => acc.plus(payment.amount),
+                new Prisma.Decimal(0),
+            );
+            const remainingAmount = totalAmountDue.minus(paidAmount);
+            setAmount(remainingAmount.toNumber());
+            amountFieldRef?.current?.focus();
+        }
+    };
+
     return (
         <Transition.Root show={isOpen} as={React.Fragment}>
             <Dialog as="div" className="relative z-10" onClose={onClose}>
@@ -44,6 +108,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                    {loading && <LoadingOverlay />}
                                     <div className="flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
                                         <div className="px-4 py-6 sm:px-6">
                                             <div className="flex items-start justify-between">
@@ -53,7 +118,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                 <div className="flex items-center ml-3 h-7">
                                                     <button
                                                         type="button"
-                                                        className="text-gray-400 bg-white rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                        className="text-gray-400 bg-white rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                                                         onClick={onClose}
                                                     >
                                                         <span className="sr-only">Close panel</span>
@@ -71,22 +136,62 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                 <span>
                                                                     {new Date(payment.paymentDate).toLocaleDateString()}
                                                                 </span>
-                                                                <span>{payment.amount.toFixed(2)}</span>
+                                                                <span>${payment.amount.toFixed(2)}</span>
                                                             </li>
                                                         ))}
                                                     </ul>
                                                     <div className="mt-4">
+                                                        <label className="block text-sm font-medium text-gray-700">
+                                                            Payment Amount
+                                                        </label>
+                                                        <div className="flex mt-1 rounded-md shadow-sm">
+                                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                                <MoneyInput
+                                                                    id="amount"
+                                                                    className="rounded-none rounded-l-md"
+                                                                    value={amount?.toString() || ''}
+                                                                    onChange={(e) => setAmount(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={setToFullDue}
+                                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                            >
+                                                                <span>
+                                                                    {assignment &&
+                                                                    assignment.payments
+                                                                        .reduce(
+                                                                            (acc, payment) => acc.plus(payment.amount),
+                                                                            new Prisma.Decimal(0),
+                                                                        )
+                                                                        .equals(calculateDriverPay(assignment))
+                                                                        ? 'Full Due'
+                                                                        : 'Full Remaining'}
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <label className="block text-sm font-medium text-gray-700">
+                                                            Payment Date
+                                                        </label>
                                                         <input
-                                                            type="number"
-                                                            placeholder="Payment Amount"
-                                                            className="p-2 border rounded"
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    onAddPayment(Number(e.currentTarget.value));
-                                                                    e.currentTarget.value = '';
-                                                                }
-                                                            }}
+                                                            type="date"
+                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                            value={paymentDate}
+                                                            onChange={(e) => setPaymentDate(e.target.value)}
                                                         />
+                                                    </div>
+                                                    <div className="mt-6">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
+                                                            onClick={handleAddPayment}
+                                                            disabled={loading || !amount || !paymentDate || !assignment}
+                                                        >
+                                                            Add Payment
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

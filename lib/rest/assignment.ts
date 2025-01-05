@@ -2,6 +2,7 @@ import { apiUrl } from '../../constants';
 import { ExpandedDriverAssignment, ExpandedRoute, JSONResponse } from 'interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
+import { AssignmentPayment } from '@prisma/client';
 
 interface GetAssignmentsResponse {
     assignments: ExpandedDriverAssignment[];
@@ -97,4 +98,26 @@ export const removeRouteLegById = async (routeLegId: string) => {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data;
+};
+
+export const createAssignmentPayment = async (
+    driverAssignmentId: string,
+    amount: number,
+    paymentDate: string,
+): Promise<AssignmentPayment> => {
+    const response = await fetch(`${apiUrl}/assignments/${driverAssignmentId}/payments`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount, paymentDate }),
+    });
+
+    const { data, errors }: JSONResponse<{ payment: AssignmentPayment }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+
+    return data.payment;
 };
