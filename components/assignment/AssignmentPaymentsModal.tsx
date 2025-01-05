@@ -87,6 +87,13 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
+    React.useEffect(() => {
+        if (isOpen) {
+            setAmount(null);
+            setPaymentDate(new Date().toLocaleDateString('en-CA'));
+        }
+    }, [isOpen]);
+
     const handleAddPayment = async () => {
         if (amount && paymentDate && assignment) {
             setLoading(true);
@@ -141,7 +148,17 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     return (
         <Transition.Root show={isOpen} as="div">
-            <Dialog as="div" className="relative z-10" onClose={() => !confirmOpen && onClose()}>
+            <Dialog
+                as="div"
+                className="relative z-10"
+                onClose={() => {
+                    if (!confirmOpen) {
+                        setAmount(null);
+                        setPaymentDate(new Date().toLocaleDateString('en-CA'));
+                        onClose();
+                    }
+                }}
+            >
                 <Transition.Child
                     as="div"
                     enter="ease-out duration-300"
