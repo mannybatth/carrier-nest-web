@@ -277,7 +277,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                         colSpan={3}
                                                                         className="px-6 py-4 text-sm text-center text-gray-500"
                                                                     >
-                                                                        No payments available.
+                                                                        No payments made.
                                                                     </td>
                                                                 </tr>
                                                             )}
