@@ -101,6 +101,25 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     }
 }
 
+/**
+ * Retrieves a driver based on the provided session and query parameters.
+ *
+ * @param {Object} params - The parameters for the function.
+ * @param {Session} params.session - The session object containing user information.
+ * @param {ParsedUrlQuery} params.query - The query parameters from the request.
+ * @returns {Promise<JSONResponse<{ driver: Driver }>>} A promise that resolves to a JSON response containing the driver data.
+ *
+ * @example
+ * // Example usage:
+ * const response = await getDriver({
+ *   session: { user: { defaultCarrierId: 'carrier123' } },
+ *   query: { id: 'driver456', expand: 'relation1,relation2(limit)' }
+ * });
+ *
+ * // Example expand string:
+ * // 'relation1,relation2(limit)'
+ * // This will include 'relation1' and 'relation2' with a limit on the number of related records.
+ */
 const getDriver = async ({
     session,
     query,
@@ -110,7 +129,14 @@ const getDriver = async ({
 }): Promise<JSONResponse<{ driver: Driver }>> => {
     const expand = query.expand ? String(query.expand).split(',') : [];
     const include = expand.reduce((acc, relation) => {
-        acc[relation] = true;
+        if (relation.includes('(')) {
+            const [rel, limit] = relation.split('(');
+            acc[rel] = {
+                take: parseInt(limit.replace(')', ''), 10),
+            };
+        } else {
+            acc[relation] = true;
+        }
         return acc;
     }, {});
 

@@ -12,7 +12,7 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, ExpandedLoad } from '../../interfaces/models';
+import { ExpandedAssignmentPayment, ExpandedDriver, ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
@@ -21,6 +21,8 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 import EquipmentsTable from '../../components/equipments/EquipmentsTable';
 import { deleteEquipmentById } from '../../lib/rest/equipment';
 import { getChargeTypeLabel } from 'lib/driver/driver-utils';
+import { getAssignmentPayments } from '../../lib/rest/assignment-payment';
+import AssignmentPaymentsTable from '../../components/assignment/AssignmentPaymentsTable';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -136,9 +138,18 @@ const DriverDetailsPage: PageWithAuth = () => {
     });
     const router = useRouter();
 
+    const [assignmentPayments, setAssignmentPayments] = React.useState<ExpandedAssignmentPayment[]>([]);
+    const [assignmentPaymentsMetadata, setAssignmentPaymentsMetadata] = React.useState<PaginationMetadata>({
+        total: 0,
+        currentOffset: 0,
+        currentLimit: 2,
+    });
+    const [loadingAssignmentPayments, setLoadingAssignmentPayments] = React.useState(true);
+
     useEffect(() => {
         if (driverId) {
             reloadDriver();
+            reloadAssignmentPayments();
         }
     }, [driverId]);
 
@@ -176,7 +187,7 @@ const DriverDetailsPage: PageWithAuth = () => {
 
     const reloadDriver = async () => {
         setLoadingDriver(true);
-        const driver = await getDriverById(driverId, 'equipments');
+        const driver = await getDriverById(driverId, 'equipments(100)');
         setDriver(driver);
         setLoadingDriver(false);
     };
@@ -204,6 +215,27 @@ const DriverDetailsPage: PageWithAuth = () => {
         setMetadata(metadataResponse);
         setLoadingLoads(false);
         setTableLoading(false);
+    };
+
+    const reloadAssignmentPayments = async (offset = 0, limit = 2) => {
+        setLoadingAssignmentPayments(true);
+        const response = await getAssignmentPayments(driverId, limit, offset);
+        setAssignmentPayments(response.data.payments);
+        setAssignmentPaymentsMetadata(response.data.metadata);
+        setLoadingAssignmentPayments(false);
+    };
+
+    const previousAssignmentPaymentsPage = async () => {
+        const newOffset = Math.max(
+            0,
+            assignmentPaymentsMetadata.currentOffset - assignmentPaymentsMetadata.currentLimit,
+        );
+        await reloadAssignmentPayments(newOffset, assignmentPaymentsMetadata.currentLimit);
+    };
+
+    const nextAssignmentPaymentsPage = async () => {
+        const newOffset = assignmentPaymentsMetadata.currentOffset + assignmentPaymentsMetadata.currentLimit;
+        await reloadAssignmentPayments(newOffset, assignmentPaymentsMetadata.currentLimit);
     };
 
     const previousPage = async () => {
@@ -455,6 +487,28 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             />
                                         </>
                                     )
+                                )}
+                            </div>
+
+                            <div className="col-span-12">
+                                <h3 className="mb-2">Assignment Payments</h3>
+                                {loadingAssignmentPayments ? (
+                                    <LoadsTableSkeleton limit={assignmentPaymentsMetadata.currentLimit} />
+                                ) : (
+                                    <>
+                                        <AssignmentPaymentsTable
+                                            payments={assignmentPayments}
+                                            sort={sort}
+                                            changeSort={changeSort}
+                                            loading={loadingAssignmentPayments}
+                                        />
+                                        <Pagination
+                                            metadata={assignmentPaymentsMetadata}
+                                            loading={loadingAssignmentPayments}
+                                            onPrevious={previousAssignmentPaymentsPage}
+                                            onNext={nextAssignmentPaymentsPage}
+                                        />
+                                    </>
                                 )}
                             </div>
                         </div>

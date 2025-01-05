@@ -7,6 +7,7 @@ import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/ass
 import { ChargeType, LoadActivityAction, Prisma } from '@prisma/client';
 import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
+import { calcPaginationMetadata } from '../../../lib/pagination';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -107,15 +108,17 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             where: { carrierId },
         });
 
+        const metadata = calcPaginationMetadata({
+            total,
+            limit: limit ? Number(limit) : 20,
+            offset: offset ? Number(offset) : 0,
+        });
+
         return res.status(200).json({
             code: 200,
             data: {
                 assignments,
-                metadata: {
-                    total,
-                    currentOffset: offset ? Number(offset) : 0,
-                    currentLimit: limit ? Number(limit) : 20,
-                },
+                metadata,
             },
         });
     } catch (error) {
