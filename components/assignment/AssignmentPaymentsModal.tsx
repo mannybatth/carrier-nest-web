@@ -274,7 +274,10 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                         </tbody>
                                                     </table>
                                                     <div className="mt-4">
-                                                        <label className="block text-sm font-medium text-gray-700">
+                                                        <label
+                                                            className="block text-sm font-medium text-gray-700"
+                                                            htmlFor="amount"
+                                                        >
                                                             Payment Amount
                                                         </label>
                                                         <div className="flex mt-1 rounded-md shadow-sm">
@@ -321,11 +324,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                         </div>
                                                     </div>
                                                     <div className="mt-4">
-                                                        <label className="block text-sm font-medium text-gray-700">
+                                                        <label
+                                                            className="block text-sm font-medium text-gray-700"
+                                                            htmlFor="payment-date"
+                                                        >
                                                             Payment Date
                                                         </label>
                                                         <input
                                                             type="date"
+                                                            id="payment-date"
                                                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                             value={paymentDate}
                                                             onChange={(e) => setPaymentDate(e.target.value)}
