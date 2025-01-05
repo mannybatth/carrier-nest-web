@@ -558,6 +558,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
     const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
     const [editingRouteLeg, setEditingRouteLeg] = useState<ExpandedRouteLeg | null>(null);
+    const [openDeleteLegConfirmation, setOpenDeleteLegConfirmation] = useState(false);
+    const [legIdToDelete, setLegIdToDelete] = useState<string | null>(null);
 
     const router = useRouter();
 
@@ -834,23 +836,32 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const deleteLegClicked = async (legId: string) => {
-        setRemovingRouteLegWithId(legId);
+        setLegIdToDelete(legId);
+        setOpenDeleteLegConfirmation(true);
+    };
 
-        try {
-            await removeRouteLegById(legId);
-            setLoad((prev) => ({
-                ...prev,
-                route: {
-                    ...prev.route,
-                    routeLegs: prev.route.routeLegs.filter((rl) => rl.id !== legId),
-                },
-            }));
-            notify({ title: 'Load Assignment', message: 'Load assignment successfully removed' });
-        } catch (e) {
-            notify({ title: 'Error Removing Load Assignment', type: 'error' });
+    const confirmDeleteLeg = async () => {
+        if (legIdToDelete) {
+            setRemovingRouteLegWithId(legIdToDelete);
+
+            try {
+                await removeRouteLegById(legIdToDelete);
+                setLoad((prev) => ({
+                    ...prev,
+                    route: {
+                        ...prev.route,
+                        routeLegs: prev.route.routeLegs.filter((rl) => rl.id !== legIdToDelete),
+                    },
+                }));
+                notify({ title: 'Load Assignment', message: 'Load assignment successfully removed' });
+            } catch (e) {
+                notify({ title: 'Error Removing Load Assignment', type: 'error' });
+            }
+
+            setRemovingRouteLegWithId(null);
+            setLegIdToDelete(null);
+            setOpenDeleteLegConfirmation(false);
         }
-
-        setRemovingRouteLegWithId(null);
     };
 
     return (
@@ -921,6 +932,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         setDocumentIdToDelete(null);
                     }}
                 ></SimpleDialog>
+                <SimpleDialog
+                    show={openDeleteLegConfirmation}
+                    title="Delete Assignment"
+                    description="Are you sure you want to delete this assignment?"
+                    primaryButtonText="Delete"
+                    primaryButtonAction={confirmDeleteLeg}
+                    secondaryButtonAction={() => setOpenDeleteLegConfirmation(false)}
+                    onClose={() => setOpenDeleteLegConfirmation(false)}
+                />
                 <div className="relative max-w-4xl py-2 mx-auto">
                     {downloadingDocs && <LoadingOverlay />}
                     <BreadCrumb
