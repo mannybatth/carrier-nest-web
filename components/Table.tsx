@@ -163,21 +163,16 @@ export default Table;
 type RowTemplateProps = { row: TableDataRow; rowIndex: number };
 
 const RowTemplate: React.FC<RowTemplateProps> = ({ row, rowIndex }) => {
-    const handleClick = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest('a')) {
-            e.stopPropagation();
-        }
-    };
-
     return (
         <>
             {row.items.map((item, index) => (
-                <td key={`item-${rowIndex}-${index}`} className="px-6 py-2" onClick={handleClick}>
+                <td key={`item-${rowIndex}-${index}`} className="px-6 py-2">
                     {item.value ? <div className="text-sm leading-5 text-gray-900">{item.value}</div> : item.node}
                 </td>
             ))}
+
             {row.menuItems && row.menuItems.length > 0 && (
-                <td className="px-6 py-2 text-right whitespace-no-wrap" onClick={handleClick}>
+                <td className="px-6 py-2 text-right whitespace-no-wrap">
                     <Menu as="div" className="z-10 inline-block text-left">
                         {({ open, close }) => (
                             <>
