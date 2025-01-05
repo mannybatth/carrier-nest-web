@@ -176,6 +176,7 @@ model RouteLeg {
     endLongitude       Float?
     endedAt            DateTime?
     createdAt          DateTime           @default(now())
+    updatedAt          DateTime           @default(now()) @updatedAt
     routeLegDistance   Decimal?
     routeLegDuration   Decimal?
     driverInstructions String?

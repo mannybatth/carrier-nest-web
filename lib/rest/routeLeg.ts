@@ -1,5 +1,5 @@
 import { apiUrl } from '../../constants';
-import { JSONResponse } from '../../interfaces/models';
+import { ExpandedRouteLeg, JSONResponse } from '../../interfaces/models';
 import { LoadStatus, RouteLegStatus } from '@prisma/client';
 
 export const updateRouteLegStatus = async (
@@ -14,7 +14,7 @@ export const updateRouteLegStatus = async (
         latitude?: number;
         longitude?: number;
     } = {},
-) => {
+): Promise<{ loadStatus: LoadStatus; routeLeg: ExpandedRouteLeg }> => {
     const response = await fetch(apiUrl + '/route-leg/' + routeLegId, {
         method: 'PATCH',
         headers: {
@@ -23,10 +23,11 @@ export const updateRouteLegStatus = async (
         body: JSON.stringify({ routeLegStatus, ...extras }),
     });
 
-    const { data, errors }: JSONResponse<{ loadStatus: string }> = await response.json();
+    const { data, errors }: JSONResponse<{ loadStatus: LoadStatus; routeLeg: ExpandedRouteLeg }> =
+        await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data.loadStatus as LoadStatus;
+    return data;
 };

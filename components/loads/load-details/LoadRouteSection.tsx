@@ -4,14 +4,14 @@ import React from 'react';
 import { Prisma } from '@prisma/client';
 import { metersToMiles } from '../../../lib/helpers/distance';
 import { secondsToReadable } from '../../../lib/helpers/time';
-import { ExpandedLoad } from 'interfaces/models';
+import { useLoadContext } from 'components/context/LoadContext';
 
 type LoadRouteSectionProps = {
-    load: ExpandedLoad;
     openRouteInGoogleMaps: () => void;
 };
 
-const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ load, openRouteInGoogleMaps }) => {
+const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMaps }) => {
+    const [load, setLoad] = useLoadContext();
     return (
         <div>
             <div className="mt-4 space-y-3">

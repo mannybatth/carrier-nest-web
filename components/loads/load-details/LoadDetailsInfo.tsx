@@ -1,15 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { formatValue } from 'react-currency-input-field';
-import { ExpandedLoad } from '../../../interfaces/models';
 import LoadStatusBadge from '../LoadStatusBadge';
 import { DownloadInvoicePDFButton } from 'components/invoices/invoicePdf';
+import { useLoadContext } from 'components/context/LoadContext';
 
 type LoadDetailsInfoProps = {
-    load: ExpandedLoad;
+    //
 };
 
-const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = ({ load }) => {
+const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
+    const [load, setLoad] = useLoadContext();
     return (
         <div>
             <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">

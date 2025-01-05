@@ -59,13 +59,26 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
             // Determine the data to update
             const dataToUpdate: Partial<RouteLeg> = {
                 status: routeLegStatus,
-                ...(routeLegStatus === RouteLegStatus.IN_PROGRESS && { startedAt: new Date() }),
-                ...(routeLegStatus === RouteLegStatus.COMPLETED && { endedAt: new Date() }),
                 ...(startLatitude !== undefined && { startLatitude }),
                 ...(startLongitude !== undefined && { startLongitude }),
                 ...(endLatitude !== undefined && { endLatitude }),
                 ...(endLongitude !== undefined && { endLongitude }),
             };
+
+            switch (routeLegStatus) {
+                case RouteLegStatus.ASSIGNED:
+                    dataToUpdate.startedAt = null;
+                    dataToUpdate.endedAt = null;
+                    break;
+                case RouteLegStatus.IN_PROGRESS:
+                    dataToUpdate.startedAt = new Date();
+                    dataToUpdate.endedAt = null;
+                    break;
+                default:
+                    dataToUpdate.startedAt = new Date();
+                    dataToUpdate.endedAt = new Date();
+                    break;
+            }
 
             const routeLeg = await prisma.routeLeg.update({
                 where: { id: routeLegId },
@@ -80,6 +93,28 @@ async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any
                                     carrierId: true,
                                 },
                             },
+                        },
+                    },
+                    locations: {
+                        include: {
+                            loadStop: true,
+                            location: true,
+                        },
+                    },
+                    driverAssignments: {
+                        select: {
+                            id: true,
+                            assignedAt: true,
+                            driver: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone: true,
+                                },
+                            },
+                            chargeType: true,
+                            chargeValue: true,
                         },
                     },
                 },

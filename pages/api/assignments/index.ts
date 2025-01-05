@@ -575,6 +575,7 @@ async function getExpandedRoute(loadId: string) {
         where: { loadId },
         include: {
             routeLegs: {
+                orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
                 include: {
                     locations: {
                         include: {

@@ -280,43 +280,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const changeLegStatusClicked = async (legStatus: RouteLegStatus, routeLegId: string) => {
-        // Update the load context with the updated driver assignment
-        const curRoute = load.route;
-        const routeLeg: ExpandedRouteLeg = curRoute.routeLegs.find((leg) => leg.id === routeLegId);
-
         try {
-            const loadStatus = await updateRouteLegStatus(routeLegId, legStatus);
+            const { loadStatus, routeLeg: newRouteLeg } = await updateRouteLegStatus(routeLegId, legStatus);
 
-            // Update the route leg status
-            routeLeg.status = legStatus;
-            switch (legStatus) {
-                case RouteLegStatus.ASSIGNED:
-                    routeLeg.startedAt = null;
-                    routeLeg.endedAt = null;
-                    break;
-                case RouteLegStatus.IN_PROGRESS:
-                    routeLeg.startedAt = new Date();
-                    routeLeg.endedAt = null;
-                    break;
-                default:
-                    routeLeg.startedAt = new Date();
-                    routeLeg.endedAt = new Date();
-                    break;
-            }
+            // Insert the updated route leg into the route
+            const updatedRouteLegs = load.route.routeLegs.map((rl) => (rl.id === routeLegId ? newRouteLeg : rl));
 
-            // Update the route with the updated route leg
-            const updatedRouteLegs = curRoute.routeLegs.map((leg) => (leg.id === routeLegId ? routeLeg : leg)) as [];
-            // Update the load context with the updated route
-            const newRoute: ExpandedRoute = {
-                id: curRoute.id,
-                routeLegs: updatedRouteLegs,
-            };
-
-            // Update the load context with the updated route
+            // Update the load context with the updated route legs
             setLoad((prev) => ({
                 ...prev,
-                status: loadStatus,
-                route: JSON.parse(JSON.stringify(newRoute)),
+                route: {
+                    ...prev.route,
+                    routeLegs: updatedRouteLegs as ExpandedRoute['routeLegs'],
+                },
             }));
 
             notify({ title: 'Load Assignment Status', message: 'Load assignment successfully updated' });
@@ -495,7 +471,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
                         {load ? (
                             <>
-                                <LoadDetailsInfo load={load} />
+                                <LoadDetailsInfo />
                                 <LoadDetailsDocuments
                                     podDocuments={podDocuments}
                                     loadDocuments={loadDocuments}
@@ -506,9 +482,8 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     setDocumentIdToDelete={setDocumentIdToDelete}
                                     setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
                                 />
-                                <LoadRouteSection load={load} openRouteInGoogleMaps={openRouteInGoogleMaps} />
+                                <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
                                 <LoadAssignmentsSection
-                                    load={load}
                                     removingRouteLegWithId={removingRouteLegWithId}
                                     setOpenLegAssignment={setOpenLegAssignment}
                                     changeLegStatusClicked={changeLegStatusClicked}
