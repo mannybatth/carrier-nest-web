@@ -1,10 +1,11 @@
-import { ArrowTopRightOnSquareIcon, MapPinIcon, StopIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { ArrowTopRightOnSquareIcon, MapPinIcon, StopIcon, TruckIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import React from 'react';
 import { Prisma } from '@prisma/client';
 import { metersToMiles } from '../../../lib/helpers/distance';
 import { secondsToReadable } from '../../../lib/helpers/time';
 import { useLoadContext } from 'components/context/LoadContext';
+import { Disclosure } from '@headlessui/react';
 
 type LoadRouteSectionProps = {
     openRouteInGoogleMaps: () => void;
@@ -57,197 +58,214 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                     )}
                     <ul
                         role="list"
-                        className="grid grid-cols-1 gap-4 p-2 px-4 pb-4 overflow-x-auto bg-white sm:grid-cols-2 lg:grid-cols-3"
+                        className={`grid gap-4 p-2 px-4 pb-4 bg-white grid-cols-1 sm:grid-cols-2 lg:grid-cols-${
+                            load.stops.length + 2
+                        } auto-cols-fr`}
                     >
-                        <li className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100">
-                            <div className="relative z-auto">
-                                <div className="relative flex flex-col items-start ">
-                                    <>
-                                        <div className="relative w-full px-0">
-                                            <div className="flex flex-row items-end justify-between pb-2 rounded-full ">
-                                                <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
-                                                    Pick-Up
-                                                </p>
-                                                <div className="flex p-1 bg-white border rounded-lg border-slate-200">
-                                                    <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
-                                                        <span className="text-sm font-bold text-blue-500">
-                                                            {new Intl.DateTimeFormat('en-US', {
-                                                                year: 'numeric',
-                                                                month: 'short',
-                                                                day: '2-digit',
-                                                            }).format(new Date(load.shipper.date))}
-                                                        </span>
-                                                        {load.shipper.time && (
-                                                            <p className="text-xs font-base text-slate-500">
-                                                                @{load.shipper.time}
-                                                            </p>
+                        <li
+                            className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
+                            data-tooltip-id="tooltip"
+                            data-tooltip-content="The origin of the load"
+                            data-tooltip-delay-show={500}
+                        >
+                            <div className="relative z-auto flex flex-col p-2">
+                                <div className="flex items-center gap-2 pb-2">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-green-200 border-2 border-white rounded-md shrink-0">
+                                        <TruckIcon className="w-4 h-4 text-green-900" aria-hidden="true" />
+                                    </div>
+                                    <div className="text-base font-semibold capitalize text-slate-900">
+                                        {load.shipper?.name?.toLowerCase()}
+                                    </div>
+                                </div>
+                                <div className="pb-1 text-xs text-gray-500">
+                                    {new Intl.DateTimeFormat('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: '2-digit',
+                                    }).format(new Date(load.shipper.date))}
+                                    {load.shipper.time && ` @ ${load.shipper.time}`}
+                                </div>
+                                <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
+                                    {load.shipper.street.toLowerCase()}, {load.shipper.city.toLowerCase()},{' '}
+                                    {load.shipper.state.toUpperCase()} {load.shipper.zip}
+                                </div>
+                                {load.shipper.poNumbers ||
+                                load.shipper.pickUpNumbers ||
+                                load.shipper.referenceNumbers ? (
+                                    <Disclosure>
+                                        {({ open }) => (
+                                            <>
+                                                <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
+                                                    {open ? 'Hide Details' : 'Show Details'}
+                                                    <ChevronUpIcon
+                                                        className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 ml-1`}
+                                                    />
+                                                </Disclosure.Button>
+                                                <Disclosure.Panel className="mt-1 text-sm">
+                                                    <div className="grid grid-cols-1 gap-1">
+                                                        {load.shipper.poNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">PO #&rsquo;s:</div>
+                                                                <div>{load.shipper.poNumbers}</div>
+                                                            </div>
+                                                        )}
+                                                        {load.shipper.pickUpNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">Pick Up #&rsquo;s:</div>
+                                                                <div>{load.shipper.pickUpNumbers}</div>
+                                                            </div>
+                                                        )}
+                                                        {load.shipper.referenceNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">Ref #&rsquo;s:</div>
+                                                                <div>{load.shipper.referenceNumbers}</div>
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                                <div className="flex flex-row items-center justify-center w-8 h-8 bg-green-200 border-2 border-white rounded-md">
-                                                    <TruckIcon className="w-4 h-4 text-green-900" aria-hidden="true" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm text-gray-500">
-                                                <div className="text-base font-semibold capitalize text-slate-900">
-                                                    {load.shipper.name}
-                                                </div>
-                                                <div>{load.shipper.street}</div>
-                                                <div>
-                                                    {load.shipper.city}, {load.shipper.state} {load.shipper.zip}
-                                                </div>
-                                                <div className="mt-1">
-                                                    {load.shipper.poNumbers && (
-                                                        <div className="text-xs">
-                                                            PO #&rsquo;s: {load.shipper.poNumbers}
-                                                        </div>
-                                                    )}
-                                                    {load.shipper.pickUpNumbers && (
-                                                        <div className="text-xs">
-                                                            Pick Up #&rsquo;s: {load.shipper.pickUpNumbers}
-                                                        </div>
-                                                    )}
-                                                    {load.shipper.referenceNumbers && (
-                                                        <div className="text-xs">
-                                                            Ref #&rsquo;s: {load.shipper.referenceNumbers}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </>
-                                </div>
+                                                </Disclosure.Panel>
+                                            </>
+                                        )}
+                                    </Disclosure>
+                                ) : null}
                             </div>
                         </li>
                         {load.stops.map((stop, index) => (
                             <li
-                                className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100"
+                                className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
                                 key={index}
+                                data-tooltip-id="tooltip"
+                                data-tooltip-content="This is a stop along the route"
+                                data-tooltip-delay-show={500}
                             >
-                                <div className="relative">
-                                    <div className="relative flex items-start ">
-                                        <div className="flex-1 w-full">
-                                            <div className="relative w-full px-0">
-                                                <div className="flex flex-row items-end justify-between w-full pb-2 rounded-full ">
-                                                    <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
-                                                        Stop
-                                                    </p>
-                                                    <div className="flex p-1 bg-white border rounded-lg border-slate-200">
-                                                        <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
-                                                            <span className="text-sm font-bold text-blue-500">
-                                                                {new Intl.DateTimeFormat('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: '2-digit',
-                                                                }).format(new Date(stop.date))}
-                                                            </span>
-                                                            {stop.time && (
-                                                                <p className="text-xs font-base text-slate-500">
-                                                                    @{stop.time}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-row items-center justify-center w-8 h-8 bg-gray-200 border-2 border-white rounded-md">
-                                                        <StopIcon
-                                                            className="w-4 h-4 text-gray-900"
-                                                            aria-hidden="true"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm text-gray-500">
-                                                    <div className="text-base font-semibold capitalize text-slate-900">
-                                                        {stop.name}
-                                                    </div>
-                                                    <div>{stop.street}</div>
-                                                    <div>
-                                                        {stop.city}, {stop.state} {stop.zip}
-                                                    </div>
-                                                    <div className="mt-1">
-                                                        {stop.poNumbers && (
-                                                            <div className="text-xs">
-                                                                PO #&rsquo;s: {stop.poNumbers}
-                                                            </div>
-                                                        )}
-                                                        {stop.pickUpNumbers && (
-                                                            <div className="text-xs">
-                                                                Pick Up #&rsquo;s: {stop.pickUpNumbers}
-                                                            </div>
-                                                        )}
-                                                        {stop.referenceNumbers && (
-                                                            <div className="text-xs">
-                                                                Ref #&rsquo;s: {stop.referenceNumbers}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                <div className="relative z-auto flex flex-col p-2">
+                                    <div className="flex items-center gap-2 pb-2">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-200 border-2 border-white rounded-md shrink-0">
+                                            <StopIcon className="w-4 h-4 text-gray-900" aria-hidden="true" />
+                                        </div>
+                                        <div className="text-base font-semibold capitalize text-slate-900">
+                                            {stop.name?.toLowerCase()}
                                         </div>
                                     </div>
+                                    <div className="pb-1 text-xs text-gray-500">
+                                        {new Intl.DateTimeFormat('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: '2-digit',
+                                        }).format(new Date(stop.date))}
+                                        {stop.time && ` @ ${stop.time}`}
+                                    </div>
+                                    <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
+                                        {stop.street.toLowerCase()}, {stop.city.toLowerCase()},{' '}
+                                        {stop.state.toUpperCase()} {stop.zip}
+                                    </div>
+                                    {stop.poNumbers || stop.pickUpNumbers || stop.referenceNumbers ? (
+                                        <Disclosure>
+                                            {({ open }) => (
+                                                <>
+                                                    <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
+                                                        {open ? 'Hide Details' : 'Show Details'}
+                                                        <ChevronUpIcon
+                                                            className={`${
+                                                                open ? 'rotate-180 transform' : ''
+                                                            } h-3 w-3 ml-1`}
+                                                        />
+                                                    </Disclosure.Button>
+                                                    <Disclosure.Panel className="mt-1 text-sm">
+                                                        <div className="grid grid-cols-1 gap-1">
+                                                            {stop.poNumbers && (
+                                                                <div>
+                                                                    <div className="font-semibold">PO #&rsquo;s:</div>
+                                                                    <div>{stop.poNumbers}</div>
+                                                                </div>
+                                                            )}
+                                                            {stop.pickUpNumbers && (
+                                                                <div>
+                                                                    <div className="font-semibold">
+                                                                        Pick Up #&rsquo;s:
+                                                                    </div>
+                                                                    <div>{stop.pickUpNumbers}</div>
+                                                                </div>
+                                                            )}
+                                                            {stop.referenceNumbers && (
+                                                                <div>
+                                                                    <div className="font-semibold">Ref #&rsquo;s:</div>
+                                                                    <div>{stop.referenceNumbers}</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </Disclosure.Panel>
+                                                </>
+                                            )}
+                                        </Disclosure>
+                                    ) : null}
                                 </div>
                             </li>
                         ))}
-                        <li className="flex-grow p-2 mt-4 border rounded-lg bg-neutral-50 border-slate-100">
-                            <div className="relative ">
-                                <div className="relative flex flex-col items-start">
-                                    <div className="flex flex-row items-end justify-between w-full pb-2 rounded-full ">
-                                        <p className="absolute right-0  -top-7 rounded-md p-[3px] px-2 h-6  text-center text-xs font-semibold border bg-white border-slate-100">
-                                            Drop-Off
-                                        </p>
-                                        <div className="flex p-1 bg-white border rounded-lg border-slate-200">
-                                            <div className="flex items-center justify-center gap-2 lg:flex-col lg:items-start lg:gap-0">
-                                                <span className="text-sm font-bold text-blue-500">
-                                                    {new Intl.DateTimeFormat('en-US', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: '2-digit',
-                                                    }).format(new Date(load.receiver.date))}
-                                                </span>
-                                                {load.receiver.time && (
-                                                    <p className="text-xs font-base text-slate-500">
-                                                        @{load.receiver.time}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-row items-center justify-center w-8 h-8 bg-red-200 border-2 border-white rounded-md">
-                                            <MapPinIcon className="w-4 h-4 text-red-900" aria-hidden="true" />
-                                        </div>
+                        <li
+                            className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
+                            data-tooltip-id="tooltip"
+                            data-tooltip-content="The drop off location"
+                            data-tooltip-delay-show={500}
+                        >
+                            <div className="relative z-auto flex flex-col p-2">
+                                <div className="flex items-center gap-2 pb-2">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-red-200 border-2 border-white rounded-md shrink-0">
+                                        <MapPinIcon className="w-4 h-4 text-red-900" aria-hidden="true" />
                                     </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-gray-500">
-                                            <div className="text-base font-semibold capitalize text-slate-900">
-                                                {load.receiver.name}
-                                            </div>
-                                            <div>{load.receiver.street}</div>
-                                            <div>
-                                                {load.receiver.city}, {load.receiver.state} {load.receiver.zip}
-                                            </div>
-                                            <div className="mt-1">
-                                                {load.receiver.poNumbers && (
-                                                    <div className="text-xs">
-                                                        PO #&rsquo;s: {load.receiver.poNumbers}
-                                                    </div>
-                                                )}
-                                                {load.receiver.pickUpNumbers && (
-                                                    <div className="text-xs">
-                                                        Delivery #&rsquo;s: {load.receiver.pickUpNumbers}
-                                                    </div>
-                                                )}
-                                                {load.receiver.referenceNumbers && (
-                                                    <div className="text-xs">
-                                                        Ref #&rsquo;s: {load.receiver.referenceNumbers}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                    <div className="text-base font-semibold capitalize text-slate-900">
+                                        {load.receiver?.name?.toLowerCase()}
                                     </div>
                                 </div>
+                                <div className="pb-1 text-xs text-gray-500">
+                                    {new Intl.DateTimeFormat('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: '2-digit',
+                                    }).format(new Date(load.receiver.date))}
+                                    {load.receiver.time && ` @ ${load.receiver.time}`}
+                                </div>
+                                <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
+                                    {load.receiver.street.toLowerCase()}, {load.receiver.city.toLowerCase()},{' '}
+                                    {load.receiver.state.toUpperCase()} {load.receiver.zip}
+                                </div>
+                                {load.receiver.poNumbers ||
+                                load.receiver.pickUpNumbers ||
+                                load.receiver.referenceNumbers ? (
+                                    <Disclosure>
+                                        {({ open }) => (
+                                            <>
+                                                <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
+                                                    {open ? 'Hide Details' : 'Show Details'}
+                                                    <ChevronUpIcon
+                                                        className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 ml-1`}
+                                                    />
+                                                </Disclosure.Button>
+                                                <Disclosure.Panel className="mt-1 text-sm">
+                                                    <div className="grid grid-cols-1 gap-1">
+                                                        {load.receiver.poNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">PO #&rsquo;s:</div>
+                                                                <div>{load.receiver.poNumbers}</div>
+                                                            </div>
+                                                        )}
+                                                        {load.receiver.pickUpNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">Delivery #&rsquo;s:</div>
+                                                                <div>{load.receiver.pickUpNumbers}</div>
+                                                            </div>
+                                                        )}
+                                                        {load.receiver.referenceNumbers && (
+                                                            <div>
+                                                                <div className="font-semibold">Ref #&rsquo;s:</div>
+                                                                <div>{load.receiver.referenceNumbers}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Disclosure.Panel>
+                                            </>
+                                        )}
+                                    </Disclosure>
+                                ) : null}
                             </div>
                         </li>
                     </ul>
