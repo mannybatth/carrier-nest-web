@@ -26,10 +26,10 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
 
     return (
         <div className="mt-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Load Assignments</h2>
-                    <p className="text-sm text-gray-500">Tasks assigned to drivers for this load</p>
+                    <h2 className="text-base font-semibold leading-6 text-gray-900">Load Assignments</h2>
+                    <p className="text-xs text-slate-500">Tasks assigned to drivers for this load</p>
                 </div>
                 <button
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -38,7 +38,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                     Add Assignment
                 </button>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-1">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-1 lg:grid-cols-1">
                 {load.route && load.route.routeLegs.length > 0 ? (
                     load.route.routeLegs.map((leg, index) => {
                         const drivers = leg.driverAssignments.map((driver) => driver.driver);
@@ -46,10 +46,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                         const legStatus = leg.status;
 
                         return (
-                            <div
-                                className="relative p-4 bg-white border rounded-lg shadow-sm"
-                                key={`routelegs-${index}`}
-                            >
+                            <div className="relative p-4 bg-white border-2 rounded-lg" key={`routelegs-${index}`}>
                                 {removingRouteLegWithId === leg.id && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
                                         <Spinner />
@@ -119,9 +116,9 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                             return (
                                                 <div
                                                     key={`route-legs-stops-stop-${index}`}
-                                                    className="flex items-center"
+                                                    className="flex items-center flex-grow"
                                                 >
-                                                    <div className="flex flex-col p-2 border rounded-md bg-gray-50 min-w-[200px]">
+                                                    <div className="flex flex-col p-2 border rounded-md bg-gray-50 min-w-[200px] flex-grow">
                                                         <div className="flex items-center gap-2">
                                                             <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
                                                                 {index + 1}

@@ -22,7 +22,7 @@ const AssignmentDropDown: React.FC<AssignmentDropDownProps> = ({
         <Menu as="div" className="relative inline-block text-left">
             <div>
                 <Menu.Button
-                    className="inline-flex justify-center w-full px-1 py-[2px] text-sm font-bold text-slate-700 bg-white shadow-lg border border-gray-300 rounded-md  hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                    className="inline-flex justify-center w-full px-1 py-[2px] text-sm font-bold text-slate-700 bg-white  border border-gray-300 rounded-md  hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
                     disabled={disabled}
                 >
                     <EllipsisHorizontalIcon className="w-5 h-5 mx-0" aria-hidden="true" />

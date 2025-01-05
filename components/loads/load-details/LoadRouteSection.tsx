@@ -15,7 +15,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
     return (
         <div>
             <div className="mt-4 space-y-3">
-                <div className="flex flex-row justify-between gap-2 pb-2">
+                <div className="flex flex-row justify-between gap-2">
                     <div className="flex flex-col">
                         <h3 className="text-base font-semibold leading-6 text-gray-900">Load Route</h3>
                         <p className="text-xs text-slate-500">
