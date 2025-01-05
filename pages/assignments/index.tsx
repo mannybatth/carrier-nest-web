@@ -77,6 +77,7 @@ const AssignmentsPage = () => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
         try {
+            const currentSelectedAssignmentId = selectedAssignment?.id;
             const { assignments, metadata: metadataResponse } = await getAllAssignments({
                 limit,
                 offset,
@@ -85,6 +86,12 @@ const AssignmentsPage = () => {
             setLastAssignmentsTableLimit(assignments.length !== 0 ? assignments.length : lastAssignmentsTableLimit);
             setAssignments(assignments);
             setMetadata(metadataResponse);
+
+            if (currentSelectedAssignmentId) {
+                setSelectedAssignment(
+                    assignments.find((assignment) => assignment.id === currentSelectedAssignmentId) || null,
+                );
+            }
         } catch (error) {
             notify({ title: 'Error', message: error.message, type: 'error' });
         } finally {
@@ -126,26 +133,6 @@ const AssignmentsPage = () => {
         setIsModalOpen(true);
     };
 
-    const handleAddPayment = (amount: number) => {
-        if (selectedAssignment) {
-            const newPayment: AssignmentPayment = {
-                id: String(Math.random()),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                amount: new Prisma.Decimal(amount),
-                paymentDate: new Date(),
-                carrierId: selectedAssignment.carrierId,
-                loadId: selectedAssignment.loadId,
-                driverId: selectedAssignment.driverId,
-                driverAssignmentId: selectedAssignment.id,
-            };
-            setSelectedAssignment({
-                ...selectedAssignment,
-                payments: [...(selectedAssignment.payments || []), newPayment],
-            });
-        }
-    };
-
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Driver Assignments</h1>}>
             <div className="py-2 mx-auto max-w-7xl">
@@ -179,7 +166,12 @@ const AssignmentsPage = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 assignment={selectedAssignment}
-                onAddPayment={handleAddPayment}
+                onAddPayment={() => {
+                    reloadAssignments({ sort, limit, offset, useTableLoading: true });
+                }}
+                onDeletePayment={async (paymentId) => {
+                    reloadAssignments({ sort, limit, offset, useTableLoading: true });
+                }}
             />
         </Layout>
     );

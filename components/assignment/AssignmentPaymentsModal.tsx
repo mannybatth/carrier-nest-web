@@ -14,6 +14,7 @@ interface AssignmentPaymentsModalProps {
     onClose: () => void;
     assignment: ExpandedDriverAssignment | null;
     onAddPayment: (amount: number) => void;
+    onDeletePayment: (paymentId: string) => void;
 }
 
 const calculateDriverPay = (assignment: ExpandedDriverAssignment) => {
@@ -46,6 +47,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     onClose,
     assignment,
     onAddPayment,
+    onDeletePayment,
 }) => {
     const [amount, setAmount] = useState<number | null>(null);
     const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
@@ -79,7 +81,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             setLoading(true);
             try {
                 await deleteAssignmentPayment(assignment.id, paymentToDelete);
-                onAddPayment(-1); // Trigger a refresh or update the state accordingly
+                assignment.payments = assignment.payments.filter((payment) => payment.id !== paymentToDelete);
+                onDeletePayment(paymentToDelete);
                 setPaymentToDelete(null);
                 setConfirmOpen(false);
             } catch (error) {
@@ -164,33 +167,66 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                         <div className="relative flex-1 px-4 sm:px-6">
                                             <div className="absolute inset-0 px-4 sm:px-6">
                                                 <div className="h-full" aria-hidden="true">
-                                                    <ul className="mt-6 space-y-2">
-                                                        {assignment?.payments?.map((payment) => (
-                                                            <li
-                                                                key={payment.id}
-                                                                className="flex justify-between p-2 bg-gray-100 rounded-md"
-                                                            >
-                                                                <span>
-                                                                    {new Date(payment.paymentDate).toLocaleDateString()}
-                                                                </span>
-                                                                <span>{formatCurrency(payment.amount)}</span>
-                                                                <div className="flex-shrink-0 ml-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setPaymentToDelete(payment.id);
-                                                                            setConfirmOpen(true);
-                                                                        }}
-                                                                        disabled={loading}
+                                                    <table className="min-w-full mt-6 divide-y divide-gray-200">
+                                                        <thead className="bg-gray-50">
+                                                            <tr>
+                                                                <th
+                                                                    scope="col"
+                                                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                >
+                                                                    Date
+                                                                </th>
+                                                                <th
+                                                                    scope="col"
+                                                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                >
+                                                                    Amount
+                                                                </th>
+                                                                <th scope="col" className="relative px-6 py-3">
+                                                                    <span className="sr-only">Delete</span>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="bg-white divide-y divide-gray-200">
+                                                            {assignment?.payments?.length > 0 ? (
+                                                                assignment.payments.map((payment) => (
+                                                                    <tr key={payment.id}>
+                                                                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                                                            {new Date(
+                                                                                payment.paymentDate,
+                                                                            ).toLocaleDateString()}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                                                            {formatCurrency(payment.amount)}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setPaymentToDelete(payment.id);
+                                                                                    setConfirmOpen(true);
+                                                                                }}
+                                                                                disabled={loading}
+                                                                            >
+                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))
+                                                            ) : (
+                                                                <tr>
+                                                                    <td
+                                                                        colSpan={3}
+                                                                        className="px-6 py-4 text-sm text-center text-gray-500"
                                                                     >
-                                                                        <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                    </button>
-                                                                </div>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                                        No payments available.
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
                                                     <div className="mt-4">
                                                         <label className="block text-sm font-medium text-gray-700">
                                                             Payment Amount

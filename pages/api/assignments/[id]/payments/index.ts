@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
-import { JSONResponse } from '../../../../interfaces/models';
-import prisma from '../../../../lib/prisma';
-import { authOptions } from '../../auth/[...nextauth]';
+import { JSONResponse } from '../../../../../interfaces/models';
+import prisma from '../../../../../lib/prisma';
+import { authOptions } from '../../../auth/[...nextauth]';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     const session = await getServerSession(req, res, authOptions);
