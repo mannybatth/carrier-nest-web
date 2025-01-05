@@ -253,8 +253,14 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                         valueAsNumber: true,
                                                     })}
                                                     placeholder="Charge Value"
-                                                    step="0.01"
+                                                    step="any"
                                                     min="0"
+                                                    max={
+                                                        selectedDriversWatch[driver.id]?.chargeType ===
+                                                        ChargeType.PERCENTAGE_OF_LOAD
+                                                            ? 100
+                                                            : undefined
+                                                    }
                                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 />
                                             </div>

@@ -82,6 +82,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             scheduledDate: new Date().toISOString().split('T')[0],
             scheduledTime: '',
         });
+        setShowDriverSelection(false);
     };
 
     const handleDriverCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {

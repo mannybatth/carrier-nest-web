@@ -101,7 +101,7 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="perMileRate"
                                     placeholder="Enter rate per mile"
-                                    step="0.01"
+                                    step="any"
                                     min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
@@ -117,7 +117,7 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="perHourRate"
                                     placeholder="Enter rate per hour"
-                                    step="0.01"
+                                    step="any"
                                     min="0"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
@@ -133,8 +133,9 @@ const DriverForm: React.FC<Props> = ({
                                     })}
                                     id="takeHomePercent"
                                     placeholder="Enter percentage of load"
-                                    step="0.01"
+                                    step="any"
                                     min="0"
+                                    max="100"
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             </div>
