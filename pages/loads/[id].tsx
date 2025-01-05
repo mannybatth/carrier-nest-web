@@ -471,17 +471,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
                         {load ? (
                             <>
-                                <LoadDetailsInfo />
-                                <LoadDetailsDocuments
-                                    podDocuments={podDocuments}
-                                    loadDocuments={loadDocuments}
-                                    docsLoading={docsLoading}
-                                    handleUploadPodsChange={handleUploadPodsChange}
-                                    handleUploadDocsChange={handleUploadDocsChange}
-                                    openDocument={openDocument}
-                                    setDocumentIdToDelete={setDocumentIdToDelete}
-                                    setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
-                                />
+                                <div>
+                                    <LoadDetailsInfo />
+                                    <LoadDetailsDocuments
+                                        podDocuments={podDocuments}
+                                        loadDocuments={loadDocuments}
+                                        docsLoading={docsLoading}
+                                        handleUploadPodsChange={handleUploadPodsChange}
+                                        handleUploadDocsChange={handleUploadDocsChange}
+                                        openDocument={openDocument}
+                                        setDocumentIdToDelete={setDocumentIdToDelete}
+                                        setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
+                                    />
+                                </div>
                                 <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
                                 <LoadAssignmentsSection
                                     removingRouteLegWithId={removingRouteLegWithId}
