@@ -99,7 +99,7 @@ EditEquipmentPage.authenticationEnabled = true;
 
 const EditEquipmentPageWrapper = () => {
     const params = useParams();
-    const equipmentId = params.id as string;
+    const equipmentId = params?.id as string;
 
     return (
         <EquipmentProvider equipmentId={equipmentId}>

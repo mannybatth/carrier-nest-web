@@ -523,7 +523,7 @@ LoadDetailsPage.authenticationEnabled = true;
 
 const LoadDetailsPageWrapper: PageWithAuth = () => {
     const params = useParams();
-    const loadId = params.id as string;
+    const loadId = params?.id as string;
 
     return (
         <LoadProvider loadId={loadId}>

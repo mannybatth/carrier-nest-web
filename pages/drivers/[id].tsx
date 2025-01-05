@@ -108,7 +108,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
-    const driverId = params.id as string;
+    const driverId = params?.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
@@ -436,12 +436,12 @@ const DriverDetailsPage: PageWithAuth = () => {
                             </div>
 
                             <div className="col-span-12">
+                                <h3 className="mb-2">Equipments assigned to driver</h3>
                                 {loadingDriver ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                                 ) : (
                                     driver.equipments?.length > 0 && (
                                         <>
-                                            <h3 className="mb-2">Equipments assigned to driver</h3>
                                             <EquipmentsTable
                                                 equipments={driver.equipments || []}
                                                 sort={equipmentSort}

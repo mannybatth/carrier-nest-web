@@ -107,7 +107,7 @@ EditLocationPage.authenticationEnabled = true;
 
 const EditLocationPageWrapper: PageWithAuth = () => {
     const params = useParams();
-    const locationId = params.id as string;
+    const locationId = params?.id as string;
 
     return (
         <LocationProvider locationId={locationId}>

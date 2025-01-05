@@ -179,7 +179,7 @@ EditLoad.authenticationEnabled = true;
 
 const EditLoadPageWrapper: PageWithAuth = () => {
     const params = useParams();
-    const loadId = params.id as string;
+    const loadId = params?.id as string;
 
     return (
         <LoadProvider loadId={loadId}>

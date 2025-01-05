@@ -141,7 +141,7 @@ EditInvoicePage.authenticationEnabled = true;
 
 const EditInvoicePageWrapper: PageWithAuth = () => {
     const params = useParams();
-    const invoiceId = params.id as string;
+    const invoiceId = params?.id as string;
 
     return (
         <InvoiceProvider invoiceId={invoiceId}>

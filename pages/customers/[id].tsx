@@ -109,7 +109,7 @@ const CustomerDetailsPage: PageWithAuth = () => {
     });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
-    const customerId = params.id as string;
+    const customerId = params?.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 

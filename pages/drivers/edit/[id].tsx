@@ -121,7 +121,7 @@ EditDriver.authenticationEnabled = true;
 
 const EditDriverWrapper: PageWithAuth = () => {
     const params = useParams();
-    const driverId = params.id as string;
+    const driverId = params?.id as string;
 
     return (
         <DriverProvider driverId={driverId}>

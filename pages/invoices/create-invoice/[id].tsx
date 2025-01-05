@@ -152,7 +152,7 @@ CreateInvoice.authenticationEnabled = true;
 
 const CreateInvoiceWrapper: PageWithAuth = () => {
     const params = useParams();
-    const loadId = params.id as string;
+    const loadId = params?.id as string;
     const [nextInvoiceNum, setNextInvoiceNum] = React.useState<number>(null);
 
     React.useEffect(() => {

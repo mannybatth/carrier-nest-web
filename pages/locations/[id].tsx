@@ -88,7 +88,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ location, disabled, d
 
 const LocationDetailsPage: PageWithAuth = () => {
     const params = useParams();
-    const locationId = params.id as string;
+    const locationId = params?.id as string;
 
     const [loadingLocation, setLoadingLocation] = React.useState(true);
     const [openDeleteLocationConfirmation, setOpenDeleteLocationConfirmation] = React.useState(false);

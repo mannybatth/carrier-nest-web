@@ -154,7 +154,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
 
 const InvoiceDetailsPage: PageWithAuth = () => {
     const params = useParams();
-    const invoiceId = params.id as string;
+    const invoiceId = params?.id as string;
 
     const [invoice, setInvoice] = useState<ExpandedInvoice>();
     const { data: session } = useSession();

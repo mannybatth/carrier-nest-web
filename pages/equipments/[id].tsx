@@ -88,7 +88,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ equipment, disabled, 
 
 const EquipmentDetailsPage = () => {
     const params = useParams();
-    const equipmentId = params.id as string;
+    const equipmentId = params?.id as string;
 
     const [loadingEquipment, setLoadingEquipment] = useState(true);
     const [openDeleteEquipmentConfirmation, setOpenDeleteEquipmentConfirmation] = useState(false);

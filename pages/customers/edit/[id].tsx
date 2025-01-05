@@ -115,7 +115,7 @@ EditCustomer.authenticationEnabled = true;
 
 const EditCustomerWrapper: PageWithAuth = () => {
     const params = useParams();
-    const customerId = params.id as string;
+    const customerId = params?.id as string;
 
     return (
         <CustomerProvider customerId={customerId}>
