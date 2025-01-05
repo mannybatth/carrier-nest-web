@@ -237,15 +237,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             {assignment?.payments?.length > 0 ? (
                                                                 assignment.payments.map((payment) => (
                                                                     <tr key={payment.id}>
-                                                                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
                                                                             {new Date(
                                                                                 payment.paymentDate,
                                                                             ).toLocaleDateString()}
                                                                         </td>
-                                                                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
                                                                             {formatCurrency(payment.amount)}
                                                                         </td>
-                                                                        <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                                                                        <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
                                                                             <button
                                                                                 type="button"
                                                                                 className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

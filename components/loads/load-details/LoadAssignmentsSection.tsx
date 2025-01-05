@@ -72,7 +72,6 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                     data-tooltip-content={`Assigned at: ${new Date(
                                                         leg.createdAt,
                                                     ).toLocaleString()}`}
-                                                    data-tooltip-place="top-start"
                                                 >
                                                     Leg assignment# {index + 1}
                                                 </p>
@@ -119,7 +118,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                             </div>
                                         </div>
                                         <div className="flex flex-row gap-1 px-4 py-1 text-sm font-normal">
-                                            <p>Start Time:</p>
+                                            <p>Assigned on:</p>
                                             <p className="text-slate-600">
                                                 {`${
                                                     new Date(leg.scheduledDate)?.toISOString()?.split('T')[0]
@@ -131,15 +130,17 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                             </p>
                                         </div>
                                         <div className="flex flex-row gap-1 px-4 py-1 text-sm font-normal">
-                                            <p>End Time:</p>
+                                            <p>Started on:</p>
                                             <p className="text-slate-600">
-                                                {`${
-                                                    new Date(leg.scheduledDate)?.toISOString()?.split('T')[0]
-                                                } @ ${new Date(
-                                                    `${leg.scheduledDate?.toString()?.split('T')[0]}T${
-                                                        leg.scheduledTime
-                                                    }`,
-                                                ).toLocaleTimeString()}`}
+                                                {leg.startedAt
+                                                    ? new Date(leg.startedAt).toLocaleString()
+                                                    : 'Not started'}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-row gap-1 px-4 py-1 text-sm font-normal">
+                                            <p>Completed on:</p>
+                                            <p className="text-slate-600">
+                                                {leg.endedAt ? new Date(leg.endedAt).toLocaleString() : 'Not completed'}
                                             </p>
                                         </div>
                                         <div className="flex flex-row gap-1 px-4 py-1 text-sm">
