@@ -30,7 +30,7 @@ const EquipmentsTable: React.FC<Props> = ({
         { key: 'make', title: 'Make' },
         { key: 'model', title: 'Model' },
         !hideDriversColumn && { key: 'drivers', title: 'Drivers' },
-    ];
+    ].filter((x) => x);
 
     return (
         <Table

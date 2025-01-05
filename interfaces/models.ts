@@ -269,7 +269,6 @@ export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriv
 /**
  * DriverAssignment
  */
-
 const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefaultArgs>()({
     include: {
         driver: {
@@ -386,9 +385,20 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                 podDocuments: true,
             },
         },
+        payments: true,
     },
 });
 export type ExpandedDriverAssignment = Partial<Prisma.DriverAssignmentGetPayload<typeof expandedDriverAssignment>>;
+
+/**
+ * AssignmentPayment
+ */
+const expandedAssignmentPayment = Prisma.validator<Prisma.AssignmentPaymentDefaultArgs>()({
+    include: {
+        load: true,
+    },
+});
+export type ExpandedAssignmentPayment = Partial<Prisma.AssignmentPaymentGetPayload<typeof expandedAssignmentPayment>>;
 
 /**
  * LoadDocument

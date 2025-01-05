@@ -25,7 +25,7 @@ export const getAllEquipments = async ({
     if (offset !== undefined) {
         params.append('offset', offset.toString());
     }
-    const response = await fetch(apiUrl + '/equipment?' + params.toString());
+    const response = await fetch(apiUrl + '/equipments?' + params.toString());
     const { data, errors }: JSONResponse<{ equipments: Equipment[]; metadata: PaginationMetadata }> =
         await response.json();
 
@@ -36,7 +36,7 @@ export const getAllEquipments = async ({
 };
 
 export const getEquipmentById = async (id: string) => {
-    const response = await fetch(apiUrl + '/equipment/' + id);
+    const response = await fetch(apiUrl + '/equipments/' + id);
     const { data, errors }: JSONResponse<{ equipment: Equipment }> = await response.json();
 
     if (errors) {
@@ -46,7 +46,7 @@ export const getEquipmentById = async (id: string) => {
 };
 
 export const createEquipment = async (equipment: Partial<Equipment>) => {
-    const response = await fetch(apiUrl + '/equipment', {
+    const response = await fetch(apiUrl + '/equipments', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const createEquipment = async (equipment: Partial<Equipment>) => {
 };
 
 export const updateEquipment = async (id: string, equipment: Partial<Equipment>) => {
-    const response = await fetch(apiUrl + '/equipment/' + id, {
+    const response = await fetch(apiUrl + '/equipments/' + id, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export const updateEquipment = async (id: string, equipment: Partial<Equipment>)
 };
 
 export const deleteEquipmentById = async (id: string) => {
-    const response = await fetch(apiUrl + '/equipment/' + id, {
+    const response = await fetch(apiUrl + '/equipments/' + id, {
         method: 'DELETE',
     });
     const { data, errors }: JSONResponse<{ result: string }> = await response.json();

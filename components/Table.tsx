@@ -116,9 +116,11 @@ const Table: React.FC<Props> = ({
                                             </div>
                                         </th>
                                     ))}
-                                    <th scope="col" className="relative px-6 py-3">
-                                        <span className="sr-only">More</span>
-                                    </th>
+                                    {rows.some((row) => row.menuItems && row.menuItems.length > 0) && (
+                                        <th scope="col" className="relative px-6 py-3">
+                                            <span className="sr-only">More</span>
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -161,74 +163,83 @@ export default Table;
 type RowTemplateProps = { row: TableDataRow; rowIndex: number };
 
 const RowTemplate: React.FC<RowTemplateProps> = ({ row, rowIndex }) => {
+    const handleClick = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('a')) {
+            e.stopPropagation();
+        }
+    };
+
     return (
         <>
             {row.items.map((item, index) => (
-                <td key={`item-${rowIndex}-${index}`} className="px-6 py-2">
+                <td key={`item-${rowIndex}-${index}`} className="px-6 py-2" onClick={handleClick}>
                     {item.value ? <div className="text-sm leading-5 text-gray-900">{item.value}</div> : item.node}
                 </td>
             ))}
-
-            <td className="px-6 py-2 text-right whitespace-no-wrap">
-                <Menu as="div" className="z-10 inline-block text-left">
-                    {({ open, close }) => (
-                        <>
-                            <Menu.Button
-                                onClick={(e) => {
-                                    if (open) {
-                                        e.preventDefault();
-                                        close();
-                                    }
-                                    e.stopPropagation();
-                                }}
-                                className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <span className="sr-only">Open options</span>
-                                <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
-                            </Menu.Button>
-
-                            {open && (
-                                <Transition
-                                    as={Fragment}
-                                    enter="transition ease-out duration-100"
-                                    enterFrom="transform opacity-0 scale-95"
-                                    enterTo="transform opacity-100 scale-100"
-                                    leave="transition ease-in duration-75"
-                                    leaveFrom="transform opacity-100 scale-100"
-                                    leaveTo="transform opacity-0 scale-95"
+            {row.menuItems && row.menuItems.length > 0 && (
+                <td className="px-6 py-2 text-right whitespace-no-wrap" onClick={handleClick}>
+                    <Menu as="div" className="z-10 inline-block text-left">
+                        {({ open, close }) => (
+                            <>
+                                <Menu.Button
+                                    onClick={(e) => {
+                                        if (open) {
+                                            e.preventDefault();
+                                            close();
+                                        }
+                                        e.stopPropagation();
+                                    }}
+                                    className="flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <Menu.Items
-                                        static
-                                        className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                    <span className="sr-only">Open options</span>
+                                    <EllipsisVerticalIcon className="w-6 h-6" aria-hidden="true" />
+                                </Menu.Button>
+
+                                {open && (
+                                    <Transition
+                                        as={Fragment}
+                                        enter="transition ease-out duration-100"
+                                        enterFrom="transform opacity-0 scale-95"
+                                        enterTo="transform opacity-100 scale-100"
+                                        leave="transition ease-in duration-75"
+                                        leaveFrom="transform opacity-100 scale-100"
+                                        leaveTo="transform opacity-0 scale-95"
                                     >
-                                        <div className="py-1">
-                                            {row.menuItems?.map((menuItem, index) => (
-                                                <Menu.Item key={`menu-item-${index}`}>
-                                                    {({ active }) => (
-                                                        <a
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                menuItem.onClick();
-                                                            }}
-                                                            className={classNames(
-                                                                active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                                                'block px-4 py-2 text-sm',
-                                                            )}
-                                                        >
-                                                            {menuItem.title}
-                                                        </a>
-                                                    )}
-                                                </Menu.Item>
-                                            ))}
-                                        </div>
-                                    </Menu.Items>
-                                </Transition>
-                            )}
-                        </>
-                    )}
-                </Menu>
-            </td>
+                                        <Menu.Items
+                                            static
+                                            className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                        >
+                                            <div className="py-1">
+                                                {row.menuItems?.map((menuItem, index) => (
+                                                    <Menu.Item key={`menu-item-${index}`}>
+                                                        {({ active }) => (
+                                                            <a
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    menuItem.onClick();
+                                                                }}
+                                                                className={classNames(
+                                                                    active
+                                                                        ? 'bg-gray-100 text-gray-900'
+                                                                        : 'text-gray-700',
+                                                                    'block px-4 py-2 text-sm',
+                                                                )}
+                                                            >
+                                                                {menuItem.title}
+                                                            </a>
+                                                        )}
+                                                    </Menu.Item>
+                                                ))}
+                                            </div>
+                                        </Menu.Items>
+                                    </Transition>
+                                )}
+                            </>
+                        )}
+                    </Menu>
+                </td>
+            )}
         </>
     );
 };

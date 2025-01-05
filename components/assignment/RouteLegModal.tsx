@@ -16,7 +16,6 @@ import { useLoadContext } from '../context/LoadContext';
 import { ChargeType, LoadStop, Prisma, Route } from '@prisma/client';
 import { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
 import { notify } from 'components/Notification';
-import { createRouteLeg, updateRouteLeg } from 'lib/rest/routeLeg';
 import { CreateAssignmentRequest, DriverWithCharge, UpdateAssignmentRequest } from 'interfaces/assignment';
 import RouteLegDriverSelection from './RouteLegDriverSelection';
 import RouteLegLocationSelection from './RouteLegLocationSelection';
@@ -25,6 +24,7 @@ import { getRouteForCoords } from 'lib/mapbox/searchGeo';
 import { useLocalStorage } from 'lib/useLocalStorage';
 import { secondsToReadable } from 'lib/helpers/time';
 import { metersToMiles } from 'lib/helpers/distance';
+import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
 
 type Props = {
     show: boolean;
@@ -257,9 +257,19 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     return (
         <Transition.Root show={show} as={Fragment}>
             <Dialog as="div" className="relative z-10" onClose={(value) => close(value)}>
-                <div className="fixed inset-0" />
+                <Transition.Child
+                    as={React.Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" />
+                </Transition.Child>
 
-                <div className="fixed inset-0 overflow-hidden ">
+                <div className="fixed inset-0 overflow-hidden">
                     <div className="absolute inset-0 overflow-hidden">
                         <div className="fixed inset-y-0 right-0 flex max-w-full pl-10 pointer-events-none sm:pl-16">
                             <Transition.Child

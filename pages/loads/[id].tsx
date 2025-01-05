@@ -44,8 +44,9 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import { removeRouteLegById, updateRouteLegStatus } from 'lib/rest/routeLeg';
+import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { RouteLegDataProvider } from 'components/context/RouteLegDataContext';
+import { removeRouteLegById } from 'lib/rest/assignment';
 
 type ActionsDropdownProps = {
     load: ExpandedLoad;

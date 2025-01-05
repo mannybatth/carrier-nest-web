@@ -22,6 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     switch (req.method) {
+        case 'GET':
+            return _get(req, res, session);
         case 'POST':
             return _post(req, res, session);
         case 'PUT':
@@ -33,6 +35,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 code: 405,
                 errors: [{ message: `Method ${req.method} Not Allowed` }],
             });
+    }
+}
+
+async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
+    try {
+        const { limit, offset, sortBy, sortDir } = req.query;
+        const carrierId = session.user.defaultCarrierId;
+
+        if (!carrierId) {
+            return res.status(400).json({
+                code: 400,
+                errors: [{ message: 'Carrier ID is required' }],
+            });
+        }
+
+        const assignments = await prisma.driverAssignment.findMany({
+            where: { carrierId },
+            include: {
+                driver: true,
+                load: true,
+                payments: true,
+                routeLeg: true,
+            },
+            orderBy: sortBy ? { [sortBy as string]: sortDir } : undefined,
+            take: limit ? Number(limit) : undefined,
+            skip: offset ? Number(offset) : undefined,
+        });
+
+        const total = await prisma.driverAssignment.count({
+            where: { carrierId },
+        });
+
+        return res.status(200).json({
+            code: 200,
+            data: {
+                assignments,
+                metadata: {
+                    total,
+                    currentOffset: offset ? Number(offset) : 0,
+                    currentLimit: limit ? Number(limit) : 20,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        return res.status(500).json({
+            code: 500,
+            errors: [{ message: 'Internal server error' }],
+        });
     }
 }
 
