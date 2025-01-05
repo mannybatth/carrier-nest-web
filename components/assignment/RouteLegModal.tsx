@@ -27,6 +27,10 @@ import { metersToMiles } from 'lib/helpers/distance';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
 import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
+const formatCurrency = (value: number) => {
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};
+
 type Props = {
     show: boolean;
     routeLeg?: ExpandedRouteLeg;
@@ -252,7 +256,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             .reduce((total, driverWithCharge) => {
                 return total.plus(calcDriverPay(driverWithCharge.driver.id));
             }, new Prisma.Decimal(0))
-            .toFixed(2);
+            .toNumber();
     };
 
     return (
@@ -565,10 +569,12 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                             {item.driver.name}
                                                                                         </p>
                                                                                         <p className="text-sm text-gray-500 truncate">
-                                                                                            Estimated Pay: $
-                                                                                            {calcDriverPay(
-                                                                                                item.driver.id,
-                                                                                            ).toFixed(2)}
+                                                                                            Estimated Pay:{' '}
+                                                                                            {formatCurrency(
+                                                                                                calcDriverPay(
+                                                                                                    item.driver.id,
+                                                                                                ).toNumber(),
+                                                                                            )}
                                                                                         </p>
                                                                                     </div>
                                                                                 </div>
@@ -591,9 +597,18 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                 ))}
                                                             </ul>
 
-                                                            <p className="p-2 text-sm rounded bg-cyan-300/20">
-                                                                Total Estimated Pay: ${calculateTotalPay()}
-                                                            </p>
+                                                            <div className="p-2 text-sm rounded bg-cyan-300/20">
+                                                                <div>
+                                                                    Estimated Total Pay:{' '}
+                                                                    {formatCurrency(calculateTotalPay())}
+                                                                </div>
+                                                                <div>
+                                                                    Load Rate:{' '}
+                                                                    {formatCurrency(
+                                                                        new Prisma.Decimal(load.rate).toNumber(),
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </>
                                                     )}
                                                     {/* Placeholder for when there are no drivers selected */}

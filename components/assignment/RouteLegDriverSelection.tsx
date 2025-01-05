@@ -9,6 +9,10 @@ import Spinner from '../Spinner';
 import { DriverWithCharge } from 'interfaces/assignment';
 import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
+const formatCurrency = (value: number) => {
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};
+
 type Props = {
     title?: string;
     selectedDrivers: Partial<DriverWithCharge>[];
@@ -270,10 +274,13 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                             </ul>
                             {Object.keys(selectedDriversWatch).length > 0 && (
                                 <div className="sticky py-2 bg-white border-t-[1px] flex-col sm:px-2 space-y-2">
-                                    <div className="flex items-center text-right">
-                                        <p className="text-sm font-medium text-gray-700">
-                                            Estimated Total Pay: ${totalPay.toFixed(2)}
-                                        </p>
+                                    <div className="flex-col items-center">
+                                        <div className="text-sm font-medium text-gray-700">
+                                            Estimated Total Pay: {formatCurrency(totalPay)}
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-700">
+                                            Load Rate: {formatCurrency(new Prisma.Decimal(loadRate).toNumber())}
+                                        </div>
                                     </div>
                                     <div className="space-x-3">
                                         <button
