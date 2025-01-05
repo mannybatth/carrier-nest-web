@@ -7,7 +7,7 @@ import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { createDriver } from '../../lib/rest/driver';
-import { Driver } from '@prisma/client';
+import { Driver, Prisma } from '@prisma/client';
 
 const CreateDriver: PageWithAuth = () => {
     const formHook = useForm<Driver>();
@@ -23,6 +23,10 @@ const CreateDriver: PageWithAuth = () => {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
+                defaultChargeType: data.defaultChargeType,
+                perMileRate: new Prisma.Decimal(data.perMileRate),
+                perHourRate: new Prisma.Decimal(data.perHourRate),
+                takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
             };
 
             const newDriver = await createDriver(driverData);

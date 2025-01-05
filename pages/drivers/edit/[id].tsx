@@ -28,13 +28,27 @@ const EditDriver: PageWithAuth = () => {
         }
 
         formHook.setValue('name', driver.name);
-        formHook.setValue('email', driver.email);
-        formHook.setValue('phone', driver.phone);
-        formHook.setValue('defaultChargeType', driver.defaultChargeType);
-        formHook.setValue('perMileRate', driver.perMileRate);
-        formHook.setValue('perHourRate', driver.perHourRate);
-        formHook.setValue('defaultFixedPay', driver.defaultFixedPay);
-        formHook.setValue('takeHomePercent', driver.takeHomePercent);
+        if (driver.email) {
+            formHook.setValue('email', driver.email);
+        }
+        if (driver.phone) {
+            formHook.setValue('phone', driver.phone);
+        }
+        if (driver.defaultChargeType) {
+            formHook.setValue('defaultChargeType', driver.defaultChargeType);
+        }
+        if (driver.perMileRate) {
+            formHook.setValue('perMileRate', driver.perMileRate);
+        }
+        if (driver.perHourRate) {
+            formHook.setValue('perHourRate', driver.perHourRate);
+        }
+        if (driver.defaultFixedPay) {
+            formHook.setValue('defaultFixedPay', driver.defaultFixedPay);
+        }
+        if (driver.takeHomePercent) {
+            formHook.setValue('takeHomePercent', driver.takeHomePercent);
+        }
     }, [driver]);
 
     const submit = async (data: Driver) => {
@@ -45,22 +59,10 @@ const EditDriver: PageWithAuth = () => {
             email: data.email,
             phone: data.phone,
             defaultChargeType: data.defaultChargeType,
+            perMileRate: new Prisma.Decimal(data.perMileRate),
+            perHourRate: new Prisma.Decimal(data.perHourRate),
+            takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
         };
-
-        switch (data.defaultChargeType) {
-            case ChargeType.PER_MILE:
-                driverData.perMileRate = new Prisma.Decimal(data.perMileRate);
-                break;
-            case ChargeType.PER_HOUR:
-                driverData.perHourRate = new Prisma.Decimal(data.perHourRate);
-                break;
-            case ChargeType.FIXED_PAY:
-                driverData.defaultFixedPay = new Prisma.Decimal(data.defaultFixedPay);
-                break;
-            case ChargeType.PERCENTAGE_OF_LOAD:
-                driverData.takeHomePercent = new Prisma.Decimal(data.takeHomePercent);
-                break;
-        }
 
         const newDriver = await updateDriver(driver.id, driverData);
 

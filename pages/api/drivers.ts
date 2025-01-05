@@ -49,19 +49,21 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const driverData = req.body as Driver;
 
             // Check if a driver with the same phone and carrierId already exists
-            const existingDriver = await prisma.driver.findFirst({
-                where: {
-                    phone: driverData.phone,
-                    carrierId: session.user.defaultCarrierId,
-                },
-            });
-
-            // If the driver exists, return an error response
-            if (existingDriver) {
-                return res.status(409).json({
-                    code: 409,
-                    errors: [{ message: 'A driver with the given phone number already exists.' }],
+            if (driverData.phone) {
+                const existingDriver = await prisma.driver.findFirst({
+                    where: {
+                        phone: driverData.phone,
+                        carrierId: session.user.defaultCarrierId,
+                    },
                 });
+
+                // If the driver exists, return an error response
+                if (existingDriver) {
+                    return res.status(409).json({
+                        code: 409,
+                        errors: [{ message: 'A driver with the given phone number already exists.' }],
+                    });
+                }
             }
 
             const driver = await prisma.driver.create({
@@ -69,6 +71,11 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     name: driverData.name,
                     email: driverData.email || '',
                     phone: driverData.phone || '',
+                    defaultChargeType: driverData.defaultChargeType || undefined,
+                    perMileRate: driverData.perMileRate,
+                    perHourRate: driverData.perHourRate,
+                    defaultFixedPay: driverData.defaultFixedPay,
+                    takeHomePercent: driverData.takeHomePercent,
                     carrier: {
                         connect: {
                             id: session.user.defaultCarrierId,

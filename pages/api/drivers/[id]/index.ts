@@ -57,7 +57,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 name: driverData.name,
                 email: driverData.email || '',
                 phone: driverData.phone || '',
-                defaultChargeType: driverData.defaultChargeType,
+                defaultChargeType: driverData.defaultChargeType || undefined,
                 perMileRate: driverData.perMileRate,
                 perHourRate: driverData.perHourRate,
                 defaultFixedPay: driverData.defaultFixedPay,
