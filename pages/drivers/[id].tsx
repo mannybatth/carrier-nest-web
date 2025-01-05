@@ -479,12 +479,14 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             changeSort={changeSort}
                                             loading={loadingAssignmentPayments}
                                         />
-                                        <Pagination
-                                            metadata={assignmentPaymentsMetadata}
-                                            loading={loadingAssignmentPayments}
-                                            onPrevious={previousAssignmentPaymentsPage}
-                                            onNext={nextAssignmentPaymentsPage}
-                                        />
+                                        {assignmentPayments.length !== 0 && !loadingAssignmentPayments && (
+                                            <Pagination
+                                                metadata={assignmentPaymentsMetadata}
+                                                loading={loadingAssignmentPayments}
+                                                onPrevious={previousAssignmentPaymentsPage}
+                                                onNext={nextAssignmentPaymentsPage}
+                                            />
+                                        )}
                                     </>
                                 )}
                             </div>
