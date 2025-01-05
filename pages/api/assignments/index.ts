@@ -4,13 +4,31 @@ import { ExpandedDriverAssignment, JSONResponse } from '../../../interfaces/mode
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
-import { ChargeType, LoadActivityAction } from '@prisma/client';
+import { ChargeType, LoadActivityAction, Prisma } from '@prisma/client';
 import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = Twilio(accountSid, authToken);
+
+const buildOrderBy = (
+    sortBy: string,
+    sortDir: 'asc' | 'desc',
+): Prisma.Enumerable<Prisma.DriverAssignmentOrderByWithRelationInput> => {
+    if (sortBy && sortDir) {
+        if (sortBy.includes('.')) {
+            const split = sortBy.split('.');
+            return {
+                [split[0]]: {
+                    [split[1]]: sortDir,
+                },
+            };
+        }
+        return { [sortBy]: sortDir };
+    }
+    return undefined;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     const session = await getServerSession(req, res, authOptions);
@@ -40,8 +58,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
     try {
-        const { limit, offset, sortBy, sortDir } = req.query;
         const carrierId = session.user.defaultCarrierId;
+
+        const sortBy = req.query.sortBy as string;
+        const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
+        const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+        const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
 
         if (!carrierId) {
             return res.status(400).json({
@@ -50,17 +72,35 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             });
         }
 
+        if (limit != null || offset != null) {
+            if (limit == null || offset == null) {
+                return {
+                    code: 400,
+                    errors: [{ message: 'Limit and Offset must be set together' }],
+                };
+            }
+
+            if (isNaN(limit) || isNaN(offset)) {
+                return {
+                    code: 400,
+                    errors: [{ message: 'Invalid limit or offset' }],
+                };
+            }
+        }
+
         const assignments = await prisma.driverAssignment.findMany({
             where: { carrierId },
+            orderBy: buildOrderBy(sortBy, sortDir) || {
+                createdAt: 'desc',
+            },
+            ...(limit ? { take: limit } : { take: 10 }),
+            ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
                 driver: true,
                 load: true,
                 payments: true,
                 routeLeg: true,
             },
-            orderBy: sortBy ? { [sortBy as string]: sortDir } : undefined,
-            take: limit ? Number(limit) : undefined,
-            skip: offset ? Number(offset) : undefined,
         });
 
         const total = await prisma.driverAssignment.count({
