@@ -93,10 +93,18 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
                     id: assignment.id,
                     items: [
                         {
-                            node: <Link href={`/drivers/${assignment.driver.id}`}>{assignment.driver.name}</Link>,
+                            node: (
+                                <Link href={`/drivers/${assignment.driver.id}`} onClick={(e) => e.stopPropagation()}>
+                                    {assignment.driver.name}
+                                </Link>
+                            ),
                         },
                         {
-                            node: <Link href={`/loads/${assignment.loadId}`}>{assignment.load?.refNum}</Link>,
+                            node: (
+                                <Link href={`/loads/${assignment.loadId}`} onClick={(e) => e.stopPropagation()}>
+                                    {assignment.load?.refNum}
+                                </Link>
+                            ),
                         },
                         {
                             node: (
