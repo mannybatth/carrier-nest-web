@@ -189,7 +189,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                     {title ? title : 'Add Drivers to Load'}
                 </Dialog.Title>
             </div>
-            {noDefaultDrivers && (
+            {noDefaultDrivers && !loadingAllDrivers && (
                 <div className="flex items-center p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
                     <LightBulbIcon className="w-10 h-10 mr-2" />
                     Tip: Add default charge types and values for drivers on the Drivers page for faster assignments.
