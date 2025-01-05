@@ -180,6 +180,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                         route: route as Route,
                     });
 
+                    notify({ title: 'Load Assignment', message: 'Assignment updated successfully', type: 'success' });
                     close(true);
                     setSaveLoading(false);
                 } catch (error) {
@@ -201,6 +202,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                         route: route as Route,
                     });
 
+                    notify({ title: 'Load Assignment', message: 'Assignment created successfully', type: 'success' });
                     close(true);
                     setSaveLoading(false);
                 } catch (error) {
