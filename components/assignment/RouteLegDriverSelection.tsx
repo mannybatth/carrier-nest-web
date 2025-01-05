@@ -7,6 +7,7 @@ import { getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
 import Spinner from '../Spinner';
 import { DriverWithCharge } from 'interfaces/assignment';
+import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
 type Props = {
     title?: string;
@@ -89,22 +90,18 @@ const RouteLegDriverSelection: React.FC<Props> = ({
     }, [watch]);
 
     const calculateTotalPay = (selectedDrivers: DriverWithCharge[]) => {
-        let totalPay = 0;
-        selectedDrivers.forEach((driverWithCharge) => {
-            const chargeType = driverWithCharge.chargeType;
-            const chargeValue = driverWithCharge.chargeValue ? Number(driverWithCharge.chargeValue) : 0;
-
-            if (chargeType === ChargeType.PER_MILE) {
-                totalPay += (routeLegDistance / 1609.34) * chargeValue;
-            } else if (chargeType === ChargeType.PER_HOUR) {
-                totalPay += (routeLegDuration / 3600) * chargeValue;
-            } else if (chargeType === ChargeType.FIXED_PAY) {
-                totalPay += chargeValue;
-            } else if (chargeType === ChargeType.PERCENTAGE_OF_LOAD) {
-                totalPay += (loadRate.toNumber() * chargeValue) / 100;
-            }
-        });
-        return totalPay;
+        return selectedDrivers
+            .reduce((total, driverWithCharge) => {
+                const pay = calculateDriverPay({
+                    chargeType: driverWithCharge.chargeType,
+                    chargeValue: driverWithCharge.chargeValue,
+                    routeLegDistance: routeLegDistance,
+                    routeLegDuration: routeLegDuration,
+                    loadRate: loadRate,
+                });
+                return total.add(pay);
+            }, new Prisma.Decimal(0))
+            .toNumber();
     };
 
     const getDefaultChargeType = (driverId: string) => {

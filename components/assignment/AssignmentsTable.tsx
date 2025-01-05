@@ -5,6 +5,7 @@ import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 import { UserGroupIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
+import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
 
 interface AssignmentsTableProps {
     assignments: ExpandedDriverAssignment[];
@@ -33,33 +34,22 @@ const getHumanReadableCharge = (assignment: ExpandedDriverAssignment) => {
     }
 };
 
-const calculateDriverPay = (assignment: ExpandedDriverAssignment) => {
-    const { chargeType, chargeValue, load, routeLeg } = assignment;
-    if (!chargeType || !chargeValue) return new Prisma.Decimal(0);
-
-    const chargeValueDecimal = new Prisma.Decimal(chargeValue);
-
-    if (chargeType === 'PER_MILE') {
-        const distanceInMiles = new Prisma.Decimal(routeLeg?.routeLegDistance ?? 0).div(1609.34);
-        return distanceInMiles.mul(chargeValueDecimal);
-    } else if (chargeType === 'PER_HOUR') {
-        const durationInHours = new Prisma.Decimal(routeLeg?.routeLegDuration ?? 0).div(3600);
-        return durationInHours.mul(chargeValueDecimal);
-    } else if (chargeType === 'FIXED_PAY') {
-        return chargeValueDecimal;
-    } else if (chargeType === 'PERCENTAGE_OF_LOAD') {
-        const loadRate = new Prisma.Decimal(load?.rate ?? 0);
-        return loadRate.mul(chargeValueDecimal).div(100);
-    }
-    return new Prisma.Decimal(0);
-};
-
 const formatCurrency = (value: number) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
 
+const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
+    return calculateDriverPay({
+        chargeType: assignment.chargeType,
+        chargeValue: assignment.chargeValue,
+        routeLegDistance: assignment.routeLeg?.routeLegDistance ?? 0,
+        routeLegDuration: assignment.routeLeg?.routeLegDuration ?? 0,
+        loadRate: assignment.load.rate,
+    });
+};
+
 const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-    const totalPay = calculateDriverPay(assignment);
+    const totalPay = calculateAssignmentTotalPay(assignment);
     const totalPaid =
         assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
         new Prisma.Decimal(0);
@@ -113,7 +103,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
                                     data-tooltip-content={getHumanReadableCharge(assignment)}
                                     className="text-sm leading-5 text-gray-900"
                                 >
-                                    {formatCurrency(calculateDriverPay(assignment).toNumber())}
+                                    {formatCurrency(calculateAssignmentTotalPay(assignment).toNumber())}
                                 </span>
                             ),
                         },

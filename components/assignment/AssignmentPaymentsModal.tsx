@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
+import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
 
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
@@ -17,33 +18,22 @@ interface AssignmentPaymentsModalProps {
     onDeletePayment: (paymentId: string) => void;
 }
 
-const calculateDriverPay = (assignment: ExpandedDriverAssignment) => {
-    const { chargeType, chargeValue, load, routeLeg } = assignment;
-    if (!chargeType || !chargeValue) return new Prisma.Decimal(0);
-
-    const chargeValueDecimal = new Prisma.Decimal(chargeValue);
-
-    if (chargeType === 'PER_MILE') {
-        const distanceInMiles = new Prisma.Decimal(routeLeg?.routeLegDistance ?? 0).div(1609.34);
-        return distanceInMiles.mul(chargeValueDecimal);
-    } else if (chargeType === 'PER_HOUR') {
-        const durationInHours = new Prisma.Decimal(routeLeg?.routeLegDuration ?? 0).div(3600);
-        return durationInHours.mul(chargeValueDecimal);
-    } else if (chargeType === 'FIXED_PAY') {
-        return chargeValueDecimal;
-    } else if (chargeType === 'PERCENTAGE_OF_LOAD') {
-        const loadRate = new Prisma.Decimal(load?.rate ?? 0);
-        return loadRate.mul(chargeValueDecimal).div(100);
-    }
-    return new Prisma.Decimal(0);
-};
-
 const formatCurrency = (amount: number | Prisma.Decimal) => {
     return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
 
+const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
+    return calculateDriverPay({
+        chargeType: assignment.chargeType,
+        chargeValue: assignment.chargeValue,
+        routeLegDistance: assignment.routeLeg?.routeLegDistance ?? 0,
+        routeLegDuration: assignment.routeLeg?.routeLegDuration ?? 0,
+        loadRate: assignment.load.rate,
+    });
+};
+
 const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-    const totalPay = calculateDriverPay(assignment);
+    const totalPay = calculateAssignmentTotalPay(assignment);
     const totalPaid =
         assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
         new Prisma.Decimal(0);
@@ -136,7 +126,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const setToFullDue = () => {
         if (assignment) {
-            const totalAmountDue = calculateDriverPay(assignment);
+            const totalAmountDue = calculateAssignmentTotalPay(assignment);
             const paidAmount = assignment.payments.reduce(
                 (acc, payment) => acc.plus(payment.amount),
                 new Prisma.Decimal(0),
@@ -297,7 +287,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                 />
                                                             </div>
                                                             {assignment &&
-                                                                calculateDriverPay(assignment)
+                                                                calculateAssignmentTotalPay(assignment)
                                                                     .minus(
                                                                         assignment.payments.reduce(
                                                                             (acc, payment) => acc.plus(payment.amount),
@@ -318,7 +308,11 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                         acc.plus(payment.amount),
                                                                                     new Prisma.Decimal(0),
                                                                                 )
-                                                                                .equals(calculateDriverPay(assignment))
+                                                                                .equals(
+                                                                                    calculateAssignmentTotalPay(
+                                                                                        assignment,
+                                                                                    ),
+                                                                                )
                                                                                 ? 'Full Due'
                                                                                 : 'Full Remaining'}
                                                                         </span>

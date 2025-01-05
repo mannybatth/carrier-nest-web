@@ -13,7 +13,7 @@ import {
 import React, { Fragment } from 'react';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import { ChargeType, LoadStop, Prisma, Route } from '@prisma/client';
+import { LoadStop, Prisma, Route } from '@prisma/client';
 import { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
 import { notify } from 'components/Notification';
 import { CreateAssignmentRequest, DriverWithCharge, UpdateAssignmentRequest } from 'interfaces/assignment';
@@ -25,6 +25,7 @@ import { useLocalStorage } from 'lib/useLocalStorage';
 import { secondsToReadable } from 'lib/helpers/time';
 import { metersToMiles } from 'lib/helpers/distance';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
+import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
 type Props = {
     show: boolean;
@@ -232,27 +233,24 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         });
     };
 
-    const calculateDriverPay = (driverId: string) => {
+    const calcDriverPay = (driverId: string) => {
         const chargeType = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeType;
         const chargeValue = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeValue ?? 0;
 
-        if (chargeType === ChargeType.PER_MILE) {
-            return ((routeLegData.routeLegDistance ?? 0) / 1609.34) * chargeValue; // Convert meters to miles
-        } else if (chargeType === ChargeType.PER_HOUR) {
-            return ((routeLegData.routeLegDuration ?? 0) / 3600) * chargeValue; // Convert seconds to hours
-        } else if (chargeType === ChargeType.FIXED_PAY) {
-            return chargeValue;
-        } else if (chargeType === ChargeType.PERCENTAGE_OF_LOAD) {
-            return (new Prisma.Decimal(load.rate).toNumber() * chargeValue) / 100;
-        }
-        return 0;
+        return calculateDriverPay({
+            chargeType,
+            chargeValue,
+            routeLegDistance: routeLegData.routeLegDistance ?? 0,
+            routeLegDuration: routeLegData.routeLegDuration ?? 0,
+            loadRate: new Prisma.Decimal(load.rate),
+        });
     };
 
     const calculateTotalPay = () => {
         return routeLegData.driversWithCharge
             .reduce((total, driverWithCharge) => {
-                return total + calculateDriverPay(driverWithCharge.driver.id);
-            }, 0)
+                return total.plus(calcDriverPay(driverWithCharge.driver.id));
+            }, new Prisma.Decimal(0))
             .toFixed(2);
     };
 
@@ -567,7 +565,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                         </p>
                                                                                         <p className="text-sm text-gray-500 truncate">
                                                                                             Estimated Pay: $
-                                                                                            {calculateDriverPay(
+                                                                                            {calcDriverPay(
                                                                                                 item.driver.id,
                                                                                             ).toFixed(2)}
                                                                                         </p>
