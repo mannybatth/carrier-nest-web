@@ -216,50 +216,6 @@ model Location {
     routeLegLocations RouteLegLocation[]
 }
 
-model AssignmentPayment {
-    id                 String            @id @default(cuid())
-    createdAt          DateTime          @default(now())
-    updatedAt          DateTime          @default(now()) @updatedAt
-    amount             Decimal
-    paymentDate        DateTime
-    carrierId          String
-    loadId             String?
-    load               Load?             @relation(fields: [loadId], references: [id], onDelete: SetNull)
-    driverId           String?
-    driver             Driver?           @relation(fields: [driverId], references: [id], onDelete: SetNull)
-    driverAssignmentId String?
-    driverAssignment   DriverAssignment? @relation(fields: [driverAssignmentId], references: [id], onDelete: SetNull)
-}
-
-enum ChargeType {
-    PER_MILE
-    PER_HOUR
-    FIXED_PAY
-    PERCENTAGE_OF_LOAD
-}
-
-model DriverAssignment {
-    id             String              @id @default(cuid())
-    createdAt      DateTime            @default(now())
-    updatedAt      DateTime            @default(now()) @updatedAt
-    carrierId      String
-    loadId         String?
-    driverId       String
-    routeLegId     String
-    assignedAt     DateTime            @default(now())
-    load           Load?               @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    driver         Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
-    routeLeg       RouteLeg            @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
-    chargeType     ChargeType
-    chargeValue    Decimal
-    billedDistance Decimal?
-    billedDuration Decimal?
-    billedLoadRate Decimal?
-    payments       AssignmentPayment[]
-
-    @@unique([driverId, routeLegId])
-}
-
 model Customer {
     id                 String   @id @default(cuid())
     createdAt          DateTime @default(now())
@@ -276,33 +232,6 @@ model Customer {
     carrierId          String
     carrier            Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     loads              Load[]
-
-    @@index([name, carrierId])
-}
-
-model Driver {
-    id                 String              @id @default(cuid())
-    createdAt          DateTime            @default(now())
-    updatedAt          DateTime            @updatedAt
-    name               String
-    email              String?
-    phone              String
-    carrierId          String
-    smsCode            String?
-    smsCodeExpiry      DateTime?
-    assignments        DriverAssignment[]
-    carrier            Carrier             @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    actionActivity     LoadActivity[]      @relation("actionDriver")
-    actorActivity      LoadActivity[]      @relation("actorDriver")
-    loadDocuments      LoadDocument[]
-    devices            Device[]
-    assignmentPayments AssignmentPayment[]
-    defaultChargeType  ChargeType?
-    defaultFixedPay    Decimal?
-    perMileRate        Decimal?
-    perHourRate        Decimal?
-    takeHomePercent    Decimal?
-    equipments         Equipment[]
 
     @@index([name, carrierId])
 }
@@ -472,4 +401,89 @@ enum LoadActivityAction {
     ADD_ASSIGNMENT
     REMOVE_ASSIGNMENT
     UPDATE_ASSIGNMENT
+}
+
+model Driver {
+    id                String             @id @default(cuid())
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    name              String
+    email             String?
+    phone             String
+    carrierId         String
+    smsCode           String?
+    smsCodeExpiry     DateTime?
+    carrier           Carrier            @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    actionActivity    LoadActivity[]     @relation("actionDriver")
+    actorActivity     LoadActivity[]     @relation("actorDriver")
+    loadDocuments     LoadDocument[]
+    devices           Device[]
+    assignments       DriverAssignment[]
+    payments          DriverPayment[]
+    defaultChargeType ChargeType?
+    defaultFixedPay   Decimal?
+    perMileRate       Decimal?
+    perHourRate       Decimal?
+    takeHomePercent   Decimal?
+    equipments        Equipment[]
+
+    @@index([name, carrierId])
+}
+
+model DriverPayment {
+    id              String              @id @default(cuid())
+    createdAt       DateTime            @default(now())
+    updatedAt       DateTime            @default(now()) @updatedAt
+    carrierId       String
+    amount          Decimal
+    paymentDate     DateTime
+    checkNumber     String?
+    isDirectDeposit Boolean             @default(false)
+    isCashPayment   Boolean             @default(false)
+    driverId        String
+    driver          Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    isBatchPayment  Boolean             @default(false)
+    payments        AssignmentPayment[]
+}
+
+model AssignmentPayment {
+    id                 String            @id @default(cuid())
+    createdAt          DateTime          @default(now())
+    updatedAt          DateTime          @default(now()) @updatedAt
+    carrierId          String
+    loadId             String?
+    load               Load?             @relation(fields: [loadId], references: [id], onDelete: SetNull)
+    driverAssignmentId String?
+    driverAssignment   DriverAssignment? @relation(fields: [driverAssignmentId], references: [id], onDelete: SetNull)
+    paymentId          String?
+    payment            DriverPayment?    @relation(fields: [paymentId], references: [id])
+}
+
+enum ChargeType {
+    PER_MILE
+    PER_HOUR
+    FIXED_PAY
+    PERCENTAGE_OF_LOAD
+}
+
+model DriverAssignment {
+    id             String              @id @default(cuid())
+    createdAt      DateTime            @default(now())
+    updatedAt      DateTime            @default(now()) @updatedAt
+    carrierId      String
+    loadId         String?
+    driverId       String
+    routeLegId     String
+    assignedAt     DateTime            @default(now())
+    load           Load?               @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    driver         Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    routeLeg       RouteLeg            @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
+    chargeType     ChargeType
+    chargeValue    Decimal
+    billedDistance Decimal?
+    billedDuration Decimal?
+    billedLoadRate Decimal?
+    payments       AssignmentPayment[]
+
+    @@unique([driverId, routeLegId])
 }
