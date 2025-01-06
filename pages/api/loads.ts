@@ -257,6 +257,9 @@ export const getLoads = async ({
                               driver: true,
                               chargeType: true,
                               chargeValue: true,
+                              billedDistance: true,
+                              billedDuration: true,
+                              billedLoadRate: true,
                           },
                       },
                   }
