@@ -1,4 +1,5 @@
 import polyline from '@mapbox/polyline';
+import { metersToMiles } from 'lib/helpers/distance';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -47,10 +48,16 @@ export async function getRouteForCoords(coords: number[][]) {
     const coordinates = flipped(data.routes[0].geometry.coordinates);
     const routePolyline: string = polyline.encode(coordinates);
 
+    const distanceMeters = data.routes[0].distance;
+    const durationSeconds = data.routes[0].duration;
+
+    const distanceMiles = metersToMiles(distanceMeters); // Convert meters to miles
+    const durationHours = durationSeconds / 3600; // Convert seconds to hours
+
     return {
         routeEncoded: routePolyline,
-        distance: data.routes[0].distance, // in meters
-        duration: data.routes[0].duration, // in seconds
+        distanceMiles: distanceMiles,
+        durationHours: durationHours,
     };
 }
 

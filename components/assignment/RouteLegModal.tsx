@@ -22,8 +22,7 @@ import RouteLegLocationSelection from './RouteLegLocationSelection';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
 import { getRouteForCoords } from 'lib/mapbox/searchGeo';
 import { useLocalStorage } from 'lib/useLocalStorage';
-import { secondsToReadable } from 'lib/helpers/time';
-import { metersToMiles } from 'lib/helpers/distance';
+import { hoursToReadable } from 'lib/helpers/time';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
 import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
@@ -63,8 +62,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 driverInstructions: routeLeg.driverInstructions,
                 scheduledDate: new Date(routeLeg.scheduledDate).toISOString().split('T')[0],
                 scheduledTime: routeLeg.scheduledTime,
-                routeLegDistance: new Prisma.Decimal(routeLeg.routeLegDistance).toNumber(),
-                routeLegDuration: new Prisma.Decimal(routeLeg.routeLegDuration).toNumber(),
+                distanceMiles: new Prisma.Decimal(routeLeg.distanceMiles).toNumber(),
+                durationHours: new Prisma.Decimal(routeLeg.durationHours).toNumber(),
             });
         } else {
             setRouteLegData({
@@ -140,12 +139,12 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 return [long, lat];
             });
 
-            const { routeEncoded, distance, duration } = await getRouteForCoords(coords);
+            const { routeEncoded, distanceMiles, durationHours } = await getRouteForCoords(coords);
 
             setRouteLegData((prevData) => ({
                 ...prevData,
-                routeLegDistance: distance,
-                routeLegDuration: duration,
+                distanceMiles: distanceMiles,
+                durationHours: durationHours,
             }));
         } catch (error) {
             notify({ title: 'Error', message: `Error fetching route details: ${error.message}`, type: 'error' });
@@ -245,8 +244,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         return calculateDriverPay({
             chargeType,
             chargeValue,
-            routeLegDistance: routeLegData.routeLegDistance ?? 0,
-            routeLegDuration: routeLegData.routeLegDuration ?? 0,
+            distanceMiles: routeLegData.distanceMiles ?? 0,
+            durationHours: routeLegData.durationHours ?? 0,
             loadRate: new Prisma.Decimal(load.rate),
         });
     };
@@ -306,8 +305,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                             <RouteLegDriverSelection
                                                 title="Select Drivers"
                                                 selectedDrivers={routeLegData.driversWithCharge}
-                                                routeLegDistance={routeLegData.routeLegDistance}
-                                                routeLegDuration={routeLegData.routeLegDuration}
+                                                distanceMiles={routeLegData.distanceMiles}
+                                                durationHours={routeLegData.durationHours}
                                                 loadRate={new Prisma.Decimal(load.rate)}
                                                 onDriverSelectionSave={onSelectedDriversChange}
                                                 onGoBack={() => setShowDriverSelection(false)}
@@ -476,21 +475,19 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                 Loading route details...
                                                             </p>
                                                         ) : (
-                                                            routeLegData.routeLegDistance &&
-                                                            routeLegData.routeLegDuration && (
+                                                            routeLegData.distanceMiles &&
+                                                            routeLegData.durationHours && (
                                                                 <p className="p-2 text-sm rounded bg-cyan-300/20">
                                                                     Route Distance:{' '}
-                                                                    {metersToMiles(
-                                                                        new Prisma.Decimal(
-                                                                            routeLegData.routeLegDistance,
-                                                                        ).toNumber(),
-                                                                    ).toFixed(0)}{' '}
+                                                                    {new Prisma.Decimal(routeLegData.distanceMiles)
+                                                                        .toNumber()
+                                                                        .toFixed(0)}{' '}
                                                                     miles
                                                                     <br />
                                                                     Route Travel Time:{' '}
-                                                                    {secondsToReadable(
+                                                                    {hoursToReadable(
                                                                         new Prisma.Decimal(
-                                                                            routeLegData.routeLegDuration,
+                                                                            routeLegData.durationHours,
                                                                         ).toNumber(),
                                                                     )}
                                                                 </p>

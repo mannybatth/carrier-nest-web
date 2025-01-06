@@ -16,8 +16,8 @@ const formatCurrency = (value: number) => {
 type Props = {
     title?: string;
     selectedDrivers: Partial<DriverWithCharge>[];
-    routeLegDistance: number;
-    routeLegDuration: number;
+    distanceMiles: number;
+    durationHours: number;
     loadRate: Prisma.Decimal;
     onGoBack: () => void;
     onDriverSelectionSave: (drivers: Partial<DriverWithCharge>[]) => void;
@@ -30,8 +30,8 @@ type FormValues = {
 const RouteLegDriverSelection: React.FC<Props> = ({
     title,
     selectedDrivers,
-    routeLegDistance,
-    routeLegDuration,
+    distanceMiles,
+    durationHours,
     loadRate,
     onGoBack,
     onDriverSelectionSave,
@@ -111,8 +111,8 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                 const pay = calculateDriverPay({
                     chargeType: driverWithCharge.chargeType,
                     chargeValue: driverWithCharge.chargeValue,
-                    routeLegDistance: routeLegDistance,
-                    routeLegDuration: routeLegDuration,
+                    distanceMiles: distanceMiles,
+                    durationHours: durationHours,
                     loadRate: loadRate,
                 });
                 return total.add(pay);

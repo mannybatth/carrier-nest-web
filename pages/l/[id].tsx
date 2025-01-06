@@ -8,8 +8,7 @@ import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriverAssignment, ExpandedLoadDocument } from '../../interfaces/models';
-import { metersToMiles } from '../../lib/helpers/distance';
-import { secondsToReadable } from '../../lib/helpers/time';
+import { hoursToReadable } from '../../lib/helpers/time';
 import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 import { getAssignmentById } from '../../lib/rest/assignment';
@@ -597,20 +596,20 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
 
                                 <div className="flex flex-row space-x-2">
                                     <div className="text-sm">
-                                        {assignment.load.routeDistance && (
+                                        {assignment.routeLeg.distanceMiles && (
                                             <div>
                                                 Distance:{' '}
-                                                {metersToMiles(
-                                                    new Prisma.Decimal(assignment.routeLeg.routeLegDistance).toNumber(),
-                                                ).toFixed(0)}{' '}
+                                                {new Prisma.Decimal(assignment.routeLeg.distanceMiles)
+                                                    .toNumber()
+                                                    .toFixed(0)}{' '}
                                                 miles
                                             </div>
                                         )}
-                                        {assignment.load.routeDuration && (
+                                        {assignment.routeLeg.durationHours && (
                                             <div>
                                                 Travel Time:{' '}
-                                                {secondsToReadable(
-                                                    new Prisma.Decimal(assignment.routeLeg.routeLegDuration).toNumber(),
+                                                {hoursToReadable(
+                                                    new Prisma.Decimal(assignment.routeLeg.durationHours).toNumber(),
                                                 )}
                                             </div>
                                         )}

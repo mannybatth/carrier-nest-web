@@ -24,8 +24,6 @@ import { createLoad, getLoadById } from '../../lib/rest/load';
 import AnimatedProgress from 'components/loads/AnimationProgress';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import PDFViewer from 'components/PDFViewer';
-import { set } from 'date-fns';
-import { is } from 'date-fns/locale';
 
 interface Line {
     text: string;
@@ -172,7 +170,7 @@ const CreateLoad: PageWithAuth = () => {
                 : [],
         );
 
-        const { routeEncoded, distance, duration } = await getRouteForCoords([
+        const { routeEncoded, distanceMiles, durationHours } = await getRouteForCoords([
             [shipperCoordinates.longitude, shipperCoordinates.latitude],
             ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
             [receiverCoordinates.longitude, receiverCoordinates.latitude],
@@ -198,8 +196,8 @@ const CreateLoad: PageWithAuth = () => {
             });
         }
         loadData.routeEncoded = routeEncoded;
-        loadData.routeDistance = distance;
-        loadData.routeDuration = duration;
+        loadData.routeDistanceMiles = new Prisma.Decimal(distanceMiles);
+        loadData.routeDurationHours = new Prisma.Decimal(durationHours);
 
         await saveLoadData(loadData);
     };
@@ -931,7 +929,7 @@ const CreateLoad: PageWithAuth = () => {
                         </div>
                     )}
 
-                    <div className="relative flex flex-row items-start gap-3 mb-4 bg-white rounded-lg h-full w-full">
+                    <div className="relative flex flex-row items-start w-full h-full gap-3 mb-4 bg-white rounded-lg">
                         {currentRateconFile ? (
                             <PDFViewer
                                 fileBlob={currentRateconFile}

@@ -10,3 +10,17 @@ export const secondsToReadable = (seconds: number) => {
 
     return `${(seconds / 60 / 60).toFixed(2)} hrs`;
 };
+
+export const hoursToReadable = (hours: number) => {
+    const totalSeconds = hours * 3600;
+
+    if (totalSeconds < 60) {
+        return `${totalSeconds.toFixed(0)} sec`;
+    }
+
+    if (totalSeconds < 60 * 60) {
+        return `${(totalSeconds / 60).toFixed(1)} min`;
+    }
+
+    return `${hours.toFixed(2)} hrs`;
+};

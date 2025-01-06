@@ -68,8 +68,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                         endedAt: true,
                         endLatitude: true,
                         endLongitude: true,
-                        routeLegDistance: true,
-                        routeLegDuration: true,
+                        distanceMiles: true,
+                        durationHours: true,
                         status: true,
                         routeId: true,
                         driverAssignments: {
@@ -107,8 +107,8 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                                         endedAt: true,
                                         endLatitude: true,
                                         endLongitude: true,
-                                        routeLegDistance: true,
-                                        routeLegDuration: true,
+                                        distanceMiles: true,
+                                        durationHours: true,
                                         status: true,
                                         routeId: true,
                                         driverAssignments: {

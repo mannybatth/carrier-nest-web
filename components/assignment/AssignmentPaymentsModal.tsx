@@ -4,7 +4,7 @@ import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
 import { createAssignmentPayment, deleteAssignmentPayment } from '../../lib/rest/assignment';
 import { LoadingOverlay } from '../LoadingOverlay';
-import { Prisma } from '@prisma/client';
+import { ChargeType, Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
@@ -20,31 +20,6 @@ interface AssignmentPaymentsModalProps {
 
 const formatCurrency = (amount: number | Prisma.Decimal) => {
     return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
-
-const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
-    return calculateDriverPay({
-        chargeType: assignment.chargeType,
-        chargeValue: assignment.chargeValue,
-        routeLegDistance: assignment.routeLeg?.routeLegDistance ?? 0,
-        routeLegDuration: assignment.routeLeg?.routeLegDuration ?? 0,
-        loadRate: assignment.load.rate,
-    });
-};
-
-const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-    const totalPay = calculateAssignmentTotalPay(assignment);
-    const totalPaid =
-        assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
-        new Prisma.Decimal(0);
-
-    if (totalPaid.gte(totalPay)) {
-        return 'paid';
-    } else if (totalPaid.gt(0)) {
-        return 'partially paid';
-    } else {
-        return 'not paid';
-    }
 };
 
 const getStatusStyles = (status: string) => {
@@ -86,13 +61,44 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const amountFieldRef = useRef(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+    const [hoursBilled, setHoursBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
+    const [milesBilled, setMilesBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
+    const [loadRateBilled, setLoadRateBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
 
     React.useEffect(() => {
         if (isOpen) {
             setAmount(null);
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
+            setHoursBilled(new Prisma.Decimal(assignment.routeLeg?.durationHours) ?? new Prisma.Decimal(0));
+            setMilesBilled(new Prisma.Decimal(assignment.routeLeg?.distanceMiles) ?? new Prisma.Decimal(0));
+            setLoadRateBilled(new Prisma.Decimal(assignment.load.rate));
         }
     }, [isOpen]);
+
+    const getPayStatus = (assignment: ExpandedDriverAssignment) => {
+        const totalPay = calculateAssignmentTotalPay(assignment);
+        const totalPaid =
+            assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
+            new Prisma.Decimal(0);
+
+        if (totalPaid.gte(totalPay)) {
+            return 'paid';
+        } else if (totalPaid.gt(0)) {
+            return 'partially paid';
+        } else {
+            return 'not paid';
+        }
+    };
+
+    const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
+        return calculateDriverPay({
+            chargeType: assignment.chargeType,
+            chargeValue: assignment.chargeValue,
+            distanceMiles: milesBilled ?? assignment.routeLeg?.distanceMiles ?? 0,
+            durationHours: hoursBilled ?? assignment.routeLeg?.durationHours ?? 0,
+            loadRate: loadRateBilled ?? assignment.load.rate,
+        });
+    };
 
     const handleAddPayment = async () => {
         if (amount && paymentDate && assignment) {
@@ -290,6 +296,66 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             )}
                                                         </tbody>
                                                     </table>
+
+                                                    {assignment?.chargeType === ChargeType.PER_HOUR && (
+                                                        <div className="mt-4">
+                                                            <label
+                                                                className="block text-sm font-medium text-gray-700"
+                                                                htmlFor="hours-billed"
+                                                            >
+                                                                Hours Billed
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                id="hours-billed"
+                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                value={hoursBilled?.toNearest(0.01).toNumber()}
+                                                                onChange={(e) =>
+                                                                    setHoursBilled(new Prisma.Decimal(e.target.value))
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {assignment?.chargeType === ChargeType.PER_MILE && (
+                                                        <div className="mt-4">
+                                                            <label
+                                                                className="block text-sm font-medium text-gray-700"
+                                                                htmlFor="miles-billed"
+                                                            >
+                                                                Miles Billed
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                id="miles-billed"
+                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                value={milesBilled?.toNearest(0.01).toNumber()}
+                                                                onChange={(e) =>
+                                                                    setMilesBilled(new Prisma.Decimal(e.target.value))
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {assignment?.chargeType === ChargeType.PERCENTAGE_OF_LOAD && (
+                                                        <div className="mt-4">
+                                                            <label
+                                                                className="block text-sm font-medium text-gray-700"
+                                                                htmlFor="load-rate-billed"
+                                                            >
+                                                                Load Rate Billed
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                id="load-rate-billed"
+                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                value={loadRateBilled?.toNearest(0.01).toNumber()}
+                                                                onChange={(e) =>
+                                                                    setLoadRateBilled(
+                                                                        new Prisma.Decimal(e.target.value),
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
                                                     <div className="mt-4">
                                                         <label
                                                             className="block text-sm font-medium text-gray-700"
@@ -328,11 +394,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                         acc.plus(payment.amount),
                                                                                     new Prisma.Decimal(0),
                                                                                 )
-                                                                                .equals(
-                                                                                    calculateAssignmentTotalPay(
-                                                                                        assignment,
-                                                                                    ),
-                                                                                )
+                                                                                .equals(0)
                                                                                 ? 'Full Due'
                                                                                 : 'Full Remaining'}
                                                                         </span>

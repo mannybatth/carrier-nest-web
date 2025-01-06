@@ -174,8 +174,8 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                     scheduledDate: new Date(routeLegData.scheduledDate),
                     scheduledTime: routeLegData.scheduledTime,
                     driverInstructions: routeLegData.driverInstructions,
-                    routeLegDistance: routeLegData.routeLegDistance,
-                    routeLegDuration: routeLegData.routeLegDuration,
+                    distanceMiles: routeLegData.distanceMiles,
+                    durationHours: routeLegData.durationHours,
                 },
             });
 
@@ -304,8 +304,8 @@ async function _put(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                     scheduledDate: new Date(routeLegData.scheduledDate),
                     scheduledTime: routeLegData.scheduledTime,
                     driverInstructions: routeLegData.driverInstructions,
-                    routeLegDistance: routeLegData.routeLegDistance,
-                    routeLegDuration: routeLegData.routeLegDuration,
+                    distanceMiles: routeLegData.distanceMiles,
+                    durationHours: routeLegData.durationHours,
                 },
             });
 

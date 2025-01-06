@@ -2,10 +2,9 @@ import { ArrowTopRightOnSquareIcon, MapPinIcon, StopIcon, TruckIcon, ChevronUpIc
 import Image from 'next/image';
 import React from 'react';
 import { Prisma } from '@prisma/client';
-import { metersToMiles } from '../../../lib/helpers/distance';
-import { secondsToReadable } from '../../../lib/helpers/time';
 import { useLoadContext } from 'components/context/LoadContext';
 import { Disclosure } from '@headlessui/react';
+import { hoursToReadable } from 'lib/helpers/time';
 
 type LoadRouteSectionProps = {
     openRouteInGoogleMaps: () => void;
@@ -36,11 +35,10 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                 <div className="flex flex-col border rounded-lg border-slate-200">
                     <div className="flex flex-row justify-between w-full p-2 rounded-tl-lg rounded-tr-lg bg-slate-100">
                         <p className="text-sm text-slate-900">
-                            Route Distance:{' '}
-                            {metersToMiles(new Prisma.Decimal(load.routeDistance).toNumber()).toFixed(0)} miles
+                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(0)} miles
                         </p>
                         <p className="text-sm text-slate-900">
-                            Travel Time: {secondsToReadable(new Prisma.Decimal(load.routeDuration).toNumber())}
+                            Travel Time: {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())}
                         </p>
                     </div>
 

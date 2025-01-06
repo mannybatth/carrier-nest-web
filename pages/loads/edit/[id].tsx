@@ -86,7 +86,7 @@ const EditLoad: PageWithAuth = () => {
             }),
         );
 
-        const { routeEncoded, distance, duration } = await getRouteForCoords([
+        const { routeEncoded, distanceMiles, durationHours } = await getRouteForCoords([
             [shipperCoordinates.longitude, shipperCoordinates.latitude],
             ...stopsCoordinates.map((stop) => [stop.longitude, stop.latitude]),
             [receiverCoordinates.longitude, receiverCoordinates.latitude],
@@ -110,8 +110,8 @@ const EditLoad: PageWithAuth = () => {
             };
         });
         loadData.routeEncoded = routeEncoded;
-        loadData.routeDistance = distance;
-        loadData.routeDuration = duration;
+        loadData.routeDistanceMiles = new Prisma.Decimal(distanceMiles);
+        loadData.routeDurationHours = new Prisma.Decimal(durationHours);
 
         const newLoad = await updateLoad(load.id, loadData);
 

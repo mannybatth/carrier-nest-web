@@ -19,10 +19,10 @@ const getHumanReadableCharge = (assignment: ExpandedDriverAssignment) => {
     const { chargeType, chargeValue, routeLeg, load } = assignment;
     switch (chargeType) {
         case 'PER_MILE':
-            const distanceInMiles = new Prisma.Decimal(routeLeg?.routeLegDistance ?? 0).div(1609.34).toFixed(2);
+            const distanceInMiles = new Prisma.Decimal(routeLeg?.distanceMiles ?? 0).toFixed(2);
             return `${chargeValue} per mile (Total Distance: ${distanceInMiles} miles)`;
         case 'PER_HOUR':
-            const durationInHours = new Prisma.Decimal(routeLeg?.routeLegDuration ?? 0).div(3600).toFixed(2);
+            const durationInHours = new Prisma.Decimal(routeLeg?.durationHours ?? 0).toFixed(2);
             return `${chargeValue} per hour (Total Time: ${durationInHours} hours)`;
         case 'FIXED_PAY':
             return `Fixed pay of ${chargeValue}`;
@@ -42,8 +42,8 @@ const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
     return calculateDriverPay({
         chargeType: assignment.chargeType,
         chargeValue: assignment.chargeValue,
-        routeLegDistance: assignment.routeLeg?.routeLegDistance ?? 0,
-        routeLegDuration: assignment.routeLeg?.routeLegDuration ?? 0,
+        distanceMiles: assignment.routeLeg?.distanceMiles ?? 0,
+        durationHours: assignment.routeLeg?.durationHours ?? 0,
         loadRate: assignment.load.rate,
     });
 };

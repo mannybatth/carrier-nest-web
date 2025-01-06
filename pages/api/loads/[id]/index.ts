@@ -221,8 +221,8 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     })),
                 },
                 routeEncoded: loadData.routeEncoded || '',
-                routeDistance: loadData.routeDistance || 0,
-                routeDuration: loadData.routeDuration || 0,
+                routeDistanceMiles: loadData.routeDistanceMiles || 0,
+                routeDurationHours: loadData.routeDurationHours || 0,
             },
         });
 
@@ -444,8 +444,8 @@ const getLoad = async ({
                                       endedAt: true,
                                       endLatitude: true,
                                       endLongitude: true,
-                                      routeLegDistance: true,
-                                      routeLegDuration: true,
+                                      distanceMiles: true,
+                                      durationHours: true,
                                       status: true,
                                       routeId: true,
                                       driverAssignments: {
