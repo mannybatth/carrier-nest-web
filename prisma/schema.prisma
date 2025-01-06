@@ -177,8 +177,8 @@ model RouteLeg {
     endedAt            DateTime?
     createdAt          DateTime           @default(now())
     updatedAt          DateTime           @default(now()) @updatedAt
-    routeLegDistance   Decimal?
-    routeLegDuration   Decimal?
+    distanceMiles      Decimal?
+    durationHours      Decimal?
     driverInstructions String?
     status             RouteLegStatus     @default(ASSIGNED)
     locations          RouteLegLocation[]
@@ -467,23 +467,23 @@ enum ChargeType {
 }
 
 model DriverAssignment {
-    id             String              @id @default(cuid())
-    createdAt      DateTime            @default(now())
-    updatedAt      DateTime            @default(now()) @updatedAt
-    carrierId      String
-    loadId         String?
-    driverId       String
-    routeLegId     String
-    assignedAt     DateTime            @default(now())
-    load           Load?               @relation(fields: [loadId], references: [id], onDelete: Cascade)
-    driver         Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
-    routeLeg       RouteLeg            @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
-    chargeType     ChargeType
-    chargeValue    Decimal
-    billedDistance Decimal?
-    billedDuration Decimal?
-    billedLoadRate Decimal?
-    payments       AssignmentPayment[]
+    id                  String              @id @default(cuid())
+    createdAt           DateTime            @default(now())
+    updatedAt           DateTime            @default(now()) @updatedAt
+    carrierId           String
+    loadId              String?
+    driverId            String
+    routeLegId          String
+    assignedAt          DateTime            @default(now())
+    load                Load?               @relation(fields: [loadId], references: [id], onDelete: Cascade)
+    driver              Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    routeLeg            RouteLeg            @relation(fields: [routeLegId], references: [id], onDelete: Cascade)
+    chargeType          ChargeType
+    chargeValue         Decimal
+    billedDistanceMiles Decimal?
+    billedDurationHours Decimal?
+    billedLoadRate      Decimal?
+    payments            AssignmentPayment[]
 
     @@unique([driverId, routeLegId])
 }
