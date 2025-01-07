@@ -44,6 +44,20 @@ const getStatusMessage = (status: string) => {
     }
 };
 
+const initializeChargeTypes = (assignments: ExpandedDriverAssignment[]) => {
+    return assignments.reduce((acc, assignment) => {
+        acc[assignment.id] = assignment.chargeType;
+        return acc;
+    }, {} as Record<string, ChargeType | null>);
+};
+
+const initializeChargeValues = (assignments: ExpandedDriverAssignment[]) => {
+    return assignments.reduce((acc, assignment) => {
+        acc[assignment.id] = new Prisma.Decimal(assignment.chargeValue).toNumber();
+        return acc;
+    }, {} as Record<string, number | null>);
+};
+
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
@@ -60,6 +74,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [hoursBilled, setHoursBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
     const [milesBilled, setMilesBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
     const [loadRateBilled, setLoadRateBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
+    const [chargeTypes, setChargeTypes] = useState<Record<string, ChargeType | null>>({});
+    const [chargeValues, setChargeValues] = useState<Record<string, number | null>>({});
 
     const initializeAmounts = (assignments: ExpandedDriverAssignment[]) => {
         return Object.keys(groupAssignmentsByDriver(assignments)).reduce((acc, driverId) => {
@@ -85,6 +101,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             setHoursBilled(hoursBilled);
             setMilesBilled(milesBilled);
             setLoadRateBilled(loadRateBilled);
+            setChargeTypes(initializeChargeTypes(assignments));
+            setChargeValues(initializeChargeValues(assignments));
         }
     }, [isOpen]);
 
@@ -241,6 +259,11 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const groupedPayments = groupPaymentsByDriver(assignments);
+
+    const handleChargeTypeChange = (assignmentId: string, chargeType: ChargeType) => {
+        setChargeTypes((prev) => ({ ...prev, [assignmentId]: chargeType }));
+        setChargeValues((prev) => ({ ...prev, [assignmentId]: null }));
+    };
 
     return (
         <Transition.Root show={isOpen} as="div">
@@ -400,49 +423,143 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                         )}
                                                                     </tbody>
                                                                 </table>
-                                                                <div className="h-full" aria-hidden="true">
-                                                                    <div className="mt-4">
-                                                                        <label
-                                                                            className="block text-sm font-medium text-gray-700"
-                                                                            htmlFor={`amount-${driverId}`}
-                                                                        >
-                                                                            New Payment Amount
-                                                                        </label>
-                                                                        <div className="flex mt-1 rounded-md shadow-sm">
-                                                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                                                                                <MoneyInput
-                                                                                    id={`amount-${driverId}`}
-                                                                                    className="rounded-none rounded-l-md"
-                                                                                    value={
-                                                                                        amounts[driverId]?.toString() ||
-                                                                                        ''
-                                                                                    }
-                                                                                    onChange={(e) =>
-                                                                                        setAmounts((prev) => ({
-                                                                                            ...prev,
-                                                                                            [driverId]: Number(
-                                                                                                e.target.value,
-                                                                                            ),
-                                                                                        }))
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                            {!groupedAssignments[driverId].some(
-                                                                                (assignment) =>
-                                                                                    assignment.assignmentPayments
-                                                                                        .length > 0,
-                                                                            ) && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() =>
-                                                                                        setToFullDue(driverId)
-                                                                                    }
-                                                                                    className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                                                >
-                                                                                    <span>Full Due</span>
-                                                                                </button>
-                                                                            )}
+                                                                {groupedAssignments[driverId].map((assignment) => (
+                                                                    <div
+                                                                        key={assignment.id}
+                                                                        className="relative mt-8 border rounded-lg"
+                                                                    >
+                                                                        <div className="absolute px-2 text-sm font-medium text-gray-700 bg-white -top-3 left-3">
+                                                                            Assignment: {assignment.id}
                                                                         </div>
+                                                                        <div className="p-4">
+                                                                            <div className="flex flex-row items-stretch w-full gap-2 mt-2">
+                                                                                <div className="flex-col flex-grow">
+                                                                                    <label
+                                                                                        className="block text-sm font-medium text-gray-700"
+                                                                                        htmlFor={`charge-type-${assignment.id}`}
+                                                                                    >
+                                                                                        Charge Type
+                                                                                    </label>
+                                                                                    <select
+                                                                                        id={`charge-type-${assignment.id}`}
+                                                                                        value={
+                                                                                            chargeTypes[
+                                                                                                assignment.id
+                                                                                            ] || ''
+                                                                                        }
+                                                                                        onChange={(e) =>
+                                                                                            handleChargeTypeChange(
+                                                                                                assignment.id,
+                                                                                                e.target
+                                                                                                    .value as ChargeType,
+                                                                                            )
+                                                                                        }
+                                                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                    >
+                                                                                        <option value="" disabled>
+                                                                                            Select Pay Type
+                                                                                        </option>
+                                                                                        <option
+                                                                                            value={ChargeType.PER_MILE}
+                                                                                        >
+                                                                                            Per Mile
+                                                                                        </option>
+                                                                                        <option
+                                                                                            value={ChargeType.PER_HOUR}
+                                                                                        >
+                                                                                            Per Hour
+                                                                                        </option>
+                                                                                        <option
+                                                                                            value={ChargeType.FIXED_PAY}
+                                                                                        >
+                                                                                            Fixed Pay
+                                                                                        </option>
+                                                                                        <option
+                                                                                            value={
+                                                                                                ChargeType.PERCENTAGE_OF_LOAD
+                                                                                            }
+                                                                                        >
+                                                                                            Percentage of Load
+                                                                                        </option>
+                                                                                    </select>
+                                                                                </div>
+                                                                                <div className="flex-col flex-grow">
+                                                                                    <label
+                                                                                        className="block text-sm font-medium text-gray-700"
+                                                                                        htmlFor={`charge-value-${assignment.id}`}
+                                                                                    >
+                                                                                        Charge Value
+                                                                                    </label>
+                                                                                    <input
+                                                                                        id={`charge-value-${assignment.id}`}
+                                                                                        type="number"
+                                                                                        value={
+                                                                                            chargeValues[assignment.id]
+                                                                                        }
+                                                                                        onChange={(e) =>
+                                                                                            setChargeValues((prev) => ({
+                                                                                                ...prev,
+                                                                                                [assignment.id]: Number(
+                                                                                                    e.target.value,
+                                                                                                ),
+                                                                                            }))
+                                                                                        }
+                                                                                        placeholder="Charge Value"
+                                                                                        step="any"
+                                                                                        min="0"
+                                                                                        max={
+                                                                                            chargeTypes[
+                                                                                                assignment.id
+                                                                                            ] ===
+                                                                                            ChargeType.PERCENTAGE_OF_LOAD
+                                                                                                ? 100
+                                                                                                : undefined
+                                                                                        }
+                                                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                <div className="mt-4">
+                                                                    <label
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                        htmlFor={`amount-${driverId}`}
+                                                                    >
+                                                                        New Payment Amount
+                                                                    </label>
+                                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                                        <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                                            <MoneyInput
+                                                                                id={`amount-${driverId}`}
+                                                                                className="rounded-none rounded-l-md"
+                                                                                value={
+                                                                                    amounts[driverId]?.toString() || ''
+                                                                                }
+                                                                                onChange={(e) =>
+                                                                                    setAmounts((prev) => ({
+                                                                                        ...prev,
+                                                                                        [driverId]: Number(
+                                                                                            e.target.value,
+                                                                                        ),
+                                                                                    }))
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        {!groupedAssignments[driverId].some(
+                                                                            (assignment) =>
+                                                                                assignment.assignmentPayments.length >
+                                                                                0,
+                                                                        ) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setToFullDue(driverId)}
+                                                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                            >
+                                                                                <span>Full Due</span>
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
