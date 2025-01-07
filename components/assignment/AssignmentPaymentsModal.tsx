@@ -259,7 +259,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                 leaveFrom="translate-x-0"
                                 leaveTo="translate-x-full"
                             >
-                                <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                <Dialog.Panel className="w-screen max-w-lg pointer-events-auto">
                                     {loading && <LoadingOverlay />}
                                     {assignments && assignments.length > 0 && (
                                         <div className="flex flex-col h-full overflow-y-auto bg-white shadow-xl">
