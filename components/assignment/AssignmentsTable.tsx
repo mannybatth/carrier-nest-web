@@ -69,7 +69,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
 }) => {
     const headers = [
         { key: 'checkbox', title: ' ', disableSort: true, className: 'pl-6 pr-0' },
-        { key: 'driver.name', title: 'Driver' },
+        { key: 'driver.name', title: 'Driver', className: 'pl-3 pr-0' },
         { key: 'load.refNum', title: 'Load/Order #' },
         { key: 'chargeValue', title: 'Due Amount', disableSort: true },
         { key: 'payStatus', title: 'Pay Status', disableSort: true },
@@ -90,15 +90,22 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                     items: [
                         {
                             node: (
-                                <input
-                                    type="checkbox"
+                                <label
+                                    className="flex items-center py-6 pl-4 pr-6 cursor-pointer"
+                                    htmlFor={`assignment-${assignment.id}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
-                                    checked={isChecked}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                />
+                                >
+                                    <input
+                                        type="checkbox"
+                                        id={`assignment-${assignment.id}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
+                                        checked={isChecked}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                                    />
+                                </label>
                             ),
-                            className: 'pl-6 pr-0',
+                            className: 'pl-2 pr-0 pt-0 pb-0',
                         },
                         {
                             node: (
@@ -106,6 +113,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                                     {assignment.driver.name}
                                 </Link>
                             ),
+                            className: 'pl-3 pr-0',
                         },
                         {
                             node: (
