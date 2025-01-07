@@ -87,7 +87,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             }
         }
 
-        const payments = await prisma.driverPayment.findMany({
+        const driverPayments = await prisma.driverPayment.findMany({
             where: { driverId, carrierId },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
@@ -117,7 +117,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         return res.status(200).json({
             code: 200,
             data: {
-                payments,
+                driverPayments,
                 metadata,
             },
         });

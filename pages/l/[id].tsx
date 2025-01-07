@@ -601,7 +601,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                                 Distance:{' '}
                                                 {new Prisma.Decimal(assignment.routeLeg.distanceMiles)
                                                     .toNumber()
-                                                    .toFixed(0)}{' '}
+                                                    .toFixed(2)}{' '}
                                                 miles
                                             </div>
                                         )}

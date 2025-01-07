@@ -8,7 +8,7 @@ export const getDriverPayments = async (
     offset = 0,
     sortBy = 'createdAt',
     sortDir: 'asc' | 'desc' = 'desc',
-): Promise<{ payments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> => {
+): Promise<{ driverPayments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> => {
     try {
         const response = await fetch(
             `${apiUrl}/api/drivers/${driverId}/payments?limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortDir=${sortDir}`,
@@ -24,8 +24,16 @@ export const getDriverPayments = async (
             throw new Error(`Error fetching assignment payments: ${response.statusText}`);
         }
 
-        const { data, errors }: JSONResponse<{ payments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> =
+        const {
+            data,
+            errors,
+        }: JSONResponse<{ driverPayments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> =
             await response.json();
+
+        if (errors) {
+            throw new Error(errors.map((e) => e.message).join(', '));
+        }
+
         return data;
     } catch (error) {
         console.error('Error fetching assignment payments:', error);
@@ -47,13 +55,13 @@ export const createDriverPayments = async (
         body: JSON.stringify({ amount, paymentDate, driverAssignmentIds }),
     });
 
-    const { data, errors }: JSONResponse<{ payment: ExpandedDriverPayment }> = await response.json();
+    const { data, errors }: JSONResponse<{ driverPayment: ExpandedDriverPayment }> = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
 
-    return data.payment;
+    return data.driverPayment;
 };
 
 export const deleteDriverPayment = async (driverId: string, driverPaymentId: string): Promise<void> => {

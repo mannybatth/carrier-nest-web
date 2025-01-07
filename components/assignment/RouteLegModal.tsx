@@ -481,7 +481,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                     Route Distance:{' '}
                                                                     {new Prisma.Decimal(routeLegData.distanceMiles)
                                                                         .toNumber()
-                                                                        .toFixed(0)}{' '}
+                                                                        .toFixed(2)}{' '}
                                                                     miles
                                                                     <br />
                                                                     Route Travel Time:{' '}

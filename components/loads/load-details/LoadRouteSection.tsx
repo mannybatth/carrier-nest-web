@@ -35,7 +35,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                 <div className="flex flex-col border rounded-lg border-slate-200">
                     <div className="flex flex-row justify-between w-full p-2 rounded-tl-lg rounded-tr-lg bg-slate-100">
                         <p className="text-sm text-slate-900">
-                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(0)} miles
+                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(2)} miles
                         </p>
                         <p className="text-sm text-slate-900">
                             Travel Time: {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())}
