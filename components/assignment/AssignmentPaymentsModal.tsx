@@ -13,7 +13,7 @@ import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payme
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    assignment: ExpandedDriverAssignment | null;
+    assignments: ExpandedDriverAssignment[];
     onAddPayment: (amount: number) => void;
     onDeletePayment: (paymentId: string) => void;
 }
@@ -47,7 +47,7 @@ const getStatusMessage = (status: string) => {
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
-    assignment,
+    assignments,
     onAddPayment,
     onDeletePayment,
 }) => {
@@ -65,9 +65,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         if (isOpen) {
             setAmount(null);
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
-            setHoursBilled(new Prisma.Decimal(assignment.routeLeg?.durationHours) ?? new Prisma.Decimal(0));
-            setMilesBilled(new Prisma.Decimal(assignment.routeLeg?.distanceMiles) ?? new Prisma.Decimal(0));
-            setLoadRateBilled(new Prisma.Decimal(assignment.load.rate));
+            setHoursBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.durationHours) ?? new Prisma.Decimal(0));
+            setMilesBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.distanceMiles) ?? new Prisma.Decimal(0));
+            setLoadRateBilled(new Prisma.Decimal(assignments[0]?.load.rate));
         }
     }, [isOpen]);
 
@@ -90,16 +90,26 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const handleAddPayment = async () => {
-        if (amount && paymentDate && assignment) {
+        if (amount && paymentDate && assignments.length > 0) {
             setLoading(true);
             try {
-                const payment = await createDriverPayments(
-                    assignment.driver.id,
-                    [assignment.id],
-                    amount,
-                    parseISO(paymentDate).toISOString(),
-                );
-                onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
+                const driverAssignmentsMap = assignments.reduce((acc, assignment) => {
+                    if (!acc[assignment.driver.id]) {
+                        acc[assignment.driver.id] = [];
+                    }
+                    acc[assignment.driver.id].push(assignment.id);
+                    return acc;
+                }, {} as Record<string, string[]>);
+
+                for (const driverId in driverAssignmentsMap) {
+                    const payment = await createDriverPayments(
+                        driverId,
+                        driverAssignmentsMap[driverId],
+                        amount,
+                        parseISO(paymentDate).toISOString(),
+                    );
+                    onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
+                }
                 setAmount(null);
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
@@ -111,16 +121,31 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const handleDeletePayment = async () => {
-        if (paymentIdToDelete && assignment) {
+        if (paymentIdToDelete && assignments.length > 0) {
             setLoading(true);
             try {
-                await deleteDriverPayment(assignment.driver.id, paymentIdToDelete);
-                assignment.assignmentPayments = assignment.assignmentPayments.filter(
-                    (assignmentPayment) => assignmentPayment.driverPayment.id !== paymentIdToDelete,
-                );
-                onDeletePayment(paymentIdToDelete);
-                setPaymentIdToDelete(null);
-                setConfirmOpen(false);
+                let driverId: string | null = null;
+                assignments.forEach((assignment) => {
+                    assignment.assignmentPayments.forEach((assignmentPayment) => {
+                        if (assignmentPayment.driverPayment.id === paymentIdToDelete) {
+                            driverId = assignment.driver.id;
+                        }
+                    });
+                });
+
+                if (driverId) {
+                    await deleteDriverPayment(driverId, paymentIdToDelete);
+                    assignments.forEach((assignment) => {
+                        assignment.assignmentPayments = assignment.assignmentPayments.filter(
+                            (assignmentPayment) => assignmentPayment.driverPayment.id !== paymentIdToDelete,
+                        );
+                    });
+                    onDeletePayment(paymentIdToDelete);
+                    setPaymentIdToDelete(null);
+                    setConfirmOpen(false);
+                } else {
+                    console.error('Driver ID not found for the payment to be deleted.');
+                }
             } catch (error) {
                 console.error('Error deleting payment:', error);
             } finally {
@@ -130,12 +155,28 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const setToFullDue = () => {
-        if (assignment) {
-            const totalAmountDue = calculateAssignmentTotalPay(assignment);
+        if (assignments.length > 0) {
+            const totalAmountDue = assignments.reduce((acc, assignment) => {
+                return acc.plus(calculateAssignmentTotalPay(assignment));
+            }, new Prisma.Decimal(0));
             setAmount(totalAmountDue.toNumber());
             amountFieldRef?.current?.focus();
         }
     };
+
+    const groupAssignmentsByDriver = (assignments: ExpandedDriverAssignment[]) => {
+        if (!assignments || assignments?.length === 0) return {};
+
+        return assignments.reduce((acc, assignment) => {
+            if (!acc[assignment.driver.id]) {
+                acc[assignment.driver.id] = [];
+            }
+            acc[assignment.driver.id].push(assignment);
+            return acc;
+        }, {} as Record<string, ExpandedDriverAssignment[]>);
+    };
+
+    const groupedAssignments = groupAssignmentsByDriver(assignments);
 
     return (
         <Transition.Root show={isOpen} as="div">
@@ -176,235 +217,189 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
                                     {loading && <LoadingOverlay />}
-                                    <div className="flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
-                                        <div className="px-4 py-6 text-white bg-blue-600 sm:px-6">
-                                            <div className="flex items-start justify-between">
-                                                <Dialog.Title className="text-lg font-medium">
-                                                    Payments for Assignment
-                                                </Dialog.Title>
-                                                <div className="flex items-center ml-3 h-7">
-                                                    <button
-                                                        type="button"
-                                                        className="text-white bg-blue-600 rounded-md hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
-                                                        onClick={onClose}
-                                                    >
-                                                        <span className="sr-only">Close panel</span>
-                                                        <XMarkIcon className="w-6 h-6" aria-hidden="true" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {assignment && (
-                                                <div className="mt-4">
-                                                    <p className="text-sm">Driver: {assignment.driver.name}</p>
-                                                    <p className="text-sm">Load/Order #: {assignment.load.refNum}</p>
-                                                    <p className="text-sm">
-                                                        Rate: {formatCurrency(assignment.load.rate)}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1 px-4 sm:px-6">
-                                            <div className="absolute inset-0 px-4 sm:px-6">
-                                                {assignment && (
-                                                    <div
-                                                        className={`p-2 mt-6 rounded ${
-                                                            getStatusStyles(getPayStatus(assignment)).bgColor
-                                                        }`}
-                                                    >
-                                                        <p
-                                                            className={`text-sm font-medium ${
-                                                                getStatusStyles(getPayStatus(assignment)).textColor
-                                                            }`}
-                                                        >
-                                                            {getStatusMessage(getPayStatus(assignment))}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                <div className="h-full" aria-hidden="true">
-                                                    <table className="min-w-full mt-4 divide-y divide-gray-200">
-                                                        <thead className="bg-gray-50">
-                                                            <tr>
-                                                                <th
-                                                                    scope="col"
-                                                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                >
-                                                                    Date
-                                                                </th>
-                                                                <th
-                                                                    scope="col"
-                                                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                >
-                                                                    Amount
-                                                                </th>
-                                                                <th scope="col" className="relative px-6 py-3">
-                                                                    <span className="sr-only">Delete</span>
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="bg-white divide-y divide-gray-200">
-                                                            {assignment?.assignmentPayments?.length > 0 ? (
-                                                                assignment.assignmentPayments.map(
-                                                                    (assignmentPayment) => (
-                                                                        <tr key={assignmentPayment.id}>
-                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                {new Date(
-                                                                                    assignmentPayment.driverPayment.paymentDate,
-                                                                                ).toLocaleDateString()}
-                                                                            </td>
-                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                {formatCurrency(
-                                                                                    assignmentPayment.driverPayment
-                                                                                        .amount,
-                                                                                )}
-                                                                            </td>
-                                                                            <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
-                                                                                <button
-                                                                                    type="button"
-                                                                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setPaymentIdToDelete(
-                                                                                            assignmentPayment
-                                                                                                .driverPayment.id,
-                                                                                        );
-                                                                                        setConfirmOpen(true);
-                                                                                    }}
-                                                                                    disabled={loading}
-                                                                                >
-                                                                                    <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                                </button>
-                                                                            </td>
-                                                                        </tr>
-                                                                    ),
-                                                                )
-                                                            ) : (
-                                                                <tr>
-                                                                    <td
-                                                                        colSpan={3}
-                                                                        className="px-6 py-4 text-sm text-center text-gray-500"
-                                                                    >
-                                                                        No payments made.
-                                                                    </td>
-                                                                </tr>
-                                                            )}
-                                                        </tbody>
-                                                    </table>
-
-                                                    {assignment?.chargeType === ChargeType.PER_HOUR && (
-                                                        <div className="mt-4">
-                                                            <label
-                                                                className="block text-sm font-medium text-gray-700"
-                                                                htmlFor="hours-billed"
-                                                            >
-                                                                Hours Billed
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                id="hours-billed"
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                value={hoursBilled?.toNearest(0.01).toNumber()}
-                                                                onChange={(e) =>
-                                                                    setHoursBilled(new Prisma.Decimal(e.target.value))
-                                                                }
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    {assignment?.chargeType === ChargeType.PER_MILE && (
-                                                        <div className="mt-4">
-                                                            <label
-                                                                className="block text-sm font-medium text-gray-700"
-                                                                htmlFor="miles-billed"
-                                                            >
-                                                                Miles Billed
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                id="miles-billed"
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                value={milesBilled?.toNearest(0.01).toNumber()}
-                                                                onChange={(e) =>
-                                                                    setMilesBilled(new Prisma.Decimal(e.target.value))
-                                                                }
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    {assignment?.chargeType === ChargeType.PERCENTAGE_OF_LOAD && (
-                                                        <div className="mt-4">
-                                                            <label
-                                                                className="block text-sm font-medium text-gray-700"
-                                                                htmlFor="load-rate-billed"
-                                                            >
-                                                                Load Rate Billed
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                id="load-rate-billed"
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                value={loadRateBilled?.toNearest(0.01).toNumber()}
-                                                                onChange={(e) =>
-                                                                    setLoadRateBilled(
-                                                                        new Prisma.Decimal(e.target.value),
-                                                                    )
-                                                                }
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div className="mt-4">
-                                                        <label
-                                                            className="block text-sm font-medium text-gray-700"
-                                                            htmlFor="amount"
-                                                        >
-                                                            Payment Amount
-                                                        </label>
-                                                        <div className="flex mt-1 rounded-md shadow-sm">
-                                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                                                                <MoneyInput
-                                                                    id="amount"
-                                                                    className="rounded-none rounded-l-md"
-                                                                    value={amount?.toString() || ''}
-                                                                    onChange={(e) => setAmount(Number(e.target.value))}
-                                                                />
-                                                            </div>
-                                                            {!assignment?.assignmentPayments?.length && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={setToFullDue}
-                                                                    className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                                >
-                                                                    <span>Full Due</span>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-4">
-                                                        <label
-                                                            className="block text-sm font-medium text-gray-700"
-                                                            htmlFor="payment-date"
-                                                        >
-                                                            Payment Date
-                                                        </label>
-                                                        <input
-                                                            type="date"
-                                                            id="payment-date"
-                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            value={paymentDate}
-                                                            onChange={(e) => setPaymentDate(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div className="mt-6">
+                                    {assignments && assignments.length > 0 && (
+                                        <div className="flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
+                                            <div className="px-4 py-6 text-white bg-blue-600 sm:px-6">
+                                                <div className="flex items-start justify-between">
+                                                    <Dialog.Title className="text-lg font-medium">
+                                                        Payments for Assignments
+                                                    </Dialog.Title>
+                                                    <div className="flex items-center ml-3 h-7">
                                                         <button
                                                             type="button"
-                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
-                                                            onClick={handleAddPayment}
-                                                            disabled={loading || !amount || !paymentDate || !assignment}
+                                                            className="text-white bg-blue-600 rounded-md hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
+                                                            onClick={onClose}
                                                         >
-                                                            Add Payment
+                                                            <span className="sr-only">Close panel</span>
+                                                            <XMarkIcon className="w-6 h-6" aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </div>
+                                                {Object.keys(groupedAssignments).map((driverId) => (
+                                                    <div key={driverId} className="mt-4">
+                                                        <p className="text-sm">
+                                                            Driver: {groupedAssignments[driverId][0].driver.name}
+                                                        </p>
+                                                        <p className="text-sm">
+                                                            Total Assignments: {groupedAssignments[driverId].length}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="relative flex-1 px-4 sm:px-6">
+                                                <div className="absolute inset-0 px-4 sm:px-6">
+                                                    {Object.keys(groupedAssignments).map((driverId) => (
+                                                        <div key={driverId} className="mt-6">
+                                                            <h2 className="text-lg font-medium text-gray-900">
+                                                                Driver: {groupedAssignments[driverId][0].driver.name}
+                                                            </h2>
+                                                            <table className="min-w-full mt-4 divide-y divide-gray-200">
+                                                                <thead className="bg-gray-50">
+                                                                    <tr>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                        >
+                                                                            Date
+                                                                        </th>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                        >
+                                                                            Amount
+                                                                        </th>
+                                                                        <th scope="col" className="relative px-6 py-3">
+                                                                            <span className="sr-only">Delete</span>
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                                    {groupedAssignments[driverId].map((assignment) => (
+                                                                        <React.Fragment key={assignment.id}>
+                                                                            {assignment.assignmentPayments?.length >
+                                                                            0 ? (
+                                                                                assignment.assignmentPayments.map(
+                                                                                    (assignmentPayment) => (
+                                                                                        <tr key={assignmentPayment.id}>
+                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                                {new Date(
+                                                                                                    assignmentPayment.driverPayment.paymentDate,
+                                                                                                ).toLocaleDateString()}
+                                                                                            </td>
+                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                                {formatCurrency(
+                                                                                                    assignmentPayment
+                                                                                                        .driverPayment
+                                                                                                        .amount,
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        setPaymentIdToDelete(
+                                                                                                            assignmentPayment
+                                                                                                                .driverPayment
+                                                                                                                .id,
+                                                                                                        );
+                                                                                                        setConfirmOpen(
+                                                                                                            true,
+                                                                                                        );
+                                                                                                    }}
+                                                                                                    disabled={loading}
+                                                                                                >
+                                                                                                    <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                                                </button>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    ),
+                                                                                )
+                                                                            ) : (
+                                                                                <tr>
+                                                                                    <td
+                                                                                        colSpan={3}
+                                                                                        className="px-6 py-4 text-sm text-center text-gray-500"
+                                                                                    >
+                                                                                        No payments made.
+                                                                                    </td>
+                                                                                </tr>
+                                                                            )}
+                                                                        </React.Fragment>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    ))}
+                                                    <div className="h-full" aria-hidden="true">
+                                                        <div className="mt-4">
+                                                            <label
+                                                                className="block text-sm font-medium text-gray-700"
+                                                                htmlFor="amount"
+                                                            >
+                                                                Payment Amount
+                                                            </label>
+                                                            <div className="flex mt-1 rounded-md shadow-sm">
+                                                                <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                                    <MoneyInput
+                                                                        id="amount"
+                                                                        className="rounded-none rounded-l-md"
+                                                                        value={amount?.toString() || ''}
+                                                                        onChange={(e) =>
+                                                                            setAmount(Number(e.target.value))
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                {!assignments.some(
+                                                                    (assignment) =>
+                                                                        assignment.assignmentPayments.length > 0,
+                                                                ) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={setToFullDue}
+                                                                        className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                    >
+                                                                        <span>Full Due</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-4">
+                                                            <label
+                                                                className="block text-sm font-medium text-gray-700"
+                                                                htmlFor="payment-date"
+                                                            >
+                                                                Payment Date
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                id="payment-date"
+                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                value={paymentDate}
+                                                                onChange={(e) => setPaymentDate(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="mt-6">
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
+                                                                onClick={handleAddPayment}
+                                                                disabled={
+                                                                    loading ||
+                                                                    !amount ||
+                                                                    !paymentDate ||
+                                                                    assignments.length === 0
+                                                                }
+                                                            >
+                                                                Add Payment
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>

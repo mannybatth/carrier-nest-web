@@ -9,6 +9,7 @@ import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
 
 interface AssignmentsTableProps {
     assignments: ExpandedDriverAssignment[];
+    selectedAssignments: ExpandedDriverAssignment[];
     sort: Sort;
     changeSort: (sort: Sort) => void;
     loading: boolean;
@@ -59,6 +60,7 @@ const getPayStatus = (assignment: ExpandedDriverAssignment) => {
 
 const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
     assignments,
+    selectedAssignments,
     sort,
     changeSort,
     loading,
@@ -81,6 +83,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
             headers={headers}
             rows={assignments.map((assignment) => {
                 const payStatus = getPayStatus(assignment);
+                const isChecked = selectedAssignments.some((selected) => selected.id === assignment.id);
 
                 return {
                     id: assignment.id,
@@ -91,6 +94,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                                     type="checkbox"
                                     onClick={(e) => e.stopPropagation()}
                                     onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
+                                    checked={isChecked}
                                     className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
                                 />
                             ),

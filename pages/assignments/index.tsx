@@ -31,9 +31,9 @@ const AssignmentsPage = () => {
     const [assignments, setAssignments] = useState<ExpandedDriverAssignment[]>([]);
     const [loading, setLoading] = useState(true);
     const [tableLoading, setTableLoading] = useState(false);
-    const [selectedAssignment, setSelectedAssignment] = useState<ExpandedDriverAssignment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAssignments, setSelectedAssignments] = useState<ExpandedDriverAssignment[]>([]);
+    const [singleSelectedAssignment, setSingleSelectedAssignment] = useState<ExpandedDriverAssignment | null>(null);
 
     const [sort, setSort] = useState<Sort>(sortProps);
     const [limit, setLimit] = useState(limitProp);
@@ -77,7 +77,7 @@ const AssignmentsPage = () => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
         try {
-            const currentSelectedAssignmentId = selectedAssignment?.id;
+            const currentSelectedAssignmentIds = new Set(selectedAssignments.map((assignment) => assignment.id));
             const { assignments, metadata: metadataResponse } = await getAllAssignments({
                 limit,
                 offset,
@@ -87,9 +87,9 @@ const AssignmentsPage = () => {
             setAssignments(assignments);
             setMetadata(metadataResponse);
 
-            if (currentSelectedAssignmentId) {
-                setSelectedAssignment(
-                    assignments.find((assignment) => assignment.id === currentSelectedAssignmentId) || null,
+            if (currentSelectedAssignmentIds) {
+                setSelectedAssignments(
+                    assignments.filter((assignment) => currentSelectedAssignmentIds.has(assignment.id)),
                 );
             }
         } catch (error) {
@@ -129,7 +129,7 @@ const AssignmentsPage = () => {
     };
 
     const handleRowClick = (assignment: ExpandedDriverAssignment) => {
-        setSelectedAssignment(assignment);
+        setSingleSelectedAssignment(assignment);
         setIsModalOpen(true);
     };
 
@@ -142,8 +142,11 @@ const AssignmentsPage = () => {
     };
 
     const paySelectedAssignments = () => {
-        // Implement the logic to pay selected assignments
-        console.log('Paying selected assignments:', selectedAssignments);
+        setIsModalOpen(true);
+    };
+
+    const unselectAllAssignments = () => {
+        setSelectedAssignments([]);
     };
 
     return (
@@ -162,17 +165,28 @@ const AssignmentsPage = () => {
                     ) : (
                         <>
                             <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
-                                <button
-                                    type="button"
-                                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white rounded-md md:text-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
-                                    onClick={paySelectedAssignments}
-                                    disabled={!selectedAssignments || selectedAssignments?.length < 2}
-                                >
-                                    Create Batch Payments ({selectedAssignments?.length})
-                                </button>
+                                <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
+                                    <button
+                                        type="button"
+                                        className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                        onClick={paySelectedAssignments}
+                                        disabled={!selectedAssignments || selectedAssignments?.length < 2}
+                                    >
+                                        Create Batch Payments ({selectedAssignments?.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                        onClick={unselectAllAssignments}
+                                        disabled={!selectedAssignments || selectedAssignments?.length === 0}
+                                    >
+                                        Unselect All
+                                    </button>
+                                </span>
                             </div>
                             <AssignmentsTable
                                 assignments={assignments}
+                                selectedAssignments={selectedAssignments}
                                 sort={sort}
                                 changeSort={changeSort}
                                 loading={tableLoading}
@@ -193,8 +207,13 @@ const AssignmentsPage = () => {
             </div>
             <AssignmentPaymentsModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                assignment={selectedAssignment}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSingleSelectedAssignment(null);
+                }}
+                assignments={
+                    isModalOpen && (singleSelectedAssignment ? [singleSelectedAssignment] : selectedAssignments)
+                }
                 onAddPayment={() => {
                     reloadAssignments({ sort, limit, offset, useTableLoading: true });
                 }}
