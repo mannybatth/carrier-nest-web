@@ -192,8 +192,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const groupPaymentsByDriver = (
         assignments: ExpandedDriverAssignment[],
-    ): Record<string, { payment: DriverPayment; count: number }[]> => {
-        const groupedPayments: Record<string, { payment: DriverPayment; count: number }[]> = {};
+    ): Record<string, { payment: DriverPayment; refNums: string[] }[]> => {
+        const groupedPayments: Record<string, { payment: DriverPayment; refNums: string[] }[]> = {};
         if (!assignments || assignments.length === 0) return groupedPayments;
 
         assignments.forEach((assignment) => {
@@ -210,9 +210,12 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                 );
 
                 if (existingPayment) {
-                    existingPayment.count += 1;
+                    existingPayment.refNums.push(assignment.load.refNum);
                 } else {
-                    groupedPayments[driverId].push({ payment: assignmentPayment.driverPayment, count: 1 });
+                    groupedPayments[driverId].push({
+                        payment: assignmentPayment.driverPayment,
+                        refNums: [assignment.load.refNum],
+                    });
                 }
             });
         });
@@ -316,7 +319,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                             scope="col"
                                                                             className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                                                                         >
-                                                                            Count
+                                                                            For Loads
                                                                         </th>
                                                                         <th scope="col" className="relative px-6 py-3">
                                                                             <span className="sr-only">Delete</span>
@@ -326,7 +329,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                                     {groupedPayments[driverId]?.length > 0 ? (
                                                                         groupedPayments[driverId].map(
-                                                                            ({ payment, count }) => (
+                                                                            ({ payment, refNums }) => (
                                                                                 <tr key={payment.id}>
                                                                                     <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
                                                                                         {new Date(
@@ -337,7 +340,11 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                         {formatCurrency(payment.amount)}
                                                                                     </td>
                                                                                     <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                        {count}
+                                                                                        {refNums.map((refNum) => (
+                                                                                            <div key={refNum}>
+                                                                                                {refNum}
+                                                                                            </div>
+                                                                                        ))}
                                                                                     </td>
                                                                                     <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
                                                                                         <button
