@@ -365,7 +365,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                     onChange={(e) => setAmount(Number(e.target.value))}
                                                                 />
                                                             </div>
-                                                            {!assignment.assignmentPayments?.length && (
+                                                            {!assignment?.assignmentPayments?.length && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={setToFullDue}
