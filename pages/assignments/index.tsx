@@ -164,10 +164,10 @@ const AssignmentsPage = () => {
                         <CustomersTableSkeleton limit={lastAssignmentsTableLimit} />
                     ) : (
                         <>
-                            <div className="z-10 top-0 flex flex-row place-content-between md:sticky mb-4">
+                            <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
                                 <button
                                     type="button"
-                                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white rounded-md md:text-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
                                     onClick={paySelectedAssignments}
                                     disabled={selectedAssignments.length === 0}
                                 >

@@ -10,6 +10,7 @@ export type TableHeader = {
     key: string;
     title: string;
     disableSort?: boolean;
+    className?: string;
 };
 
 export type TableDataRow = {
@@ -17,6 +18,7 @@ export type TableDataRow = {
     items: {
         value?: string;
         node?: React.ReactNode;
+        className?: string;
     }[];
     menuItems?: {
         title: string;
@@ -105,9 +107,11 @@ const Table: React.FC<Props> = ({
                                         <th
                                             key={item.key}
                                             scope="col"
-                                            className={`px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase ${
-                                                !item.disableSort && 'cursor-pointer'
-                                            }`}
+                                            className={classNames(
+                                                'px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase',
+                                                !item.disableSort && 'cursor-pointer',
+                                                item.className,
+                                            )}
                                             onClick={() => !item.disableSort && onChangeSort(item.key)}
                                         >
                                             <div className="inline-flex">
@@ -166,7 +170,7 @@ const RowTemplate: React.FC<RowTemplateProps> = ({ row, rowIndex }) => {
     return (
         <>
             {row.items.map((item, index) => (
-                <td key={`item-${rowIndex}-${index}`} className="px-6 py-2">
+                <td key={`item-${rowIndex}-${index}`} className={classNames('px-6 py-2', item.className)}>
                     {item.value ? <div className="text-sm leading-5 text-gray-900">{item.value}</div> : item.node}
                 </td>
             ))}

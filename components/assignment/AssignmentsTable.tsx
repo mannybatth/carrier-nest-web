@@ -66,7 +66,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
     onCheckboxChange,
 }) => {
     const headers = [
-        { key: 'checkbox', title: ' ' },
+        { key: 'checkbox', title: ' ', disableSort: true, className: 'pl-6 pr-0' },
         { key: 'driver.name', title: 'Driver' },
         { key: 'load.refNum', title: 'Load/Order #' },
         { key: 'chargeValue', title: 'Due Amount', disableSort: true },
@@ -91,9 +91,10 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                                     type="checkbox"
                                     onClick={(e) => e.stopPropagation()}
                                     onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
-                                    className="w-4 h-4 mx-2 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
                                 />
                             ),
+                            className: 'pl-6 pr-0',
                         },
                         {
                             node: (
