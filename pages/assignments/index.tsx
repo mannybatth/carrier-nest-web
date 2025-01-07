@@ -34,6 +34,7 @@ const AssignmentsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAssignments, setSelectedAssignments] = useState<ExpandedDriverAssignment[]>([]);
     const [singleSelectedAssignment, setSingleSelectedAssignment] = useState<ExpandedDriverAssignment | null>(null);
+    const [showUnpaidOnly, setShowUnpaidOnly] = useState(false);
 
     const [sort, setSort] = useState<Sort>(sortProps);
     const [limit, setLimit] = useState(limitProp);
@@ -47,8 +48,8 @@ const AssignmentsPage = () => {
     useEffect(() => {
         setLimit(limitProp);
         setOffset(offsetProp);
-        reloadAssignments({ sort, limit: limitProp, offset: offsetProp });
-    }, [limitProp, offsetProp]);
+        reloadAssignments({ sort, limit: limitProp, offset: offsetProp, showUnpaidOnly });
+    }, [limitProp, offsetProp, showUnpaidOnly]);
 
     const changeSort = (sort: Sort) => {
         router.push(
@@ -68,11 +69,13 @@ const AssignmentsPage = () => {
         limit,
         offset,
         useTableLoading = false,
+        showUnpaidOnly = false,
     }: {
         sort?: Sort;
         limit: number;
         offset: number;
         useTableLoading?: boolean;
+        showUnpaidOnly?: boolean;
     }) => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
@@ -83,6 +86,7 @@ const AssignmentsPage = () => {
                 limit,
                 offset,
                 sort,
+                showUnpaidOnly,
             });
             setLastAssignmentsTableLimit(assignments.length !== 0 ? assignments.length : lastAssignmentsTableLimit);
             setAssignments(assignments);
@@ -166,30 +170,39 @@ const AssignmentsPage = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
+                    <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
+                        <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
+                            <button
+                                type="button"
+                                className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                onClick={paySelectedAssignments}
+                                disabled={!selectedAssignments || selectedAssignments?.length < 2}
+                            >
+                                Create Batch Payments ({selectedAssignments?.length})
+                            </button>
+                            <button
+                                type="button"
+                                className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                onClick={unselectAllAssignments}
+                                disabled={!selectedAssignments || selectedAssignments?.length === 0}
+                            >
+                                Unselect All
+                            </button>
+                        </span>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600 focus:ring-2 focus:ring-offset-2"
+                                checked={showUnpaidOnly}
+                                onChange={(e) => setShowUnpaidOnly(e.target.checked)}
+                            />
+                            <span className="text-sm font-medium text-gray-700 cursor-pointer">Show Unpaid Only</span>
+                        </label>
+                    </div>
                     {loading ? (
                         <CustomersTableSkeleton limit={lastAssignmentsTableLimit} />
                     ) : (
                         <>
-                            <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
-                                <span className="hidden rounded-md shadow-sm md:inline-flex isolate">
-                                    <button
-                                        type="button"
-                                        className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
-                                        onClick={paySelectedAssignments}
-                                        disabled={!selectedAssignments || selectedAssignments?.length < 2}
-                                    >
-                                        Create Batch Payments ({selectedAssignments?.length})
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
-                                        onClick={unselectAllAssignments}
-                                        disabled={!selectedAssignments || selectedAssignments?.length === 0}
-                                    >
-                                        Unselect All
-                                    </button>
-                                </span>
-                            </div>
                             <AssignmentsTable
                                 assignments={assignments}
                                 selectedAssignments={selectedAssignments}

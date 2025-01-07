@@ -60,11 +60,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: Session) {
     try {
         const carrierId = session.user.defaultCarrierId;
-
         const sortBy = req.query.sortBy as string;
         const sortDir = (req.query.sortDir as 'asc' | 'desc') || 'asc';
         const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
         const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
+        const showUnpaidOnly = req.query.showUnpaidOnly === 'true';
 
         if (!carrierId) {
             return res.status(400).json({
@@ -89,8 +89,15 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             }
         }
 
+        const whereClause: Prisma.DriverAssignmentWhereInput = { carrierId };
+        if (showUnpaidOnly) {
+            whereClause.assignmentPayments = {
+                none: {},
+            };
+        }
+
         const assignments = await prisma.driverAssignment.findMany({
-            where: { carrierId },
+            where: whereClause,
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
             },
@@ -109,7 +116,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         });
 
         const total = await prisma.driverAssignment.count({
-            where: { carrierId },
+            where: whereClause,
         });
 
         const metadata = calcPaginationMetadata({
