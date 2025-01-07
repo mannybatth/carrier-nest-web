@@ -61,18 +61,30 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [milesBilled, setMilesBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
     const [loadRateBilled, setLoadRateBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
 
+    const initializeAmounts = (assignments: ExpandedDriverAssignment[]) => {
+        return Object.keys(groupAssignmentsByDriver(assignments)).reduce((acc, driverId) => {
+            acc[driverId] = null;
+            return acc;
+        }, {} as Record<string, number | null>);
+    };
+
+    const initializeBilledValues = (assignments: ExpandedDriverAssignment[]) => {
+        const firstAssignment = assignments[0];
+        return {
+            hoursBilled: new Prisma.Decimal(firstAssignment?.routeLeg?.durationHours ?? 0),
+            milesBilled: new Prisma.Decimal(firstAssignment?.routeLeg?.distanceMiles ?? 0),
+            loadRateBilled: new Prisma.Decimal(firstAssignment?.load.rate ?? 0),
+        };
+    };
+
     React.useEffect(() => {
         if (isOpen) {
-            setAmounts(
-                Object.keys(groupedAssignments).reduce((acc, driverId) => {
-                    acc[driverId] = null;
-                    return acc;
-                }, {} as Record<string, number | null>),
-            );
+            setAmounts(initializeAmounts(assignments));
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
-            setHoursBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.durationHours) ?? new Prisma.Decimal(0));
-            setMilesBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.distanceMiles) ?? new Prisma.Decimal(0));
-            setLoadRateBilled(new Prisma.Decimal(assignments[0]?.load.rate));
+            const { hoursBilled, milesBilled, loadRateBilled } = initializeBilledValues(assignments);
+            setHoursBilled(hoursBilled);
+            setMilesBilled(milesBilled);
+            setLoadRateBilled(loadRateBilled);
         }
     }, [isOpen]);
 
