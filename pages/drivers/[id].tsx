@@ -220,7 +220,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     const reloadDriverPayments = async (offset = 0, limit = 10) => {
         setLoadingDriverPayments(true);
         const response = await getDriverPayments(driverId, limit, offset);
-        setDriverPayments(response.payments);
+        setDriverPayments(response.driverPayments);
         setDriverPaymentsMetadata(response.metadata);
         setLoadingDriverPayments(false);
     };
