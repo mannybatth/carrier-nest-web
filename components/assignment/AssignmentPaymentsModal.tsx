@@ -98,7 +98,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         if (paymentDate && assignments.length > 0) {
             setLoading(true);
             try {
-                for (const driverId in amounts) {
+                const paymentPromises = Object.keys(amounts).map(async (driverId) => {
                     const amount = amounts[driverId];
                     if (amount) {
                         const driverAssignmentsMap = assignments.reduce((acc, assignment) => {
@@ -119,7 +119,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                         );
                         onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
                     }
-                }
+                });
+
+                await Promise.all(paymentPromises);
                 setAmounts({});
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
