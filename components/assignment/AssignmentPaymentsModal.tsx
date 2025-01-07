@@ -200,8 +200,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const groupPaymentsByDriver = (
         assignments: ExpandedDriverAssignment[],
-    ): Record<string, { payment: DriverPayment; refNums: string[] }[]> => {
-        const groupedPayments: Record<string, { payment: DriverPayment; refNums: string[] }[]> = {};
+    ): Record<string, { payment: DriverPayment }[]> => {
+        const groupedPayments: Record<string, { payment: DriverPayment }[]> = {};
         if (!assignments || assignments.length === 0) return groupedPayments;
 
         assignments.forEach((assignment) => {
@@ -217,12 +217,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                     (groupedPayment) => groupedPayment.payment.id === paymentId,
                 );
 
-                if (existingPayment) {
-                    existingPayment.refNums.push(assignment.load.refNum);
-                } else {
+                if (!existingPayment) {
                     groupedPayments[driverId].push({
                         payment: assignmentPayment.driverPayment,
-                        refNums: [assignment.load.refNum],
                     });
                 }
             });
@@ -328,7 +325,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                 scope="col"
                                                                                 className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                                                                             >
-                                                                                For Loads
+                                                                                Batched Payment
                                                                             </th>
                                                                             <th
                                                                                 scope="col"
@@ -341,7 +338,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                     <tbody className="bg-white divide-y divide-gray-200">
                                                                         {groupedPayments[driverId]?.length > 0 ? (
                                                                             groupedPayments[driverId].map(
-                                                                                ({ payment, refNums }) => (
+                                                                                ({ payment }) => (
                                                                                     <tr key={payment.id}>
                                                                                         <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
                                                                                             {new Date(
@@ -354,16 +351,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                            {refNums.map(
-                                                                                                (refNum, index) => (
-                                                                                                    <div
-                                                                                                        key={index}
-                                                                                                        className="text-sm"
-                                                                                                    >
-                                                                                                        {refNum}
-                                                                                                    </div>
-                                                                                                ),
-                                                                                            )}
+                                                                                            {payment.isBatchPayment
+                                                                                                ? 'Yes'
+                                                                                                : 'No'}
                                                                                         </td>
                                                                                         <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
                                                                                             <button
