@@ -296,126 +296,138 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                             <div className="relative flex-1 px-4 sm:px-6">
                                                 <div className="absolute inset-0 px-4 sm:px-6">
                                                     {Object.keys(groupedAssignments).map((driverId) => (
-                                                        <div key={driverId} className="mt-6">
-                                                            <h2 className="text-lg font-medium text-gray-900">
+                                                        <div key={driverId} className="relative mt-8 border rounded-lg">
+                                                            <div className="absolute px-2 text-lg font-medium text-gray-900 bg-white -top-3 left-3">
                                                                 Driver: {groupedAssignments[driverId][0].driver.name}
-                                                            </h2>
-                                                            <table className="min-w-full mt-4 divide-y divide-gray-200">
-                                                                <thead className="bg-gray-50">
-                                                                    <tr>
-                                                                        <th
-                                                                            scope="col"
-                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                        >
-                                                                            Date
-                                                                        </th>
-                                                                        <th
-                                                                            scope="col"
-                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                        >
-                                                                            Amount
-                                                                        </th>
-                                                                        <th
-                                                                            scope="col"
-                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                        >
-                                                                            For Loads
-                                                                        </th>
-                                                                        <th scope="col" className="relative px-6 py-3">
-                                                                            <span className="sr-only">Delete</span>
-                                                                        </th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="bg-white divide-y divide-gray-200">
-                                                                    {groupedPayments[driverId]?.length > 0 ? (
-                                                                        groupedPayments[driverId].map(
-                                                                            ({ payment, refNums }) => (
-                                                                                <tr key={payment.id}>
-                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                        {new Date(
-                                                                                            payment.paymentDate,
-                                                                                        ).toLocaleDateString()}
-                                                                                    </td>
-                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                        {formatCurrency(payment.amount)}
-                                                                                    </td>
-                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                        {refNums.map((refNum) => (
-                                                                                            <div key={refNum}>
-                                                                                                {refNum}
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </td>
-                                                                                    <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                setPaymentIdToDelete(
-                                                                                                    payment.id,
-                                                                                                );
-                                                                                                setConfirmOpen(true);
-                                                                                            }}
-                                                                                            disabled={loading}
-                                                                                        >
-                                                                                            <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                                        </button>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ),
-                                                                        )
-                                                                    ) : (
+                                                            </div>
+                                                            <div className="p-4">
+                                                                <table className="min-w-full mt-4 divide-y divide-gray-200">
+                                                                    <thead className="bg-gray-50">
                                                                         <tr>
-                                                                            <td
-                                                                                colSpan={4}
-                                                                                className="px-6 py-4 text-sm text-center text-gray-500"
+                                                                            <th
+                                                                                scope="col"
+                                                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                                                                             >
-                                                                                No payments made.
-                                                                            </td>
+                                                                                Date
+                                                                            </th>
+                                                                            <th
+                                                                                scope="col"
+                                                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                            >
+                                                                                Amount
+                                                                            </th>
+                                                                            <th
+                                                                                scope="col"
+                                                                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                            >
+                                                                                For Loads
+                                                                            </th>
+                                                                            <th
+                                                                                scope="col"
+                                                                                className="relative px-6 py-3"
+                                                                            >
+                                                                                <span className="sr-only">Delete</span>
+                                                                            </th>
                                                                         </tr>
-                                                                    )}
-                                                                </tbody>
-                                                            </table>
-                                                            <div className="h-full" aria-hidden="true">
-                                                                <div className="mt-4">
-                                                                    <label
-                                                                        className="block text-sm font-medium text-gray-700"
-                                                                        htmlFor={`amount-${driverId}`}
-                                                                    >
-                                                                        Payment Amount
-                                                                    </label>
-                                                                    <div className="flex mt-1 rounded-md shadow-sm">
-                                                                        <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                                                                            <MoneyInput
-                                                                                id={`amount-${driverId}`}
-                                                                                className="rounded-none rounded-l-md"
-                                                                                value={
-                                                                                    amounts[driverId]?.toString() || ''
-                                                                                }
-                                                                                onChange={(e) =>
-                                                                                    setAmounts((prev) => ({
-                                                                                        ...prev,
-                                                                                        [driverId]: Number(
-                                                                                            e.target.value,
-                                                                                        ),
-                                                                                    }))
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                        {!groupedAssignments[driverId].some(
-                                                                            (assignment) =>
-                                                                                assignment.assignmentPayments.length >
-                                                                                0,
-                                                                        ) && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setToFullDue(driverId)}
-                                                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                                            >
-                                                                                <span>Full Due</span>
-                                                                            </button>
+                                                                    </thead>
+                                                                    <tbody className="bg-white divide-y divide-gray-200">
+                                                                        {groupedPayments[driverId]?.length > 0 ? (
+                                                                            groupedPayments[driverId].map(
+                                                                                ({ payment, refNums }) => (
+                                                                                    <tr key={payment.id}>
+                                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                            {new Date(
+                                                                                                payment.paymentDate,
+                                                                                            ).toLocaleDateString()}
+                                                                                        </td>
+                                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                            {formatCurrency(
+                                                                                                payment.amount,
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                            {refNums.map((refNum) => (
+                                                                                                <div key={refNum}>
+                                                                                                    {refNum}
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </td>
+                                                                                        <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setPaymentIdToDelete(
+                                                                                                        payment.id,
+                                                                                                    );
+                                                                                                    setConfirmOpen(
+                                                                                                        true,
+                                                                                                    );
+                                                                                                }}
+                                                                                                disabled={loading}
+                                                                                            >
+                                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                                            </button>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ),
+                                                                            )
+                                                                        ) : (
+                                                                            <tr>
+                                                                                <td
+                                                                                    colSpan={4}
+                                                                                    className="px-6 py-4 text-sm text-center text-gray-500"
+                                                                                >
+                                                                                    No payments made.
+                                                                                </td>
+                                                                            </tr>
                                                                         )}
+                                                                    </tbody>
+                                                                </table>
+                                                                <div className="h-full" aria-hidden="true">
+                                                                    <div className="mt-4">
+                                                                        <label
+                                                                            className="block text-sm font-medium text-gray-700"
+                                                                            htmlFor={`amount-${driverId}`}
+                                                                        >
+                                                                            Payment Amount
+                                                                        </label>
+                                                                        <div className="flex mt-1 rounded-md shadow-sm">
+                                                                            <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                                                <MoneyInput
+                                                                                    id={`amount-${driverId}`}
+                                                                                    className="rounded-none rounded-l-md"
+                                                                                    value={
+                                                                                        amounts[driverId]?.toString() ||
+                                                                                        ''
+                                                                                    }
+                                                                                    onChange={(e) =>
+                                                                                        setAmounts((prev) => ({
+                                                                                            ...prev,
+                                                                                            [driverId]: Number(
+                                                                                                e.target.value,
+                                                                                            ),
+                                                                                        }))
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                            {!groupedAssignments[driverId].some(
+                                                                                (assignment) =>
+                                                                                    assignment.assignmentPayments
+                                                                                        .length > 0,
+                                                                            ) && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() =>
+                                                                                        setToFullDue(driverId)
+                                                                                    }
+                                                                                    className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                                >
+                                                                                    <span>Full Due</span>
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
