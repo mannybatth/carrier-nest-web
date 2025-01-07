@@ -78,6 +78,7 @@ const AssignmentsPage = () => {
         useTableLoading && setTableLoading(true);
         try {
             const currentSelectedAssignmentIds = new Set(selectedAssignments.map((assignment) => assignment.id));
+            const currentSingleSelectedAssignmentId = singleSelectedAssignment?.id;
             const { assignments, metadata: metadataResponse } = await getAllAssignments({
                 limit,
                 offset,
@@ -90,6 +91,11 @@ const AssignmentsPage = () => {
             if (currentSelectedAssignmentIds) {
                 setSelectedAssignments(
                     assignments.filter((assignment) => currentSelectedAssignmentIds.has(assignment.id)),
+                );
+            }
+            if (currentSingleSelectedAssignmentId) {
+                setSingleSelectedAssignment(
+                    assignments.find((assignment) => assignment.id === currentSingleSelectedAssignmentId) ?? null,
                 );
             }
         } catch (error) {
