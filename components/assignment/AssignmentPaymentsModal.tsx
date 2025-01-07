@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
 import { LoadingOverlay } from '../LoadingOverlay';
-import { ChargeType, Prisma } from '@prisma/client';
+import { ChargeType, DriverPayment, Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
@@ -174,7 +174,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     };
 
-    const groupAssignmentsByDriver = (assignments: ExpandedDriverAssignment[]) => {
+    const groupAssignmentsByDriver = (
+        assignments: ExpandedDriverAssignment[],
+    ): Record<string, ExpandedDriverAssignment[]> => {
         if (!assignments || assignments?.length === 0) return {};
 
         return assignments.reduce((acc, assignment) => {
@@ -187,6 +189,38 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const groupedAssignments = groupAssignmentsByDriver(assignments);
+
+    const groupPaymentsByDriver = (
+        assignments: ExpandedDriverAssignment[],
+    ): Record<string, { payment: DriverPayment; count: number }[]> => {
+        const groupedPayments: Record<string, { payment: DriverPayment; count: number }[]> = {};
+        if (!assignments || assignments.length === 0) return groupedPayments;
+
+        assignments.forEach((assignment) => {
+            assignment.assignmentPayments.forEach((assignmentPayment) => {
+                const driverId = assignment.driver.id;
+                const paymentId = assignmentPayment.driverPayment.id;
+
+                if (!groupedPayments[driverId]) {
+                    groupedPayments[driverId] = [];
+                }
+
+                const existingPayment = groupedPayments[driverId].find(
+                    (groupedPayment) => groupedPayment.payment.id === paymentId,
+                );
+
+                if (existingPayment) {
+                    existingPayment.count += 1;
+                } else {
+                    groupedPayments[driverId].push({ payment: assignmentPayment.driverPayment, count: 1 });
+                }
+            });
+        });
+
+        return groupedPayments;
+    };
+
+    const groupedPayments = groupPaymentsByDriver(assignments);
 
     return (
         <Transition.Root show={isOpen} as="div">
@@ -278,66 +312,62 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                         >
                                                                             Amount
                                                                         </th>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                                                        >
+                                                                            Count
+                                                                        </th>
                                                                         <th scope="col" className="relative px-6 py-3">
                                                                             <span className="sr-only">Delete</span>
                                                                         </th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody className="bg-white divide-y divide-gray-200">
-                                                                    {groupedAssignments[driverId].map((assignment) => (
-                                                                        <React.Fragment key={assignment.id}>
-                                                                            {assignment.assignmentPayments?.length >
-                                                                            0 ? (
-                                                                                assignment.assignmentPayments.map(
-                                                                                    (assignmentPayment) => (
-                                                                                        <tr key={assignmentPayment.id}>
-                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                                {new Date(
-                                                                                                    assignmentPayment.driverPayment.paymentDate,
-                                                                                                ).toLocaleDateString()}
-                                                                                            </td>
-                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                                {formatCurrency(
-                                                                                                    assignmentPayment
-                                                                                                        .driverPayment
-                                                                                                        .amount,
-                                                                                                )}
-                                                                                            </td>
-                                                                                            <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                                    onClick={(e) => {
-                                                                                                        e.stopPropagation();
-                                                                                                        setPaymentIdToDelete(
-                                                                                                            assignmentPayment
-                                                                                                                .driverPayment
-                                                                                                                .id,
-                                                                                                        );
-                                                                                                        setConfirmOpen(
-                                                                                                            true,
-                                                                                                        );
-                                                                                                    }}
-                                                                                                    disabled={loading}
-                                                                                                >
-                                                                                                    <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                                                </button>
-                                                                                            </td>
-                                                                                        </tr>
-                                                                                    ),
-                                                                                )
-                                                                            ) : (
-                                                                                <tr>
-                                                                                    <td
-                                                                                        colSpan={3}
-                                                                                        className="px-6 py-4 text-sm text-center text-gray-500"
-                                                                                    >
-                                                                                        No payments made.
+                                                                    {groupedPayments[driverId]?.length > 0 ? (
+                                                                        groupedPayments[driverId].map(
+                                                                            ({ payment, count }) => (
+                                                                                <tr key={payment.id}>
+                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                        {new Date(
+                                                                                            payment.paymentDate,
+                                                                                        ).toLocaleDateString()}
+                                                                                    </td>
+                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                        {formatCurrency(payment.amount)}
+                                                                                    </td>
+                                                                                    <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                        {count}
+                                                                                    </td>
+                                                                                    <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                setPaymentIdToDelete(
+                                                                                                    payment.id,
+                                                                                                );
+                                                                                                setConfirmOpen(true);
+                                                                                            }}
+                                                                                            disabled={loading}
+                                                                                        >
+                                                                                            <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                                        </button>
                                                                                     </td>
                                                                                 </tr>
-                                                                            )}
-                                                                        </React.Fragment>
-                                                                    ))}
+                                                                            ),
+                                                                        )
+                                                                    ) : (
+                                                                        <tr>
+                                                                            <td
+                                                                                colSpan={4}
+                                                                                className="px-6 py-4 text-sm text-center text-gray-500"
+                                                                            >
+                                                                                No payments made.
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
                                                                 </tbody>
                                                             </table>
                                                             <div className="h-full" aria-hidden="true">
@@ -411,6 +441,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             Add Payment
                                                         </button>
                                                     </div>
+                                                    <div className="flex h-20"></div>
                                                 </div>
                                             </div>
                                         </div>
