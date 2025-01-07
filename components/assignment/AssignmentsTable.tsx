@@ -101,7 +101,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                                         onClick={(e) => e.stopPropagation()}
                                         onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
                                         checked={isChecked}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
                                     />
                                 </label>
                             ),

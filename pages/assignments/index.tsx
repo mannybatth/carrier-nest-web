@@ -48,7 +48,7 @@ const AssignmentsPage = () => {
     useEffect(() => {
         setLimit(limitProp);
         setOffset(offsetProp);
-        reloadAssignments({ sort, limit: limitProp, offset: offsetProp, showUnpaidOnly });
+        reloadAssignments({ sort, limit: limitProp, offset: offsetProp });
     }, [limitProp, offsetProp, showUnpaidOnly]);
 
     const changeSort = (sort: Sort) => {
@@ -69,13 +69,11 @@ const AssignmentsPage = () => {
         limit,
         offset,
         useTableLoading = false,
-        showUnpaidOnly = false,
     }: {
         sort?: Sort;
         limit: number;
         offset: number;
         useTableLoading?: boolean;
-        showUnpaidOnly?: boolean;
     }) => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
@@ -236,7 +234,7 @@ const AssignmentsPage = () => {
                 onAddPayment={() => {
                     reloadAssignments({ sort, limit, offset, useTableLoading: true });
                 }}
-                onDeletePayment={async (paymentId) => {
+                onDeletePayment={() => {
                     reloadAssignments({ sort, limit, offset, useTableLoading: true });
                 }}
             />

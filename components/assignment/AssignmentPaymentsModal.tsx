@@ -14,8 +14,8 @@ interface AssignmentPaymentsModalProps {
     isOpen: boolean;
     onClose: () => void;
     assignments: ExpandedDriverAssignment[];
-    onAddPayment: (amount: number) => void;
-    onDeletePayment: (paymentId: string) => void;
+    onAddPayment: () => void;
+    onDeletePayment: () => void;
 }
 
 const formatCurrency = (amount: number | Prisma.Decimal) => {
@@ -76,6 +76,12 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     }, [isOpen]);
 
+    React.useEffect(() => {
+        if (!assignments || assignments.length === 0) {
+            onClose();
+        }
+    }, [assignments]);
+
     const getPayStatus = (assignment: ExpandedDriverAssignment) => {
         if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
             return 'paid';
@@ -111,17 +117,17 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                             return acc;
                         }, {} as Record<string, string[]>);
 
-                        const payment = await createDriverPayments(
+                        await createDriverPayments(
                             driverId,
                             driverAssignmentsMap[driverId],
                             amount,
                             parseISO(paymentDate).toISOString(),
                         );
-                        onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
                     }
                 });
 
                 await Promise.all(paymentPromises);
+                onAddPayment();
                 setAmounts({});
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
@@ -152,7 +158,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                             (assignmentPayment) => assignmentPayment.driverPayment.id !== paymentIdToDelete,
                         );
                     });
-                    onDeletePayment(paymentIdToDelete);
+                    onDeletePayment();
                     setPaymentIdToDelete(null);
                     setConfirmOpen(false);
                 } else {
@@ -348,11 +354,16 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                            {refNums.map((refNum) => (
-                                                                                                <div key={refNum}>
-                                                                                                    {refNum}
-                                                                                                </div>
-                                                                                            ))}
+                                                                                            {refNums.map(
+                                                                                                (refNum, index) => (
+                                                                                                    <div
+                                                                                                        key={index}
+                                                                                                        className="text-sm"
+                                                                                                    >
+                                                                                                        {refNum}
+                                                                                                    </div>
+                                                                                                ),
+                                                                                            )}
                                                                                         </td>
                                                                                         <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
                                                                                             <button
