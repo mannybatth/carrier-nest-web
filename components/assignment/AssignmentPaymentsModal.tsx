@@ -51,7 +51,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     onAddPayment,
     onDeletePayment,
 }) => {
-    const [amount, setAmount] = useState<number | null>(null);
+    const [amounts, setAmounts] = useState<Record<string, number | null>>({});
     const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
     const [loading, setLoading] = useState<boolean>(false);
     const amountFieldRef = useRef(null);
@@ -63,7 +63,12 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     React.useEffect(() => {
         if (isOpen) {
-            setAmount(null);
+            setAmounts(
+                Object.keys(groupedAssignments).reduce((acc, driverId) => {
+                    acc[driverId] = null;
+                    return acc;
+                }, {} as Record<string, number | null>),
+            );
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
             setHoursBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.durationHours) ?? new Prisma.Decimal(0));
             setMilesBilled(new Prisma.Decimal(assignments[0]?.routeLeg?.distanceMiles) ?? new Prisma.Decimal(0));
@@ -90,27 +95,32 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const handleAddPayment = async () => {
-        if (amount && paymentDate && assignments.length > 0) {
+        if (paymentDate && assignments.length > 0) {
             setLoading(true);
             try {
-                const driverAssignmentsMap = assignments.reduce((acc, assignment) => {
-                    if (!acc[assignment.driver.id]) {
-                        acc[assignment.driver.id] = [];
-                    }
-                    acc[assignment.driver.id].push(assignment.id);
-                    return acc;
-                }, {} as Record<string, string[]>);
+                for (const driverId in amounts) {
+                    const amount = amounts[driverId];
+                    if (amount) {
+                        const driverAssignmentsMap = assignments.reduce((acc, assignment) => {
+                            if (assignment.driver.id === driverId) {
+                                if (!acc[driverId]) {
+                                    acc[driverId] = [];
+                                }
+                                acc[driverId].push(assignment.id);
+                            }
+                            return acc;
+                        }, {} as Record<string, string[]>);
 
-                for (const driverId in driverAssignmentsMap) {
-                    const payment = await createDriverPayments(
-                        driverId,
-                        driverAssignmentsMap[driverId],
-                        amount,
-                        parseISO(paymentDate).toISOString(),
-                    );
-                    onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
+                        const payment = await createDriverPayments(
+                            driverId,
+                            driverAssignmentsMap[driverId],
+                            amount,
+                            parseISO(paymentDate).toISOString(),
+                        );
+                        onAddPayment(new Prisma.Decimal(payment.amount).toNumber());
+                    }
                 }
-                setAmount(null);
+                setAmounts({});
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
                 console.error('Error adding payment:', error);
@@ -154,12 +164,12 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     };
 
-    const setToFullDue = () => {
+    const setToFullDue = (driverId: string) => {
         if (assignments.length > 0) {
-            const totalAmountDue = assignments.reduce((acc, assignment) => {
+            const totalAmountDue = groupedAssignments[driverId].reduce((acc, assignment) => {
                 return acc.plus(calculateAssignmentTotalPay(assignment));
             }, new Prisma.Decimal(0));
-            setAmount(totalAmountDue.toNumber());
+            setAmounts((prev) => ({ ...prev, [driverId]: totalAmountDue.toNumber() }));
             amountFieldRef?.current?.focus();
         }
     };
@@ -185,7 +195,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                 className="relative z-10"
                 onClose={() => {
                     if (!confirmOpen) {
-                        setAmount(null);
+                        setAmounts({});
                         setPaymentDate(new Date().toLocaleDateString('en-CA'));
                         onClose();
                     }
@@ -218,7 +228,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
                                     {loading && <LoadingOverlay />}
                                     {assignments && assignments.length > 0 && (
-                                        <div className="flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
+                                        <div className="flex flex-col h-full overflow-y-auto bg-white shadow-xl">
                                             <div className="px-4 py-6 text-white bg-blue-600 sm:px-6">
                                                 <div className="flex items-start justify-between">
                                                     <Dialog.Title className="text-lg font-medium">
@@ -330,71 +340,76 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                     ))}
                                                                 </tbody>
                                                             </table>
-                                                        </div>
-                                                    ))}
-                                                    <div className="h-full" aria-hidden="true">
-                                                        <div className="mt-4">
-                                                            <label
-                                                                className="block text-sm font-medium text-gray-700"
-                                                                htmlFor="amount"
-                                                            >
-                                                                Payment Amount
-                                                            </label>
-                                                            <div className="flex mt-1 rounded-md shadow-sm">
-                                                                <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                                                                    <MoneyInput
-                                                                        id="amount"
-                                                                        className="rounded-none rounded-l-md"
-                                                                        value={amount?.toString() || ''}
-                                                                        onChange={(e) =>
-                                                                            setAmount(Number(e.target.value))
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                                {!assignments.some(
-                                                                    (assignment) =>
-                                                                        assignment.assignmentPayments.length > 0,
-                                                                ) && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={setToFullDue}
-                                                                        className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                            <div className="h-full" aria-hidden="true">
+                                                                <div className="mt-4">
+                                                                    <label
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                        htmlFor={`amount-${driverId}`}
                                                                     >
-                                                                        <span>Full Due</span>
-                                                                    </button>
-                                                                )}
+                                                                        Payment Amount
+                                                                    </label>
+                                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                                        <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                                                                            <MoneyInput
+                                                                                id={`amount-${driverId}`}
+                                                                                className="rounded-none rounded-l-md"
+                                                                                value={
+                                                                                    amounts[driverId]?.toString() || ''
+                                                                                }
+                                                                                onChange={(e) =>
+                                                                                    setAmounts((prev) => ({
+                                                                                        ...prev,
+                                                                                        [driverId]: Number(
+                                                                                            e.target.value,
+                                                                                        ),
+                                                                                    }))
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        {!groupedAssignments[driverId].some(
+                                                                            (assignment) =>
+                                                                                assignment.assignmentPayments.length >
+                                                                                0,
+                                                                        ) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setToFullDue(driverId)}
+                                                                                className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                            >
+                                                                                <span>Full Due</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="mt-4">
-                                                            <label
-                                                                className="block text-sm font-medium text-gray-700"
-                                                                htmlFor="payment-date"
-                                                            >
-                                                                Payment Date
-                                                            </label>
-                                                            <input
-                                                                type="date"
-                                                                id="payment-date"
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                value={paymentDate}
-                                                                onChange={(e) => setPaymentDate(e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div className="mt-6">
-                                                            <button
-                                                                type="button"
-                                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
-                                                                onClick={handleAddPayment}
-                                                                disabled={
-                                                                    loading ||
-                                                                    !amount ||
-                                                                    !paymentDate ||
-                                                                    assignments.length === 0
-                                                                }
-                                                            >
-                                                                Add Payment
-                                                            </button>
-                                                        </div>
+                                                    ))}
+                                                    <div className="mt-4">
+                                                        <label
+                                                            className="block text-sm font-medium text-gray-700"
+                                                            htmlFor="payment-date"
+                                                        >
+                                                            Payment Date
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            id="payment-date"
+                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                            value={paymentDate}
+                                                            onChange={(e) => setPaymentDate(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="mt-6">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
+                                                            onClick={handleAddPayment}
+                                                            disabled={
+                                                                loading || !paymentDate || assignments.length === 0
+                                                            }
+                                                        >
+                                                            Add Payment
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
