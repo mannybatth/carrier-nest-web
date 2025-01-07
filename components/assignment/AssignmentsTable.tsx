@@ -91,7 +91,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                         {
                             node: (
                                 <label
-                                    className="flex items-center py-6 pl-4 pr-6 cursor-pointer"
+                                    className="flex items-center py-6 pl-4 pr-6 cursor-pointer xl:py-3"
                                     htmlFor={`assignment-${assignment.id}`}
                                     onClick={(e) => e.stopPropagation()}
                                 >
