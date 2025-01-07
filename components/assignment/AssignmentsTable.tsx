@@ -13,6 +13,7 @@ interface AssignmentsTableProps {
     changeSort: (sort: Sort) => void;
     loading: boolean;
     onRowClick?: (assignment: ExpandedDriverAssignment) => void;
+    onCheckboxChange: (assignment: ExpandedDriverAssignment, isChecked: boolean) => void;
 }
 
 const getHumanReadableCharge = (assignment: ExpandedDriverAssignment) => {
@@ -56,8 +57,16 @@ const getPayStatus = (assignment: ExpandedDriverAssignment) => {
     }
 };
 
-const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, changeSort, loading, onRowClick }) => {
+const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
+    assignments,
+    sort,
+    changeSort,
+    loading,
+    onRowClick,
+    onCheckboxChange,
+}) => {
     const headers = [
+        { key: 'checkbox', title: ' ' },
         { key: 'driver.name', title: 'Driver' },
         { key: 'load.refNum', title: 'Load/Order #' },
         { key: 'chargeValue', title: 'Due Amount', disableSort: true },
@@ -76,6 +85,16 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
                 return {
                     id: assignment.id,
                     items: [
+                        {
+                            node: (
+                                <input
+                                    type="checkbox"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => onCheckboxChange(assignment, e.target.checked)}
+                                    className="w-4 h-4 mx-2 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                />
+                            ),
+                        },
                         {
                             node: (
                                 <Link href={`/drivers/${assignment.driver.id}`} onClick={(e) => e.stopPropagation()}>

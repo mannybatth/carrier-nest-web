@@ -12,6 +12,9 @@ import { useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
 import AssignmentPaymentsModal from 'components/assignment/AssignmentPaymentsModal';
+import { Menu, Transition } from '@headlessui/react';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import classNames from 'classnames';
 
 const AssignmentsPage = () => {
     const searchParams = useSearchParams();
@@ -33,6 +36,7 @@ const AssignmentsPage = () => {
     const [tableLoading, setTableLoading] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState<ExpandedDriverAssignment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedAssignments, setSelectedAssignments] = useState<ExpandedDriverAssignment[]>([]);
 
     const [sort, setSort] = useState<Sort>(sortProps);
     const [limit, setLimit] = useState(limitProp);
@@ -132,6 +136,19 @@ const AssignmentsPage = () => {
         setIsModalOpen(true);
     };
 
+    const handleCheckboxChange = (assignment: ExpandedDriverAssignment, isChecked: boolean) => {
+        if (isChecked) {
+            setSelectedAssignments([...selectedAssignments, assignment]);
+        } else {
+            setSelectedAssignments(selectedAssignments.filter((a) => a.id !== assignment.id));
+        }
+    };
+
+    const paySelectedAssignments = () => {
+        // Implement the logic to pay selected assignments
+        console.log('Paying selected assignments:', selectedAssignments);
+    };
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Driver Assignments</h1>}>
             <div className="py-2 mx-auto max-w-7xl">
@@ -147,12 +164,23 @@ const AssignmentsPage = () => {
                         <CustomersTableSkeleton limit={lastAssignmentsTableLimit} />
                     ) : (
                         <>
+                            <div className="z-10 top-0 flex flex-row place-content-between md:sticky mb-4">
+                                <button
+                                    type="button"
+                                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                                    onClick={paySelectedAssignments}
+                                    disabled={selectedAssignments.length === 0}
+                                >
+                                    Pay Selected Assignments
+                                </button>
+                            </div>
                             <AssignmentsTable
                                 assignments={assignments}
                                 sort={sort}
                                 changeSort={changeSort}
                                 loading={tableLoading}
                                 onRowClick={handleRowClick}
+                                onCheckboxChange={handleCheckboxChange}
                             />
                             {assignments.length !== 0 && !loading && (
                                 <Pagination
