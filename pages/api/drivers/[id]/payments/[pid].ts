@@ -20,24 +20,22 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _delete() {
         const session = await getServerSession(req, res, authOptions);
 
-        const payment = await prisma.assignmentPayment.findFirst({
+        const payment = await prisma.driverPayment.findFirst({
             where: {
                 id: String(req.query.pid),
-                driverAssignment: {
-                    id: String(req.query.id),
-                    carrierId: session.user.defaultCarrierId,
-                },
+                driverId: String(req.query.id),
+                carrierId: session.user.defaultCarrierId,
             },
         });
 
         if (!payment) {
             return res.status(404).send({
                 code: 404,
-                errors: [{ message: 'Assignment payment not found' }],
+                errors: [{ message: 'Driver payment not found' }],
             });
         }
 
-        await prisma.assignmentPayment.delete({
+        await prisma.driverPayment.delete({
             where: {
                 id: String(req.query.pid),
             },
@@ -45,7 +43,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         return res.status(200).send({
             code: 200,
-            data: { result: 'Assignment payment deleted' },
+            data: { result: 'Driver payment deleted' },
         });
     }
 }

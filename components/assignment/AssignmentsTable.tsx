@@ -49,15 +49,8 @@ const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
 };
 
 const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-    const totalPay = calculateAssignmentTotalPay(assignment);
-    const totalPaid =
-        assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
-        new Prisma.Decimal(0);
-
-    if (totalPaid.gte(totalPay)) {
+    if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
         return 'paid';
-    } else if (totalPaid.gt(0)) {
-        return 'partially paid';
     } else {
         return 'not paid';
     }
@@ -70,7 +63,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
         { key: 'chargeValue', title: 'Pay Amount', disableSort: true },
         { key: 'payStatus', title: 'Pay Status', disableSort: true },
         { key: 'assignedAt', title: 'Assigned At' },
-        { key: 'actions', title: ' ', disableSort: true }, // Add new column header
+        { key: 'actions', title: ' ', disableSort: true },
     ];
 
     return (
@@ -127,7 +120,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
                                     <ChevronDoubleRightIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
                                 </button>
                             ),
-                        }, // Add new column with button
+                        },
                     ],
                 };
             })}
@@ -164,8 +157,6 @@ const getStatusStyles = (status: string) => {
     switch (status) {
         case 'paid':
             return { textColor: 'text-green-800', bgColor: 'bg-green-100' };
-        case 'partially paid':
-            return { textColor: 'text-yellow-800', bgColor: 'bg-yellow-100' };
         case 'not paid':
             return { textColor: 'text-red-800', bgColor: 'bg-red-100' };
         default:

@@ -2,13 +2,13 @@ import React, { useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
-import { createAssignmentPayment, deleteAssignmentPayment } from '../../lib/rest/assignment';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { ChargeType, Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
 import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
+import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payment';
 
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
@@ -26,8 +26,6 @@ const getStatusStyles = (status: string) => {
     switch (status) {
         case 'paid':
             return { textColor: 'text-green-800', bgColor: 'bg-green-100' };
-        case 'partially paid':
-            return { textColor: 'text-yellow-800', bgColor: 'bg-yellow-100' };
         case 'not paid':
             return { textColor: 'text-red-800', bgColor: 'bg-red-100' };
         default:
@@ -39,8 +37,6 @@ const getStatusMessage = (status: string) => {
     switch (status) {
         case 'paid':
             return 'This assignment has been fully paid.';
-        case 'partially paid':
-            return 'This assignment has been partially paid.';
         case 'not paid':
             return 'This assignment has not been paid for yet.';
         default:
@@ -60,7 +56,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [loading, setLoading] = useState<boolean>(false);
     const amountFieldRef = useRef(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+    const [paymentIdToDelete, setPaymentIdToDelete] = useState<string | null>(null);
     const [hoursBilled, setHoursBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
     const [milesBilled, setMilesBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
     const [loadRateBilled, setLoadRateBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
@@ -76,15 +72,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     }, [isOpen]);
 
     const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-        const totalPay = calculateAssignmentTotalPay(assignment);
-        const totalPaid =
-            assignment.payments?.reduce((sum, payment) => sum.plus(payment.amount), new Prisma.Decimal(0)) ??
-            new Prisma.Decimal(0);
-
-        if (totalPaid.gte(totalPay)) {
+        if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
             return 'paid';
-        } else if (totalPaid.gt(0)) {
-            return 'partially paid';
         } else {
             return 'not paid';
         }
@@ -104,8 +93,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         if (amount && paymentDate && assignment) {
             setLoading(true);
             try {
-                const payment = await createAssignmentPayment(
-                    assignment.id,
+                const payment = await createDriverPayments(
+                    assignment.driver.id,
+                    [assignment.id],
                     amount,
                     parseISO(paymentDate).toISOString(),
                 );
@@ -121,13 +111,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     };
 
     const handleDeletePayment = async () => {
-        if (paymentToDelete && assignment) {
+        if (paymentIdToDelete && assignment) {
             setLoading(true);
             try {
-                await deleteAssignmentPayment(assignment.id, paymentToDelete);
-                assignment.payments = assignment.payments.filter((payment) => payment.id !== paymentToDelete);
-                onDeletePayment(paymentToDelete);
-                setPaymentToDelete(null);
+                await deleteDriverPayment(assignment.driver.id, paymentIdToDelete);
+                assignment.assignmentPayments = assignment.assignmentPayments.filter(
+                    (assignmentPayment) => assignmentPayment.driverPayment.id !== paymentIdToDelete,
+                );
+                onDeletePayment(paymentIdToDelete);
+                setPaymentIdToDelete(null);
                 setConfirmOpen(false);
             } catch (error) {
                 console.error('Error deleting payment:', error);
@@ -140,15 +132,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const setToFullDue = () => {
         if (assignment) {
             const totalAmountDue = calculateAssignmentTotalPay(assignment);
-            const paidAmount = assignment.payments.reduce(
-                (acc, payment) => acc.plus(payment.amount),
-                new Prisma.Decimal(0),
-            );
-            const remainingAmount = totalAmountDue.minus(paidAmount);
-            if (remainingAmount.toNumber() > 0) {
-                setAmount(remainingAmount.toNumber());
-                amountFieldRef?.current?.focus();
-            }
+            setAmount(totalAmountDue.toNumber());
+            amountFieldRef?.current?.focus();
         }
     };
 
@@ -257,33 +242,41 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             </tr>
                                                         </thead>
                                                         <tbody className="bg-white divide-y divide-gray-200">
-                                                            {assignment?.payments?.length > 0 ? (
-                                                                assignment.payments.map((payment) => (
-                                                                    <tr key={payment.id}>
-                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                            {new Date(
-                                                                                payment.paymentDate,
-                                                                            ).toLocaleDateString()}
-                                                                        </td>
-                                                                        <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                            {formatCurrency(payment.amount)}
-                                                                        </td>
-                                                                        <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setPaymentToDelete(payment.id);
-                                                                                    setConfirmOpen(true);
-                                                                                }}
-                                                                                disabled={loading}
-                                                                            >
-                                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))
+                                                            {assignment?.assignmentPayments?.length > 0 ? (
+                                                                assignment.assignmentPayments.map(
+                                                                    (assignmentPayment) => (
+                                                                        <tr key={assignmentPayment.id}>
+                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                {new Date(
+                                                                                    assignmentPayment.driverPayment.paymentDate,
+                                                                                ).toLocaleDateString()}
+                                                                            </td>
+                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
+                                                                                {formatCurrency(
+                                                                                    assignmentPayment.driverPayment
+                                                                                        .amount,
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setPaymentIdToDelete(
+                                                                                            assignmentPayment
+                                                                                                .driverPayment.id,
+                                                                                        );
+                                                                                        setConfirmOpen(true);
+                                                                                    }}
+                                                                                    disabled={loading}
+                                                                                >
+                                                                                    <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ),
+                                                                )
                                                             ) : (
                                                                 <tr>
                                                                     <td
@@ -372,34 +365,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                     onChange={(e) => setAmount(Number(e.target.value))}
                                                                 />
                                                             </div>
-                                                            {assignment &&
-                                                                calculateAssignmentTotalPay(assignment)
-                                                                    .minus(
-                                                                        assignment.payments.reduce(
-                                                                            (acc, payment) => acc.plus(payment.amount),
-                                                                            new Prisma.Decimal(0),
-                                                                        ),
-                                                                    )
-                                                                    .toNumber() > 0 && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={setToFullDue}
-                                                                        className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                                    >
-                                                                        <span>
-                                                                            {assignment &&
-                                                                            assignment.payments
-                                                                                .reduce(
-                                                                                    (acc, payment) =>
-                                                                                        acc.plus(payment.amount),
-                                                                                    new Prisma.Decimal(0),
-                                                                                )
-                                                                                .equals(0)
-                                                                                ? 'Full Due'
-                                                                                : 'Full Remaining'}
-                                                                        </span>
-                                                                    </button>
-                                                                )}
+                                                            {assignment && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={setToFullDue}
+                                                                    className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                >
+                                                                    <span>Full Due</span>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="mt-4">

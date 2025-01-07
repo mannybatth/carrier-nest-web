@@ -99,7 +99,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             include: {
                 driver: true,
                 load: true,
-                payments: true,
+                assignmentPayments: true,
                 routeLeg: true,
             },
         });

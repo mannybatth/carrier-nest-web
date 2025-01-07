@@ -12,7 +12,6 @@ import { useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
 import AssignmentPaymentsModal from 'components/assignment/AssignmentPaymentsModal';
-import { AssignmentPayment, Prisma } from '@prisma/client';
 
 const AssignmentsPage = () => {
     const searchParams = useSearchParams();

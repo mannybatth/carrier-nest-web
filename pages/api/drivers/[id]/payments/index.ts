@@ -9,7 +9,7 @@ import { calcPaginationMetadata } from '../../../../../lib/pagination';
 const buildOrderBy = (
     sortBy: string,
     sortDir: 'asc' | 'desc',
-): Prisma.Enumerable<Prisma.AssignmentPaymentOrderByWithRelationInput> => {
+): Prisma.Enumerable<Prisma.DriverPaymentOrderByWithRelationInput> => {
     if (sortBy && sortDir) {
         if (sortBy.includes('.')) {
             const split = sortBy.split('.');
@@ -36,6 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     switch (req.method) {
         case 'GET':
             return _get(req, res, session);
+        case 'POST':
+            return _post(req, res, session);
         default:
             return res.status(405).json({
                 code: 405,
@@ -85,7 +87,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             }
         }
 
-        const payments = await prisma.assignmentPayment.findMany({
+        const payments = await prisma.driverPayment.findMany({
             where: { driverId, carrierId },
             orderBy: buildOrderBy(sortBy, sortDir) || {
                 createdAt: 'desc',
@@ -93,11 +95,16 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             ...(limit ? { take: limit } : { take: 10 }),
             ...(offset ? { skip: offset } : { skip: 0 }),
             include: {
-                load: true,
+                assignmentPayments: {
+                    include: {
+                        load: true,
+                        driverAssignment: true,
+                    },
+                },
             },
         });
 
-        const total = await prisma.assignmentPayment.count({
+        const total = await prisma.driverPayment.count({
             where: { driverId, carrierId },
         });
 
@@ -115,7 +122,116 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             },
         });
     } catch (error) {
-        console.error('Error fetching assignment payments:', error);
+        console.error('Error fetching driver payments:', error);
+        return res.status(500).json({
+            code: 500,
+            errors: [{ message: 'Internal server error' }],
+        });
+    }
+}
+
+async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: any) {
+    const { amount, paymentDate, driverAssignmentIds } = req.body;
+    const { id: driverId } = req.query;
+
+    if (!amount || !paymentDate || !driverId || (!driverAssignmentIds && !driverAssignmentIds.length)) {
+        return res.status(400).json({
+            code: 400,
+            errors: [{ message: 'Missing required fields' }],
+        });
+    }
+
+    try {
+        if (driverAssignmentIds.length > 1) {
+            // Batch payments
+
+            const driverAssignments = await prisma.driverAssignment.findMany({
+                where: {
+                    id: { in: driverAssignmentIds },
+                    carrierId: session.user.defaultCarrierId,
+                    driverId: driverId as string,
+                },
+                include: { load: true, driver: true },
+            });
+
+            if (driverAssignments.length === 0) {
+                return res.status(404).json({
+                    code: 404,
+                    errors: [{ message: 'Driver assignments not found' }],
+                });
+            }
+
+            const driverPayment = await prisma.driverPayment.create({
+                data: {
+                    amount,
+                    paymentDate: new Date(paymentDate),
+                    carrierId: session.user.defaultCarrierId,
+                    driverId: driverId as string,
+                    isBatchPayment: true,
+                },
+            });
+
+            const assignmentPayments = driverAssignments.map(
+                (driverAssignment): Prisma.AssignmentPaymentCreateManyInput => ({
+                    carrierId: session.user.defaultCarrierId,
+                    loadId: driverAssignment.loadId,
+                    driverAssignmentId: driverAssignment.id,
+                    driverPaymentId: driverPayment.id,
+                }),
+            );
+
+            await prisma.assignmentPayment.createMany({
+                data: assignmentPayments,
+            });
+
+            return res.status(201).json({
+                code: 201,
+                data: { driverPayment },
+            });
+        } else {
+            // Single payment
+
+            const driverAssignment = await prisma.driverAssignment.findUnique({
+                where: {
+                    id: driverAssignmentIds[0],
+                    carrierId: session.user.defaultCarrierId,
+                    driverId: driverId as string,
+                },
+                include: { load: true, driver: true },
+            });
+
+            if (!driverAssignment) {
+                return res.status(404).json({
+                    code: 404,
+                    errors: [{ message: 'Driver assignment not found' }],
+                });
+            }
+
+            const driverPayment = await prisma.driverPayment.create({
+                data: {
+                    amount,
+                    paymentDate: new Date(paymentDate),
+                    carrierId: session.user.defaultCarrierId,
+                    driverId: driverId as string,
+                },
+            });
+
+            await prisma.assignmentPayment.create({
+                data: {
+                    carrierId: session.user.defaultCarrierId,
+                    loadId: driverAssignment.loadId,
+                    driverAssignmentId: driverAssignment.id,
+                    driverPaymentId: driverPayment.id,
+                },
+            });
+
+            return res.status(201).json({
+                code: 201,
+                data: { driverPayment },
+            });
+        }
+    } catch (error) {
+        console.error('Error creating assignment payment:', error);
         return res.status(500).json({
             code: 500,
             errors: [{ message: 'Internal server error' }],

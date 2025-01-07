@@ -431,19 +431,19 @@ model Driver {
 }
 
 model DriverPayment {
-    id              String              @id @default(cuid())
-    createdAt       DateTime            @default(now())
-    updatedAt       DateTime            @default(now()) @updatedAt
-    carrierId       String
-    amount          Decimal
-    paymentDate     DateTime
-    checkNumber     String?
-    isDirectDeposit Boolean             @default(false)
-    isCashPayment   Boolean             @default(false)
-    driverId        String
-    driver          Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
-    isBatchPayment  Boolean             @default(false)
-    payments        AssignmentPayment[]
+    id                 String              @id @default(cuid())
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @default(now()) @updatedAt
+    carrierId          String
+    amount             Decimal
+    paymentDate        DateTime
+    checkNumber        String?
+    isDirectDeposit    Boolean             @default(false)
+    isCashPayment      Boolean             @default(false)
+    driverId           String
+    driver             Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
+    isBatchPayment     Boolean             @default(false)
+    assignmentPayments AssignmentPayment[]
 }
 
 model AssignmentPayment {
@@ -455,8 +455,8 @@ model AssignmentPayment {
     load               Load?             @relation(fields: [loadId], references: [id], onDelete: SetNull)
     driverAssignmentId String?
     driverAssignment   DriverAssignment? @relation(fields: [driverAssignmentId], references: [id], onDelete: SetNull)
-    paymentId          String?
-    payment            DriverPayment?    @relation(fields: [paymentId], references: [id])
+    driverPaymentId    String?
+    driverPayment      DriverPayment?    @relation(fields: [driverPaymentId], references: [id], onDelete: Cascade)
 }
 
 enum ChargeType {
@@ -483,7 +483,7 @@ model DriverAssignment {
     billedDistanceMiles Decimal?
     billedDurationHours Decimal?
     billedLoadRate      Decimal?
-    payments            AssignmentPayment[]
+    assignmentPayments  AssignmentPayment[]
 
     @@unique([driverId, routeLegId])
 }

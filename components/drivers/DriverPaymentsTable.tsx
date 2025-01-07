@@ -2,21 +2,21 @@ import React from 'react';
 import { Prisma } from '@prisma/client';
 import { Sort } from '../../interfaces/table';
 import Table from '../Table';
-import { ExpandedAssignmentPayment } from 'interfaces/models';
+import { ExpandedDriverPayment } from 'interfaces/models';
 import Link from 'next/link';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
 
-interface AssignmentPaymentsTableProps {
-    payments: ExpandedAssignmentPayment[];
+interface DriverPaymentsTableProps {
+    payments: ExpandedDriverPayment[];
     sort: Sort;
     changeSort: (sort: Sort) => void;
     loading: boolean;
 }
 
-const AssignmentPaymentsTable: React.FC<AssignmentPaymentsTableProps> = ({ payments, sort, changeSort, loading }) => {
+const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({ payments, sort, changeSort, loading }) => {
     const headers = [
         { key: 'load.refNum', title: 'Load/Order #' },
         { key: 'paymentDate', title: 'Payment Date' },
@@ -27,18 +27,22 @@ const AssignmentPaymentsTable: React.FC<AssignmentPaymentsTableProps> = ({ payme
         <Table
             loading={loading}
             headers={headers}
-            rows={payments.map((payment) => ({
-                id: payment.id,
+            rows={payments.map((driverPayment) => ({
+                id: driverPayment.id,
                 items: [
                     {
                         node: (
-                            <Link href={`/loads/${payment.loadId}`} onClick={(e) => e.stopPropagation()}>
-                                {payment.load.refNum}
-                            </Link>
+                            <>
+                                {driverPayment.assignmentPayments.map((payment) => {
+                                    <Link href={`/loads/${payment.loadId}`} onClick={(e) => e.stopPropagation()}>
+                                        {payment.load.refNum}
+                                    </Link>;
+                                })}
+                            </>
                         ),
                     },
-                    { value: new Date(payment.paymentDate).toLocaleDateString() },
-                    { value: formatCurrency(new Prisma.Decimal(payment.amount).toNumber()) },
+                    { value: new Date(driverPayment.paymentDate).toLocaleDateString() },
+                    { value: formatCurrency(new Prisma.Decimal(driverPayment.amount).toNumber()) },
                 ],
             }))}
             sort={sort}
@@ -55,4 +59,4 @@ const AssignmentPaymentsTable: React.FC<AssignmentPaymentsTableProps> = ({ payme
     );
 };
 
-export default AssignmentPaymentsTable;
+export default DriverPaymentsTable;

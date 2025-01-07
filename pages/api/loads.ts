@@ -257,8 +257,8 @@ export const getLoads = async ({
                               driver: true,
                               chargeType: true,
                               chargeValue: true,
-                              billedDistance: true,
-                              billedDuration: true,
+                              billedDistanceMiles: true,
+                              billedDurationHours: true,
                               billedLoadRate: true,
                           },
                       },
@@ -405,8 +405,8 @@ export const postLoads = async ({
                         },
                     }),
                 routeEncoded: loadData.routeEncoded || '',
-                routeDistance: loadData.routeDistance || 0,
-                routeDuration: loadData.routeDuration || 0,
+                routeDistanceMiles: loadData.routeDistanceMiles || 0,
+                routeDurationHours: loadData.routeDurationHours || 0,
                 ...(loadData.rateconDocument
                     ? {
                           rateconDocument: {

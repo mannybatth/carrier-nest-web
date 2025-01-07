@@ -1,0 +1,69 @@
+import { ExpandedDriverPayment, JSONResponse } from 'interfaces/models';
+import { PaginationMetadata } from 'interfaces/table';
+import { apiUrl } from '../../constants';
+
+export const getDriverPayments = async (
+    driverId: string,
+    limit = 10,
+    offset = 0,
+    sortBy = 'createdAt',
+    sortDir: 'asc' | 'desc' = 'desc',
+): Promise<{ payments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> => {
+    try {
+        const response = await fetch(
+            `${apiUrl}/api/drivers/${driverId}/payments?limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortDir=${sortDir}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(`Error fetching assignment payments: ${response.statusText}`);
+        }
+
+        const { data, errors }: JSONResponse<{ payments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> =
+            await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching assignment payments:', error);
+        throw error;
+    }
+};
+
+export const createDriverPayments = async (
+    driverId: string,
+    driverAssignmentIds: string[],
+    amount: number,
+    paymentDate: string,
+): Promise<ExpandedDriverPayment> => {
+    const response = await fetch(`${apiUrl}/drivers/${driverId}/payments`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount, paymentDate, driverAssignmentIds }),
+    });
+
+    const { data, errors }: JSONResponse<{ payment: ExpandedDriverPayment }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+
+    return data.payment;
+};
+
+export const deleteDriverPayment = async (driverId: string, driverPaymentId: string): Promise<void> => {
+    const response = await fetch(`${apiUrl}/drivers/${driverId}/payments/${driverPaymentId}`, {
+        method: 'DELETE',
+    });
+
+    const { errors }: JSONResponse<void> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+};

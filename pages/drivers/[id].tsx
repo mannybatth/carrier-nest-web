@@ -12,7 +12,7 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedAssignmentPayment, ExpandedDriver, ExpandedLoad } from '../../interfaces/models';
+import { ExpandedDriver, ExpandedDriverPayment, ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
@@ -21,8 +21,8 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 import EquipmentsTable from '../../components/equipments/EquipmentsTable';
 import { deleteEquipmentById } from '../../lib/rest/equipment';
 import { getChargeTypeLabel } from 'lib/driver/driver-utils';
-import { getAssignmentPayments } from '../../lib/rest/assignment-payment';
-import AssignmentPaymentsTable from '../../components/assignment/AssignmentPaymentsTable';
+import { getDriverPayments } from '../../lib/rest/driver-payment';
+import DriverPaymentsTable from '../../components/drivers/DriverPaymentsTable';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -138,18 +138,18 @@ const DriverDetailsPage: PageWithAuth = () => {
     });
     const router = useRouter();
 
-    const [assignmentPayments, setAssignmentPayments] = React.useState<ExpandedAssignmentPayment[]>([]);
-    const [assignmentPaymentsMetadata, setAssignmentPaymentsMetadata] = React.useState<PaginationMetadata>({
+    const [driverPayments, setDriverPayments] = React.useState<ExpandedDriverPayment[]>([]);
+    const [driverPaymentsMetadata, setDriverPaymentsMetadata] = React.useState<PaginationMetadata>({
         total: 0,
         currentOffset: 0,
         currentLimit: 10,
     });
-    const [loadingAssignmentPayments, setLoadingAssignmentPayments] = React.useState(true);
+    const [loadingDriverPayments, setLoadingDriverPayments] = React.useState(true);
 
     useEffect(() => {
         if (driverId) {
             reloadDriver();
-            reloadAssignmentPayments();
+            reloadDriverPayments();
         }
     }, [driverId]);
 
@@ -217,25 +217,22 @@ const DriverDetailsPage: PageWithAuth = () => {
         setTableLoading(false);
     };
 
-    const reloadAssignmentPayments = async (offset = 0, limit = 10) => {
-        setLoadingAssignmentPayments(true);
-        const response = await getAssignmentPayments(driverId, limit, offset);
-        setAssignmentPayments(response.data.payments);
-        setAssignmentPaymentsMetadata(response.data.metadata);
-        setLoadingAssignmentPayments(false);
+    const reloadDriverPayments = async (offset = 0, limit = 10) => {
+        setLoadingDriverPayments(true);
+        const response = await getDriverPayments(driverId, limit, offset);
+        setDriverPayments(response.payments);
+        setDriverPaymentsMetadata(response.metadata);
+        setLoadingDriverPayments(false);
     };
 
-    const previousAssignmentPaymentsPage = async () => {
-        const newOffset = Math.max(
-            0,
-            assignmentPaymentsMetadata.currentOffset - assignmentPaymentsMetadata.currentLimit,
-        );
-        await reloadAssignmentPayments(newOffset, assignmentPaymentsMetadata.currentLimit);
+    const previousDriverPaymentsPage = async () => {
+        const newOffset = Math.max(0, driverPaymentsMetadata.currentOffset - driverPaymentsMetadata.currentLimit);
+        await reloadDriverPayments(newOffset, driverPaymentsMetadata.currentLimit);
     };
 
-    const nextAssignmentPaymentsPage = async () => {
-        const newOffset = assignmentPaymentsMetadata.currentOffset + assignmentPaymentsMetadata.currentLimit;
-        await reloadAssignmentPayments(newOffset, assignmentPaymentsMetadata.currentLimit);
+    const nextDriverPaymentsPage = async () => {
+        const newOffset = driverPaymentsMetadata.currentOffset + driverPaymentsMetadata.currentLimit;
+        await reloadDriverPayments(newOffset, driverPaymentsMetadata.currentLimit);
     };
 
     const previousPage = async () => {
@@ -469,22 +466,22 @@ const DriverDetailsPage: PageWithAuth = () => {
 
                             <div className="col-span-12">
                                 <h3 className="mb-2">Assignment Payments</h3>
-                                {loadingAssignmentPayments ? (
-                                    <LoadsTableSkeleton limit={assignmentPaymentsMetadata.currentLimit} />
+                                {loadingDriverPayments ? (
+                                    <LoadsTableSkeleton limit={driverPaymentsMetadata.currentLimit} />
                                 ) : (
                                     <>
-                                        <AssignmentPaymentsTable
-                                            payments={assignmentPayments}
+                                        <DriverPaymentsTable
+                                            payments={driverPayments}
                                             sort={sort}
                                             changeSort={changeSort}
-                                            loading={loadingAssignmentPayments}
+                                            loading={loadingDriverPayments}
                                         />
-                                        {assignmentPayments.length !== 0 && !loadingAssignmentPayments && (
+                                        {driverPayments.length !== 0 && !loadingDriverPayments && (
                                             <Pagination
-                                                metadata={assignmentPaymentsMetadata}
-                                                loading={loadingAssignmentPayments}
-                                                onPrevious={previousAssignmentPaymentsPage}
-                                                onNext={nextAssignmentPaymentsPage}
+                                                metadata={driverPaymentsMetadata}
+                                                loading={loadingDriverPayments}
+                                                onPrevious={previousDriverPaymentsPage}
+                                                onNext={nextDriverPaymentsPage}
                                             />
                                         )}
                                     </>
