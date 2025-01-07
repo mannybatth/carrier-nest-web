@@ -393,7 +393,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                             className="block text-sm font-medium text-gray-700"
                                                                             htmlFor={`amount-${driverId}`}
                                                                         >
-                                                                            Payment Amount
+                                                                            New Payment Amount
                                                                         </label>
                                                                         <div className="flex mt-1 rounded-md shadow-sm">
                                                                             <div className="relative flex items-stretch flex-grow focus-within:z-10">
@@ -440,7 +440,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             className="block text-sm font-medium text-gray-700"
                                                             htmlFor="payment-date"
                                                         >
-                                                            Payment Date
+                                                            New Payment Date
                                                         </label>
                                                         <input
                                                             type="date"
