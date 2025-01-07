@@ -60,7 +60,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({ assignments, sort, 
     const headers = [
         { key: 'driver.name', title: 'Driver' },
         { key: 'load.refNum', title: 'Load/Order #' },
-        { key: 'chargeValue', title: 'Pay Amount', disableSort: true },
+        { key: 'chargeValue', title: 'Due Amount', disableSort: true },
         { key: 'payStatus', title: 'Pay Status', disableSort: true },
         { key: 'assignedAt', title: 'Assigned At' },
         { key: 'actions', title: ' ', disableSort: true },

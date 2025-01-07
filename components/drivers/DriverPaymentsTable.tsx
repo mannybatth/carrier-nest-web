@@ -33,11 +33,15 @@ const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({ payments, sor
                     {
                         node: (
                             <>
-                                {driverPayment.assignmentPayments.map((payment) => {
-                                    <Link href={`/loads/${payment.loadId}`} onClick={(e) => e.stopPropagation()}>
+                                {driverPayment.assignmentPayments.map((payment) => (
+                                    <Link
+                                        key={payment.id}
+                                        href={`/loads/${payment.loadId}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         {payment.load.refNum}
-                                    </Link>;
-                                })}
+                                    </Link>
+                                ))}
                             </>
                         ),
                     },

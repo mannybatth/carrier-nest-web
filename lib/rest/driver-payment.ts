@@ -11,7 +11,7 @@ export const getDriverPayments = async (
 ): Promise<{ driverPayments: ExpandedDriverPayment[]; metadata: PaginationMetadata }> => {
     try {
         const response = await fetch(
-            `${apiUrl}/api/drivers/${driverId}/payments?limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortDir=${sortDir}`,
+            `${apiUrl}/drivers/${driverId}/payments?limit=${limit}&offset=${offset}&sortBy=${sortBy}&sortDir=${sortDir}`,
             {
                 method: 'GET',
                 headers: {
