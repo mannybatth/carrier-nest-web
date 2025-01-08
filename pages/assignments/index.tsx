@@ -11,7 +11,7 @@ import AssignmentsTable from 'components/assignment/AssignmentsTable';
 import { useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
-import AssignmentPaymentsModal from 'components/assignment/AssignmentPaymentsModal';
+import AssignmentPaymentsModal from 'components/assignment/assignment-payments-modal/AssignmentPaymentsModal';
 
 const AssignmentsPage = () => {
     const searchParams = useSearchParams();
