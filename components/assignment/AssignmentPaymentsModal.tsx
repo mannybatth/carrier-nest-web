@@ -97,6 +97,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
             const details = initState();
             buildAmounts(details);
+
+            // Reset edit mode
+            setEditMode({});
         }
     }, [isOpen]);
 
