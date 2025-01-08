@@ -45,6 +45,7 @@ const InvoiceForm: React.FC<Props> = ({
                         min: { value: 1, message: 'Invoice number must be greater than 0' },
                         valueAsNumber: true,
                     })}
+                    onWheel={(e) => e.currentTarget.blur()}
                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
                 {errors.invoiceNum && <p className="mt-2 text-sm text-red-600">{errors.invoiceNum.message}</p>}

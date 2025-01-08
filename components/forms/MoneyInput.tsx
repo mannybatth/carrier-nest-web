@@ -36,6 +36,7 @@ const MoneyInput: React.FC<Props> = ({ value, allowNegative, onChange, ...props 
                 onChange={handleChange}
                 type="number"
                 step="any"
+                onWheel={(e) => e.currentTarget.blur()} // Prevent value change on scroll
                 className={classNames(
                     props.className,
                     'block w-full pr-12 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 pl-7 sm:text-sm',

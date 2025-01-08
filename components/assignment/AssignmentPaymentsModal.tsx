@@ -76,15 +76,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         const details = groupAssignmentDetailsByDriver(assignments);
         setGroupedAssignments(details);
         setGroupedPayments(groupPaymentsByDriver(assignments));
-        buildAmounts(details);
+        return details;
     };
-
-    React.useEffect(() => {
-        if (isOpen) {
-            setPaymentDate(new Date().toLocaleDateString('en-CA'));
-            initState();
-        }
-    }, [isOpen]);
 
     const buildAmounts = (groupedAssignments: Record<string, AssignmentDetails[]>) => {
         const newAmounts: Record<string, number | null> = {};
@@ -96,6 +89,14 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         });
         setAmounts(newAmounts);
     };
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setPaymentDate(new Date().toLocaleDateString('en-CA'));
+            const details = initState();
+            buildAmounts(details);
+        }
+    }, [isOpen]);
 
     React.useEffect(() => {
         if (!assignments || assignments.length === 0) {
@@ -678,6 +679,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                                             ? 100
                                                                                                             : undefined
                                                                                                     }
+                                                                                                    onWheel={(e) =>
+                                                                                                        e.currentTarget.blur()
+                                                                                                    }
                                                                                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                                 />
                                                                                             </div>
@@ -714,6 +718,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                                         placeholder="Billed Distance"
                                                                                                         step="any"
                                                                                                         min="0"
+                                                                                                        onWheel={(e) =>
+                                                                                                            e.currentTarget.blur()
+                                                                                                        }
                                                                                                         className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                                     />
                                                                                                     <button
@@ -765,6 +772,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                                         placeholder="Billed Duration"
                                                                                                         step="any"
                                                                                                         min="0"
+                                                                                                        onWheel={(e) =>
+                                                                                                            e.currentTarget.blur()
+                                                                                                        }
                                                                                                         className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                                     />
                                                                                                     <button
@@ -815,6 +825,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                                         placeholder="Billed Load Rate"
                                                                                                         step="any"
                                                                                                         min="0"
+                                                                                                        onWheel={(e) =>
+                                                                                                            e.currentTarget.blur()
+                                                                                                        }
                                                                                                         className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                                     />
                                                                                                     <button
