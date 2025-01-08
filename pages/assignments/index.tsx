@@ -206,8 +206,8 @@ const AssignmentsPage = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
-                        <div className="flex items-center space-x-4">
+                    <div className="top-0 z-10 flex flex-col mb-2 space-y-2 md:flex-row md:space-y-0 md:space-x-4 md:place-content-between md:sticky">
+                        <div className="flex flex-row space-x-2 md:flex-row md:space-y-0 md:space-x-4">
                             <span className="inline-flex rounded-md shadow-sm isolate">
                                 <button
                                     type="button"
@@ -230,7 +230,7 @@ const AssignmentsPage = () => {
                             <div className="flex items-center space-x-1">
                                 <Listbox value={selectedDrivers} onChange={handleDriverChange} multiple by="id">
                                     <div className="relative">
-                                        <Listbox.Button className="relative w-48 py-2 pl-3 pr-10 text-left bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer h-9 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                        <Listbox.Button className="relative w-48 py-2 pl-3 pr-10 text-xs text-left bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer h-9 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                             <span className="block truncate">
                                                 {selectedDrivers.length > 1
                                                     ? `${selectedDrivers.length} drivers`
@@ -302,15 +302,19 @@ const AssignmentsPage = () => {
                                 )}
                             </div>
                         </div>
-                        <label className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600 focus:ring-2 focus:ring-offset-2"
-                                checked={showUnpaidOnly}
-                                onChange={(e) => setShowUnpaidOnly(e.target.checked)}
-                            />
-                            <span className="text-sm font-medium text-gray-700 cursor-pointer">Show Unpaid Only</span>
-                        </label>
+                        <div className="flex items-center space-x-2">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600 focus:ring-2 focus:ring-offset-2"
+                                    checked={showUnpaidOnly}
+                                    onChange={(e) => setShowUnpaidOnly(e.target.checked)}
+                                />
+                                <span className="text-sm font-medium text-gray-700 cursor-pointer">
+                                    Show Unpaid Only
+                                </span>
+                            </label>
+                        </div>
                     </div>
                     {loading ? (
                         <CustomersTableSkeleton limit={lastAssignmentsTableLimit} />
