@@ -1,4 +1,5 @@
 import polyline from '@mapbox/polyline';
+import { Prisma } from '@prisma/client';
 import { metersToMiles } from 'lib/helpers/distance';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -51,13 +52,13 @@ export async function getRouteForCoords(coords: number[][]) {
     const distanceMeters = data.routes[0].distance;
     const durationSeconds = data.routes[0].duration;
 
-    const distanceMiles = metersToMiles(distanceMeters); // Convert meters to miles
-    const durationHours = durationSeconds / 3600; // Convert seconds to hours
+    const distanceMiles = new Prisma.Decimal(metersToMiles(distanceMeters)); // Convert meters to miles
+    const durationHours = new Prisma.Decimal(durationSeconds / 3600); // Convert seconds to hours
 
     return {
         routeEncoded: routePolyline,
-        distanceMiles: distanceMiles,
-        durationHours: durationHours,
+        distanceMiles: distanceMiles.toNearest(0.01).toNumber(),
+        durationHours: durationHours.toNearest(0.01).toNumber(),
     };
 }
 

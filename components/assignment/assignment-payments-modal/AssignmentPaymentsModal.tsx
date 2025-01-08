@@ -3,6 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { ChargeType, DriverPayment, Prisma } from '@prisma/client';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
 import parseISO from 'date-fns/parseISO';
+import { updateDriverAssignment } from 'lib/rest/assignment';
 import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payment';
 import React, { useRef, useState } from 'react';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
@@ -19,28 +20,6 @@ interface AssignmentPaymentsModalProps {
     onAddPayment: () => void;
     onDeletePayment: () => void;
 }
-
-const getStatusStyles = (status: string) => {
-    switch (status) {
-        case 'paid':
-            return { textColor: 'text-green-800', bgColor: 'bg-green-100' };
-        case 'not paid':
-            return { textColor: 'text-red-800', bgColor: 'bg-red-100' };
-        default:
-            return { textColor: 'text-gray-800', bgColor: 'bg-gray-100' };
-    }
-};
-
-const getStatusMessage = (status: string) => {
-    switch (status) {
-        case 'paid':
-            return 'This assignment has been fully paid.';
-        case 'not paid':
-            return 'This assignment has not been paid for yet.';
-        default:
-            return 'Unknown payment status.';
-    }
-};
 
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
@@ -64,18 +43,23 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const initState = () => {
         const details = groupAssignmentDetailsByDriver(assignments);
+        const payments = groupPaymentsByDriver(assignments);
         setGroupedAssignments(details);
-        setGroupedPayments(groupPaymentsByDriver(assignments));
-        return details;
+        setGroupedPayments(payments);
+        return { details, payments };
     };
 
-    const buildAmounts = (groupedAssignments: Record<string, AssignmentDetails[]>) => {
+    const buildAmounts = (
+        groupedAssignments: Record<string, AssignmentDetails[]>,
+        groupedPayments: Record<string, { payment: DriverPayment }[]>,
+    ) => {
         const newAmounts: Record<string, number | null> = {};
         assignments.forEach((assignment) => {
-            newAmounts[assignment.driver.id] = calculateFullDue(
-                assignment.driver.id,
-                groupedAssignments[assignment.driver.id],
-            );
+            const driverId = assignment.driver.id;
+            const totalAmountDue = calculateFullDue(driverId, groupedAssignments[driverId]) * 100;
+            const totalPayments = calculateTotalPayments(groupedPayments[driverId]) * 100;
+            const remainingAmountDue = (totalAmountDue - totalPayments) / 100;
+            newAmounts[driverId] = remainingAmountDue;
         });
         setAmounts(newAmounts);
     };
@@ -83,8 +67,8 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     React.useEffect(() => {
         if (isOpen) {
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
-            const details = initState();
-            buildAmounts(details);
+            const { details, payments } = initState();
+            buildAmounts(details, payments);
 
             // Reset edit mode
             setEditMode({});
@@ -98,14 +82,6 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             initState();
         }
     }, [assignments]);
-
-    const getPayStatus = (assignment: ExpandedDriverAssignment) => {
-        if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
-            return 'paid';
-        } else {
-            return 'not paid';
-        }
-    };
 
     const handleAssignmentDetailChange = (
         assignmentDetail: AssignmentDetails,
@@ -132,7 +108,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             }
 
             // Rebuild amounts after updating assignment details
-            buildAmounts(updatedAssignments);
+            buildAmounts(updatedAssignments, groupedPayments);
 
             return updatedAssignments;
         });
@@ -165,12 +141,48 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                             amount,
                             parseISO(paymentDate).toISOString(),
                         );
+
+                        // Update assignments with billed fields if they have been changed
+                        const updatePromises = assignments.map(async (assignment) => {
+                            const details = groupedAssignments[assignment.driver.id].find(
+                                (detail) => detail.assignment.id === assignment.id,
+                            );
+                            if (details) {
+                                const updateData: Prisma.DriverAssignmentUpdateManyMutationInput = {};
+                                if (
+                                    details.assignment.billedDistanceMiles !== null ||
+                                    details.billedDistanceMiles !==
+                                        new Prisma.Decimal(assignment.routeLeg?.distanceMiles).toNumber()
+                                ) {
+                                    updateData.billedDistanceMiles = details.billedDistanceMiles;
+                                }
+                                if (
+                                    details.assignment.billedDurationHours !== null ||
+                                    details.billedDurationHours !==
+                                        new Prisma.Decimal(assignment.routeLeg?.durationHours).toNumber()
+                                ) {
+                                    updateData.billedDurationHours = details.billedDurationHours;
+                                }
+                                if (
+                                    details.assignment.billedLoadRate !== null ||
+                                    details.billedLoadRate !== new Prisma.Decimal(assignment.load.rate).toNumber()
+                                ) {
+                                    updateData.billedLoadRate = details.billedLoadRate;
+                                }
+                                if (Object.keys(updateData).length > 0) {
+                                    await updateDriverAssignment(assignment.id, updateData);
+                                }
+                            }
+                        });
+
+                        await Promise.all(updatePromises);
                     }
                 });
 
                 await Promise.all(paymentPromises);
                 onAddPayment();
                 setAmounts({});
+                setEditMode({});
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
                 console.error('Error adding payment:', error);
@@ -212,22 +224,21 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         if (assignments.length > 0) {
             const totalAmountDue = (assignmentDetails || groupedAssignments[driverId]).reduce(
                 (acc, assignmentDetails) => {
-                    if (assignmentDetails.assignment.assignmentPayments.length === 0) {
-                        return acc.plus(calculateAssignmentTotalPay(assignmentDetails));
-                    }
-                    return acc;
+                    return acc.plus(calculateAssignmentTotalPay(assignmentDetails));
                 },
                 new Prisma.Decimal(0),
             );
-            return totalAmountDue.toNumber();
+            return totalAmountDue.toNearest(0.01).toNumber();
         }
         return 0;
     };
 
     const setToFullDue = (driverId: string) => {
         if (assignments.length > 0) {
-            const totalAmountDue = calculateFullDue(driverId);
-            setAmounts((prev) => ({ ...prev, [driverId]: totalAmountDue }));
+            const totalAmountDue = calculateFullDue(driverId) * 100;
+            const totalPayments = calculateTotalPayments(groupedPayments[driverId]) * 100;
+            const remainingAmountDue = (totalAmountDue - totalPayments) / 100;
+            setAmounts((prev) => ({ ...prev, [driverId]: remainingAmountDue }));
             amountFieldRef?.current?.focus();
         }
     };
@@ -320,6 +331,11 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const toggleEditMode = (assignmentId: string) => {
         setEditMode((prev) => ({ ...prev, [assignmentId]: !prev[assignmentId] }));
+    };
+
+    const calculateTotalPayments = (payments: { payment: DriverPayment }[]) => {
+        if (!payments || payments.length === 0) return 0;
+        return payments.reduce((acc, { payment }) => acc.plus(payment.amount), new Prisma.Decimal(0)).toNumber();
     };
 
     return (
@@ -456,11 +472,9 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                 }
                                                                             />
                                                                         </div>
-                                                                        {!groupedAssignments[driverId].some(
-                                                                            (assignmentDetails) =>
-                                                                                assignmentDetails.assignment
-                                                                                    .assignmentPayments.length > 0,
-                                                                        ) && (
+                                                                        {calculateTotalPayments(
+                                                                            groupedPayments[driverId],
+                                                                        ) < calculateFullDue(driverId) && (
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => setToFullDue(driverId)}

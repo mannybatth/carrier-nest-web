@@ -2,6 +2,7 @@ import { apiUrl } from '../../constants';
 import { ExpandedDriverAssignment, ExpandedRoute, JSONResponse } from 'interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';
+import { Prisma } from '@prisma/client';
 
 interface GetAssignmentsResponse {
     assignments: ExpandedDriverAssignment[];
@@ -52,6 +53,26 @@ export const getAssignmentById = async (id: string): Promise<ExpandedDriverAssig
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data;
+};
+
+export const updateDriverAssignment = async (
+    assignmentId: string,
+    data: Prisma.DriverAssignmentUpdateManyMutationInput,
+) => {
+    const response = await fetch(apiUrl + '/assignments/' + assignmentId, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+
+    const { data: updatedAssignment, errors }: JSONResponse<ExpandedDriverAssignment> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return updatedAssignment;
 };
 
 export const createRouteLeg = async (createAssignmentRequest: CreateAssignmentRequest): Promise<ExpandedRoute> => {

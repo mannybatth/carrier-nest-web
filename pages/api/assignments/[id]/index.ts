@@ -3,11 +3,14 @@ import { JSONResponse } from '../../../../interfaces/models';
 import prisma from '../../../../lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]';
+import { Prisma } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     switch (req.method) {
         case 'GET':
             return _get(req, res);
+        case 'PATCH':
+            return _patch(req, res);
         default:
             return res.status(405).json({
                 code: 405,
@@ -149,6 +152,55 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         });
     } catch (error) {
         console.error('Error fetching driver assignment:', error);
+        return res.status(500).json({
+            code: 500,
+            errors: [{ message: 'Internal server error' }],
+        });
+    }
+}
+
+async function _patch(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
+    const { id: assignmentId } = req.query;
+
+    if (!assignmentId || typeof assignmentId !== 'string') {
+        return res.status(400).json({
+            code: 400,
+            errors: [{ message: 'Invalid or missing assignment ID' }],
+        });
+    }
+
+    const session = await getServerSession(req, res, authOptions);
+    const tokenCarrierId = session?.user?.carrierId || session?.user?.defaultCarrierId;
+
+    if (!tokenCarrierId) {
+        return res.status(401).json({
+            code: 401,
+            errors: [{ message: 'Unauthorized' }],
+        });
+    }
+
+    try {
+        const updatedAssignment = await prisma.driverAssignment.updateMany({
+            where: {
+                id: assignmentId,
+                carrierId: tokenCarrierId,
+            },
+            data: req.body as Prisma.DriverAssignmentUpdateManyMutationInput,
+        });
+
+        if (updatedAssignment.count === 0) {
+            return res.status(404).json({
+                code: 404,
+                errors: [{ message: 'Driver assignment not found or no changes made' }],
+            });
+        }
+
+        return res.status(200).json({
+            code: 200,
+            data: updatedAssignment,
+        });
+    } catch (error) {
+        console.error('Error updating driver assignment:', error);
         return res.status(500).json({
             code: 500,
             errors: [{ message: 'Internal server error' }],

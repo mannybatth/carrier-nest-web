@@ -1,7 +1,6 @@
 import React from 'react';
 import { ChargeType, Prisma } from '@prisma/client';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
-import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 
 export interface AssignmentDetails {
     assignment: ExpandedDriverAssignment;
