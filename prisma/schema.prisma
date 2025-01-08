@@ -437,9 +437,7 @@ model DriverPayment {
     carrierId          String
     amount             Decimal
     paymentDate        DateTime
-    checkNumber        String?
-    isDirectDeposit    Boolean             @default(false)
-    isCashPayment      Boolean             @default(false)
+    notes              String?
     driverId           String
     driver             Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
     isBatchPayment     Boolean             @default(false)

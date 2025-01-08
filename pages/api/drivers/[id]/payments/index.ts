@@ -131,7 +131,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
 }
 
 async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>, session: any) {
-    const { amount, paymentDate, driverAssignmentIds } = req.body;
+    const { amount, paymentDate, driverAssignmentIds, notes } = req.body;
     const { id: driverId } = req.query;
 
     if (!amount || !paymentDate || !driverId || (!driverAssignmentIds && !driverAssignmentIds.length)) {
@@ -168,6 +168,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                     carrierId: session.user.defaultCarrierId,
                     driverId: driverId as string,
                     isBatchPayment: true,
+                    notes,
                 },
             });
 
@@ -213,6 +214,7 @@ async function _post(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>
                     paymentDate: new Date(paymentDate),
                     carrierId: session.user.defaultCarrierId,
                     driverId: driverId as string,
+                    notes,
                 },
             });
 

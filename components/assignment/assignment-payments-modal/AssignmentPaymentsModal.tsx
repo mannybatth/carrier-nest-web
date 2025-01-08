@@ -39,6 +39,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [amounts, setAmounts] = useState<Record<string, number | null>>({});
 
     const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+    const [notes, setNotes] = useState<Record<string, string>>({});
     const [editMode, setEditMode] = useState<Record<string, boolean>>({});
 
     const initState = () => {
@@ -67,6 +68,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     React.useEffect(() => {
         if (isOpen) {
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
+            setNotes({});
             const { details, payments } = initState();
             buildAmounts(details, payments);
 
@@ -140,6 +142,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                             driverAssignmentIds,
                             amount,
                             parseISO(paymentDate).toISOString(),
+                            notes[driverId] || '',
                         );
 
                         // Update assignments with billed fields if they have been changed
@@ -190,6 +193,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                 onAddPayment();
                 setAmounts({});
                 setEditMode({});
+                setNotes({});
                 setPaymentDate(new Date().toLocaleDateString('en-CA'));
             } catch (error) {
                 console.error('Error adding payment:', error);
@@ -504,6 +508,25 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                             </button>
                                                                         )}
                                                                     </div>
+                                                                </div>
+                                                                <div className="mt-4">
+                                                                    <label
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                        htmlFor={`notes-${driverId}`}
+                                                                    >
+                                                                        Notes
+                                                                    </label>
+                                                                    <textarea
+                                                                        id={`notes-${driverId}`}
+                                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                        value={notes[driverId] || ''}
+                                                                        onChange={(e) =>
+                                                                            setNotes((prev) => ({
+                                                                                ...prev,
+                                                                                [driverId]: e.target.value,
+                                                                            }))
+                                                                        }
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>

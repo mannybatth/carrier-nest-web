@@ -46,13 +46,14 @@ export const createDriverPayments = async (
     driverAssignmentIds: string[],
     amount: number,
     paymentDate: string,
+    notes: string,
 ): Promise<ExpandedDriverPayment> => {
     const response = await fetch(`${apiUrl}/drivers/${driverId}/payments`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount, paymentDate, driverAssignmentIds }),
+        body: JSON.stringify({ amount, paymentDate, driverAssignmentIds, notes }),
     });
 
     const { data, errors }: JSONResponse<{ driverPayment: ExpandedDriverPayment }> = await response.json();
