@@ -65,6 +65,7 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
         const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
         const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
         const showUnpaidOnly = req.query.showUnpaidOnly === 'true';
+        const driverIds = req.query.driverIds ? (req.query.driverIds as string).split(',') : [];
 
         if (!carrierId) {
             return res.status(400).json({
@@ -94,6 +95,10 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
             whereClause.assignmentPayments = {
                 none: {},
             };
+        }
+
+        if (driverIds?.length > 0) {
+            whereClause.driverId = { in: driverIds };
         }
 
         const assignments = await prisma.driverAssignment.findMany({

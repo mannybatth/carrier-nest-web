@@ -14,11 +14,13 @@ export const getAllAssignments = async ({
     offset,
     sort,
     showUnpaidOnly = false,
+    driverIds,
 }: {
     limit: number;
     offset: number;
     sort: Sort;
     showUnpaidOnly?: boolean;
+    driverIds?: string[];
 }): Promise<GetAssignmentsResponse> => {
     const params = new URLSearchParams();
     if (sort && sort.key) {
@@ -35,6 +37,9 @@ export const getAllAssignments = async ({
     }
     if (showUnpaidOnly) {
         params.append('showUnpaidOnly', 'true');
+    }
+    if (driverIds) {
+        params.append('driverIds', driverIds.join(','));
     }
     const response = await fetch('/api/assignments' + '?' + params.toString());
     const { data, errors }: JSONResponse<GetAssignmentsResponse> = await response.json();
