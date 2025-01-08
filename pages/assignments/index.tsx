@@ -12,6 +12,9 @@ import { useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
 import AssignmentPaymentsModal from 'components/assignment/assignment-payments-modal/AssignmentPaymentsModal';
+import { Listbox, Transition } from '@headlessui/react';
+import { getAllDrivers } from 'lib/rest/driver';
+import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 
 const AssignmentsPage = () => {
     const searchParams = useSearchParams();
@@ -35,6 +38,8 @@ const AssignmentsPage = () => {
     const [selectedAssignments, setSelectedAssignments] = useState<ExpandedDriverAssignment[]>([]);
     const [singleSelectedAssignment, setSingleSelectedAssignment] = useState<ExpandedDriverAssignment | null>(null);
     const [showUnpaidOnly, setShowUnpaidOnly] = useState(false);
+    const [drivers, setDrivers] = useState([]);
+    const [selectedDrivers, setSelectedDrivers] = useState([]);
 
     const [sort, setSort] = useState<Sort>(sortProps);
     const [limit, setLimit] = useState(limitProp);
@@ -46,10 +51,18 @@ const AssignmentsPage = () => {
     });
 
     useEffect(() => {
+        const fetchDrivers = async () => {
+            const { drivers } = await getAllDrivers({ limit: 999, offset: 0 });
+            setDrivers(drivers);
+        };
+        fetchDrivers();
+    }, []);
+
+    useEffect(() => {
         setLimit(limitProp);
         setOffset(offsetProp);
-        reloadAssignments({ sort, limit: limitProp, offset: offsetProp });
-    }, [limitProp, offsetProp, showUnpaidOnly]);
+        reloadAssignments({ sort, limit: limitProp, offset: offsetProp, driverIds: selectedDrivers.map((d) => d.id) });
+    }, [limitProp, offsetProp, showUnpaidOnly, selectedDrivers]);
 
     const changeSort = (sort: Sort) => {
         router.push(
@@ -70,12 +83,14 @@ const AssignmentsPage = () => {
         offset,
         useTableLoading = false,
         fromAssignmentPaymentsModal = false,
+        driverIds,
     }: {
         sort?: Sort;
         limit: number;
         offset: number;
         useTableLoading?: boolean;
         fromAssignmentPaymentsModal?: boolean;
+        driverIds?: string[];
     }) => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
@@ -87,6 +102,7 @@ const AssignmentsPage = () => {
                 offset,
                 sort,
                 showUnpaidOnly,
+                driverIds,
             });
 
             if (fromAssignmentPaymentsModal && assignments.length === 0) {
@@ -171,6 +187,14 @@ const AssignmentsPage = () => {
         setSelectedAssignments([]);
     };
 
+    const handleDriverChange = (drivers) => {
+        setSelectedDrivers(drivers);
+    };
+
+    const clearSelectedDrivers = () => {
+        setSelectedDrivers([]);
+    };
+
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Driver Assignments</h1>}>
             <div className="py-2 mx-auto max-w-7xl">
@@ -183,24 +207,101 @@ const AssignmentsPage = () => {
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
                     <div className="top-0 z-10 flex flex-row mb-4 place-content-between md:sticky">
-                        <span className="inline-flex rounded-md shadow-sm isolate">
-                            <button
-                                type="button"
-                                className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
-                                onClick={paySelectedAssignments}
-                                disabled={!selectedAssignments || selectedAssignments?.length < 2}
-                            >
-                                Create Batch Payments ({selectedAssignments?.length})
-                            </button>
-                            <button
-                                type="button"
-                                className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
-                                onClick={unselectAllAssignments}
-                                disabled={!selectedAssignments || selectedAssignments?.length === 0}
-                            >
-                                Unselect All
-                            </button>
-                        </span>
+                        <div className="flex items-center space-x-4">
+                            <span className="inline-flex rounded-md shadow-sm isolate">
+                                <button
+                                    type="button"
+                                    className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                    onClick={paySelectedAssignments}
+                                    disabled={!selectedAssignments || selectedAssignments?.length < 2}
+                                >
+                                    Create Batch Payments ({selectedAssignments?.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    className="relative inline-flex items-center px-3 py-2 -ml-px text-xs font-semibold text-gray-900 bg-white md:text-sm rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100 disabled:opacity-50"
+                                    onClick={unselectAllAssignments}
+                                    disabled={!selectedAssignments || selectedAssignments?.length === 0}
+                                >
+                                    Unselect All
+                                </button>
+                            </span>
+
+                            <div className="flex items-center space-x-1">
+                                <Listbox value={selectedDrivers} onChange={handleDriverChange} multiple by="id">
+                                    <div className="relative">
+                                        <Listbox.Button className="relative w-48 py-2 pl-3 pr-10 text-left bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer h-9 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                            <span className="block truncate">
+                                                {selectedDrivers.length > 1
+                                                    ? `${selectedDrivers.length} drivers`
+                                                    : selectedDrivers.length === 1
+                                                    ? selectedDrivers[0].name
+                                                    : 'Filter by drivers'}
+                                            </span>
+                                            <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                                <ChevronUpDownIcon
+                                                    className="w-5 h-5 text-gray-400"
+                                                    aria-hidden="true"
+                                                />
+                                            </span>
+                                        </Listbox.Button>
+                                        <Transition
+                                            as={React.Fragment}
+                                            leave="transition ease-in duration-100"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <Listbox.Options className="absolute z-10 w-full py-1 mt-1 overflow-auto bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                {drivers.map((driver) => (
+                                                    <Listbox.Option
+                                                        key={driver.id}
+                                                        className={({ active }) =>
+                                                            `cursor-pointer select-none relative py-2 pl-10 pr-4 ${
+                                                                active ? 'text-white bg-blue-600' : 'text-gray-900'
+                                                            }`
+                                                        }
+                                                        value={driver}
+                                                    >
+                                                        {({ selected, active }) => (
+                                                            <>
+                                                                <span
+                                                                    className={`block truncate ${
+                                                                        selected ? 'font-medium' : 'font-normal'
+                                                                    }`}
+                                                                >
+                                                                    {driver.name}
+                                                                </span>
+                                                                {selected ? (
+                                                                    <span
+                                                                        className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
+                                                                            active ? 'text-white' : 'text-blue-600'
+                                                                        }`}
+                                                                    >
+                                                                        <CheckIcon
+                                                                            className="w-5 h-5"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    </span>
+                                                                ) : null}
+                                                            </>
+                                                        )}
+                                                    </Listbox.Option>
+                                                ))}
+                                            </Listbox.Options>
+                                        </Transition>
+                                    </div>
+                                </Listbox>
+                                {selectedDrivers.length > 0 && (
+                                    <button
+                                        type="button"
+                                        className="relative inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-900 bg-white rounded-md md:text-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10 active:bg-gray-100"
+                                        onClick={clearSelectedDrivers}
+                                    >
+                                        Show all drivers
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                         <label className="flex items-center space-x-2">
                             <input
                                 type="checkbox"
@@ -252,6 +353,7 @@ const AssignmentsPage = () => {
                         offset,
                         useTableLoading: true,
                         fromAssignmentPaymentsModal: true,
+                        driverIds: selectedDrivers.map((d) => d.id),
                     });
                 }}
                 onDeletePayment={() => {
@@ -261,6 +363,7 @@ const AssignmentsPage = () => {
                         offset,
                         useTableLoading: true,
                         fromAssignmentPaymentsModal: true,
+                        driverIds: selectedDrivers.map((d) => d.id),
                     });
                 }}
             />
