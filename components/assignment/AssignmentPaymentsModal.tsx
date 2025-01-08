@@ -601,7 +601,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                             placeholder="Billed Distance"
                                                                                             step="any"
                                                                                             min="0"
-                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                         />
                                                                                         <button
                                                                                             type="button"
@@ -651,7 +651,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                             placeholder="Billed Duration"
                                                                                             step="any"
                                                                                             min="0"
-                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                         />
                                                                                         <button
                                                                                             type="button"
@@ -699,7 +699,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                             placeholder="Billed Load Rate"
                                                                                             step="any"
                                                                                             min="0"
-                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm focus-within:z-10 rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                                                         />
                                                                                         <button
                                                                                             type="button"
