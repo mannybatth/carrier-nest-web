@@ -18,18 +18,19 @@ interface AssignmentsTableProps {
 }
 
 const getHumanReadableCharge = (assignment: ExpandedDriverAssignment) => {
-    const { chargeType, chargeValue, routeLeg, load } = assignment;
+    const { chargeType, chargeValue, routeLeg, load, billedDistanceMiles, billedDurationHours, billedLoadRate } =
+        assignment;
     switch (chargeType) {
         case 'PER_MILE':
-            const distanceInMiles = new Prisma.Decimal(routeLeg?.distanceMiles ?? 0).toFixed(2);
+            const distanceInMiles = new Prisma.Decimal(billedDistanceMiles ?? routeLeg?.distanceMiles ?? 0).toFixed(2);
             return `${chargeValue} per mile (Total Distance: ${distanceInMiles} miles)`;
         case 'PER_HOUR':
-            const durationInHours = new Prisma.Decimal(routeLeg?.durationHours ?? 0).toFixed(2);
+            const durationInHours = new Prisma.Decimal(billedDurationHours ?? routeLeg?.durationHours ?? 0).toFixed(2);
             return `${chargeValue} per hour (Total Time: ${durationInHours} hours)`;
         case 'FIXED_PAY':
             return `Fixed pay of ${chargeValue}`;
         case 'PERCENTAGE_OF_LOAD':
-            const loadRate = new Prisma.Decimal(load?.rate ?? 0).toFixed(2);
+            const loadRate = new Prisma.Decimal(billedLoadRate ?? load?.rate ?? 0).toFixed(2);
             return `${chargeValue}% of load (Load Rate: $${loadRate})`;
         default:
             return `${chargeValue}`;
@@ -40,9 +41,9 @@ const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
     return calculateDriverPay({
         chargeType: assignment.chargeType,
         chargeValue: assignment.chargeValue,
-        distanceMiles: assignment.routeLeg?.distanceMiles ?? 0,
-        durationHours: assignment.routeLeg?.durationHours ?? 0,
-        loadRate: assignment.load.rate,
+        distanceMiles: assignment.billedDistanceMiles ?? assignment.routeLeg?.distanceMiles ?? 0,
+        durationHours: assignment.billedDurationHours ?? assignment.routeLeg?.durationHours ?? 0,
+        loadRate: assignment.billedLoadRate ?? assignment.load.rate,
     });
 };
 
