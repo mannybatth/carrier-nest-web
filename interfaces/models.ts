@@ -294,6 +294,11 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                         fcmToken: true,
                     },
                 },
+                defaultChargeType: true,
+                defaultFixedPay: true,
+                perMileRate: true,
+                perHourRate: true,
+                takeHomePercent: true,
             },
         },
         routeLeg: {

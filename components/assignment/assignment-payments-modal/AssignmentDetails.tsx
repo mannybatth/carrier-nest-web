@@ -51,6 +51,40 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     handleAssignmentDetailChange,
     resetFieldToAssignmentValue,
 }) => {
+    const handleChargeTypeChange = (assignmentDetail: AssignmentDetails, newChargeType: ChargeType) => {
+        let newChargeValue = 0;
+        if (newChargeType === assignmentDetail.assignment.chargeType) {
+            newChargeValue = new Prisma.Decimal(assignmentDetail.assignment.chargeValue).toNumber();
+        } else {
+            switch (newChargeType) {
+                case ChargeType.PER_MILE:
+                    newChargeValue = new Prisma.Decimal(
+                        assignmentDetail.assignment.driver?.perMileRate || 0,
+                    ).toNumber();
+                    break;
+                case ChargeType.PER_HOUR:
+                    newChargeValue = new Prisma.Decimal(
+                        assignmentDetail.assignment.driver?.perHourRate || 0,
+                    ).toNumber();
+                    break;
+                case ChargeType.FIXED_PAY:
+                    newChargeValue = new Prisma.Decimal(
+                        assignmentDetail.assignment.driver?.defaultFixedPay || 0,
+                    ).toNumber();
+                    break;
+                case ChargeType.PERCENTAGE_OF_LOAD:
+                    newChargeValue = new Prisma.Decimal(
+                        assignmentDetail.assignment.driver?.takeHomePercent || 0,
+                    ).toNumber();
+                    break;
+                default:
+                    newChargeValue = 0;
+            }
+        }
+        handleAssignmentDetailChange(assignmentDetail, 'chargeType', newChargeType);
+        handleAssignmentDetailChange(assignmentDetail, 'chargeValue', newChargeValue);
+    };
+
     const getPaymentDescription = () => {
         switch (assignmentDetails.chargeType) {
             case ChargeType.PER_MILE:
@@ -114,11 +148,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                                     id={`charge-type-${assignmentDetails.assignment.id}`}
                                     value={assignmentDetails?.chargeType || ''}
                                     onChange={(e) =>
-                                        handleAssignmentDetailChange(
-                                            assignmentDetails,
-                                            'chargeType',
-                                            e.target.value as ChargeType,
-                                        )
+                                        handleChargeTypeChange(assignmentDetails, e.target.value as ChargeType)
                                     }
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 >

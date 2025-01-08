@@ -169,6 +169,13 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                 ) {
                                     updateData.billedLoadRate = details.billedLoadRate;
                                 }
+                                // Update chargeType and chargeValue fields
+                                if (details.chargeType !== assignment.chargeType) {
+                                    updateData.chargeType = details.chargeType;
+                                }
+                                if (details.chargeValue !== new Prisma.Decimal(assignment.chargeValue).toNumber()) {
+                                    updateData.chargeValue = details.chargeValue;
+                                }
                                 if (Object.keys(updateData).length > 0) {
                                     await updateDriverAssignment(assignment.id, updateData);
                                 }
