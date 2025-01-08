@@ -49,6 +49,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     handleAssignmentDetailChange,
     resetFieldToAssignmentValue,
 }) => {
+    const payStatus = getPayStatus(assignmentDetails.assignment);
     const getPaymentDescription = () => {
         switch (assignmentDetails.chargeType) {
             case ChargeType.PER_MILE:
@@ -82,19 +83,21 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                 Load #: {assignmentDetails.assignment.load.refNum}
             </div>
             <div className="absolute px-2 text-sm font-medium -top-3 right-3">
-                <PayStatusBadge status={getPayStatus(assignmentDetails.assignment)} />
+                <PayStatusBadge status={payStatus} />
             </div>
             <div className="p-4">
                 {!editMode ? (
                     <div className="text-sm">
                         <p>Driver is paid {getPaymentDescription()}</p>
-                        <button
-                            type="button"
-                            className="mt-2 text-sm text-blue-600 hover:underline"
-                            onClick={() => toggleEditMode(assignmentDetails.assignment.id)}
-                        >
-                            Edit
-                        </button>
+                        {payStatus !== 'paid' && (
+                            <button
+                                type="button"
+                                className="mt-2 text-sm text-blue-600 hover:underline"
+                                onClick={() => toggleEditMode(assignmentDetails.assignment.id)}
+                            >
+                                Edit
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div>
