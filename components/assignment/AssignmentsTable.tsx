@@ -1,11 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
-import { ExpandedDriverAssignment } from '../../interfaces/models';
+import { ExpandedDriverAssignment, ExpandedRouteLeg } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 import { ChevronDoubleRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
 import { calculateDriverPay, formatCurrency } from '../../lib/helpers/calculateDriverPay';
+import { Popover } from '@headlessui/react';
+import HoverPopover from '../HoverPopover';
+import LoadPopover from '../LoadPopover';
 
 interface AssignmentsTableProps {
     assignments: ExpandedDriverAssignment[];
@@ -114,9 +117,14 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                         },
                         {
                             node: (
-                                <Link href={`/loads/${assignment.loadId}`} onClick={(e) => e.stopPropagation()}>
-                                    {assignment.load?.refNum}
-                                </Link>
+                                <LoadPopover
+                                    trigger={
+                                        <Link href={`/loads/${assignment.loadId}`} onClick={(e) => e.stopPropagation()}>
+                                            {assignment.load?.refNum}
+                                        </Link>
+                                    }
+                                    assignment={assignment}
+                                />
                             ),
                         },
                         {

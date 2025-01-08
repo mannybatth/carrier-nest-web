@@ -116,7 +116,21 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                         driverPayment: true,
                     },
                 },
-                routeLeg: true,
+                routeLeg: {
+                    include: {
+                        locations: {
+                            include: {
+                                loadStop: true,
+                                location: true,
+                            },
+                        },
+                        driverAssignments: {
+                            include: {
+                                driver: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 

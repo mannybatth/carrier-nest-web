@@ -2,6 +2,7 @@ import React from 'react';
 import { ChargeType, Prisma } from '@prisma/client';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
 import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
+import LoadPopover from '../../LoadPopover';
 
 export interface AssignmentDetails {
     assignment: ExpandedDriverAssignment;
@@ -132,7 +133,17 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     return (
         <div className="relative mt-8 border rounded-lg bg-neutral-50">
             <div className="absolute px-2 text-sm font-medium text-gray-700 bg-white -top-3 left-3">
-                Load #: {assignmentDetails.assignment.load.refNum}
+                <div className="flex items-center gap-1">
+                    <span>Load #:</span>
+                    <LoadPopover
+                        trigger={
+                            <span className="text-blue-600 cursor-pointer">
+                                {assignmentDetails.assignment.load.refNum}
+                            </span>
+                        }
+                        assignment={assignmentDetails.assignment}
+                    />
+                </div>
             </div>
             <div className="absolute px-2 text-sm font-medium -top-3 right-3">
                 <PayStatusBadge status={payStatus} />

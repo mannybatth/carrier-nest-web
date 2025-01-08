@@ -221,7 +221,24 @@ const expandedRouteLeg = Prisma.validator<Prisma.RouteLegDefaultArgs>()({
             select: {
                 id: true,
                 assignedAt: true,
-                driver: true,
+                driver: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        devices: {
+                            select: {
+                                fcmToken: true,
+                            },
+                        },
+                        defaultChargeType: true,
+                        defaultFixedPay: true,
+                        perMileRate: true,
+                        perHourRate: true,
+                        takeHomePercent: true,
+                    },
+                },
                 chargeType: true,
                 chargeValue: true,
                 billedDistanceMiles: true,
@@ -313,7 +330,24 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                     select: {
                         id: true,
                         assignedAt: true,
-                        driver: true,
+                        driver: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                phone: true,
+                                devices: {
+                                    select: {
+                                        fcmToken: true,
+                                    },
+                                },
+                                defaultChargeType: true,
+                                defaultFixedPay: true,
+                                perMileRate: true,
+                                perHourRate: true,
+                                takeHomePercent: true,
+                            },
+                        },
                         chargeType: true,
                         chargeValue: true,
                         billedDistanceMiles: true,
