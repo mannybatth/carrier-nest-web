@@ -9,6 +9,7 @@ import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
 import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
 import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payment';
+import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 
 interface AssignmentPaymentsModalProps {
     isOpen: boolean;
@@ -71,6 +72,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const [amounts, setAmounts] = useState<Record<string, number | null>>({});
 
     const [paymentDate, setPaymentDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+    const [editMode, setEditMode] = useState<Record<string, boolean>>({});
 
     const initState = () => {
         const details = groupAssignmentDetailsByDriver(assignments);
@@ -325,6 +327,10 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         );
     };
 
+    const toggleEditMode = (assignmentId: string) => {
+        setEditMode((prev) => ({ ...prev, [assignmentId]: !prev[assignmentId] }));
+    };
+
     return (
         <Transition.Root show={isOpen} as="div">
             <Dialog
@@ -496,96 +502,61 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                 {assignmentDetails.assignment.id}
                                                                             </div>
                                                                             <div className="p-4">
-                                                                                {assignmentDetails.assignment
-                                                                                    .assignmentPayments.length > 0 ? (
+                                                                                {!editMode[
+                                                                                    assignmentDetails.assignment.id
+                                                                                ] ? (
                                                                                     <div>
-                                                                                        <p className="text-sm text-gray-700">
-                                                                                            This assignment has been
-                                                                                            paid.
+                                                                                        <p>
+                                                                                            Charge Type:{' '}
+                                                                                            {getChargeTypeLabel(
+                                                                                                assignmentDetails.chargeType,
+                                                                                            )}
                                                                                         </p>
-                                                                                        <table className="min-w-full mt-4 divide-y divide-gray-200">
-                                                                                            <thead className="bg-gray-50">
-                                                                                                <tr>
-                                                                                                    <th
-                                                                                                        scope="col"
-                                                                                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                                                    >
-                                                                                                        Date
-                                                                                                    </th>
-                                                                                                    <th
-                                                                                                        scope="col"
-                                                                                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                                                    >
-                                                                                                        Amount
-                                                                                                    </th>
-                                                                                                    <th
-                                                                                                        scope="col"
-                                                                                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                                                                                    >
-                                                                                                        Batched Payment
-                                                                                                    </th>
-                                                                                                    <th
-                                                                                                        scope="col"
-                                                                                                        className="relative px-6 py-3"
-                                                                                                    >
-                                                                                                        <span className="sr-only">
-                                                                                                            Delete
-                                                                                                        </span>
-                                                                                                    </th>
-                                                                                                </tr>
-                                                                                            </thead>
-                                                                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                                                                {assignmentDetails.assignment.assignmentPayments.map(
-                                                                                                    ({
-                                                                                                        driverPayment,
-                                                                                                    }) => (
-                                                                                                        <tr
-                                                                                                            key={
-                                                                                                                driverPayment.id
-                                                                                                            }
-                                                                                                        >
-                                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                                                {new Date(
-                                                                                                                    driverPayment.paymentDate,
-                                                                                                                ).toLocaleDateString()}
-                                                                                                            </td>
-                                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                                                {formatCurrency(
-                                                                                                                    driverPayment.amount,
-                                                                                                                )}
-                                                                                                            </td>
-                                                                                                            <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
-                                                                                                                {driverPayment.isBatchPayment
-                                                                                                                    ? 'Yes'
-                                                                                                                    : 'No'}
-                                                                                                            </td>
-                                                                                                            <td className="px-6 py-2 text-sm font-medium text-right whitespace-nowrap">
-                                                                                                                <button
-                                                                                                                    type="button"
-                                                                                                                    className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                                                                    onClick={(
-                                                                                                                        e,
-                                                                                                                    ) => {
-                                                                                                                        e.stopPropagation();
-                                                                                                                        setPaymentToDelete(
-                                                                                                                            driverPayment,
-                                                                                                                        );
-                                                                                                                        setConfirmOpen(
-                                                                                                                            true,
-                                                                                                                        );
-                                                                                                                    }}
-                                                                                                                    disabled={
-                                                                                                                        loading
-                                                                                                                    }
-                                                                                                                >
-                                                                                                                    <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800" />
-                                                                                                                </button>
-                                                                                                            </td>
-                                                                                                        </tr>
-                                                                                                    ),
-                                                                                                )}
-                                                                                            </tbody>
-                                                                                        </table>
+                                                                                        <p>
+                                                                                            Charge Value:{' '}
+                                                                                            {
+                                                                                                assignmentDetails.chargeValue
+                                                                                            }
+                                                                                        </p>
+                                                                                        {assignmentDetails.chargeType ===
+                                                                                            ChargeType.PER_MILE && (
+                                                                                            <p>
+                                                                                                Billed Distance (Miles):{' '}
+                                                                                                {
+                                                                                                    assignmentDetails.billedDistanceMiles
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                        {assignmentDetails.chargeType ===
+                                                                                            ChargeType.PER_HOUR && (
+                                                                                            <p>
+                                                                                                Billed Duration (Hours):{' '}
+                                                                                                {
+                                                                                                    assignmentDetails.billedDurationHours
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                        {assignmentDetails.chargeType ===
+                                                                                            ChargeType.PERCENTAGE_OF_LOAD && (
+                                                                                            <p>
+                                                                                                Billed Load Rate:{' '}
+                                                                                                {
+                                                                                                    assignmentDetails.billedLoadRate
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            className="mt-2 text-blue-600 hover:underline"
+                                                                                            onClick={() =>
+                                                                                                toggleEditMode(
+                                                                                                    assignmentDetails
+                                                                                                        .assignment.id,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            Edit
+                                                                                        </button>
                                                                                     </div>
                                                                                 ) : (
                                                                                     <div>
@@ -851,6 +822,18 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                                 </div>
                                                                                             </div>
                                                                                         )}
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            className="mt-2 text-blue-600 hover:underline"
+                                                                                            onClick={() =>
+                                                                                                toggleEditMode(
+                                                                                                    assignmentDetails
+                                                                                                        .assignment.id,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            Done
+                                                                                        </button>
                                                                                     </div>
                                                                                 )}
                                                                             </div>
