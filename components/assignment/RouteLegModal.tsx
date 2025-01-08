@@ -372,12 +372,12 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                                 {index + 1}
                                                                                             </p>
                                                                                         </div>
-                                                                                        <div className="flex-1 truncate">
-                                                                                            <p className="text-base font-semibold text-gray-900 capitalize truncate">
+                                                                                        <div className="flex-1">
+                                                                                            <p className="text-base font-semibold text-gray-900 capitalize line-clamp-2">
                                                                                                 {item.name.toLowerCase()}
                                                                                             </p>
                                                                                             {isLoadStop && (
-                                                                                                <p className="text-xs text-gray-800 truncate">
+                                                                                                <p className="text-xs text-gray-800">
                                                                                                     {new Date(
                                                                                                         (
                                                                                                             item as LoadStop
@@ -391,10 +391,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                                     }
                                                                                                 </p>
                                                                                             )}
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                            <p className="text-sm text-gray-500 capitalize">
                                                                                                 {item.street.toLowerCase()}
                                                                                             </p>
-                                                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                                                            <p className="text-sm text-gray-500 capitalize">
                                                                                                 {item.city.toLowerCase()}
                                                                                                 ,{' '}
                                                                                                 {item.state.toUpperCase()}
@@ -557,11 +557,11 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                                         className="w-6 h-6 text-gray-500"
                                                                                         aria-hidden="true"
                                                                                     />
-                                                                                    <div className="flex-1 truncate">
-                                                                                        <p className="text-sm font-bold text-gray-900 capitalize truncate">
+                                                                                    <div className="flex-1">
+                                                                                        <p className="text-sm font-bold text-gray-900 capitalize line-clamp-2">
                                                                                             {item.driver.name}
                                                                                         </p>
-                                                                                        <p className="text-sm text-gray-500 truncate">
+                                                                                        <p className="text-sm text-gray-500">
                                                                                             Estimated Pay:{' '}
                                                                                             {formatCurrency(
                                                                                                 calcDriverPay(

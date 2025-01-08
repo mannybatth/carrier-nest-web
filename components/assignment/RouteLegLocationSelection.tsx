@@ -207,22 +207,22 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                                                                 aria-hidden="true"
                                                             />
                                                         )}
-                                                        <div className="flex-1 truncate">
-                                                            <p className="flex items-center gap-2 text-base font-semibold text-gray-900 capitalize truncate">
-                                                                <span>{item.name.toLowerCase()}</span>
+                                                        <div className="flex-1">
+                                                            <p className="text-base font-semibold text-gray-900 capitalize line-clamp-2">
+                                                                {item.name.toLowerCase()}
                                                             </p>
                                                             {isLoadStop && (
-                                                                <p className="text-xs text-gray-800 truncate">
+                                                                <p className="text-xs text-gray-800">
                                                                     {new Date(
                                                                         (item as LoadStop).date,
                                                                     ).toLocaleDateString()}{' '}
                                                                     @ {(item as LoadStop).time}
                                                                 </p>
                                                             )}
-                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                            <p className="text-sm text-gray-500 capitalize">
                                                                 {item.street.toLowerCase()}
                                                             </p>
-                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                            <p className="text-sm text-gray-500 capitalize">
                                                                 {item.city.toLowerCase()}, {item.state.toUpperCase()},{' '}
                                                                 {item.zip}
                                                             </p>
@@ -301,14 +301,14 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                                                             className="w-6 h-6 text-gray-500"
                                                             aria-hidden="true"
                                                         />
-                                                        <div className="flex-1 truncate">
-                                                            <p className="flex items-center gap-2 text-base font-semibold text-gray-900 capitalize truncate">
+                                                        <div className="flex-1">
+                                                            <p className="flex items-center gap-2 text-base font-semibold text-gray-900 capitalize">
                                                                 <span>{location.name.toLowerCase()}</span>
                                                             </p>
-                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                            <p className="text-sm text-gray-500 capitalize">
                                                                 {location.street.toLowerCase()}
                                                             </p>
-                                                            <p className="text-sm text-gray-500 capitalize truncate">
+                                                            <p className="text-sm text-gray-500 capitalize">
                                                                 {location.city.toLowerCase()},{' '}
                                                                 {location.state.toUpperCase()}, {location.zip}
                                                             </p>
