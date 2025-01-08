@@ -143,7 +143,13 @@ const AssignmentsPage = () => {
 
     const handleCheckboxChange = (assignment: ExpandedDriverAssignment, isChecked: boolean) => {
         if (isChecked) {
-            setSelectedAssignments([...selectedAssignments, assignment]);
+            const newSelectedAssignments = [...selectedAssignments, assignment];
+            newSelectedAssignments.sort((a, b) => {
+                const indexA = assignments.findIndex((item) => item.id === a.id);
+                const indexB = assignments.findIndex((item) => item.id === b.id);
+                return indexA - indexB;
+            });
+            setSelectedAssignments(newSelectedAssignments);
         } else {
             setSelectedAssignments(selectedAssignments.filter((a) => a.id !== assignment.id));
         }
