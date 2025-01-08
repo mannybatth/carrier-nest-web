@@ -199,6 +199,10 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     };
 
+    const allAmountsZeroOrEmpty = () => {
+        return Object.values(amounts).every((amount) => !amount || amount === 0);
+    };
+
     const handleDeletePayment = async () => {
         if (paymentToDelete && assignments.length > 0) {
             setLoading(true);
@@ -525,7 +529,10 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
                                                             onClick={handleAddPayment}
                                                             disabled={
-                                                                loading || !paymentDate || assignments.length === 0
+                                                                loading ||
+                                                                !paymentDate ||
+                                                                assignments.length === 0 ||
+                                                                allAmountsZeroOrEmpty()
                                                             }
                                                         >
                                                             Add Payment
