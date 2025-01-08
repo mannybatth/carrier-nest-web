@@ -437,6 +437,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                     assignmentDetails.assignment.id
                                                                                 ]
                                                                             }
+                                                                            allowEditMode={
+                                                                                calculateTotalPayments(
+                                                                                    groupedPayments[driverId],
+                                                                                ) <
+                                                                                calculateFullDue(
+                                                                                    driverId,
+                                                                                    groupedAssignments[driverId],
+                                                                                )
+                                                                            }
                                                                             toggleEditMode={toggleEditMode}
                                                                             handleAssignmentDetailChange={
                                                                                 handleAssignmentDetailChange

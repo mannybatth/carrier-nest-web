@@ -14,6 +14,7 @@ export interface AssignmentDetails {
 interface AssignmentDetailsProps {
     assignmentDetails: AssignmentDetails;
     editMode: boolean;
+    allowEditMode: boolean;
     toggleEditMode: (assignmentId: string) => void;
     handleAssignmentDetailChange: (
         assignmentDetail: AssignmentDetails,
@@ -45,11 +46,11 @@ const getPayStatus = (assignment: ExpandedDriverAssignment) => {
 const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     assignmentDetails,
     editMode,
+    allowEditMode,
     toggleEditMode,
     handleAssignmentDetailChange,
     resetFieldToAssignmentValue,
 }) => {
-    const payStatus = getPayStatus(assignmentDetails.assignment);
     const getPaymentDescription = () => {
         switch (assignmentDetails.chargeType) {
             case ChargeType.PER_MILE:
@@ -83,13 +84,13 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                 Load #: {assignmentDetails.assignment.load.refNum}
             </div>
             <div className="absolute px-2 text-sm font-medium -top-3 right-3">
-                <PayStatusBadge status={payStatus} />
+                <PayStatusBadge status={getPayStatus(assignmentDetails.assignment)} />
             </div>
             <div className="p-4">
                 {!editMode ? (
                     <div className="text-sm">
                         <p>Driver is paid {getPaymentDescription()}</p>
-                        {payStatus !== 'paid' && (
+                        {allowEditMode && (
                             <button
                                 type="button"
                                 className="mt-2 text-sm text-blue-600 hover:underline"
