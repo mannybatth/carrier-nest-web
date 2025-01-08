@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChargeType, Prisma } from '@prisma/client';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
+import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
 
 export interface AssignmentDetails {
     assignment: ExpandedDriverAssignment;
@@ -85,26 +86,39 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
         handleAssignmentDetailChange(assignmentDetail, 'chargeValue', newChargeValue);
     };
 
+    const calculateAssignmentTotalPay = (details: AssignmentDetails) => {
+        return calculateDriverPay({
+            chargeType: details.chargeType,
+            chargeValue: details.chargeValue,
+            distanceMiles: details.billedDistanceMiles ?? details.assignment.routeLeg?.distanceMiles ?? 0,
+            durationHours: details.billedDurationHours ?? details.assignment.routeLeg?.durationHours ?? 0,
+            loadRate: details.billedLoadRate ?? details.assignment.load.rate,
+        });
+    };
+
     const getPaymentDescription = () => {
         switch (assignmentDetails.chargeType) {
             case ChargeType.PER_MILE:
                 return (
                     <>
-                        <b>${assignmentDetails.chargeValue}/mile</b> for {assignmentDetails.billedDistanceMiles} miles
+                        <b>${assignmentDetails.chargeValue}/mile</b> for {assignmentDetails.billedDistanceMiles} miles,
+                        totaling ${totalPay}
                     </>
                 );
             case ChargeType.PER_HOUR:
                 return (
                     <>
-                        <b>${assignmentDetails.chargeValue}/hr</b> for {assignmentDetails.billedDurationHours} hours
+                        <b>${assignmentDetails.chargeValue}/hr</b> for {assignmentDetails.billedDurationHours} hours,
+                        totaling ${totalPay}
                     </>
                 );
             case ChargeType.FIXED_PAY:
-                return <>fixed pay of ${assignmentDetails.chargeValue}</>;
+                return <>a fixed pay of ${assignmentDetails.chargeValue}</>;
             case ChargeType.PERCENTAGE_OF_LOAD:
                 return (
                     <>
-                        <b>{assignmentDetails.chargeValue}%</b> of load rate (${assignmentDetails.billedLoadRate})
+                        <b>{assignmentDetails.chargeValue}%</b> of load rate (${assignmentDetails.billedLoadRate}),
+                        totaling ${totalPay}
                     </>
                 );
             default:
@@ -112,19 +126,22 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
         }
     };
 
+    const totalPay = calculateAssignmentTotalPay(assignmentDetails).toNumber();
+    const payStatus = getPayStatus(assignmentDetails.assignment);
+
     return (
         <div className="relative mt-8 border rounded-lg bg-neutral-50">
             <div className="absolute px-2 text-sm font-medium text-gray-700 bg-white -top-3 left-3">
                 Load #: {assignmentDetails.assignment.load.refNum}
             </div>
             <div className="absolute px-2 text-sm font-medium -top-3 right-3">
-                <PayStatusBadge status={getPayStatus(assignmentDetails.assignment)} />
+                <PayStatusBadge status={payStatus} />
             </div>
             <div className="p-4">
                 {!editMode ? (
                     <div className="text-sm">
                         <p>Driver is paid {getPaymentDescription()}</p>
-                        {allowEditMode && (
+                        {(allowEditMode || payStatus === 'not paid' || totalPay === 0) && (
                             <button
                                 type="button"
                                 className="mt-2 text-sm text-blue-600 hover:underline"
