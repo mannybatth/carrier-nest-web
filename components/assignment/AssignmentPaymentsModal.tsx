@@ -137,6 +137,10 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                     ).toNumber() as number;
                 }
             }
+
+            // Rebuild amounts after updating assignment details
+            buildAmounts(updatedAssignments);
+
             return updatedAssignments;
         });
     };
