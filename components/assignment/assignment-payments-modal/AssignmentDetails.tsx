@@ -113,7 +113,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                     </>
                 );
             case ChargeType.FIXED_PAY:
-                return <>a fixed pay of ${assignmentDetails.chargeValue}</>;
+                return <>Fixed pay of ${assignmentDetails.chargeValue}</>;
             case ChargeType.PERCENTAGE_OF_LOAD:
                 return (
                     <>
@@ -140,7 +140,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
             <div className="p-4">
                 {!editMode ? (
                     <div className="text-sm">
-                        <p>Driver is paid {getPaymentDescription()}</p>
+                        <p>Pay for driver: {getPaymentDescription()}</p>
                         {(allowEditMode || payStatus === 'not paid' || totalPay === 0) && (
                             <button
                                 type="button"
