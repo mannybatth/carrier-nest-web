@@ -18,6 +18,15 @@ interface AssignmentPaymentsModalProps {
     onDeletePayment: () => void;
 }
 
+interface AssignmentDetails {
+    assignment: ExpandedDriverAssignment;
+    chargeType: ChargeType;
+    chargeValue: number;
+    billedDistanceMiles: number | null;
+    billedDurationHours: number | null;
+    billedLoadRate: number | null;
+}
+
 const formatCurrency = (amount: number | Prisma.Decimal) => {
     return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
@@ -44,20 +53,6 @@ const getStatusMessage = (status: string) => {
     }
 };
 
-const initializeChargeTypes = (assignments: ExpandedDriverAssignment[]) => {
-    return assignments.reduce((acc, assignment) => {
-        acc[assignment.id] = assignment.chargeType;
-        return acc;
-    }, {} as Record<string, ChargeType | null>);
-};
-
-const initializeChargeValues = (assignments: ExpandedDriverAssignment[]) => {
-    return assignments.reduce((acc, assignment) => {
-        acc[assignment.id] = new Prisma.Decimal(assignment.chargeValue).toNumber();
-        return acc;
-    }, {} as Record<string, number | null>);
-};
-
 const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     isOpen,
     onClose,
@@ -71,38 +66,48 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
     const amountFieldRef = useRef(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [paymentIdToDelete, setPaymentIdToDelete] = useState<string | null>(null);
-    const [hoursBilled, setHoursBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
-    const [milesBilled, setMilesBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
-    const [loadRateBilled, setLoadRateBilled] = useState<Prisma.Decimal | null>(new Prisma.Decimal(0));
-    const [chargeTypes, setChargeTypes] = useState<Record<string, ChargeType | null>>({});
-    const [chargeValues, setChargeValues] = useState<Record<string, number | null>>({});
+    const [assignmentDetails, setAssignmentDetails] = useState<Record<string, AssignmentDetails>>({});
 
-    const initializeAmounts = (assignments: ExpandedDriverAssignment[]) => {
-        return Object.keys(groupAssignmentsByDriver(assignments)).reduce((acc, driverId) => {
-            acc[driverId] = null;
+    const initializeAssignmentDetails = (
+        assignments: ExpandedDriverAssignment[],
+    ): Record<string, AssignmentDetails> => {
+        return assignments.reduce((acc, assignment) => {
+            acc[assignment.id] = {
+                assignment,
+                chargeType: assignment.chargeType,
+                chargeValue: new Prisma.Decimal(assignment.chargeValue).toNumber(),
+                billedDistanceMiles: new Prisma.Decimal(
+                    assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles,
+                )
+                    .toNearest(0.01)
+                    .toNumber(),
+                billedDurationHours: new Prisma.Decimal(
+                    assignment.billedDurationHours || assignment.routeLeg.durationHours,
+                )
+                    .toNearest(0.01)
+                    .toNumber(),
+                billedLoadRate: new Prisma.Decimal(assignment.billedLoadRate || assignment.load.rate)
+                    .toNearest(0.01)
+                    .toNumber(),
+            };
             return acc;
-        }, {} as Record<string, number | null>);
+        }, {} as Record<string, AssignmentDetails>);
     };
 
-    const initializeBilledValues = (assignments: ExpandedDriverAssignment[]) => {
-        const firstAssignment = assignments[0];
-        return {
-            hoursBilled: new Prisma.Decimal(firstAssignment?.routeLeg?.durationHours ?? 0),
-            milesBilled: new Prisma.Decimal(firstAssignment?.routeLeg?.distanceMiles ?? 0),
-            loadRateBilled: new Prisma.Decimal(firstAssignment?.load.rate ?? 0),
-        };
+    const calculateFullDue = (driverId: string) => {
+        if (assignments.length > 0) {
+            const totalAmountDue = groupedAssignments[driverId].reduce((acc, assignment) => {
+                return acc.plus(calculateAssignmentTotalPay(assignment));
+            }, new Prisma.Decimal(0));
+            return totalAmountDue.toNumber();
+        }
+        return 0;
     };
 
     React.useEffect(() => {
         if (isOpen) {
-            setAmounts(initializeAmounts(assignments));
+            setAssignmentDetails(initializeAssignmentDetails(assignments));
             setPaymentDate(new Date().toLocaleDateString('en-CA'));
-            const { hoursBilled, milesBilled, loadRateBilled } = initializeBilledValues(assignments);
-            setHoursBilled(hoursBilled);
-            setMilesBilled(milesBilled);
-            setLoadRateBilled(loadRateBilled);
-            setChargeTypes(initializeChargeTypes(assignments));
-            setChargeValues(initializeChargeValues(assignments));
         }
     }, [isOpen]);
 
@@ -112,6 +117,15 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     }, [assignments]);
 
+    React.useEffect(() => {
+        Object.keys(groupedAssignments).forEach((driverId) => {
+            setAmounts((prev) => ({
+                ...prev,
+                [driverId]: calculateFullDue(driverId),
+            }));
+        });
+    }, [assignmentDetails]);
+
     const getPayStatus = (assignment: ExpandedDriverAssignment) => {
         if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
             return 'paid';
@@ -120,13 +134,28 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         }
     };
 
+    const handleAssignmentDetailChange = (
+        assignmentId: string,
+        field: keyof AssignmentDetails,
+        value: number | Prisma.Decimal | ChargeType | null,
+    ) => {
+        setAssignmentDetails((prev) => ({
+            ...prev,
+            [assignmentId]: {
+                ...prev[assignmentId],
+                [field]: value,
+            },
+        }));
+    };
+
     const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
+        const details = assignmentDetails[assignment.id];
         return calculateDriverPay({
-            chargeType: assignment.chargeType,
-            chargeValue: assignment.chargeValue,
-            distanceMiles: milesBilled ?? assignment.routeLeg?.distanceMiles ?? 0,
-            durationHours: hoursBilled ?? assignment.routeLeg?.durationHours ?? 0,
-            loadRate: loadRateBilled ?? assignment.load.rate,
+            chargeType: details.chargeType,
+            chargeValue: details.chargeValue,
+            distanceMiles: details.billedDistanceMiles ?? assignment.routeLeg?.distanceMiles ?? 0,
+            durationHours: details.billedDurationHours ?? assignment.routeLeg?.durationHours ?? 0,
+            loadRate: details.billedLoadRate ?? assignment.load.rate,
         });
     };
 
@@ -260,9 +289,27 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
     const groupedPayments = groupPaymentsByDriver(assignments);
 
-    const handleChargeTypeChange = (assignmentId: string, chargeType: ChargeType) => {
-        setChargeTypes((prev) => ({ ...prev, [assignmentId]: chargeType }));
-        setChargeValues((prev) => ({ ...prev, [assignmentId]: null }));
+    const resetFieldToAssignmentValue = (assignmentId: string, field: keyof AssignmentDetails) => {
+        const assignment = assignmentDetails[assignmentId].assignment;
+        let value: number | Prisma.Decimal | null = null;
+
+        switch (field) {
+            case 'billedDistanceMiles':
+                value = assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles;
+                break;
+            case 'billedDurationHours':
+                value = assignment.billedDurationHours || assignment.routeLeg.durationHours;
+                break;
+            case 'billedLoadRate':
+                value = assignment.billedLoadRate || assignment.load.rate;
+                break;
+        }
+
+        handleAssignmentDetailChange(
+            assignmentId,
+            field,
+            value ? new Prisma.Decimal(value).toNearest(0.01).toNumber() : null,
+        );
     };
 
     return (
@@ -443,13 +490,14 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                     <select
                                                                                         id={`charge-type-${assignment.id}`}
                                                                                         value={
-                                                                                            chargeTypes[
+                                                                                            assignmentDetails[
                                                                                                 assignment.id
-                                                                                            ] || ''
+                                                                                            ]?.chargeType || ''
                                                                                         }
                                                                                         onChange={(e) =>
-                                                                                            handleChargeTypeChange(
+                                                                                            handleAssignmentDetailChange(
                                                                                                 assignment.id,
+                                                                                                'chargeType',
                                                                                                 e.target
                                                                                                     .value as ChargeType,
                                                                                             )
@@ -494,23 +542,24 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                         id={`charge-value-${assignment.id}`}
                                                                                         type="number"
                                                                                         value={
-                                                                                            chargeValues[assignment.id]
+                                                                                            assignmentDetails[
+                                                                                                assignment.id
+                                                                                            ]?.chargeValue || ''
                                                                                         }
                                                                                         onChange={(e) =>
-                                                                                            setChargeValues((prev) => ({
-                                                                                                ...prev,
-                                                                                                [assignment.id]: Number(
-                                                                                                    e.target.value,
-                                                                                                ),
-                                                                                            }))
+                                                                                            handleAssignmentDetailChange(
+                                                                                                assignment.id,
+                                                                                                'chargeValue',
+                                                                                                Number(e.target.value),
+                                                                                            )
                                                                                         }
                                                                                         placeholder="Charge Value"
                                                                                         step="any"
                                                                                         min="0"
                                                                                         max={
-                                                                                            chargeTypes[
+                                                                                            assignmentDetails[
                                                                                                 assignment.id
-                                                                                            ] ===
+                                                                                            ]?.chargeType ===
                                                                                             ChargeType.PERCENTAGE_OF_LOAD
                                                                                                 ? 100
                                                                                                 : undefined
@@ -519,6 +568,154 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                                                     />
                                                                                 </div>
                                                                             </div>
+                                                                            {assignmentDetails[assignment.id]
+                                                                                ?.chargeType ===
+                                                                                ChargeType.PER_MILE && (
+                                                                                <div className="mt-4">
+                                                                                    <label
+                                                                                        className="block text-sm font-medium text-gray-700"
+                                                                                        htmlFor={`billed-distance-${assignment.id}`}
+                                                                                    >
+                                                                                        Billed Distance (Miles)
+                                                                                    </label>
+                                                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                                                        <input
+                                                                                            id={`billed-distance-${assignment.id}`}
+                                                                                            type="number"
+                                                                                            value={
+                                                                                                assignmentDetails[
+                                                                                                    assignment.id
+                                                                                                ]
+                                                                                                    ?.billedDistanceMiles ||
+                                                                                                ''
+                                                                                            }
+                                                                                            onChange={(e) =>
+                                                                                                handleAssignmentDetailChange(
+                                                                                                    assignment.id,
+                                                                                                    'billedDistanceMiles',
+                                                                                                    Number(
+                                                                                                        e.target.value,
+                                                                                                    ),
+                                                                                                )
+                                                                                            }
+                                                                                            placeholder="Billed Distance"
+                                                                                            step="any"
+                                                                                            min="0"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                resetFieldToAssignmentValue(
+                                                                                                    assignment.id,
+                                                                                                    'billedDistanceMiles',
+                                                                                                )
+                                                                                            }
+                                                                                            className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                                        >
+                                                                                            <span>Reset</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                            {assignmentDetails[assignment.id]
+                                                                                ?.chargeType ===
+                                                                                ChargeType.PER_HOUR && (
+                                                                                <div className="mt-4">
+                                                                                    <label
+                                                                                        className="block text-sm font-medium text-gray-700"
+                                                                                        htmlFor={`billed-duration-${assignment.id}`}
+                                                                                    >
+                                                                                        Billed Duration (Hours)
+                                                                                    </label>
+                                                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                                                        <input
+                                                                                            id={`billed-duration-${assignment.id}`}
+                                                                                            type="number"
+                                                                                            value={
+                                                                                                assignmentDetails[
+                                                                                                    assignment.id
+                                                                                                ]
+                                                                                                    ?.billedDurationHours ||
+                                                                                                ''
+                                                                                            }
+                                                                                            onChange={(e) =>
+                                                                                                handleAssignmentDetailChange(
+                                                                                                    assignment.id,
+                                                                                                    'billedDurationHours',
+                                                                                                    Number(
+                                                                                                        e.target.value,
+                                                                                                    ),
+                                                                                                )
+                                                                                            }
+                                                                                            placeholder="Billed Duration"
+                                                                                            step="any"
+                                                                                            min="0"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                resetFieldToAssignmentValue(
+                                                                                                    assignment.id,
+                                                                                                    'billedDurationHours',
+                                                                                                )
+                                                                                            }
+                                                                                            className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                                        >
+                                                                                            <span>Reset</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                            {assignmentDetails[assignment.id]
+                                                                                ?.chargeType ===
+                                                                                ChargeType.PERCENTAGE_OF_LOAD && (
+                                                                                <div className="mt-4">
+                                                                                    <label
+                                                                                        className="block text-sm font-medium text-gray-700"
+                                                                                        htmlFor={`billed-load-rate-${assignment.id}`}
+                                                                                    >
+                                                                                        Billed Load Rate
+                                                                                    </label>
+                                                                                    <div className="flex mt-1 rounded-md shadow-sm">
+                                                                                        <input
+                                                                                            id={`billed-load-rate-${assignment.id}`}
+                                                                                            type="number"
+                                                                                            value={
+                                                                                                assignmentDetails[
+                                                                                                    assignment.id
+                                                                                                ]?.billedLoadRate || ''
+                                                                                            }
+                                                                                            onChange={(e) =>
+                                                                                                handleAssignmentDetailChange(
+                                                                                                    assignment.id,
+                                                                                                    'billedLoadRate',
+                                                                                                    Number(
+                                                                                                        e.target.value,
+                                                                                                    ),
+                                                                                                )
+                                                                                            }
+                                                                                            placeholder="Billed Load Rate"
+                                                                                            step="any"
+                                                                                            min="0"
+                                                                                            className="block w-full border-gray-300 rounded-none shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                resetFieldToAssignmentValue(
+                                                                                                    assignment.id,
+                                                                                                    'billedLoadRate',
+                                                                                                )
+                                                                                            }
+                                                                                            className="relative inline-flex items-center flex-shrink-0 px-4 py-2 -ml-px space-x-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                                        >
+                                                                                            <span>Reset</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
