@@ -18,6 +18,7 @@ const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({ payments, sor
         { key: 'load.refNum', title: 'Load/Order #' },
         { key: 'paymentDate', title: 'Payment Date' },
         { key: 'amount', title: 'Amount' },
+        { key: 'notes', title: 'Notes' },
     ];
 
     return (
@@ -43,6 +44,7 @@ const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({ payments, sor
                     },
                     { value: new Date(driverPayment.paymentDate).toLocaleDateString() },
                     { value: formatCurrency(new Prisma.Decimal(driverPayment.amount).toNumber()) },
+                    { value: driverPayment.notes || '' },
                 ],
             }))}
             sort={sort}
