@@ -6,7 +6,7 @@ import parseISO from 'date-fns/parseISO';
 import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payment';
 import React, { useRef, useState } from 'react';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
-import { calculateDriverPay } from '../../../lib/helpers/calculateDriverPay';
+import { calculateDriverPay, formatCurrency } from '../../../lib/helpers/calculateDriverPay';
 import MoneyInput from '../../forms/MoneyInput';
 import { LoadingOverlay } from '../../LoadingOverlay';
 import AssignmentDetailsSection, { AssignmentDetails } from './AssignmentDetails';
@@ -386,7 +386,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             {groupedAssignments[driverId][0].assignment.driver.name}
                                                         </p>
                                                         <p className="text-sm">
-                                                            Total Assignments: {groupedAssignments[driverId].length}
+                                                            Selected Assignments: {groupedAssignments[driverId].length}
                                                         </p>
                                                     </div>
                                                 ))}
@@ -398,6 +398,11 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
                                                             <div className="absolute px-2 text-lg font-medium text-gray-900 bg-white -top-3 left-3">
                                                                 Driver:{' '}
                                                                 {groupedAssignments[driverId][0].assignment.driver.name}
+                                                            </div>
+                                                            <div className="absolute px-2 text-lg font-medium text-gray-900 bg-white -top-3 right-3">
+                                                                {amounts[driverId]
+                                                                    ? formatCurrency(amounts[driverId])
+                                                                    : '$0.00'}
                                                             </div>
                                                             <div className="p-4">
                                                                 <PaymentDetails

@@ -24,6 +24,25 @@ interface AssignmentDetailsProps {
     resetFieldToAssignmentValue: (assignmentDetail: AssignmentDetails, field: keyof AssignmentDetails) => void;
 }
 
+const getStatusStyles = (status: string) => {
+    switch (status) {
+        case 'paid':
+            return { textColor: 'text-green-800', bgColor: 'bg-green-100' };
+        case 'not paid':
+            return { textColor: 'text-red-800', bgColor: 'bg-red-100' };
+        default:
+            return { textColor: 'text-gray-800', bgColor: 'bg-gray-100' };
+    }
+};
+
+const getPayStatus = (assignment: ExpandedDriverAssignment) => {
+    if (assignment.assignmentPayments && assignment.assignmentPayments.length > 0) {
+        return 'paid';
+    } else {
+        return 'not paid';
+    }
+};
+
 const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     assignmentDetails,
     editMode,
@@ -31,28 +50,48 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     handleAssignmentDetailChange,
     resetFieldToAssignmentValue,
 }) => {
+    const getPaymentDescription = () => {
+        switch (assignmentDetails.chargeType) {
+            case ChargeType.PER_MILE:
+                return (
+                    <>
+                        <b>${assignmentDetails.chargeValue}/mile</b> for {assignmentDetails.billedDistanceMiles} miles
+                    </>
+                );
+            case ChargeType.PER_HOUR:
+                return (
+                    <>
+                        <b>${assignmentDetails.chargeValue}/hr</b> for {assignmentDetails.billedDurationHours} hours
+                    </>
+                );
+            case ChargeType.FIXED_PAY:
+                return <>fixed pay of ${assignmentDetails.chargeValue}</>;
+            case ChargeType.PERCENTAGE_OF_LOAD:
+                return (
+                    <>
+                        <b>{assignmentDetails.chargeValue}%</b> of load rate (${assignmentDetails.billedLoadRate})
+                    </>
+                );
+            default:
+                return '';
+        }
+    };
+
     return (
-        <div className="relative mt-8 border rounded-lg">
+        <div className="relative mt-8 border rounded-lg bg-neutral-50">
             <div className="absolute px-2 text-sm font-medium text-gray-700 bg-white -top-3 left-3">
-                Assignment: {assignmentDetails.assignment.id}
+                Load #: {assignmentDetails.assignment.load.refNum}
+            </div>
+            <div className="absolute px-2 text-sm font-medium -top-3 right-3">
+                <PayStatusBadge status={getPayStatus(assignmentDetails.assignment)} />
             </div>
             <div className="p-4">
                 {!editMode ? (
-                    <div>
-                        <p>Charge Type: {getChargeTypeLabel(assignmentDetails.chargeType)}</p>
-                        <p>Charge Value: {assignmentDetails.chargeValue}</p>
-                        {assignmentDetails.chargeType === ChargeType.PER_MILE && (
-                            <p>Billed Distance (Miles): {assignmentDetails.billedDistanceMiles}</p>
-                        )}
-                        {assignmentDetails.chargeType === ChargeType.PER_HOUR && (
-                            <p>Billed Duration (Hours): {assignmentDetails.billedDurationHours}</p>
-                        )}
-                        {assignmentDetails.chargeType === ChargeType.PERCENTAGE_OF_LOAD && (
-                            <p>Billed Load Rate: {assignmentDetails.billedLoadRate}</p>
-                        )}
+                    <div className="text-sm">
+                        <p>Driver is paid {getPaymentDescription()}</p>
                         <button
                             type="button"
-                            className="mt-2 text-blue-600 hover:underline"
+                            className="mt-2 text-sm text-blue-600 hover:underline"
                             onClick={() => toggleEditMode(assignmentDetails.assignment.id)}
                         >
                             Edit
@@ -234,7 +273,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                         )}
                         <button
                             type="button"
-                            className="mt-2 text-blue-600 hover:underline"
+                            className="mt-2 text-sm text-blue-600 hover:underline"
                             onClick={() => toggleEditMode(assignmentDetails.assignment.id)}
                         >
                             Done
@@ -243,6 +282,17 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                 )}
             </div>
         </div>
+    );
+};
+
+const PayStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const { textColor, bgColor } = getStatusStyles(status);
+    return (
+        <span
+            className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
+        >
+            {status}
+        </span>
     );
 };
 

@@ -69,11 +69,13 @@ const AssignmentsPage = () => {
         limit,
         offset,
         useTableLoading = false,
+        fromAssignmentPaymentsModal = false,
     }: {
         sort?: Sort;
         limit: number;
         offset: number;
         useTableLoading?: boolean;
+        fromAssignmentPaymentsModal?: boolean;
     }) => {
         !useTableLoading && setLoading(true);
         useTableLoading && setTableLoading(true);
@@ -86,19 +88,25 @@ const AssignmentsPage = () => {
                 sort,
                 showUnpaidOnly,
             });
-            setLastAssignmentsTableLimit(assignments.length !== 0 ? assignments.length : lastAssignmentsTableLimit);
-            setAssignments(assignments);
-            setMetadata(metadataResponse);
 
-            if (currentSelectedAssignmentIds) {
-                setSelectedAssignments(
-                    assignments.filter((assignment) => currentSelectedAssignmentIds.has(assignment.id)),
-                );
-            }
-            if (currentSingleSelectedAssignmentId) {
-                setSingleSelectedAssignment(
-                    assignments.find((assignment) => assignment.id === currentSingleSelectedAssignmentId) ?? null,
-                );
+            if (fromAssignmentPaymentsModal && assignments.length === 0) {
+                // Reload the table with showUnpaidOnly off. This allows the modal to remain open on saves
+                setShowUnpaidOnly(false);
+            } else {
+                setLastAssignmentsTableLimit(assignments.length !== 0 ? assignments.length : lastAssignmentsTableLimit);
+                setAssignments(assignments);
+                setMetadata(metadataResponse);
+
+                if (currentSelectedAssignmentIds) {
+                    setSelectedAssignments(
+                        assignments.filter((assignment) => currentSelectedAssignmentIds.has(assignment.id)),
+                    );
+                }
+                if (currentSingleSelectedAssignmentId) {
+                    setSingleSelectedAssignment(
+                        assignments.find((assignment) => assignment.id === currentSingleSelectedAssignmentId) ?? null,
+                    );
+                }
             }
         } catch (error) {
             notify({ title: 'Error', message: error.message, type: 'error' });
@@ -238,10 +246,22 @@ const AssignmentsPage = () => {
                     isModalOpen && (singleSelectedAssignment ? [singleSelectedAssignment] : selectedAssignments)
                 }
                 onAddPayment={() => {
-                    reloadAssignments({ sort, limit, offset, useTableLoading: true });
+                    reloadAssignments({
+                        sort,
+                        limit,
+                        offset,
+                        useTableLoading: true,
+                        fromAssignmentPaymentsModal: true,
+                    });
                 }}
                 onDeletePayment={() => {
-                    reloadAssignments({ sort, limit, offset, useTableLoading: true });
+                    reloadAssignments({
+                        sort,
+                        limit,
+                        offset,
+                        useTableLoading: true,
+                        fromAssignmentPaymentsModal: true,
+                    });
                 }}
             />
         </Layout>

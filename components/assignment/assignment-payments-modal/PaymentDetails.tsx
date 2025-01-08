@@ -39,7 +39,7 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({ payments, setPaymentToD
                 </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {payments.length > 0 ? (
+                {payments?.length > 0 ? (
                     payments.map(({ payment }) => (
                         <tr key={payment.id}>
                             <td className="px-6 py-2 text-sm text-gray-500 whitespace-nowrap">
@@ -70,7 +70,7 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({ payments, setPaymentToD
                 ) : (
                     <tr>
                         <td colSpan={4} className="px-6 py-4 text-sm text-center text-gray-500">
-                            No payments made.
+                            No payments made for selected assignments
                         </td>
                     </tr>
                 )}
