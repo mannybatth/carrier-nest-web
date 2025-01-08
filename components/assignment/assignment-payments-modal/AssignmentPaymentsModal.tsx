@@ -327,13 +327,13 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
 
         switch (field) {
             case 'billedDistanceMiles':
-                value = assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles;
+                value = assignment.routeLeg.distanceMiles;
                 break;
             case 'billedDurationHours':
-                value = assignment.billedDurationHours || assignment.routeLeg.durationHours;
+                value = assignment.routeLeg.durationHours;
                 break;
             case 'billedLoadRate':
-                value = assignment.billedLoadRate || assignment.load.rate;
+                value = assignment.load.rate;
                 break;
         }
 
