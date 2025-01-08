@@ -2,7 +2,7 @@ import { ChargeType, Driver } from '@prisma/client';
 import { ExpandedRouteLegLocation } from './models';
 
 export interface DriverWithCharge {
-    driver: Driver;
+    driver: Partial<Driver>;
     chargeType?: ChargeType;
     chargeValue?: number;
 }

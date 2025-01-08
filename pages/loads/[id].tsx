@@ -1,4 +1,4 @@
-import { LoadDocument, LoadStatus, RouteLegStatus } from '@prisma/client';
+import { LoadDocument, LoadStatus, RouteLeg, RouteLegStatus } from '@prisma/client';
 import RouteLegModal from 'components/assignment/RouteLegModal';
 import { RouteLegDataProvider } from 'components/context/RouteLegDataContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
@@ -231,7 +231,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const editLegClicked = (legId: string) => {
-        const leg = load.route.routeLegs.find((rl) => rl.id === legId);
+        const leg = load.route.routeLegs.find((rl) => rl.id === legId) as Partial<RouteLeg>;
         if (leg) {
             setEditingRouteLeg(leg);
             setOpenLegAssignment(true);
