@@ -5,7 +5,7 @@ import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 import { ChevronDoubleRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { Prisma } from '@prisma/client';
-import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
+import { calculateDriverPay, formatCurrency } from '../../lib/helpers/calculateDriverPay';
 
 interface AssignmentsTableProps {
     assignments: ExpandedDriverAssignment[];
@@ -34,10 +34,6 @@ const getHumanReadableCharge = (assignment: ExpandedDriverAssignment) => {
         default:
             return `${chargeValue}`;
     }
-};
-
-const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 };
 
 const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {

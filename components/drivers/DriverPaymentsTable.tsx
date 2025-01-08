@@ -4,10 +4,7 @@ import { Sort } from '../../interfaces/table';
 import Table from '../Table';
 import { ExpandedDriverPayment } from 'interfaces/models';
 import Link from 'next/link';
-
-const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
+import { formatCurrency } from 'lib/helpers/calculateDriverPay';
 
 interface DriverPaymentsTableProps {
     payments: ExpandedDriverPayment[];

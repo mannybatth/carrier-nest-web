@@ -7,7 +7,7 @@ import { ChargeType, DriverPayment, Prisma } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import MoneyInput from '../forms/MoneyInput';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
-import { calculateDriverPay } from '../../lib/helpers/calculateDriverPay';
+import { calculateDriverPay, formatCurrency } from '../../lib/helpers/calculateDriverPay';
 import { createDriverPayments, deleteDriverPayment } from 'lib/rest/driver-payment';
 import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 
@@ -27,10 +27,6 @@ interface AssignmentDetails {
     billedDurationHours: number | null;
     billedLoadRate: number | null;
 }
-
-const formatCurrency = (amount: number | Prisma.Decimal) => {
-    return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
 
 const getStatusStyles = (status: string) => {
     switch (status) {

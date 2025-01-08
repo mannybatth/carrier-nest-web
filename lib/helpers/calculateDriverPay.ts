@@ -31,3 +31,7 @@ export const calculateDriverPay = ({
     }
     return new Prisma.Decimal(0);
 };
+
+export const formatCurrency = (amount: number | Prisma.Decimal) => {
+    return new Prisma.Decimal(amount).toNumber().toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};

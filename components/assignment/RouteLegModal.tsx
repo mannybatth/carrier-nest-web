@@ -24,11 +24,7 @@ import { getRouteForCoords } from 'lib/mapbox/searchGeo';
 import { useLocalStorage } from 'lib/useLocalStorage';
 import { hoursToReadable } from 'lib/helpers/time';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
-import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
-
-const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
+import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
 
 type Props = {
     show: boolean;

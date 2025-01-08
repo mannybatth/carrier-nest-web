@@ -7,11 +7,7 @@ import { getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
 import Spinner from '../Spinner';
 import { DriverWithCharge } from 'interfaces/assignment';
-import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
-
-const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
+import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
 
 type Props = {
     title?: string;
