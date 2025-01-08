@@ -58,7 +58,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
             const driverId = assignment.driver.id;
             const totalAmountDue = calculateFullDue(driverId, groupedAssignments[driverId]) * 100;
             const totalPayments = calculateTotalPayments(groupedPayments[driverId]) * 100;
-            const remainingAmountDue = (totalAmountDue - totalPayments) / 100;
+            const remainingAmountDue = Math.max((totalAmountDue - totalPayments) / 100, 0);
             newAmounts[driverId] = remainingAmountDue;
         });
         setAmounts(newAmounts);
@@ -237,7 +237,7 @@ const AssignmentPaymentsModal: React.FC<AssignmentPaymentsModalProps> = ({
         if (assignments.length > 0) {
             const totalAmountDue = calculateFullDue(driverId) * 100;
             const totalPayments = calculateTotalPayments(groupedPayments[driverId]) * 100;
-            const remainingAmountDue = (totalAmountDue - totalPayments) / 100;
+            const remainingAmountDue = Math.max((totalAmountDue - totalPayments) / 100, 0);
             setAmounts((prev) => ({ ...prev, [driverId]: remainingAmountDue }));
             amountFieldRef?.current?.focus();
         }
