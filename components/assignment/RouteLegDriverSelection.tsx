@@ -1,5 +1,5 @@
 import { Dialog } from '@headlessui/react';
-import { ArrowLeftIcon, UserCircleIcon, LightBulbIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UserCircleIcon, LightBulbIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { Driver, ChargeType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { useLoadContext } from '../context/LoadContext';
 import Spinner from '../Spinner';
 import { DriverWithCharge } from 'interfaces/assignment';
 import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
+import Link from 'next/link';
 
 type Props = {
     title?: string;
@@ -319,8 +320,17 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                     ) : (
                         <div className="flex items-start justify-center flex-1 h-32">
                             <div className="flex flex-col items-center gap-1 mt-10 space-x-2 text-center text-gray-500">
-                                <span>No drivers available to add.</span>
-                                <span>Add more drivers under Drivers page.</span>
+                                <div>No drivers available to add.</div>
+                                <div className="flex items-center space-x-1">
+                                    <span>Add more drivers under</span>
+                                    <div className="flex items-center space-x-1">
+                                        <Link href="/drivers" target={'_blank'} className="flex items-center space-x-1">
+                                            Drivers Page
+                                            <ArrowTopRightOnSquareIcon className="inline w-4 h-4 ml-1" />
+                                        </Link>
+                                        .
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
