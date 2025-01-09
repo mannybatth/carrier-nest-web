@@ -51,12 +51,12 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                             height={200}
                             alt="Load Route"
                             loading="lazy"
-                            className="w-full h-auto mb-3"
+                            className="w-full h-auto"
                         ></Image>
                     )}
                     <ul
                         role="list"
-                        className={`grid gap-4 p-2 px-4 pb-4 bg-white grid-cols-1 sm:grid-cols-2 lg:grid-cols-${
+                        className={`grid gap-4 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-${
                             load.stops.length + 2
                         } auto-cols-fr`}
                     >
