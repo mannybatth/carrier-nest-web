@@ -1,48 +1,50 @@
+import { Prisma } from '@prisma/client';
 import React from 'react';
-import HoverPopover from './HoverPopover';
-import { ExpandedDriverAssignment } from '../interfaces/models';
+import { ExpandedDriverAssignment, ExpandedLoad } from '../interfaces/models';
 import { calculateDriverPay, formatCurrency } from '../lib/helpers/calculateDriverPay';
+import HoverPopover from './HoverPopover';
 import RouteLegStatusBadge from './loads/RouteLegStatusBadge';
 
-const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment) => {
+const calculateAssignmentTotalPay = (assignment: ExpandedDriverAssignment, loadRate: Prisma.Decimal) => {
     return calculateDriverPay({
         chargeType: assignment.chargeType,
         chargeValue: assignment.chargeValue,
         distanceMiles: assignment.billedDistanceMiles ?? assignment.routeLeg?.distanceMiles ?? 0,
         durationHours: assignment.billedDurationHours ?? assignment.routeLeg?.durationHours ?? 0,
-        loadRate: assignment.billedLoadRate ?? assignment.load.rate,
+        loadRate: assignment.billedLoadRate ?? loadRate,
     });
 };
 
-const calculateRouteLegTotalCost = (assignment: ExpandedDriverAssignment) => {
+const calculateRouteLegTotalCost = (assignment: ExpandedDriverAssignment, load: ExpandedLoad) => {
     const routeLeg = assignment.routeLeg;
     if (!routeLeg) return 0;
     const driverAssignments = routeLeg.driverAssignments as ExpandedDriverAssignment[];
     return driverAssignments.reduce((total, driverAssignment) => {
-        driverAssignment.load = assignment.load;
+        driverAssignment.load = load as ExpandedDriverAssignment['load'];
         driverAssignment.routeLeg = routeLeg;
-        return total + calculateAssignmentTotalPay(driverAssignment).toNumber();
+        return total + calculateAssignmentTotalPay(driverAssignment, load.rate).toNumber();
     }, 0);
 };
 
-const LoadPopover: React.FC<{ trigger: React.ReactNode; assignment: ExpandedDriverAssignment }> = ({
-    trigger,
-    assignment,
-}) => {
+const LoadPopover: React.FC<{
+    trigger: React.ReactNode;
+    assignment: ExpandedDriverAssignment;
+    load: ExpandedLoad;
+}> = ({ trigger, assignment, load }) => {
     return (
         <HoverPopover
             trigger={trigger}
             content={
                 <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-900">Assignment for Load # {assignment.load?.refNum}</p>
+                    <p className="text-sm font-medium text-gray-900">Assignment for Load # {load?.refNum}</p>
                     <div className="text-sm text-gray-600">
                         <p className="mb-1">
                             Status: <RouteLegStatusBadge routeLeg={assignment.routeLeg} />
                         </p>
-                        <p>Load Rate: {formatCurrency(assignment.load?.rate)}</p>
+                        <p>Load Rate: {formatCurrency(load?.rate)}</p>
                         <p>
                             Total Driver{assignment.routeLeg?.driverAssignments.length > 1 ? 's' : ''} Pay:{' '}
-                            {formatCurrency(calculateRouteLegTotalCost(assignment))}
+                            {formatCurrency(calculateRouteLegTotalCost(assignment, load))}
                         </p>
                     </div>
                     <div className="mt-3">

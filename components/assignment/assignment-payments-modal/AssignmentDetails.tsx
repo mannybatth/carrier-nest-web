@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChargeType, Prisma } from '@prisma/client';
 import { ExpandedDriverAssignment } from '../../../interfaces/models';
-import { calculateDriverPay } from 'lib/helpers/calculateDriverPay';
+import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
 import LoadPopover from '../../LoadPopover';
 
 export interface AssignmentDetails {
@@ -103,23 +103,23 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                 return (
                     <>
                         <b>${assignmentDetails.chargeValue}/mile</b> for {assignmentDetails.billedDistanceMiles} miles,
-                        totaling ${totalPay}
+                        totaling {formatCurrency(totalPay)}
                     </>
                 );
             case ChargeType.PER_HOUR:
                 return (
                     <>
                         <b>${assignmentDetails.chargeValue}/hr</b> for {assignmentDetails.billedDurationHours} hours,
-                        totaling ${totalPay}
+                        totaling {formatCurrency(totalPay)}
                     </>
                 );
             case ChargeType.FIXED_PAY:
-                return <>Fixed pay of ${assignmentDetails.chargeValue}</>;
+                return <>Fixed pay of {formatCurrency(assignmentDetails.chargeValue)}</>;
             case ChargeType.PERCENTAGE_OF_LOAD:
                 return (
                     <>
                         <b>{assignmentDetails.chargeValue}%</b> of load rate (${assignmentDetails.billedLoadRate}),
-                        totaling ${totalPay}
+                        totaling {formatCurrency(totalPay)}
                     </>
                 );
             default:
@@ -142,6 +142,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                             </span>
                         }
                         assignment={assignmentDetails.assignment}
+                        load={assignmentDetails.assignment.load}
                     />
                 </div>
             </div>

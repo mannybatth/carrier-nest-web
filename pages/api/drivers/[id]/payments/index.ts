@@ -98,7 +98,25 @@ async function _get(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>
                 assignmentPayments: {
                     include: {
                         load: true,
-                        driverAssignment: true,
+                        driverAssignment: {
+                            include: {
+                                routeLeg: {
+                                    include: {
+                                        driverAssignments: {
+                                            include: {
+                                                driver: true,
+                                            },
+                                        },
+                                        locations: {
+                                            include: {
+                                                loadStop: true,
+                                                location: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },

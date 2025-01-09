@@ -124,6 +124,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                                         </Link>
                                     }
                                     assignment={assignment}
+                                    load={assignment.load}
                                 />
                             ),
                         },

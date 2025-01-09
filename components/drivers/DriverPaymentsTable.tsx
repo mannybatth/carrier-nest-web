@@ -6,6 +6,7 @@ import { ExpandedDriverPayment } from 'interfaces/models';
 import Link from 'next/link';
 import { formatCurrency } from 'lib/helpers/calculateDriverPay';
 import { TrashIcon } from '@heroicons/react/24/outline';
+import LoadPopover from 'components/LoadPopover';
 
 interface DriverPaymentsTableProps {
     payments: ExpandedDriverPayment[];
@@ -42,14 +43,27 @@ const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({
                     {
                         node: (
                             <>
-                                {driverPayment.assignmentPayments.map((payment, index) => (
-                                    <React.Fragment key={payment.id}>
-                                        <Link href={`/loads/${payment.loadId}`} onClick={(e) => e.stopPropagation()}>
-                                            {payment.load.refNum}
-                                        </Link>
-                                        {index < driverPayment.assignmentPayments.length - 1 && ', '}
-                                    </React.Fragment>
-                                ))}
+                                <div className="flex items-center">
+                                    {driverPayment.assignmentPayments.map((payment, index) => (
+                                        <React.Fragment key={payment.id}>
+                                            <LoadPopover
+                                                trigger={
+                                                    <Link
+                                                        href={`/loads/${payment.loadId}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {payment.load.refNum}
+                                                    </Link>
+                                                }
+                                                assignment={payment.driverAssignment}
+                                                load={payment.load}
+                                            />
+                                            {index < driverPayment.assignmentPayments.length - 1 && (
+                                                <span className="mr-1">,</span>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
                             </>
                         ),
                     },
