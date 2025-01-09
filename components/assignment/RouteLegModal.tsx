@@ -733,12 +733,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                             routeLegData.locations.length < 2 ||
                                                             saveLoading
                                                         }
-                                                        className={`inline-flex items-center px-3 py-2  text-sm font-medium leading-4 text-white ${
-                                                            routeLegData.driversWithCharge.length < 1 ||
-                                                            routeLegData.locations.length < 2
-                                                                ? 'bg-green-600/30 cursor-not-allowed'
-                                                                : 'bg-green-700'
-                                                        }  rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600`}
+                                                        className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-700 border border-transparent rounded-md shadow-sm hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:bg-green-700 disabled:cursor-not-allowed"
                                                         onClick={() => submit()}
                                                     >
                                                         <PlusIcon className="-ml-0.5 h-7 w-5" aria-hidden="true" />
