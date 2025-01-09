@@ -21,7 +21,7 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 import EquipmentsTable from '../../components/equipments/EquipmentsTable';
 import { deleteEquipmentById } from '../../lib/rest/equipment';
 import { getChargeTypeLabel } from 'lib/driver/driver-utils';
-import { getDriverPayments } from '../../lib/rest/driver-payment';
+import { deleteDriverPayment, getDriverPayments } from '../../lib/rest/driver-payment';
 import DriverPaymentsTable from '../../components/drivers/DriverPaymentsTable';
 
 type ActionsDropdownProps = {
@@ -113,6 +113,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     const driverId = params?.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
+    const [lastPaymentsTableLimit, setLastPaymentsTableLimit] = useLocalStorage('lastPaymentsTableLimit', limitProp);
 
     const [loadingDriver, setLoadingDriver] = React.useState(true);
     const [loadingLoads, setLoadingLoads] = React.useState(true);
@@ -145,6 +146,8 @@ const DriverDetailsPage: PageWithAuth = () => {
         currentLimit: 10,
     });
     const [loadingDriverPayments, setLoadingDriverPayments] = React.useState(true);
+    const [deletePaymentConfirmOpen, setDeletePaymentConfirmOpen] = React.useState(false);
+    const [paymentToDelete, setPaymentToDelete] = React.useState<ExpandedDriverPayment | null>(null);
 
     useEffect(() => {
         if (driverId) {
@@ -223,6 +226,9 @@ const DriverDetailsPage: PageWithAuth = () => {
         setDriverPayments(response.driverPayments);
         setDriverPaymentsMetadata(response.metadata);
         setLoadingDriverPayments(false);
+        setLastPaymentsTableLimit(
+            response.driverPayments.length !== 0 ? response.driverPayments.length : lastPaymentsTableLimit,
+        );
     };
 
     const previousDriverPaymentsPage = async () => {
@@ -233,6 +239,31 @@ const DriverDetailsPage: PageWithAuth = () => {
     const nextDriverPaymentsPage = async () => {
         const newOffset = driverPaymentsMetadata.currentOffset + driverPaymentsMetadata.currentLimit;
         await reloadDriverPayments(newOffset, driverPaymentsMetadata.currentLimit);
+    };
+
+    const handleDeletePayment = async () => {
+        if (paymentToDelete) {
+            setLoadingDriverPayments(true);
+            try {
+                const driverId = paymentToDelete.driverId;
+
+                if (driverId) {
+                    await deleteDriverPayment(driverId, paymentToDelete.id);
+
+                    notify({ title: 'Payment deleted', message: 'Payment deleted successfully' });
+
+                    setPaymentToDelete(null);
+                    setDeletePaymentConfirmOpen(false);
+                    reloadDriverPayments();
+                } else {
+                    console.error('Driver ID not found for the payment to be deleted.');
+                    setLoadingDriverPayments(false);
+                }
+            } catch (error) {
+                console.error('Error deleting payment:', error);
+                setLoadingDriverPayments(false);
+            }
+        }
     };
 
     const previousPage = async () => {
@@ -349,6 +380,15 @@ const DriverDetailsPage: PageWithAuth = () => {
                         setEquipmentIdToDelete(null);
                     }}
                 ></SimpleDialog>
+                <SimpleDialog
+                    show={deletePaymentConfirmOpen}
+                    onClose={() => setDeletePaymentConfirmOpen(false)}
+                    title="Delete Payment"
+                    description="Are you sure you want to delete this payment? This action cannot be undone."
+                    primaryButtonText="Delete"
+                    primaryButtonAction={handleDeletePayment}
+                    secondaryButtonText="Cancel"
+                />
                 <div className="py-2 mx-auto max-w-7xl">
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
@@ -467,7 +507,7 @@ const DriverDetailsPage: PageWithAuth = () => {
                             <div className="col-span-12">
                                 <h3 className="mb-2">Assignment Payments</h3>
                                 {loadingDriverPayments ? (
-                                    <LoadsTableSkeleton limit={driverPaymentsMetadata.currentLimit} />
+                                    <LoadsTableSkeleton limit={lastPaymentsTableLimit} />
                                 ) : (
                                     <>
                                         <DriverPaymentsTable
@@ -475,6 +515,8 @@ const DriverDetailsPage: PageWithAuth = () => {
                                             sort={sort}
                                             changeSort={changeSort}
                                             loading={loadingDriverPayments}
+                                            setPaymentToDelete={setPaymentToDelete}
+                                            setConfirmOpen={setDeletePaymentConfirmOpen}
                                         />
                                         {driverPayments.length !== 0 && !loadingDriverPayments && (
                                             <Pagination
