@@ -289,6 +289,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             // Update the load context with the updated route legs
             setLoad((prev) => ({
                 ...prev,
+                status: loadStatus,
                 route: {
                     ...prev.route,
                     routeLegs: updatedRouteLegs as ExpandedRoute['routeLegs'],
