@@ -40,7 +40,10 @@ const LoadPopover: React.FC<{ trigger: React.ReactNode; assignment: ExpandedDriv
                             Status: <RouteLegStatusBadge routeLeg={assignment.routeLeg} />
                         </p>
                         <p>Load Rate: {formatCurrency(assignment.load?.rate)}</p>
-                        <p>Total Driver(s) Pay: {formatCurrency(calculateRouteLegTotalCost(assignment))}</p>
+                        <p>
+                            Total Driver{assignment.routeLeg?.driverAssignments.length > 1 ? 's' : ''} Pay:{' '}
+                            {formatCurrency(calculateRouteLegTotalCost(assignment))}
+                        </p>
                     </div>
                     <div className="mt-3">
                         <p className="text-sm font-semibold text-gray-900">Drivers</p>
