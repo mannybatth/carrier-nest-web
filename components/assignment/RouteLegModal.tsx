@@ -81,6 +81,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             scheduledDate: new Date().toISOString().split('T')[0],
             scheduledTime: '',
         });
+        setShowLegLocationSelection(false);
         setShowDriverSelection(false);
     };
 
