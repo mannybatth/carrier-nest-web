@@ -1,3 +1,7 @@
+/**
+ * @fileoverview This file is used to redirect the old API route to the new one.
+ */
+
 import { JSONResponse } from 'interfaces/models';
 import { NextApiRequest, NextApiResponse } from 'next';
 

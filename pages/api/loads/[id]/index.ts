@@ -66,8 +66,6 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
         const loadData = req.body as ExpandedLoad;
 
-        console.log('load to update', loadData);
-
         const loadShipper = await prisma.loadStop.upsert({
             where: {
                 id: loadData.shipper.id,
