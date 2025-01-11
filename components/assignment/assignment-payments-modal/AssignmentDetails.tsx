@@ -53,6 +53,9 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
     handleAssignmentDetailChange,
     resetFieldToAssignmentValue,
 }) => {
+    const [chargeValueLabel, setChargeValueLabel] = React.useState<string>('Charge Value');
+    const [chargeValuePlaceholder, setChargeValuePlaceholder] = React.useState<string>('Charge Value');
+
     const handleChargeTypeChange = (assignmentDetail: AssignmentDetails, newChargeType: ChargeType) => {
         let newChargeValue = 0;
         if (newChargeType === assignmentDetail.assignment.chargeType) {
@@ -83,6 +86,29 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                     newChargeValue = 0;
             }
         }
+
+        switch (newChargeType) {
+            case ChargeType.PER_MILE:
+                setChargeValueLabel('Per Mile Rate');
+                setChargeValuePlaceholder('Enter per mile rate');
+                break;
+            case ChargeType.PER_HOUR:
+                setChargeValueLabel('Per Hour Rate');
+                setChargeValuePlaceholder('Enter per hour rate');
+                break;
+            case ChargeType.FIXED_PAY:
+                setChargeValueLabel('Fixed Pay');
+                setChargeValuePlaceholder('Enter fixed pay');
+                break;
+            case ChargeType.PERCENTAGE_OF_LOAD:
+                setChargeValueLabel('% of Load Rate');
+                setChargeValuePlaceholder('Enter percentage');
+                break;
+            default:
+                setChargeValueLabel('Charge Value');
+                setChargeValuePlaceholder('Enter charge value');
+        }
+
         handleAssignmentDetailChange(assignmentDetail, 'chargeType', newChargeType);
         handleAssignmentDetailChange(assignmentDetail, 'chargeValue', newChargeValue);
     };
@@ -195,7 +221,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                                     className="block text-sm font-medium text-gray-700"
                                     htmlFor={`charge-value-${assignmentDetails.assignment.id}`}
                                 >
-                                    Charge Value
+                                    {chargeValueLabel}
                                 </label>
                                 <input
                                     id={`charge-value-${assignmentDetails.assignment.id}`}
@@ -208,7 +234,7 @@ const AssignmentDetailsSection: React.FC<AssignmentDetailsProps> = ({
                                             Number(e.target.value),
                                         )
                                     }
-                                    placeholder="Charge Value"
+                                    placeholder={chargeValuePlaceholder}
                                     step="any"
                                     min="0"
                                     max={

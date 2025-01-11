@@ -168,6 +168,21 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         onGoBack();
     };
 
+    const getPlaceholder = (chargeType: ChargeType) => {
+        switch (chargeType) {
+            case ChargeType.PER_MILE:
+                return 'Enter per mile rate';
+            case ChargeType.PER_HOUR:
+                return 'Enter per hour rate';
+            case ChargeType.FIXED_PAY:
+                return 'Enter fixed pay';
+            case ChargeType.PERCENTAGE_OF_LOAD:
+                return '% of Load Rate';
+            default:
+                return 'Enter charge value';
+        }
+    };
+
     return (
         <div className="flex flex-col h-full space-y-4">
             <div className="flex items-start flex-none space-x-4">
@@ -271,7 +286,9 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                         min: 0,
                                                         valueAsNumber: true,
                                                     })}
-                                                    placeholder="Charge Value"
+                                                    placeholder={getPlaceholder(
+                                                        selectedDriversWatch[driver.id]?.chargeType,
+                                                    )}
                                                     step="any"
                                                     min="0"
                                                     max={
