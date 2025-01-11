@@ -1,0 +1,11 @@
+import { JSONResponse } from 'interfaces/models';
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
+    const queryString = req.url?.split('?')[1] || '';
+    const newUrl = `/api/assignments/for-driver?${queryString}`;
+
+    // Forward the request to the new route
+    res.writeHead(301, { Location: newUrl });
+    res.end();
+}
