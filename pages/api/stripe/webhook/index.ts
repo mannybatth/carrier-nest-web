@@ -1,6 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { stripe } from 'lib/stripe';
+import { NextRequest } from 'next/server';
 
 // Disable body parsing, need the raw body for signature verification
 export const config = {
@@ -9,7 +10,7 @@ export const config = {
     },
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
     }

@@ -6,6 +6,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
         const { priceId } = req.body;
 
+        console.log('Creating checkout session for priceId:', priceId);
+
         try {
             const session = await stripe.checkout.sessions.create({
                 mode: 'subscription',
