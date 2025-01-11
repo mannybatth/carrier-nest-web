@@ -51,29 +51,35 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _post() {
         try {
             const session = await getServerSession(req, res, authOptions);
-            const driverData = req.body as Carrier;
+            const carrierData = req.body as Carrier;
 
-            // Create carrier
-            const carrier = await prisma.carrier.create({
-                data: {
-                    ...driverData,
-                },
-            });
-
-            // Connect carrier to user
-            await prisma.user.update({
-                where: {
-                    id: session.user.id,
-                },
-                data: {
-                    defaultCarrierId: carrier.id,
-                    carriers: {
-                        connect: {
-                            id: carrier.id,
+            // Create carrier with subscription and connect to user in a transaction
+            const [carrier] = await prisma.$transaction([
+                prisma.carrier.create({
+                    data: {
+                        ...carrierData,
+                        subscription: {
+                            create: {
+                                plan: 'BASIC',
+                                status: 'active',
+                            },
                         },
                     },
-                },
-            });
+                }),
+                prisma.user.update({
+                    where: {
+                        id: session.user.id,
+                    },
+                    data: {
+                        defaultCarrierId: carrierData.id,
+                        carriers: {
+                            connect: {
+                                id: carrierData.id,
+                            },
+                        },
+                    },
+                }),
+            ]);
 
             return res.status(200).json({
                 code: 200,

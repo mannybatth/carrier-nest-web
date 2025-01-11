@@ -106,8 +106,8 @@ enum SubscriptionPlan {
 
 model Subscription {
     id                   String           @id @default(cuid())
-    stripeCustomerId     String
-    stripeSubscriptionId String
+    stripeCustomerId     String?
+    stripeSubscriptionId String?
     plan                 SubscriptionPlan @default(BASIC)
     status               String
     createdAt            DateTime         @default(now())
