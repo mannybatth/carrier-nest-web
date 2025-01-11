@@ -10,25 +10,25 @@ async function main() {
             stripeSubscriptionId: 'sub_basic',
             plan: 'BASIC',
             status: 'active',
+            carrier: {
+                create: {
+                    name: 'Demo Carrier',
+                    email: 'demo@carrier.com',
+                    street: '123 Demo Street',
+                    city: 'Demo City',
+                    state: 'DC',
+                    zip: '12345',
+                    country: 'USA',
+                    carrierCode: 'demo',
+                },
+            },
+        },
+        include: {
+            carrier: true,
         },
     });
 
-    // Create a demo carrier
-    const demoCarrier = await prisma.carrier.upsert({
-        where: { email: 'demo@carrier.com' },
-        update: {},
-        create: {
-            name: 'Demo Carrier',
-            email: 'demo@carrier.com',
-            street: '123 Demo Street',
-            city: 'Demo City',
-            state: 'DC',
-            zip: '12345',
-            country: 'USA',
-            carrierCode: 'demo',
-            subscriptionId: basicPlan.id,
-        },
-    });
+    const demoCarrier = basicPlan.carrier;
 
     console.log(`Created demo carrier: ${demoCarrier.name}`);
 
