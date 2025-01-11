@@ -1,5 +1,4 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { buffer } from 'micro';
 import Stripe from 'stripe';
 import { stripe } from 'lib/stripe';
 
@@ -17,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const signature = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const buf = await buffer(req);
+    const body = await req.text();
 
     let event: Stripe.Event;
 
@@ -26,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw new Error('Missing stripe signature or webhook secret');
         }
 
-        event = stripe.webhooks.constructEvent(buf, signature, webhookSecret);
+        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
         console.error(`Webhook signature verification failed: ${err.message}`);
         return res.status(400).json({ message: err.message });
