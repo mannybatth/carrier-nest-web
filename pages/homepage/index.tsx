@@ -232,8 +232,8 @@ const Homepage = () => {
                         </p>
                         <p className="text-center md:text-right">
                             Got questions? Email us at{' '}
-                            <a href="mailto:carriernestapp@gmail.com" className="text-blue-600 hover:underline">
-                                carriernestapp@gmail.com
+                            <a href="mailto:info@carriernest.com" className="text-blue-600 hover:underline">
+                                info@carriernest.com
                             </a>
                         </p>
                     </div>

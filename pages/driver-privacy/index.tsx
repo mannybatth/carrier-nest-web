@@ -27,166 +27,110 @@ const PrivacyPolicy = () => {
                 {/* Privacy Policy Content */}
                 <main className="py-16">
                     <h1 className="mb-6 text-3xl font-extrabold text-center text-gray-900">
-                        Driver App - Privacy Policy
+                        Carrier Nest App - Privacy Policy
                     </h1>
                     <div className="p-8 text-gray-700 bg-white">
-                        <p className="text-sm text-right text-gray-500">Effective Date: November 28, 2024</p>
-                        <p className="mb-8 text-sm text-right text-gray-500">Last Updated: November 28, 2024</p>
+                        <p className="text-sm text-right text-gray-500">Effective Date: January 10, 2025</p>
+                        <p className="mb-8 text-sm text-right text-gray-500">Effective Date: January 10, 2025</p>
 
                         <p className="mb-4">
-                            At <strong>Carrier Nest</strong>, we are committed to protecting your personal information
-                            and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and
-                            safeguard your information when you use the Carrier Nest Driver App (&quot;
-                            <strong>Driver App</strong>&quot;). By accessing or using the Driver App, you agree to this
-                            Privacy Policy.
+                            At <strong>Carrier Nest</strong>, we are committed to protecting your privacy. This Privacy
+                            Policy outlines how we collect, use, disclose, and safeguard your information when you use
+                            our mobile application. By using the Carrier Nest app, you agree to the collection and use
+                            of information in accordance with this policy. We value your trust and are dedicated to
+                            ensuring the security and confidentiality of your personal data.
                         </p>
 
-                        {/* Section 1 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">1. Information We Collect</h2>
+                        {/* Data Collection and Use */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">Data Collection and Use</h2>
 
-                        {/* 1.1 Personal Information */}
-                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">1.1 Personal Information</h3>
-                        <p className="mb-4">We may collect personal information that identifies you, such as:</p>
+                        {/* Personal Information */}
+                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">Personal Information</h3>
                         <ul className="mb-4 list-disc list-inside">
-                            <li>Full Name</li>
-                            <li>Email Address</li>
-                            <li>Phone Number</li>
+                            <li>Phone Number: Collected during the login process to authenticate the driver.</li>
+                            <li>Carrier Code: Collected during the login process to identify the carrier.</li>
+                            <li>
+                                Location Data: Collected to provide route directions and update load status with the
+                                driver&apos;s current location.
+                            </li>
+                            <li>
+                                Device Information: Collected to manage cookies and sessions for authentication
+                                purposes.
+                            </li>
                         </ul>
 
-                        {/* 1.2 Usage Data */}
-                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">1.2 Usage Data</h3>
+                        {/* Data Sharing */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">Data Sharing</h2>
+                        <ul className="mb-4 list-disc list-inside">
+                            <li>Geolocation Services: Used to provide route directions and update load status.</li>
+                            <li>Authentication Services: Used to authenticate drivers and manage sessions.</li>
+                            <li>
+                                File Upload Services: Used to upload documents related to loads, such as proof of
+                                delivery (POD) documents.
+                            </li>
+                        </ul>
+
+                        {/* Data Security */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">Data Security</h2>
                         <p className="mb-4">
-                            We automatically collect certain information when you use our App, including:
+                            All collected data is securely stored and transmitted using industry-standard encryption
+                            protocols. Access to personal data is restricted to authorized personnel only.
                         </p>
+
+                        {/* User Rights */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">User Rights</h2>
+                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">Access and Control</h3>
                         <ul className="mb-4 list-disc list-inside">
-                            <li>Device Information: Model, operating system, unique device identifiers</li>
-                            <li>Log Data: IP address, app usage details, access times, and dates</li>
-                            <li>Cookies and Similar Technologies: To enhance your experience and collect usage data</li>
+                            <li>
+                                Users can access and update their personal information through the app&apos;s settings.
+                            </li>
+                            <li>Users can request the deletion of their personal data by contacting support.</li>
                         </ul>
 
-                        {/* 1.3 Location Data */}
-                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">1.3 Location Data</h3>
-                        <p className="mb-4">With your permission, we collect real-time location information to:</p>
-                        <ul className="mb-4 list-disc list-inside">
-                            <li>Provide navigation and route guidance</li>
-                            <li>Optimize task assignments based on your location</li>
-                            <li>Verify pickup and drop-off points</li>
-                        </ul>
+                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">Data Retention</h3>
+                        <p className="mb-4">
+                            Personal data is retained for as long as necessary to provide the app&apos;s services and
+                            comply with legal obligations.
+                        </p>
 
-                        {/* 1.4 Proof of Delivery (POD) */}
-                        <h3 className="mt-6 mb-2 text-xl font-semibold text-gray-800">1.4 Proof of Delivery (POD)</h3>
-                        <p className="mb-4">When you upload PODs, we collect:</p>
-                        <ul className="mb-4 list-disc list-inside">
-                            <li>Images or scans of delivery documents</li>
-                            <li>Recipient signatures</li>
-                            <li>Delivery timestamps</li>
-                        </ul>
+                        {/* Children's Privacy */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">Children&apos;s Privacy</h2>
+                        <p className="mb-4">
+                            Our app is not intended for use by children under the age of 13. We do not knowingly collect
+                            personally identifiable information from children under 13. If we become aware that we have
+                            collected personal data from a child under 13, we will take steps to delete such
+                            information.
+                        </p>
 
-                        {/* Section 2 */}
+                        {/* No App Tracking Transparency */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">No App Tracking Transparency</h2>
+                        <p className="mb-4">
+                            Our app does not track users&apos; data across other apps and websites for advertising
+                            purposes. This includes not using third-party advertising networks or analytics tools that
+                            track users across different apps and websites.
+                        </p>
+
+                        {/* Changes to This Privacy Policy */}
                         <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">
-                            2. How We Use Your Information
-                        </h2>
-                        <p className="mb-4">We use the collected information for purposes such as:</p>
-                        <ul className="mb-4 list-disc list-inside">
-                            <li>
-                                <strong>Task Management:</strong> Assigning and tracking delivery tasks
-                            </li>
-                            <li>
-                                <strong>Service Improvement:</strong> Enhancing app functionality through usage analysis
-                            </li>
-                            <li>
-                                <strong>Communication:</strong> Sending updates, notifications, and responding to
-                                inquiries
-                            </li>
-                            <li>
-                                <strong>Invoice Processing:</strong> Expediting invoicing through uploaded PODs
-                            </li>
-                            <li>
-                                <strong>Compliance and Security:</strong> Monitoring for fraudulent activities or policy
-                                violations
-                            </li>
-                        </ul>
-
-                        {/* Section 3 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">
-                            3. Disclosure of Your Information
-                        </h2>
-                        <p className="mb-4">We may share your information with:</p>
-                        <ul className="mb-4 list-disc list-inside">
-                            <li>
-                                <strong>Service Providers:</strong> Third-party companies that assist in operating the
-                                Driver App
-                            </li>
-                            <li>
-                                <strong>Legal Obligations:</strong> If required by law or to protect our rights
-                            </li>
-                            <li>
-                                <strong>Business Transfers:</strong> In connection with mergers, acquisitions, or asset
-                                sales
-                            </li>
-                        </ul>
-
-                        {/* Section 4 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">4. Data Security</h2>
-                        <p className="mb-4">
-                            We implement reasonable security measures to protect your personal information. However, no
-                            method of transmission over the internet or electronic storage is completely secure.
-                        </p>
-
-                        {/* Section 5 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">5. Your Rights and Choices</h2>
-                        <p className="mb-4">
-                            You may have certain rights regarding your personal information, including:
-                        </p>
-                        <ul className="mb-4 list-disc list-inside">
-                            <li>
-                                <strong>Access:</strong> Request access to your personal data
-                            </li>
-                            <li>
-                                <strong>Correction:</strong> Request correction of inaccurate information
-                            </li>
-                            <li>
-                                <strong>Deletion:</strong> Request deletion of your personal data
-                            </li>
-                            <li>
-                                <strong>Opt-Out:</strong> Opt-out of certain data processing activities
-                            </li>
-                        </ul>
-
-                        {/* Section 6 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">6. Third-Party Services</h2>
-                        <p className="mb-4">
-                            The Driver App may contain links to third-party websites or services. We are not responsible
-                            for the privacy practices of these third parties.
-                        </p>
-
-                        {/* Section 7 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">7. Children&apos;s Privacy</h2>
-                        <p className="mb-4">
-                            Our services are not intended for individuals under the age of 18. We do not knowingly
-                            collect personal information from minors.
-                        </p>
-
-                        {/* Section 8 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">
-                            8. Changes to This Privacy Policy
+                            Changes to This Privacy Policy
                         </h2>
                         <p className="mb-4">
-                            We may update this Privacy Policy from time to time. We will notify you of any changes by
-                            posting the new Privacy Policy on this page. Your continued use of the Driver App after any
-                            changes indicates your acceptance of the new policy.
+                            We may update our Privacy Policy from time to time. We will notify you of any changes by
+                            posting the new Privacy Policy on this page. You are advised to review this Privacy Policy
+                            periodically for any changes. Changes to this Privacy Policy are effective when they are
+                            posted on this page.
                         </p>
 
-                        {/* Section 9 */}
-                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">9. Contact Us</h2>
+                        {/* Contact Information */}
+                        <h2 className="mt-8 mb-4 text-2xl font-semibold text-gray-800">Contact Information</h2>
                         <p className="mb-4">
-                            If you have any questions or concerns about this Privacy Policy, please contact us at:
+                            For any questions or concerns regarding privacy and data use, please contact us at:
                         </p>
                         <ul className="mb-4 list-none">
                             <li>
                                 Email:{' '}
-                                <a href="mailto:carriernestapp@gmail.com" className="text-blue-600 hover:underline">
-                                    carriernestapp@gmail.com
+                                <a href="mailto:info@carriernest.com" className="text-blue-600 hover:underline">
+                                    info@carriernest.com
                                 </a>
                             </li>
                         </ul>
@@ -201,8 +145,8 @@ const PrivacyPolicy = () => {
                         </p>
                         <p className="text-center md:text-right">
                             Questions? Email us at{' '}
-                            <a href="mailto:carriernestapp@gmail.com" className="text-blue-600 hover:underline">
-                                carriernestapp@gmail.com
+                            <a href="mailto:info@carriernest.com" className="text-blue-600 hover:underline">
+                                info@carriernest.com
                             </a>
                         </p>
                     </div>
