@@ -5,6 +5,12 @@ type Props = {
     routeLeg: Partial<RouteLeg>;
 };
 
+const humanReadableStatus = {
+    [RouteLegStatus.ASSIGNED]: 'Assigned',
+    [RouteLegStatus.IN_PROGRESS]: 'In Progress',
+    [RouteLegStatus.COMPLETED]: 'Completed',
+};
+
 const RouteLegStatusBadge: React.FC<Props> = ({ routeLeg }) => {
     const [status, setStatus] = React.useState('');
     const [bgColor, setBgColor] = React.useState('bg-green-100');
@@ -42,7 +48,7 @@ const RouteLegStatusBadge: React.FC<Props> = ({ routeLeg }) => {
             data-tooltip-content={tooltipText}
             className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
         >
-            {status}
+            {humanReadableStatus[status]}
         </span>
     );
 };
