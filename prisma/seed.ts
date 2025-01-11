@@ -3,6 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+    // Create a basic subscription plan
+    const basicPlan = await prisma.subscription.create({
+        data: {
+            stripeCustomerId: 'cus_basic',
+            stripeSubscriptionId: 'sub_basic',
+            plan: 'BASIC',
+            status: 'active',
+        },
+    });
+
     // Create a demo carrier
     const demoCarrier = await prisma.carrier.upsert({
         where: { email: 'demo@carrier.com' },
@@ -16,6 +26,7 @@ async function main() {
             zip: '12345',
             country: 'USA',
             carrierCode: 'demo',
+            subscriptionId: basicPlan.id,
         },
     });
 
