@@ -1,4 +1,4 @@
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 
 export const uploadFileToGCS = async (
     file: File,

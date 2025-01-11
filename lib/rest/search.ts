@@ -1,5 +1,5 @@
 import { Customer, Driver, Load } from '@prisma/client';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { JSONResponse, SearchResult } from '../../interfaces/models';
 
 export type BatchSearchResult = {

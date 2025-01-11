@@ -1,5 +1,5 @@
 import { Invoice, InvoicePayment } from '@prisma/client';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedInvoice, UIInvoiceStatus, JSONResponse } from '../../interfaces/models';
 import { AccountingStats } from '../../interfaces/stats';
 import { PaginationMetadata, Sort } from '../../interfaces/table';

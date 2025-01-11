@@ -72,10 +72,10 @@ model VerificationToken {
 }
 
 model Carrier {
-    id                  String      @id @default(cuid())
-    createdAt           DateTime    @default(now())
-    updatedAt           DateTime    @updatedAt
-    email               String      @unique
+    id                  String       @id @default(cuid())
+    createdAt           DateTime     @default(now())
+    updatedAt           DateTime     @updatedAt
+    email               String       @unique
     name                String
     dotNum              String?
     mcNum               String?
@@ -85,17 +85,35 @@ model Carrier {
     zip                 String
     country             String
     phone               String?
-    carrierCode         String      @unique
+    carrierCode         String       @unique
     customers           Customer[]
     drivers             Driver[]
     invoices            Invoice[]
     loads               Load[]
-    defaultCarrierUsers User[]      @relation("defaultCarrier")
-    users               User[]      @relation("CarrierToUser")
+    defaultCarrierUsers User[]       @relation("defaultCarrier")
+    users               User[]       @relation("CarrierToUser")
     locations           Location[]
     equipments          Equipment[]
+    subscription        Subscription @relation(fields: [subscriptionId], references: [id])
+    subscriptionId      String       @unique
 
     @@index([name, email, carrierCode])
+}
+
+enum SubscriptionPlan {
+    BASIC
+    PRO
+}
+
+model Subscription {
+    id                   String           @id @default(cuid())
+    stripeCustomerId     String
+    stripeSubscriptionId String
+    plan                 SubscriptionPlan @default(BASIC)
+    status               String
+    createdAt            DateTime         @default(now())
+    updatedAt            DateTime         @updatedAt
+    carrier              Carrier?
 }
 
 model Load {

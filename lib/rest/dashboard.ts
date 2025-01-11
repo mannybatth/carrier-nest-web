@@ -1,4 +1,4 @@
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { DashboardStats } from '../../interfaces/stats';
 

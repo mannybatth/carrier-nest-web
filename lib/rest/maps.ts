@@ -1,4 +1,4 @@
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { LocationEntry } from '../../interfaces/location';
 import { JSONResponse } from '../../interfaces/models';
 

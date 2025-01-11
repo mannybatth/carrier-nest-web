@@ -6,6 +6,7 @@ import {
     TruckIcon,
     UserGroupIcon,
     WrenchIcon,
+    CreditCardIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -21,6 +22,7 @@ const navigation = [
     { name: 'Invoices', href: '/invoices', icon: CurrencyDollarIcon },
     { name: 'Stop Locations', href: '/locations', icon: MapPinIcon },
     { name: 'Equipments', href: '/equipments', icon: WrenchIcon },
+    { name: 'Plan & Billing', href: '/billing', icon: CreditCardIcon },
 ];
 
 const Navigation: React.FC = () => {

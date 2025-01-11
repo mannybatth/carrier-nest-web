@@ -1,6 +1,6 @@
 import { Load, LoadDocument, LoadStatus, LoadStop } from '@prisma/client';
 import { ParsedUrlQueryInput, stringify } from 'querystring';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedLoad, ExpandedLoadActivity, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { uploadFileToGCS } from './uploadFile';

@@ -1,5 +1,5 @@
 import { Equipment } from '@prisma/client';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 

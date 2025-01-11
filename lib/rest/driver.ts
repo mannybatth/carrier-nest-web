@@ -1,5 +1,5 @@
 import { Driver } from '@prisma/client';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedDriver, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 

@@ -1,4 +1,4 @@
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedDriverAssignment, ExpandedRoute, JSONResponse } from 'interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/assignment';

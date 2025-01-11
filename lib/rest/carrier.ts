@@ -1,5 +1,5 @@
 import { Carrier } from '@prisma/client';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { JSONResponse } from '../../interfaces/models';
 
 export const getCarrierById = async (id: string) => {

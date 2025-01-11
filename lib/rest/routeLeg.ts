@@ -1,4 +1,4 @@
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 import { ExpandedRouteLeg, JSONResponse } from '../../interfaces/models';
 import { LoadStatus, RouteLegStatus } from '@prisma/client';
 

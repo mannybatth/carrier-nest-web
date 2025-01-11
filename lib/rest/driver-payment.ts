@@ -1,6 +1,6 @@
 import { ExpandedDriverPayment, JSONResponse } from 'interfaces/models';
 import { PaginationMetadata } from 'interfaces/table';
-import { apiUrl } from '../../constants';
+import { apiUrl } from '../constants';
 
 export const getDriverPayments = async (
     driverId: string,
