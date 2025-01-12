@@ -88,6 +88,27 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
+        // Check to see if driver is assigned an any assignment with following conditions
+        // Driver is the only driver assigned to the assignment and the assignment is not completed
+        const assignments = await prisma.driverAssignment.findMany({
+            where: {
+                driverId: driver.id,
+                carrierId: session.user.defaultCarrierId,
+                routeLeg: {
+                    status: { not: 'COMPLETED' },
+                },
+            },
+        });
+
+        if (assignments.length > 0) {
+            return res.status(400).send({
+                code: 400,
+                errors: [
+                    { message: 'Driver is assigned to an active route, remove assignment before deleting driver.' },
+                ],
+            });
+        }
+
         await prisma.driver.delete({
             where: {
                 id: String(req.query.id),
