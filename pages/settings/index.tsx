@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Tab } from '@headlessui/react';
 import { Carrier } from '@prisma/client';
 import classNames from 'classnames';
@@ -7,23 +7,16 @@ import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import Layout from '../../components/layout/Layout';
 import { PageWithAuth } from '../../interfaces/auth';
-import { useSession } from 'next-auth/react';
 import { isCarrierCodeUnique, updateCarrier } from '../../lib/rest/carrier';
 import SettingsPageSkeleton from '../../components/skeletons/SettingsPageSkeleton';
 import { notify } from '../../components/Notification';
 import { useUserContext } from '../../components/context/UserContext';
+import { ExpandedCarrier } from 'interfaces/models';
 
-type Props = {
-    //
-};
-
-const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
-    const { data: session } = useSession();
-    const [carriers, setCarriers] = useUserContext();
+const SettingsPage: PageWithAuth = () => {
+    const { setCarriers, defaultCarrier, setDefaultCarrier } = useUserContext();
     const { register, handleSubmit, setValue, formState } = useForm<Carrier>();
     const router = useRouter();
-
-    const [defaultCarrier, setDefaultCarrier] = useState<Carrier | null>(null);
 
     const navigation = [
         { name: 'Edit Carrier', href: '/settings?page=carrier' },
@@ -55,14 +48,10 @@ const SettingsPage: PageWithAuth<Props> = ({}: Props) => {
     const tabIndex = queryToIndex(router.query.page as string);
 
     useEffect(() => {
-        if (session) {
-            const defaultCarrier = carriers.find((carrier) => carrier.id === session.user?.defaultCarrierId) || null;
-            setDefaultCarrier(defaultCarrier);
-            applyCarrierToForm(defaultCarrier);
-        }
-    }, [session, carriers]);
+        applyCarrierToForm(defaultCarrier);
+    }, [defaultCarrier]);
 
-    const applyCarrierToForm = (carrier: Carrier) => {
+    const applyCarrierToForm = (carrier: ExpandedCarrier) => {
         if (carrier) {
             fields.forEach((field) => {
                 const value = carrier[field.id];

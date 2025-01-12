@@ -1,18 +1,31 @@
+import { SubscriptionPlan } from '@prisma/client';
+import { useUserContext } from 'components/context/UserContext';
 import React from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/router';
 import Layout from '../../components/layout/Layout';
 
 const EquipmentsPage = () => {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const invoices = [
-        { id: '0012', date: '12 Apr' },
-        { id: '0011', date: '12 Mar' },
-        { id: '0010', date: '12 Feb' },
-        { id: '0009', date: '12 Jan' },
-        { id: '0008', date: '12 Dec' },
-    ];
+    const { defaultCarrier } = useUserContext();
+    const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
+
+    const handlePlanChange = async (plan: SubscriptionPlan) => {
+        try {
+            const response = await fetch('/api/stripe/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ plan }),
+            });
+
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (error) {
+            console.error('Error creating checkout session:', error);
+        }
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -23,6 +36,7 @@ const EquipmentsPage = () => {
         >
             <>
                 <div className="py-2 mx-auto max-w-7xl">
+                    {process.env.STRIPE_SECRET_KEY}
                     <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                         <div className="flex">
                             <h1 className="flex-1 text-2xl font-semibold text-gray-900">Plans & Billing</h1>
@@ -44,8 +58,18 @@ const EquipmentsPage = () => {
                                             <span className="text-3xl font-bold">$0</span>
                                             <span className="ml-1 text-gray-600">per month</span>
                                         </div>
-                                        <button className="w-full px-4 py-2 text-center bg-gray-100 rounded-lg">
-                                            Current plan
+                                        <button
+                                            className={`w-full px-4 py-2 text-center rounded-lg ${
+                                                currentPlan === SubscriptionPlan.BASIC
+                                                    ? 'bg-gray-200 text-gray-400'
+                                                    : 'bg-gray-100 hover:bg-gray-200'
+                                            }`}
+                                            onClick={() => handlePlanChange(SubscriptionPlan.BASIC)}
+                                            disabled={currentPlan === SubscriptionPlan.BASIC}
+                                        >
+                                            {currentPlan === SubscriptionPlan.BASIC
+                                                ? 'Current plan'
+                                                : 'Switch to Basic'}
                                         </button>
                                     </div>
                                 </div>
@@ -60,8 +84,16 @@ const EquipmentsPage = () => {
                                             <span className="text-3xl font-bold">$20</span>
                                             <span className="ml-1 text-gray-600">per month</span>
                                         </div>
-                                        <button className="w-full px-4 py-2 text-center text-white bg-black rounded-lg">
-                                            Upgrade plan
+                                        <button
+                                            className={`w-full px-4 py-2 text-center text-white rounded-lg ${
+                                                currentPlan === SubscriptionPlan.PRO
+                                                    ? 'bg-gray-400'
+                                                    : 'bg-black hover:bg-gray-800'
+                                            }`}
+                                            onClick={() => handlePlanChange(SubscriptionPlan.PRO)}
+                                            disabled={currentPlan === SubscriptionPlan.PRO}
+                                        >
+                                            {currentPlan === SubscriptionPlan.PRO ? 'Current plan' : 'Switch to Pro'}
                                         </button>
                                     </div>
                                 </div>

@@ -1,12 +1,21 @@
-import { Carrier } from '@prisma/client';
+import { ExpandedCarrier } from 'interfaces/models';
 import { useSession } from 'next-auth/react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCarriers } from '../../lib/rest/carrier';
 
-const UserContext = createContext<[Carrier[], React.Dispatch<React.SetStateAction<Carrier[]>> | undefined]>([
-    [],
-    () => null,
-]);
+type UserContextType = {
+    carriers: ExpandedCarrier[];
+    defaultCarrier: ExpandedCarrier | null;
+    setCarriers: React.Dispatch<React.SetStateAction<ExpandedCarrier[]>>;
+    setDefaultCarrier: React.Dispatch<React.SetStateAction<ExpandedCarrier | null>>;
+};
+
+const UserContext = createContext<UserContextType>({
+    carriers: [],
+    defaultCarrier: null,
+    setCarriers: () => null,
+    setDefaultCarrier: () => null,
+});
 
 type UserProviderProps = {
     children: React.ReactNode;
@@ -14,11 +23,19 @@ type UserProviderProps = {
 
 export function UserProvider({ children }: UserProviderProps) {
     const { data: session } = useSession();
-    const [carriers, setCarriers] = useState<Carrier[]>([]);
+    const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
+    const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
 
     useEffect(() => {
         fetchCarriers();
     }, [session]);
+
+    useEffect(() => {
+        if (session?.user?.defaultCarrierId && carriers.length > 0) {
+            const carrier = carriers.find((c) => c.id === session.user.defaultCarrierId) || null;
+            setDefaultCarrier(carrier);
+        }
+    }, [session, carriers]);
 
     const fetchCarriers = async () => {
         try {
@@ -29,7 +46,18 @@ export function UserProvider({ children }: UserProviderProps) {
         }
     };
 
-    return <UserContext.Provider value={[carriers, setCarriers]}>{children}</UserContext.Provider>;
+    return (
+        <UserContext.Provider
+            value={{
+                carriers,
+                defaultCarrier,
+                setCarriers,
+                setDefaultCarrier,
+            }}
+        >
+            {children}
+        </UserContext.Provider>
+    );
 }
 
 export function useUserContext() {

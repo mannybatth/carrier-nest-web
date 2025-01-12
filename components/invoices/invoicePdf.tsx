@@ -1,9 +1,9 @@
 import { PaperClipIcon } from '@heroicons/react/24/outline';
-import { Carrier, Customer } from '@prisma/client';
+import { Customer } from '@prisma/client';
 import { Document, Page, pdf, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { useSession } from 'next-auth/react';
 import React from 'react';
-import { ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';
+import { ExpandedCarrier, ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';
 import { invoiceTermOptions } from '../../lib/invoice/invoice-utils';
 import { getCarrierById } from '../../lib/rest/carrier';
 import { formatValue } from 'react-currency-input-field';
@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
 });
 
 type InvoicePDFProps = {
-    carrier: Carrier;
+    carrier: ExpandedCarrier;
     invoice: ExpandedInvoice;
     customer: Partial<Customer>;
     load: ExpandedLoad;

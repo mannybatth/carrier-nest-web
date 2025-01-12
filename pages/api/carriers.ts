@@ -1,4 +1,4 @@
-import { Carrier } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { JSONResponse } from '../../interfaces/models';
@@ -33,6 +33,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                         },
                     },
                 },
+                include: {
+                    subscription: true,
+                },
             });
 
             return res.status(200).json({
@@ -51,7 +54,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _post() {
         try {
             const session = await getServerSession(req, res, authOptions);
-            const carrierData = req.body as Carrier;
+            const carrierData = req.body as Prisma.CarrierCreateInput;
 
             // Create carrier with subscription and connect to user in a transaction
             const [carrier] = await prisma.$transaction([
@@ -64,6 +67,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                                 status: 'active',
                             },
                         },
+                    },
+                    include: {
+                        subscription: true,
                     },
                 }),
                 prisma.user.update({

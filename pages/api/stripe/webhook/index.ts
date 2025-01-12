@@ -1,7 +1,7 @@
-import { NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { stripe } from 'lib/stripe';
-import { NextRequest } from 'next/server';
+import getRawBody from 'raw-body';
 
 // Disable body parsing, need the raw body for signature verification
 export const config = {
@@ -10,14 +10,14 @@ export const config = {
     },
 };
 
-export default async function handler(req: NextRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
     const signature = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const body = await req.text();
+    const rawBody = await getRawBody(req);
 
     let event: Stripe.Event;
 
@@ -26,7 +26,7 @@ export default async function handler(req: NextRequest, res: NextApiResponse) {
             throw new Error('Missing stripe signature or webhook secret');
         }
 
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err) {
         console.error(`Webhook signature verification failed: ${err.message}`);
         return res.status(400).json({ message: err.message });

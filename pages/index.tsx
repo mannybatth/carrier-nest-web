@@ -1,7 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/24/solid';
-import { Carrier } from '@prisma/client';
 import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -54,9 +53,8 @@ const StatBox = (props: {
 
 const Dashboard: PageWithAuth = () => {
     const { data: session } = useSession();
-    const [carriers] = useUserContext();
+    const { defaultCarrier } = useUserContext();
 
-    const [defaultCarrier, setDefaultCarrier] = React.useState<Carrier | null>(null);
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
 
@@ -71,13 +69,6 @@ const Dashboard: PageWithAuth = () => {
         reloadLoads();
         getStats();
     }, []);
-
-    React.useEffect(() => {
-        if (session) {
-            const defaultCarrier = carriers.find((carrier) => carrier.id === session.user?.defaultCarrierId) || null;
-            setDefaultCarrier(defaultCarrier);
-        }
-    }, [carriers]);
 
     const reloadLoads = async () => {
         const loads = await getUpcomingLoads();

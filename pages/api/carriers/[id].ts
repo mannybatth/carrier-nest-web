@@ -1,8 +1,8 @@
-import { Carrier } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
-import { JSONResponse } from '../../../interfaces/models';
+import { ExpandedCarrier, JSONResponse } from '../../../interfaces/models';
 import prisma from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]';
 
@@ -36,7 +36,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             });
         }
 
-        const carrierData = req.body as Carrier;
+        const carrierData = req.body as Prisma.CarrierUpdateInput;
 
         const updatedCarrier = await prisma.carrier.update({
             where: {
@@ -54,6 +54,9 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                 zip: carrierData.zip,
                 country: carrierData.country,
                 carrierCode: carrierData.carrierCode,
+            },
+            include: {
+                subscription: true,
             },
         });
 
@@ -74,7 +77,7 @@ export const getCarrier = async ({
     req: NextApiRequest;
     res: NextApiResponse<JSONResponse<any>>;
     query: ParsedUrlQuery;
-}): Promise<JSONResponse<{ carrier: Carrier }>> => {
+}): Promise<JSONResponse<{ carrier: ExpandedCarrier }>> => {
     const session = await getServerSession(req, res, authOptions);
     const userCarrierId = session?.user?.defaultCarrierId;
 
@@ -97,6 +100,9 @@ export const getCarrier = async ({
     const carrier = await prisma.carrier.findFirst({
         where: {
             id: carrierIdToFind,
+        },
+        include: {
+            subscription: true,
         },
     });
 

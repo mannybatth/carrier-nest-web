@@ -1,12 +1,14 @@
 import { stripe } from 'lib/stripe';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { appUrl } from 'lib/constants';
+import { SubscriptionPlan } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { priceId } = req.body;
+        const { plan } = req.body as { plan: SubscriptionPlan };
 
-        console.log('Creating checkout session for priceId:', priceId);
+        const priceId =
+            plan === SubscriptionPlan.BASIC ? process.env.STRIPE_BASIC_PRICE_ID : process.env.STRIPE_PRO_PRICE_ID;
 
         try {
             const session = await stripe.checkout.sessions.create({
@@ -21,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 cancel_url: `${appUrl}/billing?cancelled=true`,
             });
 
-            res.redirect(303, session.url);
+            res.status(200).json({ url: session.url });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

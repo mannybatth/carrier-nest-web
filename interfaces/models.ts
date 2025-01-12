@@ -11,6 +11,16 @@ export type SearchResult<T> = {
 } & T;
 
 /**
+ * Carrier
+ */
+const expandedCarrier = Prisma.validator<Prisma.CarrierDefaultArgs>()({
+    include: {
+        subscription: true,
+    },
+});
+export type ExpandedCarrier = Partial<Prisma.CarrierGetPayload<typeof expandedCarrier>>;
+
+/**
  * Load
  */
 const expandedLoad = Prisma.validator<Prisma.LoadDefaultArgs>()({
