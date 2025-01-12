@@ -4,41 +4,55 @@ const prisma = new PrismaClient();
 
 async function main() {
     await prisma.$transaction(async (prisma) => {
-        // Create a demo carrier
-        const demoCarrier = await prisma.carrier.create({
-            data: {
-                name: 'Demo Carrier',
-                email: 'demo@carrier.com',
-                street: '123 Demo Street',
-                city: 'Demo City',
-                state: 'DC',
-                zip: '12345',
-                country: 'USA',
-                carrierCode: 'demo',
-                subscription: {
-                    create: {
-                        plan: 'BASIC',
-                        status: 'active',
+        // Check if a demo carrier already exists
+        let demoCarrier = await prisma.carrier.findUnique({
+            where: { carrierCode: 'demo' },
+        });
+
+        // If no carrier exists with that code, create a new one
+        if (!demoCarrier) {
+            demoCarrier = await prisma.carrier.create({
+                data: {
+                    name: 'Demo Carrier',
+                    email: 'demo@carrier.com',
+                    street: '123 Demo Street',
+                    city: 'Demo City',
+                    state: 'DC',
+                    zip: '12345',
+                    country: 'USA',
+                    carrierCode: 'demo',
+                    subscription: {
+                        create: {
+                            plan: 'BASIC',
+                            status: 'active',
+                        },
                     },
                 },
-            },
-        });
+            });
+            console.log(`Created demo carrier: ${demoCarrier.name}`);
+        } else {
+            console.log(`Demo carrier already exists: ${demoCarrier.name}`);
+        }
 
-        console.log(`Created demo carrier: ${demoCarrier.name}`);
-
-        // Create a demo user
-        const demoUser = await prisma.user.upsert({
+        // Check if a demo user already exists
+        let demoUser = await prisma.user.findUnique({
             where: { email: 'demo@user.com' },
-            update: {},
-            create: {
-                name: 'Demo User',
-                email: 'demo@user.com',
-                isSiteAdmin: false,
-                defaultCarrierId: demoCarrier.id,
-            },
         });
 
-        console.log(`Created demo user: ${demoUser.name}`);
+        // If no user exists with that email, create a new one
+        if (!demoUser) {
+            demoUser = await prisma.user.create({
+                data: {
+                    name: 'Demo User',
+                    email: 'demo@user.com',
+                    isSiteAdmin: false,
+                    defaultCarrierId: demoCarrier.id,
+                },
+            });
+            console.log(`Created demo user: ${demoUser.name}`);
+        } else {
+            console.log(`Demo user already exists: ${demoUser.name}`);
+        }
 
         // Connect carrier to user
         await prisma.user.update({
