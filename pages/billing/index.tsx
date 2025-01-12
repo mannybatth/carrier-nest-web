@@ -3,13 +3,13 @@ import { useUserContext } from 'components/context/UserContext';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 
-const EquipmentsPage = () => {
+const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
     const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
 
     const handlePlanChange = async (plan: SubscriptionPlan) => {
         try {
-            const response = await fetch('/api/stripe/session', {
+            const response = await fetch('/api/stripe/checkout-session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -23,6 +23,24 @@ const EquipmentsPage = () => {
             }
         } catch (error) {
             console.error('Error creating checkout session:', error);
+        }
+    };
+
+    const handleBillingPortal = async () => {
+        try {
+            const response = await fetch('/api/stripe/billing-portal-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (error) {
+            console.error('Error creating billing portal session:', error);
         }
     };
 
@@ -83,7 +101,7 @@ const EquipmentsPage = () => {
                                             className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
                                                 currentPlan === SubscriptionPlan.BASIC
                                                     ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                    : 'bg-black hover:bg-gray-600 text-white'
+                                                    : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
                                             }`}
                                             onClick={() => handlePlanChange(SubscriptionPlan.BASIC)}
                                             disabled={currentPlan === SubscriptionPlan.BASIC}
@@ -130,7 +148,7 @@ const EquipmentsPage = () => {
                                             className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
                                                 currentPlan === SubscriptionPlan.PRO
                                                     ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                    : 'bg-black hover:bg-gray-600 text-white'
+                                                    : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
                                             }`}
                                             onClick={() => handlePlanChange(SubscriptionPlan.PRO)}
                                             disabled={currentPlan === SubscriptionPlan.PRO}
@@ -140,6 +158,14 @@ const EquipmentsPage = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div>
+                            <button
+                                className="w-full px-4 py-2 mt-4 text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                onClick={handleBillingPortal}
+                            >
+                                Manage Billing
+                            </button>
                         </div>
                         {/* Billing History */}
                         <div className="space-y-4">
@@ -172,6 +198,6 @@ const EquipmentsPage = () => {
     );
 };
 
-EquipmentsPage.authenticationEnabled = true;
+BillingPage.authenticationEnabled = true;
 
-export default EquipmentsPage;
+export default BillingPage;
