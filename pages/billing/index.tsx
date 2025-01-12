@@ -48,7 +48,11 @@ const EquipmentsPage = () => {
                         <div className="max-w-3xl pb-6">
                             {/* Pricing Plans */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div className="relative p-6 border border-gray-200 rounded-lg">
+                                <div
+                                    className={`relative p-6 border-2 ${
+                                        currentPlan === SubscriptionPlan.BASIC ? 'border-green-700' : 'border-gray-200'
+                                    } rounded-lg`}
+                                >
                                     {currentPlan === SubscriptionPlan.BASIC && (
                                         <div
                                             className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
@@ -91,7 +95,11 @@ const EquipmentsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="relative p-6 border border-gray-200 rounded-lg">
+                                <div
+                                    className={`relative p-6 border-2 ${
+                                        currentPlan === SubscriptionPlan.PRO ? 'border-green-700' : 'border-gray-200'
+                                    } rounded-lg`}
+                                >
                                     {currentPlan === SubscriptionPlan.PRO && (
                                         <div
                                             className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
