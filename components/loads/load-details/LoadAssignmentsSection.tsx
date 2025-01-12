@@ -89,22 +89,33 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                         />
                                     </div>
                                 </div>
-                                <div className="mb-4">
-                                    <h4 className="text-sm font-semibold text-gray-900">Drivers</h4>
-                                    <p className="text-sm text-gray-600">
-                                        {drivers.map((driver, index) => (
-                                            <span key={`driver-${index}`}>
-                                                <Link
-                                                    href={`/drivers/${driver.id}`}
-                                                    className="text-blue-500 hover:underline"
-                                                >
-                                                    {driver.name}
-                                                </Link>
-                                                {index < drivers.length - 1 ? ', ' : ''}
-                                            </span>
-                                        ))}
-                                    </p>
+                                <div className="flex flex-col items-start">
+                                    <div className="mb-2">
+                                        <h4 className="text-sm font-semibold text-gray-900">Drivers</h4>
+                                        <p className="text-sm text-gray-600">
+                                            {drivers.map((driver, index) => (
+                                                <span key={`driver-${index}`}>
+                                                    <Link
+                                                        href={`/drivers/${driver.id}`}
+                                                        className="text-blue-500 hover:underline"
+                                                    >
+                                                        {driver.name}
+                                                    </Link>
+                                                    {index < drivers.length - 1 ? ', ' : ''}
+                                                </span>
+                                            ))}
+                                        </p>
+                                    </div>
+                                    <div className="mb-4 rounded-md bg-yellow-50 border border-slate-100 w-full p-1 px-2">
+                                        <span className="text-xs font-semibold text-gray-900">
+                                            Driver Instructions:{' '}
+                                        </span>
+                                        <span className="text-xs text-gray-600">
+                                            {leg.driverInstructions || 'No instructions provided'}
+                                        </span>
+                                    </div>
                                 </div>
+
                                 <div>
                                     <h4 className="text-sm font-semibold text-gray-900">Route</h4>
                                     <div className="flex flex-wrap items-center gap-2 mt-2">
