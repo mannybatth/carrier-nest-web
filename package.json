@@ -11,7 +11,8 @@
         "db-push": "prisma db push",
         "generate": "prisma generate",
         "studio": "prisma studio",
-        "migrate": "prisma migrate dev"
+        "migrate": "prisma migrate dev",
+        "vercel-build": "prisma generate && prisma migrate deploy && next build"
     },
     "prisma": {
         "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
