@@ -57,35 +57,39 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const carrierData = req.body as Prisma.CarrierCreateInput;
 
             // Create carrier with subscription and connect to user in a transaction
-            const [carrier] = await prisma.$transaction([
-                prisma.carrier.create({
-                    data: {
-                        ...carrierData,
-                        subscription: {
-                            create: {
-                                plan: 'BASIC',
-                                status: 'active',
-                            },
+            const carrier = await prisma.carrier.create({
+                data: {
+                    ...carrierData,
+                    subscription: {
+                        create: {
+                            plan: 'BASIC',
+                            status: 'active',
                         },
                     },
-                    include: {
-                        subscription: true,
-                    },
-                }),
-                prisma.user.update({
-                    where: {
-                        id: session.user.id,
-                    },
-                    data: {
-                        defaultCarrierId: carrierData.id,
-                        carriers: {
-                            connect: {
-                                id: carrierData.id,
-                            },
+                    users: {
+                        connect: {
+                            id: session.user.id,
                         },
                     },
-                }),
-            ]);
+                },
+                include: {
+                    subscription: true,
+                },
+            });
+
+            await prisma.user.update({
+                where: {
+                    id: session.user.id,
+                },
+                data: {
+                    defaultCarrierId: carrier.id,
+                    carriers: {
+                        connect: {
+                            id: carrier.id,
+                        },
+                    },
+                },
+            });
 
             return res.status(200).json({
                 code: 200,
