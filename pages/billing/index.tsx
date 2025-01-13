@@ -17,8 +17,8 @@ import BillingPageSkeleton from 'components/skeletons/BillingPageSkeleton';
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
     const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
-    const stripeCustomerId = defaultCarrier?.subscription?.stripeCustomerId;
-    const stripeSubscriptionId = defaultCarrier?.subscription?.stripeSubscriptionId;
+    const stripeCustomerId = defaultCarrier?.subscription?.stripeCustomerId || null;
+    const stripeSubscriptionId = defaultCarrier?.subscription?.stripeSubscriptionId || null;
     const [subscriptionDetails, setSubscriptionDetails] = useState<Stripe.Subscription>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
@@ -131,7 +131,7 @@ const BillingPage = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
 
-                {isLoading ? (
+                {isLoading || !defaultCarrier ? (
                     <BillingPageSkeleton />
                 ) : (
                     <>
