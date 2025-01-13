@@ -307,37 +307,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 break;
             }
 
-            case 'charge.refunded': {
-                const charge = event.data.object as Stripe.Charge;
-                if (!charge.customer) break;
-
-                await prisma.subscription.updateMany({
-                    where: {
-                        stripeCustomerId: charge.customer as string,
-                    },
-                    data: {
-                        status: 'incomplete',
-                    },
-                });
-                break;
-            }
-
-            case 'charge.dispute.created': {
-                const dispute = event.data.object as Stripe.Dispute;
-                const charge = await stripe.charges.retrieve(dispute.charge as string);
-                if (!charge.customer) break;
-
-                await prisma.subscription.updateMany({
-                    where: {
-                        stripeCustomerId: charge.customer as string,
-                    },
-                    data: {
-                        status: 'disputed',
-                    },
-                });
-                break;
-            }
-
             default: {
                 console.log(`Unhandled event type: ${event.type}`);
             }
