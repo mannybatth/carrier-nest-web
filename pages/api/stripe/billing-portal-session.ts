@@ -20,7 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         if (!carrier?.subscription?.stripeCustomerId) {
-            return res.status(400).json({ error: 'No payment method on file' });
+            return res.status(404).json({
+                code: 404,
+                errors: [{ message: 'No payment method on file' }],
+            });
         }
 
         const customerId = carrier.subscription.stripeCustomerId;
@@ -31,9 +34,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return_url: `${appUrl}/billing`,
             });
 
-            res.status(200).json({ url: portalSession.url });
+            return res.status(200).json({
+                code: 200,
+                data: {
+                    url: portalSession.url,
+                },
+            });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            return res.status(500).json({
+                code: 500,
+                errors: [{ message: error.message || JSON.stringify(error) }],
+            });
         }
     } else {
         res.setHeader('Allow', 'POST');

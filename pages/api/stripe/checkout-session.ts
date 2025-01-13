@@ -27,10 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
         });
 
-        if (!carrier?.subscription?.stripeCustomerId) {
-            return res.status(400).json({ error: 'No payment method on file' });
-        }
-
         console.log('subscription', carrier.subscription);
 
         try {
@@ -48,9 +44,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 cancel_url: `${appUrl}/billing?cancelled=true`,
             });
 
-            res.status(200).json({ url: stripeSession.url });
+            return res.status(200).json({
+                code: 200,
+                data: {
+                    url: stripeSession.url,
+                },
+            });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            return res.status(500).json({
+                code: 500,
+                errors: [{ message: error.message || JSON.stringify(error) }],
+            });
         }
     } else {
         res.setHeader('Allow', 'POST');

@@ -1,46 +1,32 @@
 import { SubscriptionPlan } from '@prisma/client';
 import { useUserContext } from 'components/context/UserContext';
+import { notify } from 'components/Notification';
+import { createBillingPortalSession, createCheckoutSession } from 'lib/rest/stripe';
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
     const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
+    const stripeCustomerId = defaultCarrier?.subscription?.stripeCustomerId;
 
     const handlePlanChange = async (plan: SubscriptionPlan) => {
         try {
-            const response = await fetch('/api/stripe/checkout-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ plan }),
-            });
-
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            }
+            const url = await createCheckoutSession(plan);
+            window.location.href = url;
         } catch (error) {
             console.error('Error creating checkout session:', error);
+            notify({ title: 'Error', message: error.message, type: 'error' });
         }
     };
 
     const handleBillingPortal = async () => {
         try {
-            const response = await fetch('/api/stripe/billing-portal-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            }
+            const url = await createBillingPortalSession();
+            window.location.href = url;
         } catch (error) {
             console.error('Error creating billing portal session:', error);
+            notify({ title: 'Error', message: error.message, type: 'error' });
         }
     };
 
@@ -159,38 +145,44 @@ const BillingPage = () => {
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <button
-                                className="w-full px-4 py-2 mt-4 text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                                onClick={handleBillingPortal}
-                            >
-                                Manage Billing
-                            </button>
-                        </div>
-                        {/* Billing History */}
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-semibold">Billing history</h2>
-                            <div className="space-y-2">
-                                {[
-                                    { id: '0012', date: '12 Apr' },
-                                    { id: '0011', date: '12 Mar' },
-                                    { id: '0010', date: '12 Feb' },
-                                    { id: '0009', date: '12 Jan' },
-                                    { id: '0008', date: '12 Dec' },
-                                ].map((invoice) => (
-                                    <div
-                                        key={invoice.id}
-                                        className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                        {stripeCustomerId && (
+                            <>
+                                <div>
+                                    <button
+                                        className="w-full px-4 py-2 mt-4 text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                        onClick={handleBillingPortal}
                                     >
-                                        <div className="flex items-center space-x-3">
-                                            <div className="p-2 text-xs text-white bg-orange-500 rounded">PDF</div>
-                                            <span className="text-gray-900">Invoice {invoice.id}</span>
-                                        </div>
-                                        <span className="text-gray-600">{invoice.date}</span>
+                                        Manage Billing
+                                    </button>
+                                </div>
+                                {/* Billing History */}
+                                <div className="space-y-4">
+                                    <h2 className="text-xl font-semibold">Billing history</h2>
+                                    <div className="space-y-2">
+                                        {[
+                                            { id: '0012', date: '12 Apr' },
+                                            { id: '0011', date: '12 Mar' },
+                                            { id: '0010', date: '12 Feb' },
+                                            { id: '0009', date: '12 Jan' },
+                                            { id: '0008', date: '12 Dec' },
+                                        ].map((invoice) => (
+                                            <div
+                                                key={invoice.id}
+                                                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                                            >
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="p-2 text-xs text-white bg-orange-500 rounded">
+                                                        PDF
+                                                    </div>
+                                                    <span className="text-gray-900">Invoice {invoice.id}</span>
+                                                </div>
+                                                <span className="text-gray-600">{invoice.date}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </>
