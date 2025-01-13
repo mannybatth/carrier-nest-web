@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const stripeSession = await stripe.checkout.sessions.create({
                 mode: 'subscription',
                 ...(carrier.subscription?.stripeCustomerId && { customer: carrier.subscription.stripeCustomerId }),
-                ...(!carrier.subscription?.stripeCustomerId && { customer_email: session.user.email }),
+                ...(!carrier.subscription?.stripeCustomerId && { customer_email: carrier.email }),
                 line_items: [
                     {
                         price: priceId,
