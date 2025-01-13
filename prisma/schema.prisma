@@ -112,8 +112,8 @@ model Subscription {
     status               String
     createdAt            DateTime         @default(now())
     updatedAt            DateTime         @updatedAt
-    carrierId            String           @unique
-    carrier              Carrier          @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    carrierId            String?          @unique
+    carrier              Carrier?         @relation(fields: [carrierId], references: [id], onDelete: Cascade)
 }
 
 model Load {
