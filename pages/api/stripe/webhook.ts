@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         data: {
                             carrierId: carrier.id,
                             stripeCustomerId: customer.id,
-                            status: 'incomplete',
+                            status: 'active',
                             plan: SubscriptionPlan.BASIC,
                         },
                     });
@@ -131,15 +131,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const customer = event.data.object as Stripe.Customer;
                 if (!customer.id) break;
 
-                await prisma.subscription.updateMany({
+                await prisma.subscription.deleteMany({
                     where: {
                         stripeCustomerId: customer.id,
-                    },
-                    data: {
-                        stripeCustomerId: null,
-                        stripeSubscriptionId: null,
-                        status: 'canceled',
-                        plan: SubscriptionPlan.BASIC,
                     },
                 });
                 break;
@@ -159,14 +153,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                 if (!carrier) break;
 
+                const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+
                 if (!carrier.subscription) {
                     await prisma.subscription.create({
                         data: {
                             carrierId: carrier.id,
                             stripeCustomerId: session.customer as string,
                             stripeSubscriptionId: session.subscription as string,
-                            status: 'incomplete',
-                            plan: SubscriptionPlan.BASIC,
+                            status: subscription.status,
+                            plan: getPlanFromPriceId(getFirstPriceId(subscription)),
                         },
                     });
                 } else {
@@ -175,7 +171,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         data: {
                             stripeCustomerId: session.customer as string,
                             stripeSubscriptionId: session.subscription as string,
-                            status: 'incomplete',
+                            status: subscription.status,
+                            plan: getPlanFromPriceId(getFirstPriceId(subscription)),
                         },
                     });
                 }
@@ -204,7 +201,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             stripeCustomerId: customerId,
                             stripeSubscriptionId: subscription.id,
                             status: subscription.status,
-                            plan: getPlanFromPriceId(priceId),
+                            ...(subscription.status === 'active' && {
+                                plan: getPlanFromPriceId(priceId),
+                            }),
                         },
                     });
                 } else {
@@ -244,15 +243,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             case 'customer.subscription.deleted': {
                 const subscription = event.data.object as Stripe.Subscription;
-                const customer = subscription.customer as string;
 
                 await prisma.subscription.updateMany({
                     where: {
-                        stripeCustomerId: customer,
+                        stripeSubscriptionId: subscription.id,
                     },
                     data: {
                         status: 'canceled',
-                        plan: SubscriptionPlan.BASIC,
+                        stripeSubscriptionId: null,
                     },
                 });
                 break;
@@ -260,11 +258,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             case 'customer.subscription.paused': {
                 const subscription = event.data.object as Stripe.Subscription;
-                const customer = subscription.customer as string;
 
                 await prisma.subscription.updateMany({
                     where: {
-                        stripeCustomerId: customer,
+                        stripeSubscriptionId: subscription.id,
                     },
                     data: {
                         status: 'paused',
@@ -276,17 +273,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             case 'invoice.paid': {
                 const invoice = event.data.object as Stripe.Invoice;
                 if (!invoice.subscription || !invoice.customer) break;
-                const priceId = invoice.lines.data[0]?.price?.id;
+
+                const activeSubscriptions = await stripe.subscriptions.list({
+                    customer: invoice.customer as string,
+                    status: 'active',
+                    limit: 1,
+                });
+                const activeSub = activeSubscriptions.data[0];
+                if (!activeSub) break;
+
+                const priceId = getFirstPriceId(activeSub);
 
                 await prisma.subscription.updateMany({
-                    where: {
-                        stripeCustomerId: invoice.customer as string,
-                    },
+                    where: { stripeCustomerId: invoice.customer as string },
                     data: {
-                        status: 'active',
-                        ...(priceId && {
-                            plan: getPlanFromPriceId(priceId),
-                        }),
+                        status: activeSub.status,
+                        ...(priceId && { plan: getPlanFromPriceId(priceId) }),
                     },
                 });
                 break;
@@ -297,12 +299,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 if (!invoice.subscription || !invoice.customer) break;
 
                 await prisma.subscription.updateMany({
-                    where: {
-                        stripeCustomerId: invoice.customer as string,
-                    },
-                    data: {
-                        status: 'past_due',
-                    },
+                    where: { stripeCustomerId: invoice.customer as string },
+                    data: { status: 'past_due' },
                 });
                 break;
             }
