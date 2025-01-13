@@ -30,10 +30,14 @@ const Auth: React.FC<PropsWithChildren> = ({ children }) => {
 
     React.useEffect(() => {
         const shouldRefresh = searchParams.get('refresh_session') === 'true';
-
         if (shouldRefresh) {
             // Refresh the session data
-            update();
+            update().then(() => {
+                // Remove refresh_session from the URL
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('refresh_session');
+                router.replace({ search: params.toString() }, undefined, { shallow: true });
+            });
         }
     }, [searchParams, update]);
 
