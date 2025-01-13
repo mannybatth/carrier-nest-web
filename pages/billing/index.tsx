@@ -343,43 +343,39 @@ const BillingPage = () => {
                                     <h2 className="text-xl font-semibold">Billing history</h2>
                                     <div className="space-y-2">
                                         {invoices.length > 0 ? (
-                                            invoices.map((invoice) => (
-                                                <div
-                                                    key={invoice.id}
-                                                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-                                                >
-                                                    <div className="flex items-center space-x-8">
-                                                        <span className="text-gray-600">
-                                                            {formatDate(invoice.created)}
-                                                        </span>
-                                                        <span className="text-gray-900">
-                                                            ${(invoice.total / 100).toFixed(2)} USD
-                                                        </span>
-                                                        <span
-                                                            className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
-                                                                invoice.status,
-                                                            )}`}
-                                                        >
-                                                            {invoice.status}
-                                                        </span>
+                                            <div className="min-w-full">
+                                                <div className="text-xs font-medium text-gray-500 uppercase">
+                                                    <div className="grid grid-cols-3 gap-4 py-2">
+                                                        <div className="w-48">Date</div>
+                                                        <div className="w-32">Amount</div>
+                                                        <div>Status</div>
                                                     </div>
-                                                    {/* <div className="flex items-center space-x-3">
-                                                        {invoice.invoice_pdf && (
-                                                            <a
-                                                                href={invoice.invoice_pdf}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                                                            >
-                                                                <span className="p-1 text-xs text-white bg-orange-500 rounded">
-                                                                    PDF
-                                                                </span>
-                                                                <span>Download</span>
-                                                            </a>
-                                                        )}
-                                                    </div> */}
                                                 </div>
-                                            ))
+                                                <div className="space-y-2">
+                                                    {invoices.map((invoice) => (
+                                                        <div
+                                                            key={invoice.id}
+                                                            className="grid grid-cols-3 gap-4 py-3 border-b border-gray-100 last:border-0"
+                                                        >
+                                                            <div className="w-48 text-gray-600">
+                                                                {formatDate(invoice.created)}
+                                                            </div>
+                                                            <div className="w-32 text-gray-900">
+                                                                ${(invoice.total / 100).toFixed(2)} USD
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
+                                                                        invoice.status,
+                                                                    )}`}
+                                                                >
+                                                                    {invoice.status}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         ) : (
                                             <p className="text-gray-500">No billing history available</p>
                                         )}
