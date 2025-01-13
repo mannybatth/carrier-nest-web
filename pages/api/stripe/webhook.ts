@@ -45,20 +45,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object as Stripe.Checkout.Session;
+                if (!session.customer || !session.subscription || !session.customer_email) break;
+
+                const carrier = await prisma.carrier.findUnique({
+                    where: { email: session.customer_email },
+                    include: { subscription: true },
+                });
+
+                if (!carrier) break;
+
+                if (!carrier.subscription) {
+                    await prisma.subscription.create({
+                        data: {
+                            carrierId: carrier.id,
+                            stripeCustomerId: session.customer as string,
+                            stripeSubscriptionId: session.subscription as string,
+                            status: 'active',
+                            plan: SubscriptionPlan.BASIC, // Will be updated by subscription.created event
+                        },
+                    });
+                } else {
+                    await prisma.subscription.update({
+                        where: { id: carrier.subscription.id },
+                        data: {
+                            stripeCustomerId: session.customer as string,
+                            stripeSubscriptionId: session.subscription as string,
+                            status: 'active',
+                        },
+                    });
+                }
+                break;
+            }
+
             case 'customer.created': {
                 const customer = event.data.object as Stripe.Customer;
                 if (!customer.email) break;
 
-                await prisma.subscription.updateMany({
-                    where: {
-                        carrier: {
-                            email: customer.email,
-                        },
-                    },
-                    data: {
-                        stripeCustomerId: customer.id,
-                    },
+                const carrier = await prisma.carrier.findUnique({
+                    where: { email: customer.email },
+                    include: { subscription: true },
                 });
+
+                if (!carrier) break;
+
+                if (!carrier.subscription) {
+                    await prisma.subscription.create({
+                        data: {
+                            carrierId: carrier.id,
+                            stripeCustomerId: customer.id,
+                            status: 'incomplete',
+                            plan: SubscriptionPlan.BASIC, // Will be updated by subscription.created event
+                        },
+                    });
+                } else {
+                    await prisma.subscription.update({
+                        where: { id: carrier.subscription.id },
+                        data: {
+                            stripeCustomerId: customer.id,
+                        },
+                    });
+                }
                 break;
             }
 
@@ -99,20 +147,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 break;
             }
 
-            case 'checkout.session.completed': {
-                const session = event.data.object as Stripe.Checkout.Session;
-                if (!session.customer || !session.subscription) break;
+            case 'customer.subscription.paused': {
+                const subscription = event.data.object as Stripe.Subscription;
+                const customer = subscription.customer as string;
 
                 await prisma.subscription.updateMany({
                     where: {
-                        carrier: {
-                            email: session.customer_email ?? '',
-                        },
+                        stripeCustomerId: customer,
                     },
                     data: {
-                        stripeCustomerId: session.customer as string,
-                        stripeSubscriptionId: session.subscription as string,
-                        status: 'active',
+                        status: 'paused',
                     },
                 });
                 break;
@@ -147,21 +191,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                     data: {
                         status: 'past_due',
-                    },
-                });
-                break;
-            }
-
-            case 'customer.subscription.paused': {
-                const subscription = event.data.object as Stripe.Subscription;
-                const customer = subscription.customer as string;
-
-                await prisma.subscription.updateMany({
-                    where: {
-                        stripeCustomerId: customer,
-                    },
-                    data: {
-                        status: 'paused',
                     },
                 });
                 break;
