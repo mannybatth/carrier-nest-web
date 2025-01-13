@@ -19,6 +19,54 @@ const getPlanFromPriceId = (priceId: string): SubscriptionPlan => {
     return SubscriptionPlan.BASIC;
 };
 
+async function findAndAttachCarrier(stripeCustomerId: string, email?: string) {
+    // Try to find orphaned subscription
+    const orphanedSub = await prisma.subscription.findFirst({
+        where: {
+            stripeCustomerId,
+            carrierId: null,
+        },
+    });
+
+    if (!orphanedSub) return;
+
+    // Try to find carrier by email if provided
+    if (email) {
+        const carrier = await prisma.carrier.findUnique({
+            where: { email },
+        });
+
+        if (carrier) {
+            await prisma.subscription.update({
+                where: { id: orphanedSub.id },
+                data: { carrierId: carrier.id },
+            });
+            return;
+        }
+    }
+
+    // If no email or carrier not found by email, try finding by customer ID
+    const carrier = await prisma.carrier.findFirst({
+        where: {
+            subscription: {
+                stripeCustomerId,
+            },
+        },
+    });
+
+    if (carrier) {
+        await prisma.subscription.update({
+            where: { id: orphanedSub.id },
+            data: { carrierId: carrier.id },
+        });
+    }
+}
+
+function getFirstPriceId(subscription: Stripe.Subscription) {
+    const firstItem = subscription.items.data[0];
+    return firstItem?.price?.id;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
@@ -49,6 +97,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const customer = event.data.object as Stripe.Customer;
                 if (!customer.email) break;
 
+                // Try to attach any orphaned subscription first
+                await findAndAttachCarrier(customer.id, customer.email);
+
                 const carrier = await prisma.carrier.findUnique({
                     where: { email: customer.email },
                     include: { subscription: true },
@@ -62,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             carrierId: carrier.id,
                             stripeCustomerId: customer.id,
                             status: 'incomplete',
-                            plan: SubscriptionPlan.BASIC, // Will be updated by subscription.created event
+                            plan: SubscriptionPlan.BASIC,
                         },
                     });
                 } else {
@@ -98,6 +149,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const session = event.data.object as Stripe.Checkout.Session;
                 if (!session.customer || !session.subscription || !session.customer_email) break;
 
+                // Try to attach any orphaned subscription first
+                await findAndAttachCarrier(session.customer as string, session.customer_email);
+
                 const carrier = await prisma.carrier.findUnique({
                     where: { email: session.customer_email },
                     include: { subscription: true },
@@ -111,8 +165,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             carrierId: carrier.id,
                             stripeCustomerId: session.customer as string,
                             stripeSubscriptionId: session.subscription as string,
-                            status: 'active',
-                            plan: SubscriptionPlan.BASIC, // Will be updated by subscription.created event
+                            status: 'incomplete',
+                            plan: SubscriptionPlan.BASIC,
                         },
                     });
                 } else {
@@ -121,18 +175,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         data: {
                             stripeCustomerId: session.customer as string,
                             stripeSubscriptionId: session.subscription as string,
-                            status: 'active',
+                            status: 'incomplete',
                         },
                     });
                 }
                 break;
             }
 
-            case 'customer.subscription.created':
+            case 'customer.subscription.created': {
+                const subscription = event.data.object as Stripe.Subscription;
+                const customerId = subscription.customer as string;
+                const priceId = getFirstPriceId(subscription);
+
+                // Try to find carrier by metadata or customer email
+                const customerObj = await stripe.customers.retrieve(customerId);
+                if ('email' in customerObj) {
+                    await findAndAttachCarrier(customerId, customerObj.email);
+                }
+
+                const existingSubscription = await prisma.subscription.findFirst({
+                    where: { stripeCustomerId: customerId },
+                });
+
+                if (!existingSubscription) {
+                    await prisma.subscription.create({
+                        data: {
+                            carrierId: null,
+                            stripeCustomerId: customerId,
+                            stripeSubscriptionId: subscription.id,
+                            status: subscription.status,
+                            plan: getPlanFromPriceId(priceId),
+                        },
+                    });
+                } else {
+                    await prisma.subscription.update({
+                        where: { id: existingSubscription.id },
+                        data: {
+                            stripeSubscriptionId: subscription.id,
+                            status: subscription.status,
+                            ...(subscription.status === 'active' && {
+                                plan: getPlanFromPriceId(priceId),
+                            }),
+                        },
+                    });
+                }
+                break;
+            }
+
             case 'customer.subscription.updated': {
                 const subscription = event.data.object as Stripe.Subscription;
                 const customer = subscription.customer as string;
-                const priceId = subscription.items.data[0]?.price.id;
+                const priceId = getFirstPriceId(subscription);
 
                 await prisma.subscription.updateMany({
                     where: {
