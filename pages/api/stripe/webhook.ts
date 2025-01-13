@@ -76,6 +76,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 break;
             }
 
+            case 'customer.deleted': {
+                const customer = event.data.object as Stripe.Customer;
+                if (!customer.id) break;
+
+                await prisma.subscription.updateMany({
+                    where: {
+                        stripeCustomerId: customer.id,
+                    },
+                    data: {
+                        stripeCustomerId: null,
+                        stripeSubscriptionId: null,
+                        status: 'canceled',
+                        plan: SubscriptionPlan.BASIC,
+                    },
+                });
+                break;
+            }
+
             case 'checkout.session.completed': {
                 const session = event.data.object as Stripe.Checkout.Session;
                 if (!session.customer || !session.subscription || !session.customer_email) break;
