@@ -11,13 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const session = await getServerSession(req, res, authOptions);
         const { plan } = req.body as { plan: SubscriptionPlan };
 
-        const priceId =
-            plan === SubscriptionPlan.BASIC ? process.env.STRIPE_BASIC_PRICE_ID : process.env.STRIPE_PRO_PRICE_ID;
-
-        if (!priceId) {
-            return res.status(400).json({ error: 'No price ID found for this plan' });
-        }
-
         const carrier = await prisma.carrier.findUnique({
             where: {
                 id: session.user.defaultCarrierId,
@@ -27,17 +20,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
         });
 
-        if (!carrier?.subscription?.stripeCustomerId) {
-            return res.status(400).json({ error: 'No payment method on file' });
+        // Handle downgrade to BASIC plan
+        if (plan === SubscriptionPlan.BASIC) {
+            try {
+                // Cancel subscription at period end if on PRO plan
+                if (carrier.subscription?.stripeSubscriptionId) {
+                    try {
+                        await stripe.subscriptions.update(carrier.subscription.stripeSubscriptionId, {
+                            cancel_at_period_end: true,
+                        });
+                    } catch (error) {
+                        console.log('Error updating subscription:', error);
+
+                        await prisma.subscription.update({
+                            where: {
+                                carrierId: carrier.id,
+                            },
+                            data: {
+                                plan: SubscriptionPlan.BASIC,
+                                status: 'active',
+                                stripeSubscriptionId: null,
+                            },
+                        });
+                    }
+                } else {
+                    // Update subscription plan to BASIC if no subscription ID
+                    await prisma.subscription.update({
+                        where: {
+                            carrierId: carrier.id,
+                        },
+                        data: {
+                            plan: SubscriptionPlan.BASIC,
+                            status: 'active',
+                        },
+                    });
+                }
+
+                return res.status(200).json({
+                    code: 200,
+                    data: {
+                        url: `${appUrl}/billing?success=true`,
+                    },
+                });
+            } catch (error) {
+                return res.status(500).json({
+                    code: 500,
+                    errors: [{ message: error.message || JSON.stringify(error) }],
+                });
+            }
         }
 
-        console.log('subscription', carrier.subscription);
+        // Handle upgrade to PRO plan
+        const priceId = process.env.STRIPE_PRO_PRICE_ID;
+
+        if (!priceId) {
+            return res.status(400).json({ error: 'No price ID found for PRO plan' });
+        }
 
         try {
             const stripeSession = await stripe.checkout.sessions.create({
                 mode: 'subscription',
                 ...(carrier.subscription?.stripeCustomerId && { customer: carrier.subscription.stripeCustomerId }),
-                ...(!carrier.subscription?.stripeCustomerId && { customer_email: session.user.email }),
+                ...(!carrier.subscription?.stripeCustomerId && { customer_email: carrier.email }),
                 line_items: [
                     {
                         price: priceId,
@@ -48,12 +92,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 cancel_url: `${appUrl}/billing?cancelled=true`,
             });
 
-            res.status(200).json({ url: stripeSession.url });
+            return res.status(200).json({
+                code: 200,
+                data: {
+                    url: stripeSession.url,
+                },
+            });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            return res.status(500).json({
+                code: 500,
+                errors: [{ message: error.message || JSON.stringify(error) }],
+            });
         }
     } else {
-        res.setHeader('Allow', 'POST');
-        res.status(405).end('Method Not Allowed');
+        return res.status(405).json({ message: 'Method not allowed' });
     }
 }
