@@ -1,4 +1,4 @@
-import { Carrier } from '@prisma/client';
+import { Carrier, SubscriptionPlan } from '@prisma/client';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useState } from 'react';
@@ -6,14 +6,17 @@ import { useForm } from 'react-hook-form';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
+import { createCheckoutSession } from '../../lib/rest/stripe';
 
 const CarrierSetup: PageWithAuth = () => {
-    const [isLoading, setIsLoading] = useState(false); // add this state
+    const [isLoading, setIsLoading] = useState(false);
+    const [plan, setPlan] = useState<SubscriptionPlan>(SubscriptionPlan.BASIC);
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
     const { update } = useSession();
 
-    const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
+    const countryOptions = ['United States', 'Canada', 'Mexico'];
+    const planOptions = [SubscriptionPlan.BASIC, SubscriptionPlan.PRO];
 
     const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
@@ -37,7 +40,6 @@ const CarrierSetup: PageWithAuth = () => {
 
     // Add a function to check for uniqueness and set the carrier code
     const handleCarrierCode = async (name: string) => {
-        console.log('handleCarrierCode', name);
         let code = generateCarrierCode(name);
         let isUnique = await isCarrierCodeUnique(code);
         while (!isUnique) {
@@ -61,9 +63,14 @@ const CarrierSetup: PageWithAuth = () => {
             const carrier = await createNewCarrier(data);
 
             if (carrier) {
-                notify({ title: 'Carrier created successfully', type: 'success' });
-                await update();
-                await replace('/');
+                if (plan === SubscriptionPlan.PRO) {
+                    const url = await createCheckoutSession(SubscriptionPlan.PRO);
+                    window.location.href = url;
+                } else {
+                    notify({ title: 'Carrier created successfully', type: 'success' });
+                    await update();
+                    await replace('/');
+                }
             } else {
                 notify({ title: 'Failed to create carrier', type: 'error' });
                 setIsLoading(false);
@@ -151,10 +158,27 @@ const CarrierSetup: PageWithAuth = () => {
                                 )}
                             </div>
                         ))}
+                        <div className="mb-4">
+                            <label htmlFor="plan" className="block mb-2 text-sm font-bold text-gray-700">
+                                Plan <span className="text-red-600">*</span>
+                            </label>
+                            <select
+                                className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                                id="plan"
+                                value={plan}
+                                onChange={(e) => setPlan(e.target.value as SubscriptionPlan)}
+                            >
+                                {planOptions.map((planOption) => (
+                                    <option key={planOption} value={planOption}>
+                                        {planOption}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <div className="flex items-center justify-between mt-8">
                             <button
                                 type="submit"
-                                disabled={isLoading} // disable button during loading
+                                disabled={isLoading}
                                 className={`w-full px-4 py-2 font-bold text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                                     isLoading ? 'opacity-50' : ''
                                 }`}
