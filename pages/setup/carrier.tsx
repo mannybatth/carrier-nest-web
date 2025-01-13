@@ -15,7 +15,7 @@ const CarrierSetup: PageWithAuth = () => {
     const [plan, setPlan] = useState<SubscriptionPlan>(SubscriptionPlan.BASIC);
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
-    const { update } = useSession();
+    const { update, data: session, status } = useSession();
 
     const countryOptions = ['United States', 'Canada', 'Mexico'];
     const planOptions = [
@@ -90,6 +90,14 @@ const CarrierSetup: PageWithAuth = () => {
             callbackUrl: '/',
         });
     };
+
+    if (status === 'loading') {
+        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    }
+
+    if (status !== 'authenticated' || session?.user?.defaultCarrierId) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-600">
