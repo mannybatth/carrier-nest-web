@@ -2,13 +2,13 @@ import { apiUrl } from '../constants';
 import { JSONResponse } from '../../interfaces/models';
 import Stripe from 'stripe';
 
-export const createCheckoutSession = async (plan: string) => {
+export const createCheckoutSession = async (plan: string, carrierEmail?: string) => {
     const response = await fetch(`${apiUrl}/stripe/checkout-session`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, carrierEmail }),
     });
 
     const { data, errors }: JSONResponse<{ url: string }> = await response.json();

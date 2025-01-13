@@ -5,26 +5,46 @@ import { SubscriptionPlan } from '@prisma/client';
 import { authOptions } from 'pages/api/auth/[...nextauth]';
 import { getServerSession } from 'next-auth';
 import prisma from 'lib/prisma';
+import { ExpandedCarrier } from 'interfaces/models';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
         const session = await getServerSession(req, res, authOptions);
-        const { plan } = req.body as { plan: SubscriptionPlan };
 
-        const carrier = await prisma.carrier.findUnique({
-            where: {
-                id: session.user.defaultCarrierId,
-            },
-            include: {
-                subscription: true,
-            },
-        });
+        // If carrierEmail is provided, then assume we just created a new carrier and session doesn't exist yet
+        const { plan, carrierEmail } = req.body as { plan: SubscriptionPlan; carrierEmail?: string };
+
+        let carrier: ExpandedCarrier | null = null;
+        if (carrierEmail) {
+            carrier = await prisma.carrier.findUnique({
+                where: {
+                    email: carrierEmail,
+                },
+                include: {
+                    subscription: true,
+                },
+            });
+        } else if (session?.user?.defaultCarrierId) {
+            carrier = await prisma.carrier.findUnique({
+                where: {
+                    id: session.user.defaultCarrierId,
+                },
+                include: {
+                    subscription: true,
+                },
+            });
+        }
+
+        // If carrier is null or is carrierEmail is not provided, return 400
+        if (!carrier) {
+            return res.status(400).json({ error: 'Carrier not found' });
+        }
 
         // Handle downgrade to BASIC plan
-        if (plan === SubscriptionPlan.BASIC) {
+        if (plan === SubscriptionPlan.BASIC && carrier) {
             try {
                 // Cancel subscription at period end if on PRO plan
-                if (carrier.subscription?.stripeSubscriptionId) {
+                if (carrier?.subscription?.stripeSubscriptionId) {
                     try {
                         await stripe.subscriptions.update(carrier.subscription.stripeSubscriptionId, {
                             cancel_at_period_end: true,
@@ -59,7 +79,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(200).json({
                     code: 200,
                     data: {
-                        url: `${appUrl}/billing?success=true`,
+                        url: carrierEmail
+                            ? `${appUrl}?refresh_session=true`
+                            : `${appUrl}/billing?success=true&refresh_session=true`,
                     },
                 });
             } catch (error) {
@@ -88,8 +110,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         quantity: 1,
                     },
                 ],
-                success_url: `${appUrl}/billing?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${appUrl}/billing?cancelled=true`,
+                success_url: carrierEmail
+                    ? `${appUrl}?refresh_session=true`
+                    : `${appUrl}/billing?checkout_session_id={CHECKOUT_SESSION_ID}&refresh_session=true`,
+                cancel_url: carrierEmail
+                    ? `${appUrl}?refresh_session=true`
+                    : `${appUrl}/billing?cancelled=true&refresh_session=true`,
             });
 
             return res.status(200).json({

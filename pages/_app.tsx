@@ -4,11 +4,12 @@ import { Session } from 'next-auth';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { PropsWithChildren } from 'react';
 import { Toaster } from 'react-hot-toast';
-import Spinner from '../components/Spinner';
 import { UserProvider } from '../components/context/UserContext';
+import Spinner from '../components/Spinner';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
 
@@ -23,6 +24,18 @@ type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextCompo
 const Auth: React.FC<PropsWithChildren> = ({ children }) => {
     const { status, data: session } = useSession();
     const router = useRouter();
+
+    const searchParams = useSearchParams();
+    const { update } = useSession();
+
+    React.useEffect(() => {
+        const shouldRefresh = searchParams.get('refresh_session') === 'true';
+
+        if (shouldRefresh) {
+            // Refresh the session data
+            update();
+        }
+    }, [searchParams, update]);
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
