@@ -1,14 +1,63 @@
 import { SubscriptionPlan } from '@prisma/client';
 import { useUserContext } from 'components/context/UserContext';
 import { notify } from 'components/Notification';
-import { createBillingPortalSession, createCheckoutSession } from 'lib/rest/stripe';
-import React from 'react';
+import {
+    createBillingPortalSession,
+    createCheckoutSession,
+    getStripeSubscription,
+    getStripeInvoices,
+} from 'lib/rest/stripe';
+import React, { useEffect, useState } from 'react';
+import Stripe from 'stripe';
 import Layout from '../../components/layout/Layout';
+import SimpleDialog from 'components/dialogs/SimpleDialog';
+import { ArrowDownCircleIcon } from '@heroicons/react/24/outline';
+import BillingPageSkeleton from 'components/skeletons/BillingPageSkeleton';
 
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
     const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
     const stripeCustomerId = defaultCarrier?.subscription?.stripeCustomerId;
+    const stripeSubscriptionId = defaultCarrier?.subscription?.stripeSubscriptionId;
+    const [subscriptionDetails, setSubscriptionDetails] = useState<Stripe.Subscription>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+    const [invoices, setInvoices] = useState<Stripe.Invoice[]>([]);
+
+    const isSubscriptionCanceling = subscriptionDetails?.cancel_at && currentPlan === SubscriptionPlan.PRO;
+
+    useEffect(() => {
+        const loadSubscriptionDetails = async () => {
+            if (stripeSubscriptionId) {
+                try {
+                    const subscription = await getStripeSubscription(stripeSubscriptionId);
+                    setSubscriptionDetails(subscription);
+                } catch (error) {
+                    console.error('Error loading subscription details:', error);
+                    notify({ title: 'Error', message: error.message, type: 'error' });
+                }
+            }
+            setIsLoading(false);
+        };
+
+        loadSubscriptionDetails();
+    }, [stripeSubscriptionId]);
+
+    useEffect(() => {
+        const loadInvoices = async () => {
+            if (stripeCustomerId) {
+                try {
+                    const invoiceData = await getStripeInvoices(stripeCustomerId);
+                    setInvoices(invoiceData);
+                } catch (error) {
+                    console.error('Error loading invoices:', error);
+                    notify({ title: 'Error', message: 'Failed to load billing history', type: 'error' });
+                }
+            }
+        };
+
+        loadInvoices();
+    }, [stripeCustomerId]);
 
     const handlePlanChange = async (plan: SubscriptionPlan) => {
         try {
@@ -30,6 +79,26 @@ const BillingPage = () => {
         }
     };
 
+    const formatDate = (timestamp: number) => {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('en-US', {
+            timeZone: 'UTC',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    };
+
+    const formatPeriodDate = (timestamp: number) => {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('en-US', {
+            timeZone: 'UTC',
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+        });
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -38,154 +107,270 @@ const BillingPage = () => {
                 </div>
             }
         >
-            <>
-                <div className="py-2 mx-auto max-w-7xl">
-                    {process.env.STRIPE_SECRET_KEY}
-                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                        <div className="flex">
-                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Plans & Billing</h1>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">Manage your plans and billing history here.</p>
-                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+            <div className="py-2 mx-auto max-w-7xl">
+                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
+                    <div className="flex">
+                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Plans & Billing</h1>
                     </div>
-                    <div className="px-5 sm:px-6 md:px-8">
-                        <div className="max-w-3xl pb-6">
-                            {/* Pricing Plans */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div
-                                    className={`relative p-6 border-2 ${
-                                        currentPlan === SubscriptionPlan.BASIC ? 'border-green-700' : 'border-gray-200'
-                                    } rounded-lg`}
-                                >
-                                    {currentPlan === SubscriptionPlan.BASIC && (
-                                        <div
-                                            className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
-                                            data-tooltip-id="tooltip"
-                                            data-tooltip-content="Currently on the Basic plan"
-                                        >
-                                            <svg
-                                                className="w-3 h-3"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth={3}
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                    <div className="space-y-4">
-                                        <div>
-                                            <h2 className="text-xl font-semibold">Basic Plan</h2>
-                                            <p className="text-gray-600">Up to 1 driver</p>
-                                        </div>
-                                        <div className="flex items-baseline">
-                                            <span className="text-3xl font-bold">$0</span>
-                                            <span className="ml-1 text-gray-600">per month</span>
-                                        </div>
-                                        <button
-                                            className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
-                                                currentPlan === SubscriptionPlan.BASIC
-                                                    ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                    : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-                                            }`}
-                                            onClick={() => handlePlanChange(SubscriptionPlan.BASIC)}
-                                            disabled={currentPlan === SubscriptionPlan.BASIC}
-                                        >
-                                            {currentPlan === SubscriptionPlan.BASIC
-                                                ? 'Current plan'
-                                                : 'Switch to Basic'}
-                                        </button>
-                                    </div>
-                                </div>
+                    <p className="mt-1 text-sm text-gray-500">Manage your plans and billing history here.</p>
+                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+                </div>
 
-                                <div
-                                    className={`relative p-6 border-2 ${
-                                        currentPlan === SubscriptionPlan.PRO ? 'border-green-700' : 'border-gray-200'
-                                    } rounded-lg`}
-                                >
-                                    {currentPlan === SubscriptionPlan.PRO && (
-                                        <div
-                                            className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
-                                            data-tooltip-id="tooltip"
-                                            data-tooltip-content="Currently on the Pro plan"
-                                        >
-                                            <svg
-                                                className="w-3 h-3"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth={3}
-                                                viewBox="0 0 24 24"
+                {isLoading ? (
+                    <BillingPageSkeleton />
+                ) : (
+                    <>
+                        <SimpleDialog
+                            show={showDowngradeDialog}
+                            onClose={() => setShowDowngradeDialog(false)}
+                            title="Confirm Plan Downgrade"
+                            description={
+                                subscriptionDetails
+                                    ? `Switching to Basic plan will cancel your PRO subscription at the end of the current billing period. You'll continue to have PRO features until ${formatDate(
+                                          subscriptionDetails.current_period_end,
+                                      )}.`
+                                    : 'Are you sure you want to downgrade to the Basic plan?'
+                            }
+                            primaryButtonText="Downgrade Plan"
+                            secondaryButtonText="Cancel"
+                            primaryButtonAction={() => handlePlanChange(SubscriptionPlan.BASIC)}
+                            primaryButtonColor="bg-gray-600 hover:bg-gray-500"
+                            icon={() => <ArrowDownCircleIcon className="w-6 h-6" aria-hidden="true" />}
+                            iconBgColor="bg-gray-100"
+                            iconColor="text-gray-600"
+                        />
+                        <div className="px-5 sm:px-6 md:px-8">
+                            <div className="max-w-3xl pb-6">
+                                {/* Subscription Details */}
+                                {!isLoading && subscriptionDetails && currentPlan === SubscriptionPlan.PRO && (
+                                    <div className="mb-8 overflow-hidden bg-white border border-gray-200 rounded-lg">
+                                        <div className="px-4 py-5 sm:p-6">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-medium leading-6 text-gray-900">
+                                                    Plan Details
+                                                </h3>
+                                                <button
+                                                    onClick={handleBillingPortal}
+                                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                                >
+                                                    Manage plan →
+                                                </button>
+                                            </div>
+                                            <div className="mt-5 space-y-4">
+                                                <div className="flex justify-between">
+                                                    <p className="text-sm font-medium text-gray-500">Status</p>
+                                                    <p className="text-sm text-gray-900">
+                                                        {subscriptionDetails.status.charAt(0).toUpperCase() +
+                                                            subscriptionDetails.status.slice(1)}
+                                                    </p>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <p className="text-sm font-medium text-gray-500">
+                                                        Current Period (UTC)
+                                                    </p>
+                                                    <p className="text-sm text-gray-900">
+                                                        {formatPeriodDate(subscriptionDetails.current_period_start)} -{' '}
+                                                        {formatPeriodDate(subscriptionDetails.current_period_end)}
+                                                    </p>
+                                                </div>
+                                                {!subscriptionDetails.cancel_at && (
+                                                    <div className="flex justify-between">
+                                                        <p className="text-sm font-medium text-gray-500">
+                                                            Next Billing Date (UTC)
+                                                        </p>
+                                                        <p className="text-sm text-gray-900">
+                                                            {formatPeriodDate(subscriptionDetails.current_period_end)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {subscriptionDetails.cancel_at && (
+                                                    <div className="flex justify-between">
+                                                        <p className="text-sm font-medium text-gray-500">
+                                                            Cancels On (UTC)
+                                                        </p>
+                                                        <p className="text-sm text-red-600">
+                                                            {formatPeriodDate(subscriptionDetails.cancel_at)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Pricing Plans */}
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div
+                                        className={`relative p-6 border-2 ${
+                                            currentPlan === SubscriptionPlan.BASIC
+                                                ? 'border-green-700'
+                                                : 'border-gray-200'
+                                        } rounded-lg`}
+                                    >
+                                        {currentPlan === SubscriptionPlan.BASIC && (
+                                            <div
+                                                className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
+                                                data-tooltip-id="tooltip"
+                                                data-tooltip-content="Currently on the Basic plan"
                                             >
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
+                                                <svg
+                                                    className="w-3 h-3"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={3}
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M5 13l4 4L19 7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h2 className="text-xl font-semibold">Basic Plan</h2>
+                                                <p className="text-gray-600">Up to 1 driver</p>
+                                            </div>
+                                            <div className="flex items-baseline">
+                                                <span className="text-3xl font-bold">$0</span>
+                                                <span className="ml-1 text-gray-600">per month</span>
+                                            </div>
+                                            <button
+                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
+                                                    currentPlan === SubscriptionPlan.BASIC || isSubscriptionCanceling
+                                                        ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
+                                                        : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
+                                                }`}
+                                                onClick={() => {
+                                                    setShowDowngradeDialog(true);
+                                                }}
+                                                disabled={
+                                                    currentPlan === SubscriptionPlan.BASIC || isSubscriptionCanceling
+                                                }
+                                            >
+                                                {currentPlan === SubscriptionPlan.BASIC
+                                                    ? 'Current plan'
+                                                    : isSubscriptionCanceling
+                                                    ? 'Downgrade scheduled'
+                                                    : 'Switch to Basic'}
+                                            </button>
                                         </div>
-                                    )}
-                                    <div className="space-y-4">
-                                        <div>
-                                            <h2 className="text-xl font-semibold">Pro Plan</h2>
-                                            <p className="text-gray-600">Up to 10 drivers</p>
+                                    </div>
+
+                                    <div
+                                        className={`relative p-6 border-2 ${
+                                            currentPlan === SubscriptionPlan.PRO
+                                                ? 'border-green-700'
+                                                : 'border-gray-200'
+                                        } rounded-lg`}
+                                    >
+                                        {currentPlan === SubscriptionPlan.PRO && (
+                                            <div
+                                                className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
+                                                data-tooltip-id="tooltip"
+                                                data-tooltip-content="Currently on the Pro plan"
+                                            >
+                                                <svg
+                                                    className="w-3 h-3"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={3}
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M5 13l4 4L19 7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h2 className="text-xl font-semibold">Pro Plan</h2>
+                                                <p className="text-gray-600">Up to 10 drivers</p>
+                                            </div>
+                                            <div className="flex items-baseline">
+                                                <span className="text-3xl font-bold">$20</span>
+                                                <span className="ml-1 text-gray-600">per month</span>
+                                            </div>
+                                            <button
+                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
+                                                    currentPlan === SubscriptionPlan.PRO
+                                                        ? isSubscriptionCanceling
+                                                            ? 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
+                                                            : 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
+                                                        : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
+                                                }`}
+                                                onClick={() =>
+                                                    isSubscriptionCanceling
+                                                        ? handleBillingPortal()
+                                                        : handlePlanChange(SubscriptionPlan.PRO)
+                                                }
+                                                disabled={
+                                                    currentPlan === SubscriptionPlan.PRO && !isSubscriptionCanceling
+                                                }
+                                            >
+                                                {currentPlan === SubscriptionPlan.PRO
+                                                    ? isSubscriptionCanceling
+                                                        ? 'Resume Plan'
+                                                        : 'Current plan'
+                                                    : 'Switch to Pro'}
+                                            </button>
                                         </div>
-                                        <div className="flex items-baseline">
-                                            <span className="text-3xl font-bold">$20</span>
-                                            <span className="ml-1 text-gray-600">per month</span>
-                                        </div>
-                                        <button
-                                            className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
-                                                currentPlan === SubscriptionPlan.PRO
-                                                    ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                    : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-                                            }`}
-                                            onClick={() => handlePlanChange(SubscriptionPlan.PRO)}
-                                            disabled={currentPlan === SubscriptionPlan.PRO}
-                                        >
-                                            {currentPlan === SubscriptionPlan.PRO ? 'Current plan' : 'Switch to Pro'}
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        {stripeCustomerId && (
-                            <>
-                                <div>
-                                    <button
-                                        className="w-full px-4 py-2 mt-4 text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                                        onClick={handleBillingPortal}
-                                    >
-                                        Manage Billing
-                                    </button>
-                                </div>
-                                {/* Billing History */}
+                            {stripeCustomerId && (
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-semibold">Billing history</h2>
                                     <div className="space-y-2">
-                                        {[
-                                            { id: '0012', date: '12 Apr' },
-                                            { id: '0011', date: '12 Mar' },
-                                            { id: '0010', date: '12 Feb' },
-                                            { id: '0009', date: '12 Jan' },
-                                            { id: '0008', date: '12 Dec' },
-                                        ].map((invoice) => (
-                                            <div
-                                                key={invoice.id}
-                                                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-                                            >
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="p-2 text-xs text-white bg-orange-500 rounded">
-                                                        PDF
+                                        {invoices.length > 0 ? (
+                                            invoices.map((invoice) => (
+                                                <div
+                                                    key={invoice.id}
+                                                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                                                >
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="p-2 text-xs text-white bg-orange-500 rounded">
+                                                            PDF
+                                                        </div>
+                                                        <span className="text-gray-900">
+                                                            Invoice {invoice.number || invoice.id}
+                                                        </span>
+                                                        <span className="text-gray-600">
+                                                            ${(invoice.total / 100).toFixed(2)} USD
+                                                        </span>
                                                     </div>
-                                                    <span className="text-gray-900">Invoice {invoice.id}</span>
+                                                    <div className="flex items-center space-x-4">
+                                                        <span className="text-gray-600">
+                                                            {formatDate(invoice.created)}
+                                                        </span>
+                                                        {invoice.invoice_pdf && (
+                                                            <a
+                                                                href={invoice.invoice_pdf}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                Download
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className="text-gray-600">{invoice.date}</span>
-                                            </div>
-                                        ))}
+                                            ))
+                                        ) : (
+                                            <p className="text-gray-500">No billing history available</p>
+                                        )}
                                     </div>
                                 </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
         </Layout>
     );
 };
