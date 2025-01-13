@@ -21,25 +21,48 @@ Prisma.Decimal.prototype.toJSON = function () {
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, {}> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
 
+const debounce = (func: () => void, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(func, wait);
+    };
+};
+
 const Auth: React.FC<PropsWithChildren> = ({ children }) => {
     const { status, data: session } = useSession();
     const router = useRouter();
-
     const searchParams = useSearchParams();
     const { update } = useSession();
+    let retryCount = 0;
 
-    React.useEffect(() => {
-        const shouldRefresh = searchParams.get('refresh_session') === 'true';
-        if (shouldRefresh) {
-            // Refresh the session data
-            update().then(() => {
+    const debouncedUpdateSession = debounce(() => {
+        update()
+            .then(() => {
                 // Remove refresh_session from the URL
                 const params = new URLSearchParams(searchParams.toString());
                 params.delete('refresh_session');
                 router.replace({ search: params.toString() }, undefined, { shallow: true });
+                retryCount = 0;
+            })
+            .catch((error) => {
+                retryCount += 1;
+                if (retryCount >= 3) {
+                    // Remove refresh_session from the URL after 3 retries
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('refresh_session');
+                    router.replace({ search: params.toString() }, undefined, { shallow: true });
+                }
+                console.error('Failed to update session:', error);
             });
+    }, 500);
+
+    React.useEffect(() => {
+        const shouldRefresh = searchParams.get('refresh_session') === 'true';
+        if (shouldRefresh && session) {
+            debouncedUpdateSession();
         }
-    }, [searchParams, update]);
+    }, [searchParams, update, session]);
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
