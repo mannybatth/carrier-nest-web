@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const invoices = await stripe.invoices.list({
             customer: customerId as string,
-            limit: 100,
+            limit: 50,
         });
 
         res.status(200).json(invoices.data);

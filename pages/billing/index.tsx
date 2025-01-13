@@ -99,6 +99,21 @@ const BillingPage = () => {
         });
     };
 
+    const getStatusBadgeColor = (status: string) => {
+        switch (status) {
+            case 'paid':
+                return 'bg-green-100 text-green-800';
+            case 'open':
+                return 'bg-blue-100 text-blue-800';
+            case 'void':
+                return 'bg-gray-100 text-gray-800';
+            case 'uncollectible':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
     return (
         <Layout
             smHeaderComponent={
@@ -333,32 +348,36 @@ const BillingPage = () => {
                                                     key={invoice.id}
                                                     className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
                                                 >
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="p-2 text-xs text-white bg-orange-500 rounded">
-                                                            PDF
-                                                        </div>
-                                                        <span className="text-gray-900">
-                                                            Invoice {invoice.number || invoice.id}
-                                                        </span>
-                                                        <span className="text-gray-600">
-                                                            ${(invoice.total / 100).toFixed(2)} USD
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-4">
+                                                    <div className="flex items-center space-x-8">
                                                         <span className="text-gray-600">
                                                             {formatDate(invoice.created)}
                                                         </span>
+                                                        <span className="text-gray-900">
+                                                            ${(invoice.total / 100).toFixed(2)} USD
+                                                        </span>
+                                                        <span
+                                                            className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
+                                                                invoice.status,
+                                                            )}`}
+                                                        >
+                                                            {invoice.status}
+                                                        </span>
+                                                    </div>
+                                                    {/* <div className="flex items-center space-x-3">
                                                         {invoice.invoice_pdf && (
                                                             <a
                                                                 href={invoice.invoice_pdf}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-blue-600 hover:text-blue-800"
+                                                                className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
                                                             >
-                                                                Download
+                                                                <span className="p-1 text-xs text-white bg-orange-500 rounded">
+                                                                    PDF
+                                                                </span>
+                                                                <span>Download</span>
                                                             </a>
                                                         )}
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                             ))
                                         ) : (
