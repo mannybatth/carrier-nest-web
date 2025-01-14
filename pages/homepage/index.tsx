@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import React from 'react';
 
 type LoadFeatureProps = {
@@ -22,7 +22,7 @@ type LoadFeatureProps = {
 const Homepage = () => {
     const { status, data: session } = useSession();
     const router = useRouter();
-    const pathname = usePathname();
+    const pathname = router.pathname;
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
@@ -106,10 +106,10 @@ const Homepage = () => {
         <section className="min-h-screen bg-white">
             <div className="px-6 mx-auto max-w-7xl sm:px-8">
                 {/* Header */}
-                <header className="flex items-center justify-between py-6 pb-2 sticky top-0 z-10 bg-white">
-                    <div className="flex flex-col md:flex-row items-start md:items-end space-x-0 md:space-x-3">
+                <header className="sticky top-0 z-10 flex items-center justify-between py-6 pb-2 bg-white">
+                    <div className="flex flex-col items-start space-x-0 md:flex-row md:items-end md:space-x-3">
                         <Image src="/logo_truck_100.png" alt="Carrier Nest Logo" width={50} height={50} />
-                        <h1 className="text-sm md:text-2xl font-bold text-gray-800">Carrier Nest</h1>
+                        <h1 className="text-sm font-bold text-gray-800 md:text-2xl">Carrier Nest</h1>
                     </div>
 
                     <div className="flex items-center space-x-3">
@@ -126,7 +126,7 @@ const Homepage = () => {
 
                         {status !== 'authenticated' && (
                             <button
-                                className="p-2 md:px-6 md:py-2 font-semibold transition whitespace-nowrap text-sm md:text-lg text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                                className="p-2 text-sm font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
                                 onClick={() => signIn()}
                             >
                                 Get Started!
@@ -216,7 +216,7 @@ const Homepage = () => {
                                 width={1920}
                                 height={1080}
                                 loading="lazy"
-                                className="rounded-lg shadow-none border border-slate-100"
+                                className="border rounded-lg shadow-none border-slate-100"
                             />
                         </div>
                     </div>
