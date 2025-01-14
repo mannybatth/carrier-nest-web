@@ -8,6 +8,7 @@ type UserContextType = {
     defaultCarrier: ExpandedCarrier | null;
     setCarriers: React.Dispatch<React.SetStateAction<ExpandedCarrier[]>>;
     setDefaultCarrier: React.Dispatch<React.SetStateAction<ExpandedCarrier | null>>;
+    isProPlan: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -15,6 +16,7 @@ const UserContext = createContext<UserContextType>({
     defaultCarrier: null,
     setCarriers: () => null,
     setDefaultCarrier: () => null,
+    isProPlan: false,
 });
 
 type UserProviderProps = {
@@ -25,6 +27,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const { data: session } = useSession();
     const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
+    const [isProPlan, setIsProPlan] = useState(false);
 
     useEffect(() => {
         fetchCarriers();
@@ -34,6 +37,7 @@ export function UserProvider({ children }: UserProviderProps) {
         if (session?.user?.defaultCarrierId && carriers.length > 0) {
             const carrier = carriers.find((c) => c.id === session.user.defaultCarrierId) || null;
             setDefaultCarrier(carrier);
+            setIsProPlan(carrier?.subscription?.plan === 'PRO' && carrier?.subscription?.status === 'active');
         }
     }, [session, carriers]);
 
@@ -53,6 +57,7 @@ export function UserProvider({ children }: UserProviderProps) {
                 defaultCarrier,
                 setCarriers,
                 setDefaultCarrier,
+                isProPlan,
             }}
         >
             {children}

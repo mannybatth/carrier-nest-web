@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -15,7 +14,8 @@ import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
 const LoadsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
+    const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -41,7 +41,6 @@ const LoadsPage: PageWithAuth = () => {
         currentOffset: offsetProp,
         currentLimit: limitProp,
     });
-    const router = useRouter();
 
     useEffect(() => {
         setLimit(limitProp);

@@ -1,7 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon, CurrencyDollarIcon, EnvelopeIcon, PhoneIcon, TruckIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -98,8 +97,8 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ driver, disabled, del
 };
 
 const DriverDetailsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const params = useParams();
+    const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -110,7 +109,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
-    const driverId = params?.id as string;
+    const driverId = router.query.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
     const [lastPaymentsTableLimit, setLastPaymentsTableLimit] = useLocalStorage('lastPaymentsTableLimit', limitProp);
@@ -137,7 +136,6 @@ const DriverDetailsPage: PageWithAuth = () => {
         currentOffset: offsetProp,
         currentLimit: limitProp,
     });
-    const router = useRouter();
 
     const [driverPayments, setDriverPayments] = React.useState<ExpandedDriverPayment[]>([]);
     const [driverPaymentsMetadata, setDriverPaymentsMetadata] = React.useState<PaginationMetadata>({

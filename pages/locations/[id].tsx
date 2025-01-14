@@ -1,7 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -87,14 +86,13 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ location, disabled, d
 };
 
 const LocationDetailsPage: PageWithAuth = () => {
-    const params = useParams();
-    const locationId = params?.id as string;
+    const router = useRouter();
+    const { id: locationId } = router.query as { id: string };
 
     const [loadingLocation, setLoadingLocation] = React.useState(true);
     const [openDeleteLocationConfirmation, setOpenDeleteLocationConfirmation] = React.useState(false);
 
     const [location, setLocation] = React.useState<Location | null>(null);
-    const router = useRouter();
 
     useEffect(() => {
         if (locationId) {

@@ -1,7 +1,6 @@
-import { Driver, ChargeType, Prisma } from '@prisma/client';
+import { Driver, Prisma } from '@prisma/client';
 import { DriverProvider, useDriverContext } from 'components/context/DriverContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -120,8 +119,9 @@ const EditDriver: PageWithAuth = () => {
 EditDriver.authenticationEnabled = true;
 
 const EditDriverWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const driverId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const driverId = id as string;
 
     return (
         <DriverProvider driverId={driverId}>

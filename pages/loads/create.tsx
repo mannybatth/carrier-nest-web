@@ -1,7 +1,6 @@
 import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import startOfDay from 'date-fns/startOfDay';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { FileUploader } from 'react-drag-drop-files';
@@ -82,8 +81,8 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const copyLoadId = searchParams.get('copyLoadId');
+    const { query } = useRouter();
+    const copyLoadId = query.copyLoadId as string;
 
     const [loading, setLoading] = React.useState(false);
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
@@ -754,7 +753,7 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         // If value is empty, return
-        if (!value || !ocrLines.lines) {
+        if (!value || !ocrLines?.lines) {
             return;
         }
 

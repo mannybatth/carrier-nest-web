@@ -1,7 +1,6 @@
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -87,14 +86,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ equipment, disabled, 
 };
 
 const EquipmentDetailsPage = () => {
-    const params = useParams();
-    const equipmentId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const equipmentId = id as string;
 
     const [loadingEquipment, setLoadingEquipment] = useState(true);
     const [openDeleteEquipmentConfirmation, setOpenDeleteEquipmentConfirmation] = useState(false);
 
     const [equipment, setEquipment] = useState<ExpandedEquipment | null>(null);
-    const router = useRouter();
 
     useEffect(() => {
         if (equipmentId) {

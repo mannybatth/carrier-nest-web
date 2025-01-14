@@ -1,6 +1,5 @@
 import { Location } from '@prisma/client';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
@@ -16,13 +15,13 @@ import LocationsTable from 'components/locations/LocationsTable';
 import { deleteLocationById, getAllLocations } from 'lib/rest/locations';
 
 const LocationsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
+    const router = useRouter();
     const sortProps = sortFromQuery({
-        sortBy: searchParams.get('sortBy'),
-        sortOrder: searchParams.get('sortOrder'),
+        sortBy: router.query.sortBy,
+        sortOrder: router.query.sortOrder,
     });
-    const limitProp = Number(searchParams.get('limit')) || 20;
-    const offsetProp = Number(searchParams.get('offset')) || 0;
+    const limitProp = Number(router.query.limit) || 20;
+    const offsetProp = Number(router.query.offset) || 0;
 
     const [lastLocationsTableLimit, setLastLocationsTableLimit] = useLocalStorage('lastLocationsTableLimit', limitProp);
 
@@ -38,8 +37,6 @@ const LocationsPage: PageWithAuth = () => {
     const [limit, setLimit] = React.useState(limitProp);
     const [offset, setOffset] = React.useState(offsetProp);
     const [metadata, setMetadata] = React.useState<PaginationMetadata>({} as PaginationMetadata);
-
-    const router = useRouter();
 
     useEffect(() => {
         reloadLocations({ sort, limit, offset });

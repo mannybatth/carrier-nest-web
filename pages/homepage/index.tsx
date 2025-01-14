@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import React from 'react';
 
 type LoadFeatureProps = {
@@ -22,7 +22,7 @@ type LoadFeatureProps = {
 const Homepage = () => {
     const { status, data: session } = useSession();
     const router = useRouter();
-    const pathname = usePathname();
+    const pathname = router.pathname;
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
@@ -106,7 +106,7 @@ const Homepage = () => {
         <section className="min-h-screen bg-white">
             <div className="px-6 mx-auto max-w-7xl sm:px-8">
                 {/* Header */}
-                <header className="flex items-center justify-between py-6 pb-2 sticky top-0 z-10 bg-white">
+                <header className="sticky top-0 z-10 flex items-center justify-between py-6 pb-2 bg-white">
                     <div className="flex items-center space-x-3">
                         <Image src="/logo_truck_100.png" alt="Carrier Nest Logo" width={50} height={50} />
                         <h1 className="text-2xl font-bold text-gray-800">Carrier Nest</h1>
@@ -216,7 +216,7 @@ const Homepage = () => {
                                 width={1920}
                                 height={1080}
                                 loading="lazy"
-                                className="rounded-lg shadow-none border border-slate-100"
+                                className="border rounded-lg shadow-none border-slate-100"
                             />
                         </div>
                     </div>

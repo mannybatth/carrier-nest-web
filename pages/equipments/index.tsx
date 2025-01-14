@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
 import { ExpandedEquipment } from 'interfaces/models';
@@ -15,7 +14,7 @@ import SimpleDialog from '../../components/dialogs/SimpleDialog';
 
 const EquipmentsPage = () => {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),

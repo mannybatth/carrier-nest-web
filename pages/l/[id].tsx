@@ -3,7 +3,7 @@ import { MapPinIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outlin
 import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 import { LoadDocument, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
@@ -12,7 +12,6 @@ import { hoursToReadable } from '../../lib/helpers/time';
 import { addLoadDocumentToLoad, deleteLoadDocumentFromLoad } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
 import { getAssignmentById } from '../../lib/rest/assignment';
-import { useRouter } from 'next/router';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { isDate24HrInThePast } from 'lib/load/load-utils';
 import RouteLegStatusBadge from 'components/loads/RouteLegStatusBadge';
@@ -71,9 +70,9 @@ const DriverAssignmentDetailsPageSkeleton = () => {
 };
 
 const DriverAssignmentDetailsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const driverId = searchParams.get('did');
     const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
+    const driverId = searchParams.get('did');
     const { id: assignmentId } = router.query as { id: string };
 
     const [assignment, setAssignment] = useState<ExpandedDriverAssignment>();
