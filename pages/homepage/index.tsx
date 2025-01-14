@@ -22,7 +22,6 @@ type LoadFeatureProps = {
 const Homepage = () => {
     const { status, data: session } = useSession();
     const router = useRouter();
-    const pathname = router.pathname;
 
     React.useEffect(() => {
         if (status === 'loading') return; // Do nothing while loading
@@ -31,7 +30,7 @@ const Homepage = () => {
         // If authenticated, but no default carrier, redirect to carrier setup
         if (status === 'authenticated' && !session?.user?.defaultCarrierId) {
             router.replace('/setup/carrier');
-        } else if (status === 'authenticated' && pathname === '/setup/carrier') {
+        } else if (status === 'authenticated' && router.pathname === '/setup/carrier') {
             router.replace('/');
         }
     }, [status, session]);
