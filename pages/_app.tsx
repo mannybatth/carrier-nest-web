@@ -4,7 +4,6 @@ import { Session } from 'next-auth';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { PropsWithChildren } from 'react';
 import { Toaster } from 'react-hot-toast';
@@ -24,7 +23,7 @@ type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextCompo
 const Auth: React.FC<PropsWithChildren> = ({ children }) => {
     const { status, data: session } = useSession();
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const searchParams = new URLSearchParams(router.query as any);
     const { update } = useSession();
     const refreshAttemptedRef = React.useRef(false);
 

@@ -8,7 +8,6 @@ import {
     TruckIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
-import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { Fragment, useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
@@ -101,15 +100,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ className, customer, 
 };
 
 const CustomerDetailsPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
-    const params = useParams();
+    const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
     });
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
-    const customerId = params?.id as string;
+    const customerId = router.query.id as string;
 
     const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
@@ -132,7 +131,6 @@ const CustomerDetailsPage: PageWithAuth = () => {
         currentOffset: offsetProp,
         currentLimit: limitProp,
     });
-    const router = useRouter();
 
     useEffect(() => {
         if (customerId) {

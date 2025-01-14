@@ -1,6 +1,5 @@
 import { Driver } from '@prisma/client';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
@@ -16,7 +15,8 @@ import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
 const DriversPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
+    const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -42,7 +42,6 @@ const DriversPage: PageWithAuth = () => {
         currentOffset: offsetProp,
         currentLimit: limitProp,
     });
-    const router = useRouter();
 
     useEffect(() => {
         setLimit(limitProp);

@@ -1,7 +1,6 @@
 import { Location } from '@prisma/client';
 import { LocationProvider, useLocationContext } from 'components/context/LocationContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -106,11 +105,11 @@ const EditLocationPage: PageWithAuth = () => {
 EditLocationPage.authenticationEnabled = true;
 
 const EditLocationPageWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const locationId = params?.id as string;
+    const router = useRouter();
+    const { id: locationId } = router.query;
 
     return (
-        <LocationProvider locationId={locationId}>
+        <LocationProvider locationId={locationId as string}>
             <EditLocationPage></EditLocationPage>
         </LocationProvider>
     );

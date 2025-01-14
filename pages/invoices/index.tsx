@@ -1,5 +1,4 @@
 import classNames from 'classnames';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { formatValue } from 'react-currency-input-field';
@@ -19,7 +18,8 @@ import { deleteInvoiceById, getAccountingStats, getInvoicesExpanded } from '../.
 import { useLocalStorage } from '../../lib/useLocalStorage';
 
 const InvoicesPage: PageWithAuth = () => {
-    const searchParams = useSearchParams();
+    const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -55,7 +55,6 @@ const InvoicesPage: PageWithAuth = () => {
         currentOffset: offsetProp,
         currentLimit: limitProp,
     });
-    const router = useRouter();
 
     useEffect(() => {
         loadStats();

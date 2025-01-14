@@ -8,7 +8,6 @@ import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { getAllAssignments } from 'lib/rest/assignment';
 import AssignmentsTable from 'components/assignment/AssignmentsTable';
-import { useSearchParams } from 'next/navigation';
 import { useLocalStorage } from '../../lib/useLocalStorage';
 import { CustomersTableSkeleton } from 'components/customers/CustomersTable';
 import AssignmentPaymentsModal from 'components/assignment/assignment-payments-modal/AssignmentPaymentsModal';
@@ -17,8 +16,8 @@ import { getAllDrivers } from 'lib/rest/driver';
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 
 const AssignmentsPage = () => {
-    const searchParams = useSearchParams();
     const router = useRouter();
+    const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),

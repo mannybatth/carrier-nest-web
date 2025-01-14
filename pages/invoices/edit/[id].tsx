@@ -1,7 +1,6 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
 import { InvoiceProvider, useInvoiceContext } from 'components/context/InvoiceContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -140,8 +139,9 @@ const EditInvoicePage: PageWithAuth = () => {
 EditInvoicePage.authenticationEnabled = true;
 
 const EditInvoicePageWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const invoiceId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const invoiceId = id as string;
 
     return (
         <InvoiceProvider invoiceId={invoiceId}>

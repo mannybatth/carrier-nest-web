@@ -1,7 +1,6 @@
 import { Customer } from '@prisma/client';
 import { CustomerProvider, useCustomerContext } from 'components/context/CustomerContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -114,8 +113,9 @@ const EditCustomer: PageWithAuth = () => {
 EditCustomer.authenticationEnabled = true;
 
 const EditCustomerWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const customerId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const customerId = id as string;
 
     return (
         <CustomerProvider customerId={customerId}>

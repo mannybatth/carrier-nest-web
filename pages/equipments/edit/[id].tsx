@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form';
 import { ExpandedEquipment } from 'interfaces/models';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import { EquipmentProvider, useEquipmentContext } from '../../../components/context/EquipmentContext';
-import { useParams } from 'next/navigation';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
 
 const EditEquipmentPage = () => {
@@ -98,8 +97,9 @@ const EditEquipmentPage = () => {
 EditEquipmentPage.authenticationEnabled = true;
 
 const EditEquipmentPageWrapper = () => {
-    const params = useParams();
-    const equipmentId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const equipmentId = id as string;
 
     return (
         <EquipmentProvider equipmentId={equipmentId}>

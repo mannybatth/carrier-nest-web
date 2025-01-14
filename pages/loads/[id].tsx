@@ -9,7 +9,6 @@ import LoadRouteSection from 'components/loads/load-details/LoadRouteSection';
 import { removeRouteLegById } from 'lib/rest/assignment';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, useEffect, useState } from 'react';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
@@ -523,8 +522,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 LoadDetailsPage.authenticationEnabled = true;
 
 const LoadDetailsPageWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const loadId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const loadId = id as string;
 
     return (
         <LoadProvider loadId={loadId}>

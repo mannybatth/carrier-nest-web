@@ -1,7 +1,6 @@
 import { InvoiceItem, Prisma } from '@prisma/client';
 import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import { useParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -151,8 +150,9 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
 CreateInvoice.authenticationEnabled = true;
 
 const CreateInvoiceWrapper: PageWithAuth = () => {
-    const params = useParams();
-    const loadId = params?.id as string;
+    const router = useRouter();
+    const { id } = router.query;
+    const loadId = id as string;
     const [nextInvoiceNum, setNextInvoiceNum] = React.useState<number>(null);
 
     React.useEffect(() => {
