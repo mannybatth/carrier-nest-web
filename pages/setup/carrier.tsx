@@ -187,6 +187,8 @@ const CarrierSetup: PageWithAuth = () => {
     };
 
     const getFMCSAData = async (mcNumber: string) => {
+        if (!mcNumber) return;
+
         formHook.reset();
         setFetchError(false);
 
@@ -297,13 +299,21 @@ const CarrierSetup: PageWithAuth = () => {
 
     const CompanyLookup = () => (
         <>
-            <input
-                ref={mcNumberInputRef}
-                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                type="text"
-                placeholder="Enter MC Number"
-                onKeyDown={handleSubmit}
-            />
+            <div className="relative flex">
+                <input
+                    ref={mcNumberInputRef}
+                    className="block w-full mt-1 border-gray-300 shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    type="text"
+                    placeholder="Enter MC Number"
+                    onKeyDown={handleSubmit}
+                />
+                <button
+                    onClick={() => getFMCSAData(mcNumberInputRef.current?.value || '')}
+                    className="inline-flex items-center px-4 py-2 mt-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Search
+                </button>
+            </div>
             {fetchError ? (
                 <div className="p-4 mt-4 border border-yellow-200 rounded-md bg-yellow-50">
                     <div className="flex">
