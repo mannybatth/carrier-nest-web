@@ -84,7 +84,6 @@ const CarrierSetup: PageWithAuth = () => {
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
     const { update, data: session, status } = useSession();
-    const [error, setError] = useState<boolean>(false);
     const [companyData, setCompanyData] = useState<CarrierObj>();
     const countryOptions = ['United States', 'Canada', 'Mexico'];
     const planOptions = [
@@ -109,6 +108,7 @@ const CarrierSetup: PageWithAuth = () => {
     const [activeStep, setActiveStep] = React.useState(0);
     const mcNumberInputRef = useRef<HTMLInputElement>(null);
     const companyNameInputRef = useRef<HTMLInputElement>(null);
+    const [fetchError, setFetchError] = useState<boolean>(false);
 
     useEffect(() => {
         // Small timeout to ensure DOM elements are mounted
@@ -188,17 +188,23 @@ const CarrierSetup: PageWithAuth = () => {
 
     const getFMCSAData = async (mcNumber: string) => {
         formHook.reset();
+        setFetchError(false);
 
-        const url = `https://mobile.fmcsa.dot.gov/qc/services/carriers/docket-number/${encodeURIComponent(
-            mcNumber,
-        )}?webKey=dd11efd7af252754dabb0e1e7557162cec4dc637`;
+        try {
+            const url = `https://mobile.fmcsa.dot.gov/qc/services/carriers/docket-number/${encodeURIComponent(
+                mcNumber,
+            )}?webKey=dd11efd7af252754dabb0e1e7557162cec4dc637`;
 
-        const response = await fetch(url);
-
-        if (response && response.status == 200) {
+            const response = await fetch(url);
             const jsonData: JsonResponse = await response.json();
 
-            const carrierData = (jsonData as JsonResponse).content[0].carrier;
+            if (!response.ok || !jsonData?.content?.[0]?.carrier) {
+                setFetchError(true);
+                formHook.setValue('mcNum', mcNumber);
+                return;
+            }
+
+            const carrierData = jsonData.content[0].carrier;
 
             const carrier: CarrierObj = {
                 carrierOperation: {
@@ -226,11 +232,10 @@ const CarrierSetup: PageWithAuth = () => {
             formHook.setValue('zip', carrier.phyZipcode);
 
             setCompanyData(carrier);
+        } catch (error) {
+            setFetchError(true);
+            formHook.setValue('mcNum', mcNumber);
         }
-    };
-
-    const handleOnChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-        setCompanyData(undefined);
     };
 
     const handleSubmit = (event: React.KeyboardEvent<HTMLInputElement>): void => {
@@ -305,13 +310,37 @@ const CarrierSetup: PageWithAuth = () => {
                 type="text"
                 placeholder="Enter MC Number"
                 onKeyDown={handleSubmit}
-                onChange={handleOnChange}
             />
-            {companyData ? DisplayCard(companyData) : DisplayCardSkeleton()}
+            {fetchError ? (
+                <div className="p-4 mt-4 border border-yellow-200 rounded-md bg-yellow-50">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fillRule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                        </div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-yellow-800">Unable to fetch carrier data</h3>
+                            <p className="mt-2 text-sm text-yellow-700">
+                                We couldn&apos;t retrieve your carrier information. You can proceed to the next step and
+                                enter your information manually.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            ) : companyData ? (
+                DisplayCard(companyData)
+            ) : (
+                DisplayCardSkeleton()
+            )}
             <button
                 className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 onClick={handleNext}
-                disabled={!companyData}
+                disabled={!companyData && !fetchError}
             >
                 Continue
             </button>
@@ -565,6 +594,14 @@ const CarrierSetup: PageWithAuth = () => {
             description: 'Choose a plan that best suits your needs - start with the Basic plan for free',
         },
     ];
+
+    if (status === 'loading') {
+        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    }
+
+    if (status !== 'authenticated' || session?.user?.defaultCarrierId) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
