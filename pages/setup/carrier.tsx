@@ -246,34 +246,23 @@ const CarrierSetup: PageWithAuth = () => {
         }
     };
 
-    const divWithLabelAndValue = (value: string, label: string, labelFontSize: number, valueFontSize: number) => (
-        <div className="pb-2">
-            <p
-                style={{ fontSize: labelFontSize }}
-                className={`text-[${labelFontSize}] text-gray-500 font-light p-0 m-0 uppercase`}
-            >
-                {label}:{' '}
-            </p>
-            <p
-                style={{ fontSize: valueFontSize }}
-                className={`text-[${valueFontSize}] text-slate-600 font-bold uppercase`}
-            >
-                {value}
-            </p>
-        </div>
-    );
-
     const DisplayCard = (result: CarrierObj) => (
         <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200">
             <div className="p-3">
-                {divWithLabelAndValue(result.legalName, 'Carrier Name', 14, 16)}
-                {divWithLabelAndValue(result.dotNumber.toString(), 'DOT Number', 14, 16)}
-                {divWithLabelAndValue(
-                    `${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`,
-                    'Address',
-                    14,
-                    16,
-                )}
+                <div className="pb-2">
+                    <p className="text-sm font-light text-gray-500 uppercase">Carrier Name:</p>
+                    <p className="text-base font-bold uppercase text-slate-600">{result.legalName}</p>
+                </div>
+                <div className="pb-2">
+                    <p className="text-sm font-light text-gray-500 uppercase">DOT Number:</p>
+                    <p className="text-base font-bold uppercase text-slate-600">{result.dotNumber.toString()}</p>
+                </div>
+                <div>
+                    <p className="text-sm font-light text-gray-500 uppercase">Address:</p>
+                    <p className="text-base font-bold uppercase text-slate-600">
+                        {`${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`}
+                    </p>
+                </div>
             </div>
         </div>
     );
@@ -282,16 +271,16 @@ const CarrierSetup: PageWithAuth = () => {
         <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200 animate-pulse">
             <div className="p-3">
                 <div className="pb-2">
-                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
-                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
+                    <div className="w-48 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
                 </div>
                 <div className="pb-2">
-                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
-                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
+                    <div className="w-32 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
                 </div>
-                <div className="pb-2">
-                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
-                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                <div>
+                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
+                    <div className="w-64 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
                 </div>
             </div>
         </div>
