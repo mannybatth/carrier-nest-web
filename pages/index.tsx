@@ -137,7 +137,7 @@ const Dashboard: PageWithAuth = () => {
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
-                                <div className="relative mb-4 overflow-hidden border border-gray-200 shadow-sm bg-gradient-to-b from-blue-50 to-white rounded-xl">
+                                <div className="relative mx-5 mb-4 overflow-hidden border border-gray-200 shadow-sm md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
                                     <div className="flex flex-col items-center max-w-2xl px-6 py-16 mx-auto text-center">
                                         <div className="flex items-center justify-center p-3 mb-6 bg-blue-100 rounded-full">
                                             <ClipboardDocumentCheckIcon
