@@ -184,11 +184,10 @@ const SettingsPage: PageWithAuth = () => {
                                                         )}
                                                     </div>
                                                 ))}
-                                                <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                                                    <div className="flex-1"></div>
+                                                <div className="flex w-full px-0 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                                                     <button
                                                         type="submit"
-                                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                                        className="flex justify-center w-full px-10 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                     >
                                                         Save
                                                     </button>
