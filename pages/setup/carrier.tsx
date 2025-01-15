@@ -110,6 +110,7 @@ const CarrierSetup: PageWithAuth = () => {
     const mcNumberInputRef = useRef<HTMLInputElement>(null);
     const companyNameInputRef = useRef<HTMLInputElement>(null);
     const [fetchError, setFetchError] = useState<boolean>(false);
+    const [numDrivers, setNumDrivers] = useState<number>(1);
 
     useEffect(() => {
         // Small timeout to ensure DOM elements are mounted
@@ -154,7 +155,7 @@ const CarrierSetup: PageWithAuth = () => {
 
             if (carrier) {
                 if (plan === SubscriptionPlan.PRO) {
-                    const url = await createCheckoutSession(SubscriptionPlan.PRO, data.email);
+                    const url = await createCheckoutSession(SubscriptionPlan.PRO, numDrivers, data.email);
                     window.location.href = url;
                 } else {
                     notify({ title: 'Carrier created successfully', type: 'success' });
@@ -487,6 +488,10 @@ const CarrierSetup: PageWithAuth = () => {
         </>
     );
 
+    const handleNumDriversChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setNumDrivers(parseInt(event.target.value) || 1);
+    };
+
     const PlanSelection = () => (
         <>
             <div>
@@ -553,6 +558,22 @@ const CarrierSetup: PageWithAuth = () => {
                                 ))}
                             </RadioGroup>
                         </div>
+                        {plan === SubscriptionPlan.PRO && (
+                            <div className="flex items-center space-x-2">
+                                <label htmlFor="numDrivers" className="text-gray-600">
+                                    Number of drivers:
+                                </label>
+                                <input
+                                    type="number"
+                                    id="numDrivers"
+                                    value={numDrivers}
+                                    onChange={handleNumDriversChange}
+                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                                    min="1"
+                                    max="10"
+                                />
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>
