@@ -1,5 +1,11 @@
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, CurrencyDollarIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
+import {
+    ChevronDownIcon,
+    CurrencyDollarIcon,
+    MapPinIcon,
+    TruckIcon,
+    ClipboardDocumentCheckIcon,
+} from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
@@ -131,34 +137,30 @@ const Dashboard: PageWithAuth = () => {
                     {!loadsLoading && (
                         <>
                             {loadsList.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center pb-10 h-[50vh]">
-                                    <Image
-                                        className="absolute top-18 -right-0 top-12 md:top-20"
-                                        alt="Truck BG"
-                                        src={'/truckcbg.jpeg'}
-                                        height={150}
-                                        width={150}
-                                    />
-                                    <div className="flex flex-col items-center p-6 mt-6 bg-white rounded w-80">
-                                        <h1 className="mb-2 text-xl font-bold text-center">Create a New Load</h1>
-                                        <p className="mb-6 text-sm text-center text-gray-600">
-                                            Easily import a load using our
-                                            <span className="px-1 m-1 italic font-bold border rounded shadow-sm whitespace-nowrap bg-slate-50 text-slate-700 border-slate-300">
-                                                Rate Confirmation AI
-                                            </span>
-                                            click below to get started.
+                                <div className="relative mb-4 overflow-hidden border border-gray-200 shadow-sm bg-gradient-to-b from-blue-50 to-white rounded-xl">
+                                    <div className="flex flex-col items-center max-w-2xl px-6 py-16 mx-auto text-center">
+                                        <div className="flex items-center justify-center p-3 mb-6 bg-blue-100 rounded-full">
+                                            <ClipboardDocumentCheckIcon
+                                                className="w-8 h-8 text-blue-600"
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                        <h2 className="mt-2 text-2xl font-semibold text-gray-900">No Upcoming Loads</h2>
+                                        <p className="max-w-sm mt-2 text-gray-500">
+                                            You don&rsquo;t have any upcoming or in-progress loads at the moment. Ready
+                                            to add your next load?
                                         </p>
-                                        <Link href="/loads/create">
-                                            <button
-                                                type="button"
-                                                className="flex w-full px-4 py-2 font-bold text-white transition-colors duration-200 ease-in-out bg-blue-600 rounded hover:bg-blue-700 focus:outline-none"
-                                            >
-                                                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                                                <p className="w-full text-sm font-semibold text-center">
+                                        <div className="flex flex-col items-center mt-8 gap-y-6">
+                                            <Link href="/loads/create" className="w-full sm:w-auto">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                                                >
+                                                    <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
                                                     Create New Load
-                                                </p>
-                                            </button>
-                                        </Link>
+                                                </button>
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
