@@ -264,14 +264,7 @@ const CarrierSetup: PageWithAuth = () => {
     const DisplayCard = (result: CarrierObj) => (
         <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200">
             <div className="p-3">
-                {divWithLabelAndValue(
-                    `${result.legalName} (${result.statusCode == 'A' ? 'Active' : ''}) - ${
-                        result.carrierOperation.carrierOperationDesc
-                    }`,
-                    'Carrier Name',
-                    14,
-                    16,
-                )}
+                {divWithLabelAndValue(result.legalName, 'Carrier Name', 14, 16)}
                 {divWithLabelAndValue(result.dotNumber.toString(), 'DOT Number', 14, 16)}
                 {divWithLabelAndValue(
                     `${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`,
