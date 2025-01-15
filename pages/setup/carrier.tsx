@@ -81,6 +81,7 @@ const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
 const CarrierSetup: PageWithAuth = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [plan, setPlan] = useState<SubscriptionPlan>(SubscriptionPlan.BASIC);
+    const [isSubmitButtonDisabled, setIsSubmitButtonDisabled] = useState(false);
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
     const { update, data: session, status } = useSession();
@@ -178,6 +179,11 @@ const CarrierSetup: PageWithAuth = () => {
     };
 
     const handleNext = () => {
+        if (activeStep === 1) {
+            // Prevent double submission
+            setIsSubmitButtonDisabled(true);
+            setTimeout(() => setIsSubmitButtonDisabled(false), 1000);
+        }
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
     };
 
@@ -553,7 +559,7 @@ const CarrierSetup: PageWithAuth = () => {
             <div className="flex gap-4 mt-4">
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || isSubmitButtonDisabled}
                     onClick={formHook.handleSubmit(onSubmit)}
                     className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
                 >
