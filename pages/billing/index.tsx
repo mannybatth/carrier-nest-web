@@ -13,6 +13,15 @@ import Layout from '../../components/layout/Layout';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
 import { ArrowDownCircleIcon } from '@heroicons/react/24/outline';
 import BillingPageSkeleton from 'components/skeletons/BillingPageSkeleton';
+import {
+    BASIC_PLAN_AI_RATECON_IMPORTS,
+    BASIC_PLAN_MAX_DRIVERS,
+    BASIC_PLAN_MAX_STORAGE_MB,
+    BASIC_PLAN_TOTAL_LOADS,
+    PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER,
+    PRO_PLAN_COST_PER_DRIVER,
+    PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
+} from 'lib/constants';
 
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
@@ -23,21 +32,26 @@ const BillingPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
     const [invoices, setInvoices] = useState<Stripe.Invoice[]>([]);
+    const [numDrivers, setNumDrivers] = useState<number>(1);
 
     const isSubscriptionCanceling = subscriptionDetails?.cancel_at && currentPlan === SubscriptionPlan.PRO;
 
     useEffect(() => {
         const loadSubscriptionDetails = async () => {
-            if (stripeSubscriptionId) {
-                try {
+            try {
+                setIsLoading(true);
+                if (stripeSubscriptionId) {
                     const subscription = await getStripeSubscription(stripeSubscriptionId);
                     setSubscriptionDetails(subscription);
-                } catch (error) {
-                    console.error('Error loading subscription details:', error);
-                    notify({ title: 'Error', message: error.message, type: 'error' });
+                    setNumDrivers(subscription.items.data[0]?.quantity || 1);
                 }
+            } catch (error) {
+                console.error('Error loading subscription details:', error);
+                notify({ title: 'Error', message: error.message, type: 'error' });
+                setNumDrivers(1);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
 
         loadSubscriptionDetails();
@@ -61,7 +75,7 @@ const BillingPage = () => {
 
     const handlePlanChange = async (plan: SubscriptionPlan) => {
         try {
-            const url = await createCheckoutSession(plan);
+            const url = await createCheckoutSession(plan, numDrivers);
             window.location.href = url;
         } catch (error) {
             console.error('Error creating checkout session:', error);
@@ -77,6 +91,10 @@ const BillingPage = () => {
             console.error('Error creating billing portal session:', error);
             notify({ title: 'Error', message: error.message, type: 'error' });
         }
+    };
+
+    const handleNumDriversChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setNumDrivers(parseInt(event.target.value) || 1);
     };
 
     const formatDate = (timestamp: number) => {
@@ -246,7 +264,22 @@ const BillingPage = () => {
                                         <div className="space-y-4">
                                             <div>
                                                 <h2 className="text-xl font-semibold">Basic Plan</h2>
-                                                <p className="text-gray-600">Up to 1 driver</p>
+                                                <div className="mt-1">
+                                                    <p className="text-gray-600">
+                                                        Total loads: {BASIC_PLAN_TOTAL_LOADS}
+                                                    </p>
+                                                    <p className="text-gray-600">
+                                                        AI ratecon imports per month: {BASIC_PLAN_AI_RATECON_IMPORTS}
+                                                    </p>
+                                                    <p className="text-gray-600">
+                                                        Max storage: {BASIC_PLAN_MAX_STORAGE_MB}MB
+                                                    </p>
+                                                    <p className="text-gray-600">
+                                                        {BASIC_PLAN_MAX_DRIVERS === 1
+                                                            ? 'Only one driver'
+                                                            : `Up to ${BASIC_PLAN_MAX_DRIVERS} drivers`}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div className="flex items-baseline">
                                                 <span className="text-3xl font-bold">$0</span>
@@ -305,10 +338,35 @@ const BillingPage = () => {
                                         <div className="space-y-4">
                                             <div>
                                                 <h2 className="text-xl font-semibold">Pro Plan</h2>
-                                                <p className="text-gray-600">Up to 10 drivers</p>
+                                                <div className="mt-1">
+                                                    <p className="text-gray-600">Unlimited loads</p>
+                                                    <p className="text-gray-600">
+                                                        AI ratecon imports per month:{' '}
+                                                        {PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers}
+                                                    </p>
+                                                    <p className="text-gray-600">
+                                                        Max Storage: {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers}GB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <label htmlFor="numDrivers" className="text-gray-600">
+                                                    Number of drivers:
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    id="numDrivers"
+                                                    value={numDrivers}
+                                                    onChange={handleNumDriversChange}
+                                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                                                    min="1"
+                                                    max="10"
+                                                />
                                             </div>
                                             <div className="flex items-baseline">
-                                                <span className="text-3xl font-bold">$20</span>
+                                                <span className="text-3xl font-bold">
+                                                    ${PRO_PLAN_COST_PER_DRIVER * numDrivers}
+                                                </span>
                                                 <span className="ml-1 text-gray-600">per month</span>
                                             </div>
                                             <button

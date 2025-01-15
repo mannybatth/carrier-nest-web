@@ -67,6 +67,11 @@ function getFirstPriceId(subscription: Stripe.Subscription) {
     return firstItem?.price?.id;
 }
 
+const getQuantityFromSubscription = (subscription: Stripe.Subscription): number => {
+    const firstItem = subscription.items.data[0];
+    return firstItem?.quantity || 1;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
@@ -154,6 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 if (!carrier) break;
 
                 const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+                const quantity = getQuantityFromSubscription(subscription);
 
                 if (!carrier.subscription) {
                     await prisma.subscription.create({
@@ -163,6 +169,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             stripeSubscriptionId: session.subscription as string,
                             status: subscription.status,
                             plan: getPlanFromPriceId(getFirstPriceId(subscription)),
+                            numberOfDrivers: quantity,
                         },
                     });
                 } else {
@@ -173,6 +180,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             stripeSubscriptionId: session.subscription as string,
                             status: subscription.status,
                             plan: getPlanFromPriceId(getFirstPriceId(subscription)),
+                            numberOfDrivers: quantity,
                         },
                     });
                 }
@@ -183,6 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const subscription = event.data.object as Stripe.Subscription;
                 const customerId = subscription.customer as string;
                 const priceId = getFirstPriceId(subscription);
+                const quantity = getQuantityFromSubscription(subscription);
 
                 // Try to find carrier by metadata or customer email
                 const customerObj = await stripe.customers.retrieve(customerId);
@@ -204,6 +213,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             ...(subscription.status === 'active' && {
                                 plan: getPlanFromPriceId(priceId),
                             }),
+                            numberOfDrivers: quantity,
                         },
                     });
                 } else {
@@ -215,6 +225,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             ...(subscription.status === 'active' && {
                                 plan: getPlanFromPriceId(priceId),
                             }),
+                            numberOfDrivers: quantity,
                         },
                     });
                 }
@@ -225,6 +236,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const subscription = event.data.object as Stripe.Subscription;
                 const customer = subscription.customer as string;
                 const priceId = getFirstPriceId(subscription);
+                const quantity = getQuantityFromSubscription(subscription);
 
                 await prisma.subscription.updateMany({
                     where: {
@@ -236,6 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         ...(subscription.status === 'active' && {
                             plan: getPlanFromPriceId(priceId),
                         }),
+                        numberOfDrivers: quantity,
                     },
                 });
                 break;

@@ -12,7 +12,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const session = await getServerSession(req, res, authOptions);
 
         // If carrierEmail is provided, then assume we just created a new carrier and session doesn't exist yet
-        const { plan, carrierEmail } = req.body as { plan: SubscriptionPlan; carrierEmail?: string };
+        const { plan, carrierEmail, numDrivers } = req.body as {
+            plan: SubscriptionPlan;
+            carrierEmail?: string;
+            numDrivers: number;
+        };
+
+        // If numDrivers is not provided or is less than 1, return 400
+        if (!numDrivers || numDrivers < 1) {
+            return res.status(400).json({ error: 'Number of drivers must be at least 1' });
+        }
 
         let carrier: ExpandedCarrier | null = null;
         if (carrierEmail) {
@@ -107,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 line_items: [
                     {
                         price: priceId,
-                        quantity: 1,
+                        quantity: numDrivers || 1,
                     },
                 ],
                 success_url: carrierEmail
