@@ -109,8 +109,10 @@ export const getLoads = async ({
     let upcomingOnlyWhereClause = {};
 
     if (upcomingOnly) {
+        // Get the start of the current day
         const start = startOfDay(new Date());
-        const end = new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000);
+        // Calculate the end date which is 30 days from the current date
+        const end = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
 
         upcomingOnlyWhereClause = {
             OR: [
