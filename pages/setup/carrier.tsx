@@ -1,27 +1,14 @@
-'use client';
-
-import * as React from 'react';
-import Box from '@mui/material/Box';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import StepContent from '@mui/material/StepContent';
-import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-import { useState } from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
-
-import { Carrier, SubscriptionPlan } from '@prisma/client';
-import { signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
-import { notify } from '../../components/Notification';
-import { PageWithAuth } from '../../interfaces/auth';
-import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
-import { createCheckoutSession } from '../../lib/rest/stripe';
 import { RadioGroup } from '@headlessui/react';
 import { CheckCircleIcon } from '@heroicons/react/20/solid';
+import { Carrier, SubscriptionPlan } from '@prisma/client';
+import { PageWithAuth } from 'interfaces/auth';
+import { signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
+import React, { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { notify } from '../../components/Notification';
+import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
+import { createCheckoutSession } from '../../lib/rest/stripe';
 
 type CarrierOperation = {
     carrierOperationDesc: string;
@@ -37,7 +24,7 @@ type CarrierObj = {
     phyState: string;
     phyZipcode: string;
     totalDrivers: number;
-    totalPowerUnits: number | null; // assuming it could be null
+    totalPowerUnits: number | null;
 };
 
 type JsonResponse = {
@@ -46,28 +33,57 @@ type JsonResponse = {
     };
 };
 
-const steps = [
-    {
-        label: 'Company Lookup',
-        optional: 'Search for your company by MC number',
-    },
-    {
-        label: 'Company Account Details',
-        optional: 'Finalize company profile with additional details',
-    },
-    {
-        label: 'Select Plan',
-        optional: 'Free, until you’re ready',
-    },
-];
+type StepProps = {
+    step: {
+        number: number;
+        title: string;
+        description: string;
+    };
+    isActive: boolean;
+    isCompleted: boolean;
+    children: React.ReactNode;
+};
 
-export default function Home() {
+const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
+    <li
+        className={`relative flex-1 ${
+            step.number < 3
+                ? `after:content-[''] after:w-0.5 after:h-full after:inline-block after:absolute after:-bottom-11 after:left-5 ${
+                      isCompleted ? 'after:bg-blue-600' : 'after:bg-gray-200'
+                  }`
+                : ''
+        }`}
+    >
+        <div className={`flex items-start w-full`}>
+            <span
+                className={`w-10 h-10 flex shrink-0 items-center justify-center rounded-full mr-3 text-sm relative z-10
+                    ${
+                        isActive
+                            ? 'bg-blue-50 border-2 border-blue-600 text-blue-600'
+                            : isCompleted
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-50 border-2 border-gray-200 text-gray-400'
+                    }`}
+            >
+                {step.number}
+            </span>
+            <div className={`block w-full ${(!isCompleted && !isActive && 'opacity-50') || ''}`}>
+                <h4 className={`text-base mb-2 ${isActive || isCompleted ? 'text-blue-600' : 'text-gray-900'}`}>
+                    {step.title}
+                </h4>
+                <p className="mb-4 text-sm text-gray-600">{step.description}</p>
+                {isActive && <div className="mt-4">{children}</div>}
+            </div>
+        </div>
+    </li>
+);
+
+const CarrierSetup: PageWithAuth = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [plan, setPlan] = useState<SubscriptionPlan>(SubscriptionPlan.BASIC);
     const formHook = useForm<Carrier>();
     const { replace } = useRouter();
     const { update, data: session, status } = useSession();
-
     const [error, setError] = useState<boolean>(false);
     const [companyData, setCompanyData] = useState<CarrierObj>();
     const countryOptions = ['United States', 'Canada', 'Mexico'];
@@ -76,7 +92,7 @@ export default function Home() {
         { id: SubscriptionPlan.PRO, title: 'Pro Plan', description: 'Advanced features', users: '$20/month' },
     ];
 
-    const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
+    const fields: { id: keyof Carrier; label: string; required: boolean; type: string }[] = [
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
         { id: 'email', label: 'Contact Email', required: true, type: 'input' },
         { id: 'phone', label: 'Phone Number', required: true, type: 'input' },
@@ -89,6 +105,23 @@ export default function Home() {
         { id: 'country', label: 'Country', required: true, type: 'select' },
         { id: 'carrierCode', label: 'Carrier Code', required: true, type: 'input' },
     ];
+
+    const [activeStep, setActiveStep] = React.useState(0);
+    const mcNumberInputRef = useRef<HTMLInputElement>(null);
+    const companyNameInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        // Small timeout to ensure DOM elements are mounted
+        const timer = setTimeout(() => {
+            if (activeStep === 0) {
+                mcNumberInputRef.current?.focus();
+            } else if (activeStep === 1) {
+                companyNameInputRef.current?.focus();
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [activeStep]);
 
     const generateCarrierCode = (name: string) => {
         const code = name.substring(0, 3).toLowerCase() + Math.floor(Math.random() * 1000).toString();
@@ -144,8 +177,6 @@ export default function Home() {
         });
     };
 
-    const [activeStep, setActiveStep] = React.useState(0);
-
     const handleNext = () => {
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
     };
@@ -153,10 +184,6 @@ export default function Home() {
     const handleBack = () => {
         setCompanyData(undefined);
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
-    };
-
-    const handleReset = () => {
-        setActiveStep(0);
     };
 
     const getFMCSAData = async (mcNumber: string) => {
@@ -171,7 +198,7 @@ export default function Home() {
         if (response && response.status == 200) {
             const jsonData: JsonResponse = await response.json();
 
-            const carrierData = (jsonData as any).content[0].carrier!;
+            const carrierData = (jsonData as JsonResponse).content[0].carrier;
 
             const carrier: CarrierObj = {
                 carrierOperation: {
@@ -198,572 +225,384 @@ export default function Home() {
             formHook.setValue('state', carrier.phyState);
             formHook.setValue('zip', carrier.phyZipcode);
 
-            console.log('Carrier: ', carrier);
-
             setCompanyData(carrier);
         }
     };
 
     const handleOnChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-        const value = (event as any).target.value;
-
         setCompanyData(undefined);
     };
 
     const handleSubmit = (event: React.KeyboardEvent<HTMLInputElement>): void => {
-        const value = (event as any).target.value;
-
-        console.log('Value :', value);
-        if (value == '') {
-            setCompanyData(undefined);
-        }
-
         if (event.key === 'Enter') {
-            console.log('Submitted value:', value);
-            getFMCSAData(value);
+            getFMCSAData((event.target as HTMLInputElement).value);
         }
     };
 
-    const divWithLabelAndValue = (value: string, label: string, labelFontSize: number, valueFontSize: number) => {
-        return (
-            <div className="pb-2">
-                <p
-                    style={{ fontSize: labelFontSize }}
-                    className={`text-[${labelFontSize}] text-gray-500 font-light p-0 m-0 uppercase`}
-                >
-                    {label}:{' '}
-                </p>
-                <p
-                    style={{ fontSize: valueFontSize }}
-                    className={`text-[${valueFontSize}] text-slate-600 font-bold uppercase`}
-                >
-                    {value}
-                </p>
-            </div>
-        );
-    };
-
-    const DisplayCard = (result: CarrierObj) => {
-        return (
-            <Card
-                sx={{
-                    maxWidth: '40vw',
-                    width: '80%',
-                    margin: 'auto 0px',
-                    padding: '0px',
-                    marginTop: 0,
-                    marginBottom: 2,
-                    borderRadius: '8px',
-                    bgcolor: '#fff',
-                    color: '#ccc',
-                    border: '2px solid #eee',
-                    alignSelf: 'start',
-                }}
+    const divWithLabelAndValue = (value: string, label: string, labelFontSize: number, valueFontSize: number) => (
+        <div className="pb-2">
+            <p
+                style={{ fontSize: labelFontSize }}
+                className={`text-[${labelFontSize}] text-gray-500 font-light p-0 m-0 uppercase`}
             >
-                <CardContent sx={{ padding: '12px', paddingBottom: '0px !important' }}>
-                    {divWithLabelAndValue(
-                        `${result.legalName} (${result.statusCode == 'A' ? 'Active' : ''}) - ${
-                            result.carrierOperation.carrierOperationDesc
-                        }`,
-                        'Carrier Name',
-                        14,
-                        16,
-                    )}
-
-                    {divWithLabelAndValue(result.dotNumber.toString(), 'DOT Number', 14, 16)}
-                    {divWithLabelAndValue(
-                        `${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`,
-                        'Address',
-                        14,
-                        16,
-                    )}
-                </CardContent>
-            </Card>
-        );
-    };
-
-    const divWithLabelAndValueLoader = () => {
-        return (
-            <div className="pb-2 h-14 ">
-                <p
-                    style={{}}
-                    className={`bg-slate-50/50 w-2/3 h-6 mb-1 animate-pulse rounded-md text-gray-400 font-light p-0 m-0 uppercase`}
-                >
-                    {' '}
-                </p>
-                <p
-                    style={{}}
-                    className={`bg-slate-100/30 w-11/12 h-4 mb-1 rounded-md text-slate-400 font-light uppercase`}
-                >
-                    {' '}
-                </p>
-            </div>
-        );
-    };
-
-    const DisplayCardLoader = () => {
-        return (
-            <Card
-                sx={{
-                    maxWidth: '40vw',
-                    width: '80%',
-                    height: '50%',
-                    margin: 'auto 0px',
-                    padding: '0px',
-                    marginTop: 0,
-                    marginBottom: 2,
-                    borderRadius: '8px',
-                    bgcolor: '#eee',
-                    color: '#eee',
-                    border: '2px solid #eee',
-                    alignSelf: 'start',
-                }}
+                {label}:{' '}
+            </p>
+            <p
+                style={{ fontSize: valueFontSize }}
+                className={`text-[${valueFontSize}] text-slate-600 font-bold uppercase`}
             >
-                <CardContent sx={{ padding: '12px', paddingBottom: '0px !important' }}>
-                    {divWithLabelAndValueLoader()}
-                    {divWithLabelAndValueLoader()}
-                    {divWithLabelAndValueLoader()}
-                </CardContent>
-            </Card>
-        );
-    };
-
-    const companyLookUpStep = (step: { label: string; optional?: string }, index: number) => {
-        return (
-            <Step key={step.label}>
-                <StepLabel
-                    sx={{
-                        '& .MuiStepLabel-label': {
-                            fontSize: activeStep === index ? '44px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bolder !important' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '0px' : '', // Adjust the label font size
-                            color: activeStep === index ? '#333' : '#999', // Adjust the label font size
-                        },
-                        '& .MuiStepLabel-optional': {
-                            fontSize: '8px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                    optional={
-                        step.optional ? (
-                            <Typography variant="caption" sx={{ borderRadius: '2px' }}>
-                                {step.optional}
-                            </Typography>
-                        ) : null
-                    }
-                >
-                    {step.label}
-                </StepLabel>
-
-                <StepContent
-                    sx={{
-                        '& .MuiStepContent-root': {
-                            fontSize: activeStep === index ? '42px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bold' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '32px' : '', // Adjust the label font size
-                            backgroundColor: 'ActiveBorder',
-                        },
-                        '& .MuiStepContent-transition': {
-                            fontSize: '18px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                >
-                    <TextField
-                        label="MC#"
-                        variant="outlined"
-                        onKeyDown={handleSubmit}
-                        onChange={handleOnChange}
-                        error={error}
-                        helperText={error ? 'Must be at least 3 characters' : ' '}
-                    />
-
-                    {companyData && DisplayCard(companyData)}
-                    {!companyData && DisplayCardLoader()}
-                    <Box sx={{ mb: 2 }}>
-                        <Button
-                            variant="contained"
-                            onClick={handleNext}
-                            disabled={!companyData}
-                            sx={{
-                                mt: 1,
-                                mr: 1,
-                                bgcolor: 'blue !important',
-                                ':disabled': { bgcolor: '#ccc !important' },
-                            }}
-                        >
-                            {index === steps.length - 1 ? 'Finish' : 'Continue'}
-                        </Button>
-                    </Box>
-                </StepContent>
-            </Step>
-        );
-    };
-
-    const companyFinalizeDetails = (step: { label: string; optional?: string }, index: number) => {
-        return (
-            <Step key={step.label}>
-                <StepLabel
-                    sx={{
-                        '& .MuiStepLabel-label': {
-                            fontSize: activeStep === index ? '44px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bolder !important' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '0px' : '', // Adjust the label font size
-                            color: activeStep === index ? '#333' : '#999', // Adjust the label font size
-                        },
-                        '& .MuiStepLabel-optional': {
-                            fontSize: '8px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                    optional={
-                        step.optional ? (
-                            <Typography variant="caption" sx={{ borderRadius: '2px' }}>
-                                {step.optional}
-                            </Typography>
-                        ) : null
-                    }
-                >
-                    {step.label}
-                </StepLabel>
-
-                <StepContent
-                    sx={{
-                        '& .MuiStepContent-root': {
-                            fontSize: activeStep === index ? '42px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bold' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '32px' : '', // Adjust the label font size
-                            backgroundColor: 'ActiveBorder',
-                        },
-                        '& .MuiStepContent-transition': {
-                            fontSize: '18px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                >
-                    <div className="bg-slate-50">
-                        <div className="container px-0 py-8 m-0 max-w-7xl">
-                            <div className="max-w-3xl px-8 py-10 m-0 bg-white shadow-xl rounded-2xl">
-                                <div className="mb-8 text-center">
-                                    <h1 className="text-3xl font-bold text-gray-900">Set Up Your Carrier Account</h1>
-                                    <p className="mt-2 text-gray-500 bg-yellow-100 px-2 py-1 text-base rounded-lg w-fit m-auto">
-                                        Please review the information below and fill in any missing details
-                                    </p>
-                                </div>
-
-                                <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
-                                    {/* Company Information Section */}
-                                    <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-900">Company Information</h2>
-                                        <div className="grid gap-6 md:grid-cols-2">
-                                            {fields
-                                                .filter((f) => ['name', 'email', 'phone'].includes(f.id))
-                                                .map((field) => (
-                                                    <div key={field.id}>
-                                                        <label
-                                                            htmlFor={field.id}
-                                                            className="block text-sm font-medium text-gray-700"
-                                                        >
-                                                            {field.label}{' '}
-                                                            {field.required && <span className="text-red-500">*</span>}
-                                                        </label>
-                                                        <input
-                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            id={field.id}
-                                                            type="text"
-                                                            {...formHook.register(field.id, {
-                                                                required: field.required
-                                                                    ? `${field.label} is required`
-                                                                    : false,
-                                                                onBlur:
-                                                                    field.id === 'name'
-                                                                        ? async (e) => {
-                                                                              if (e.target.value.trim() !== '') {
-                                                                                  handleCarrierCode(e.target.value);
-                                                                              }
-                                                                          }
-                                                                        : undefined,
-                                                            })}
-                                                        />
-                                                        {formHook.formState.errors[field.id] && (
-                                                            <p className="mt-1 text-sm text-red-600">
-                                                                {formHook.formState.errors[field.id].message}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Registration Numbers Section */}
-                                    <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-900">Registration Info</h2>
-                                        <div className="grid gap-6 md:grid-cols-2">
-                                            {fields
-                                                .filter((f) => ['mcNum', 'dotNum', 'carrierCode'].includes(f.id))
-                                                .map((field) => (
-                                                    <div key={field.id}>
-                                                        <label
-                                                            htmlFor={field.id}
-                                                            className="block text-sm font-medium text-gray-700"
-                                                        >
-                                                            {field.label}{' '}
-                                                            {field.required && <span className="text-red-500">*</span>}
-                                                            {field.id === 'carrierCode' && (
-                                                                <span className="ml-2 text-sm text-gray-500">
-                                                                    (Driver login code)
-                                                                </span>
-                                                            )}
-                                                        </label>
-                                                        <input
-                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            id={field.id}
-                                                            type="text"
-                                                            {...formHook.register(field.id, {
-                                                                required: field.required
-                                                                    ? `${field.label} is required`
-                                                                    : false,
-                                                            })}
-                                                        />
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Address Section */}
-                                    <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-900">Address</h2>
-                                        <div className="grid gap-6 md:grid-cols-2">
-                                            {fields
-                                                .filter((f) =>
-                                                    ['street', 'city', 'state', 'zip', 'country'].includes(f.id),
-                                                )
-                                                .map((field) => (
-                                                    <div
-                                                        key={field.id}
-                                                        className={field.id === 'street' ? 'md:col-span-2' : ''}
-                                                    >
-                                                        <label
-                                                            htmlFor={field.id}
-                                                            className="block text-sm font-medium text-gray-700"
-                                                        >
-                                                            {field.label}{' '}
-                                                            {field.required && <span className="text-red-500">*</span>}
-                                                        </label>
-                                                        {field.type === 'select' ? (
-                                                            <select
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                id={field.id}
-                                                                {...formHook.register(field.id)}
-                                                            >
-                                                                {countryOptions.map((country) => (
-                                                                    <option key={country} value={country}>
-                                                                        {country}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        ) : (
-                                                            <input
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                id={field.id}
-                                                                type="text"
-                                                                {...formHook.register(field.id, {
-                                                                    required: field.required
-                                                                        ? `${field.label} is required`
-                                                                        : false,
-                                                                })}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <Box sx={{ mb: 2 }}>
-                        <Button
-                            variant="contained"
-                            onClick={formHook.handleSubmit(handleNext)}
-                            sx={{
-                                mt: 1,
-                                mr: 1,
-                                bgcolor: 'blue !important',
-                                ':disabled': { bgcolor: '#ccc !important' },
-                            }}
-                            disabled={false}
-                        >
-                            {index === steps.length - 1 ? 'Finish' : 'Continue'}
-                        </Button>
-                        <Button disabled={index === 0} onClick={handleBack} sx={{ mt: 1, mr: 1 }}>
-                            Back
-                        </Button>
-                    </Box>
-                </StepContent>
-            </Step>
-        );
-    };
-
-    const companyPlanSelection = (step: { label: string; optional?: string }, index: number) => {
-        return (
-            <Step key={step.label}>
-                <StepLabel
-                    sx={{
-                        '& .MuiStepLabel-label': {
-                            fontSize: activeStep === index ? '44px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bolder !important' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '0px' : '', // Adjust the label font size
-                            color: activeStep === index ? '#333' : '#999', // Adjust the label font size
-                        },
-                        '& .MuiStepLabel-optional': {
-                            fontSize: '8px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                    optional={
-                        step.optional ? (
-                            <Typography variant="caption" sx={{ borderRadius: '2px' }}>
-                                {step.optional}
-                            </Typography>
-                        ) : null
-                    }
-                >
-                    {step.label}
-                </StepLabel>
-
-                <StepContent
-                    sx={{
-                        '& .MuiStepContent-root': {
-                            fontSize: activeStep === index ? '42px' : '14px', // Adjust the label font size
-                            fontWeight: activeStep === index ? 'bold' : 'normal', // Adjust the label font size
-                            marginLeft: activeStep === index ? '32px' : '', // Adjust the label font size
-                            backgroundColor: 'ActiveBorder',
-                        },
-                        '& .MuiStepContent-transition': {
-                            fontSize: '18px', // Adjust the optional text font size if needed
-                        },
-                    }}
-                >
-                    <div className="bg-slate-50">
-                        <div className="container px-0 py-8 m-0 max-w-7xl">
-                            <div className="max-w-3xl px-8 py-10 m-0 bg-white shadow-xl rounded-2xl">
-                                <div className="mb-8 text-center">
-                                    <h1 className="text-3xl font-bold text-gray-900">
-                                        Pick a plan that meets your needs
-                                    </h1>
-                                    <p className="mt-2 text-gray-500 text-light">
-                                        You can change your plan at any time, if you are here to try out Carrier Nest,
-                                        start with Basic Plan
-                                    </p>
-                                </div>
-
-                                <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
-                                    {/* Subscription Plan Section */}
-                                    <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-900">Select a Plan</h2>
-                                        <RadioGroup
-                                            value={plan}
-                                            onChange={setPlan}
-                                            className="grid gap-4 mt-4 md:grid-cols-2"
-                                        >
-                                            {planOptions.map((planOption) => (
-                                                <RadioGroup.Option
-                                                    key={planOption.id}
-                                                    value={planOption.id}
-                                                    className={({ checked, active }) =>
-                                                        `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
-                                            ${
-                                                checked
-                                                    ? 'bg-blue-50 border-2 border-blue-500'
-                                                    : 'border border-gray-300'
-                                            }
-                                            ${active ? 'ring-2 ring-blue-500' : ''}
-                                            hover:border-blue-500 transition-colors`
-                                                    }
-                                                >
-                                                    {({ checked }) => (
-                                                        <>
-                                                            <div className="flex flex-1">
-                                                                <div className="flex flex-col">
-                                                                    <RadioGroup.Label
-                                                                        as="span"
-                                                                        className="block text-lg font-medium text-gray-900"
-                                                                    >
-                                                                        {planOption.title}
-                                                                    </RadioGroup.Label>
-                                                                    <RadioGroup.Description
-                                                                        as="span"
-                                                                        className="mt-2 text-sm text-gray-500"
-                                                                    >
-                                                                        {planOption.description}
-                                                                    </RadioGroup.Description>
-                                                                    <RadioGroup.Description
-                                                                        as="span"
-                                                                        className="mt-4 text-lg font-medium text-gray-900"
-                                                                    >
-                                                                        {planOption.users}
-                                                                    </RadioGroup.Description>
-                                                                </div>
-                                                            </div>
-                                                            {checked && (
-                                                                <CheckCircleIcon
-                                                                    className="w-6 h-6 text-blue-600"
-                                                                    aria-hidden="true"
-                                                                />
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </RadioGroup.Option>
-                                            ))}
-                                        </RadioGroup>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <Box sx={{ mb: 2 }}>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            onClick={formHook.handleSubmit(onSubmit)}
-                            className={`w-fit px-6 py-3 text-lg font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors
-                                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            {isLoading ? 'Creating...' : 'Create Carrier'}
-                        </button>
-                        <Button disabled={index === 0} onClick={handleBack} sx={{ mt: 1, mr: 1, ml: 2 }}>
-                            Back
-                        </Button>
-                    </Box>
-                </StepContent>
-            </Step>
-        );
-    };
-
-    return (
-        <div className="flex items-start justify-items-center min-h-screen bg-slate-50 w-full p-0 font-[family-name:var(--font-geist-sans)]">
-            <div className="fixed top-0 w-full text-left">
-                <h1 className="w-full h-16 p-4 bg-gray-700 text-2xl font-bold text-blue-100 uppercase text-center">
-                    Carrier Nest - Carrier Setup
-                </h1>
-                <button
-                    onClick={handleLogout}
-                    className="absolute px-4 py-1 font-medium text-blue-600 bg-slate-200 ring-2 ring-blue-400 rounded-lg shadow-sm top-4 right-4 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-3 focus:ring-white"
-                >
-                    Logout
-                </button>
-            </div>
-            <Box sx={{ maxWidth: 'full', width: '100%', padding: '32px', margin: '64px 64px' }}>
-                <Stepper activeStep={activeStep} orientation="vertical">
-                    {companyLookUpStep(steps[0], 0)}
-                    {companyFinalizeDetails(steps[1], 1)}
-                    {companyPlanSelection(steps[2], 2)}
-                </Stepper>
-                {activeStep === steps.length && (
-                    <Paper square elevation={0} sx={{ p: 3 }}>
-                        <Typography>All steps completed - you&apos;re finished</Typography>
-                        <Button onClick={handleReset} sx={{ mt: 1, mr: 1 }}>
-                            Reset
-                        </Button>
-                    </Paper>
-                )}
-            </Box>
+                {value}
+            </p>
         </div>
     );
-}
+
+    const DisplayCard = (result: CarrierObj) => (
+        <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200">
+            <div className="p-3">
+                {divWithLabelAndValue(
+                    `${result.legalName} (${result.statusCode == 'A' ? 'Active' : ''}) - ${
+                        result.carrierOperation.carrierOperationDesc
+                    }`,
+                    'Carrier Name',
+                    14,
+                    16,
+                )}
+                {divWithLabelAndValue(result.dotNumber.toString(), 'DOT Number', 14, 16)}
+                {divWithLabelAndValue(
+                    `${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`,
+                    'Address',
+                    14,
+                    16,
+                )}
+            </div>
+        </div>
+    );
+
+    const DisplayCardSkeleton = () => (
+        <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200 animate-pulse">
+            <div className="p-3">
+                <div className="pb-2">
+                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
+                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                </div>
+                <div className="pb-2">
+                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
+                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                </div>
+                <div className="pb-2">
+                    <div className="w-2/3 h-6 mb-1 bg-gray-200 rounded-md"></div>
+                    <div className="w-11/12 h-4 bg-gray-200 rounded-md"></div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const CompanyLookup = () => (
+        <>
+            <input
+                ref={mcNumberInputRef}
+                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                type="text"
+                placeholder="Enter MC Number"
+                onKeyDown={handleSubmit}
+                onChange={handleOnChange}
+            />
+            {companyData ? DisplayCard(companyData) : DisplayCardSkeleton()}
+            <button
+                className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                onClick={handleNext}
+                disabled={!companyData}
+            >
+                Continue
+            </button>
+        </>
+    );
+
+    const CompanyDetails = () => (
+        <>
+            <div>
+                <div className="px-8 py-10 m-0 bg-white border-2 border-gray-200">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-3xl font-bold text-gray-900">Set Up Your Carrier Account</h1>
+                        <p className="px-2 py-1 m-auto mt-2 text-base text-gray-500 bg-yellow-100 rounded-lg w-fit">
+                            Please review the information below and fill in any missing details
+                        </p>
+                    </div>
+                    <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-semibold text-gray-900">Company Information</h2>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {fields
+                                    .filter((f) => ['name', 'email', 'phone'].includes(f.id))
+                                    .map((field) => (
+                                        <div key={field.id}>
+                                            <label
+                                                htmlFor={field.id}
+                                                className="block text-sm font-medium text-gray-700"
+                                            >
+                                                {field.label}{' '}
+                                                {field.required && <span className="text-red-500">*</span>}
+                                            </label>
+                                            <input
+                                                ref={field.id === 'name' ? companyNameInputRef : null}
+                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                id={field.id}
+                                                type="text"
+                                                {...formHook.register(field.id, {
+                                                    required: field.required ? `${field.label} is required` : false,
+                                                    onBlur:
+                                                        field.id === 'name'
+                                                            ? async (e) => {
+                                                                  if (e.target.value.trim() !== '') {
+                                                                      handleCarrierCode(e.target.value);
+                                                                  }
+                                                              }
+                                                            : undefined,
+                                                })}
+                                            />
+                                            {formHook.formState.errors[field.id] && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    {formHook.formState.errors[field.id].message}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-semibold text-gray-900">Registration Info</h2>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {fields
+                                    .filter((f) => ['mcNum', 'dotNum', 'carrierCode'].includes(f.id))
+                                    .map((field) => (
+                                        <div key={field.id}>
+                                            <label
+                                                htmlFor={field.id}
+                                                className="block text-sm font-medium text-gray-700"
+                                            >
+                                                {field.label}{' '}
+                                                {field.required && <span className="text-red-500">*</span>}
+                                                {field.id === 'carrierCode' && (
+                                                    <span className="ml-2 text-sm text-gray-500">
+                                                        (Driver login code)
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <input
+                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                id={field.id}
+                                                type="text"
+                                                {...formHook.register(field.id, {
+                                                    required: field.required ? `${field.label} is required` : false,
+                                                })}
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-semibold text-gray-900">Address</h2>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {fields
+                                    .filter((f) => ['street', 'city', 'state', 'zip', 'country'].includes(f.id))
+                                    .map((field) => (
+                                        <div key={field.id} className={field.id === 'street' ? 'md:col-span-2' : ''}>
+                                            <label
+                                                htmlFor={field.id}
+                                                className="block text-sm font-medium text-gray-700"
+                                            >
+                                                {field.label}{' '}
+                                                {field.required && <span className="text-red-500">*</span>}
+                                            </label>
+                                            {field.type === 'select' ? (
+                                                <select
+                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                    id={field.id}
+                                                    {...formHook.register(field.id)}
+                                                >
+                                                    {countryOptions.map((country) => (
+                                                        <option key={country} value={country}>
+                                                            {country}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                    id={field.id}
+                                                    type="text"
+                                                    {...formHook.register(field.id, {
+                                                        required: field.required ? `${field.label} is required` : false,
+                                                    })}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div className="flex gap-4 mt-4">
+                <button
+                    className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    onClick={formHook.handleSubmit(handleNext)}
+                >
+                    Continue
+                </button>
+                <button
+                    className="py-2.5 px-6 text-sm font-medium text-white bg-gray-500 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                    onClick={handleBack}
+                >
+                    Back
+                </button>
+            </div>
+        </>
+    );
+
+    const PlanSelection = () => (
+        <>
+            <div>
+                <div className="px-8 py-10 m-0 bg-white border-2 border-gray-200">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-3xl font-bold text-gray-900">Select the Plan that Best Suits Your Needs</h1>
+                        <p className="mt-2 text-gray-500 text-light">
+                            You can upgrade or downgrade your plan at any time. If you are new to Carrier Nest, we
+                            recommend starting with the Basic Plan.
+                        </p>
+                    </div>
+
+                    <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
+                        <div className="space-y-6">
+                            <RadioGroup value={plan} onChange={setPlan} className="grid gap-4 mt-4 md:grid-cols-2">
+                                {planOptions.map((planOption) => (
+                                    <RadioGroup.Option
+                                        key={planOption.id}
+                                        value={planOption.id}
+                                        className={({ checked, active }) =>
+                                            `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
+                                                ${
+                                                    checked
+                                                        ? 'bg-blue-50 border-2 border-blue-500'
+                                                        : 'border border-gray-300'
+                                                }
+                                                ${active ? 'ring-2 ring-blue-500' : ''}
+                                                hover:border-blue-500 transition-colors`
+                                        }
+                                    >
+                                        {({ checked }) => (
+                                            <>
+                                                <div className="flex flex-1">
+                                                    <div className="flex flex-col">
+                                                        <RadioGroup.Label
+                                                            as="span"
+                                                            className="block text-lg font-medium text-gray-900"
+                                                        >
+                                                            {planOption.title}
+                                                        </RadioGroup.Label>
+                                                        <RadioGroup.Description
+                                                            as="span"
+                                                            className="mt-2 text-sm text-gray-500"
+                                                        >
+                                                            {planOption.description}
+                                                        </RadioGroup.Description>
+                                                        <RadioGroup.Description
+                                                            as="span"
+                                                            className="mt-4 text-lg font-medium text-gray-900"
+                                                        >
+                                                            {planOption.users}
+                                                        </RadioGroup.Description>
+                                                    </div>
+                                                </div>
+                                                {checked && (
+                                                    <CheckCircleIcon
+                                                        className="w-6 h-6 text-blue-600"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                            </>
+                                        )}
+                                    </RadioGroup.Option>
+                                ))}
+                            </RadioGroup>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div className="flex gap-4 mt-4">
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    onClick={formHook.handleSubmit(onSubmit)}
+                    className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
+                >
+                    {isLoading ? 'Creating...' : 'Create Carrier'}
+                </button>
+                <button
+                    className="py-2.5 px-6 text-sm font-medium text-white bg-gray-500 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                    onClick={handleBack}
+                >
+                    Back
+                </button>
+            </div>
+        </>
+    );
+
+    const stepConfig = [
+        {
+            number: 1,
+            title: 'Company Lookup',
+            description: 'Locate your company using the MC number to automatically populate your details',
+        },
+        {
+            number: 2,
+            title: 'Company Account Details',
+            description: 'Verify and complete your company profile information',
+        },
+        {
+            number: 3,
+            title: 'Select Plan',
+            description: 'Choose a plan that best suits your needs - start with the Basic plan for free',
+        },
+    ];
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+                <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <h1 className="text-2xl font-bold text-gray-900">Carrier Setup</h1>
+                        <button
+                            onClick={handleLogout}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto">
+                    <ol className="space-y-8">
+                        <Step step={stepConfig[0]} isActive={activeStep === 0} isCompleted={activeStep > 0}>
+                            <CompanyLookup />
+                        </Step>
+
+                        <Step step={stepConfig[1]} isActive={activeStep === 1} isCompleted={activeStep > 1}>
+                            <CompanyDetails />
+                        </Step>
+
+                        <Step step={stepConfig[2]} isActive={activeStep === 2} isCompleted={activeStep > 2}>
+                            <PlanSelection />
+                        </Step>
+                    </ol>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+CarrierSetup.authenticationEnabled = true;
+
+export default CarrierSetup;
