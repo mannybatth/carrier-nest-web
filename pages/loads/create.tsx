@@ -1,6 +1,9 @@
 import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Customer, LoadStopType, Prisma } from '@prisma/client';
+import AnimatedProgress from 'components/loads/AnimationProgress';
+import PDFViewer from 'components/PDFViewer';
 import startOfDay from 'date-fns/startOfDay';
+import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -9,19 +12,18 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
-import { apiUrl, appUrl } from '../../lib/constants';
 import { AILoad } from '../../interfaces/ai';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';
+import { apiUrl } from '../../lib/constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { calcPdfPageCount } from '../../lib/helpers/pdf';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
 import { getAllCustomers } from '../../lib/rest/customer';
 import { createLoad, getLoadById } from '../../lib/rest/load';
-import AnimatedProgress from 'components/loads/AnimationProgress';
-import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
-import PDFViewer from 'components/PDFViewer';
+import { useUserContext } from 'components/context/UserContext';
+import Link from 'next/link';
 
 interface Line {
     text: string;
@@ -82,6 +84,7 @@ const CreateLoad: PageWithAuth = () => {
     const router = useRouter();
     const { query } = useRouter();
     const copyLoadId = query.copyLoadId as string;
+    const { isProPlan, isLoadingCarrier } = useUserContext();
 
     const [loading, setLoading] = React.useState(false);
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
@@ -103,7 +106,7 @@ const CreateLoad: PageWithAuth = () => {
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragover') {
+        if (e.type === 'dragenter' || e.type === 'dragleave') {
             setDragActive(true);
         } else if (e.type === 'dragleave') {
             setDragActive(false);
@@ -894,6 +897,35 @@ const CreateLoad: PageWithAuth = () => {
                     <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
+
+                {!isProPlan && !isLoadingCarrier && (
+                    <div className="mx-5 mb-6 md:mx-0 md:px-8">
+                        <div className="p-6 border border-blue-100 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <h3 className="text-lg font-medium text-blue-900">
+                                        Enhance your load management with AI
+                                    </h3>
+                                    <p className="mt-1 text-sm text-blue-700">
+                                        Your plan has limited AI document processing. Upgrade to Pro for unlimited AI
+                                        imports, faster processing, and enhanced accuracy in extracting load details.
+                                    </p>
+                                </div>
+                                <div className="ml-6">
+                                    <Link href="/billing">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        >
+                                            Upgrade Plan
+                                        </button>
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {aiProgress > 0 && (
                     <AnimatedProgress
                         progress={aiProgress}

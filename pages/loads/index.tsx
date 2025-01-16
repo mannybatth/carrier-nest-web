@@ -12,9 +12,11 @@ import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteLoadById, getLoadsExpanded } from '../../lib/rest/load';
 import { useLocalStorage } from '../../lib/useLocalStorage';
+import { useUserContext } from 'components/context/UserContext';
 
 const LoadsPage: PageWithAuth = () => {
     const router = useRouter();
+    const { isProPlan, isLoadingCarrier } = useUserContext();
     const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
@@ -160,6 +162,31 @@ const LoadsPage: PageWithAuth = () => {
                     }}
                 ></SimpleDialog>
                 <div className="py-2 mx-auto max-w-7xl">
+                    {!isProPlan && !isLoadingCarrier && (
+                        <div className="mx-5 my-4 mb-6 sm:mx-6 md:mx-8">
+                            <div className="p-6 border border-blue-100 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-medium text-blue-900">Unlock unlimited loads</h3>
+                                        <p className="mt-1 text-sm text-blue-700">
+                                            Upgrade to Pro and get unlimited loads for your business. Manage as many
+                                            loads as you need without restrictions.
+                                        </p>
+                                    </div>
+                                    <div className="ml-6">
+                                        <Link href="/billing">
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            >
+                                                Upgrade Plan
+                                            </button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
                         <div className="flex">
                             <h1 className="flex-1 text-2xl font-semibold text-gray-900">All Loads</h1>

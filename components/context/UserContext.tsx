@@ -10,6 +10,7 @@ type UserContextType = {
     setCarriers: React.Dispatch<React.SetStateAction<ExpandedCarrier[]>>;
     setDefaultCarrier: React.Dispatch<React.SetStateAction<ExpandedCarrier | null>>;
     isProPlan: boolean;
+    isLoadingCarrier: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -18,6 +19,7 @@ const UserContext = createContext<UserContextType>({
     setCarriers: () => null,
     setDefaultCarrier: () => null,
     isProPlan: false,
+    isLoadingCarrier: true,
 });
 
 type UserProviderProps = {
@@ -29,6 +31,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
     const [isProPlan, setIsProPlan] = useState(false);
+    const [isLoadingCarrier, setIsLoadingCarrier] = useState(true);
 
     useEffect(() => {
         fetchCarriers();
@@ -43,11 +46,14 @@ export function UserProvider({ children }: UserProviderProps) {
     }, [session, carriers]);
 
     const fetchCarriers = async () => {
+        setIsLoadingCarrier(true);
         try {
             const data = await getCarriers();
             setCarriers(data);
         } catch (error) {
             console.error('Failed to fetch carriers:', error);
+        } finally {
+            setIsLoadingCarrier(false);
         }
     };
 
@@ -59,6 +65,7 @@ export function UserProvider({ children }: UserProviderProps) {
                 setCarriers,
                 setDefaultCarrier,
                 isProPlan,
+                isLoadingCarrier,
             }}
         >
             {children}
