@@ -32,7 +32,7 @@ const BillingPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
     const [invoices, setInvoices] = useState<Stripe.Invoice[]>([]);
-    const [numDrivers, setNumDrivers] = useState<number>(1);
+    const [numDrivers, setNumDrivers] = useState<number | null>(1);
 
     const isSubscriptionCanceling = subscriptionDetails?.cancel_at && currentPlan === SubscriptionPlan.PRO;
 
@@ -94,7 +94,17 @@ const BillingPage = () => {
     };
 
     const handleNumDriversChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setNumDrivers(parseInt(event.target.value) || 1);
+        const value = event.target.value;
+        // Allow empty string in the input
+        if (value === '') {
+            setNumDrivers(null);
+            return;
+        }
+        const numValue = parseInt(value);
+        // Only update if it's a valid number
+        if (!isNaN(numValue)) {
+            setNumDrivers(numValue);
+        }
     };
 
     const formatDate = (timestamp: number) => {
@@ -358,8 +368,8 @@ const BillingPage = () => {
                                                     id="numDrivers"
                                                     value={numDrivers}
                                                     onChange={handleNumDriversChange}
-                                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
                                                     min="1"
+                                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
                                                     disabled={currentPlan === SubscriptionPlan.PRO}
                                                 />
                                             </div>
@@ -370,7 +380,7 @@ const BillingPage = () => {
                                                 <span className="ml-1 text-gray-600">per month</span>
                                             </div>
                                             <button
-                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
+                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:opacity-50 disabled:pointer-events-none ${
                                                     currentPlan === SubscriptionPlan.PRO
                                                         ? isSubscriptionCanceling
                                                             ? 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
@@ -383,7 +393,10 @@ const BillingPage = () => {
                                                         : handlePlanChange(SubscriptionPlan.PRO)
                                                 }
                                                 disabled={
-                                                    currentPlan === SubscriptionPlan.PRO && !isSubscriptionCanceling
+                                                    (currentPlan === SubscriptionPlan.PRO &&
+                                                        !isSubscriptionCanceling) ||
+                                                    !numDrivers ||
+                                                    numDrivers < 1
                                                 }
                                             >
                                                 {currentPlan === SubscriptionPlan.PRO

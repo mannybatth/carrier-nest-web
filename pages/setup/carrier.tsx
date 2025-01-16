@@ -115,7 +115,7 @@ const CarrierSetup: PageWithAuth = () => {
     const mcNumberInputRef = useRef<HTMLInputElement>(null);
     const companyNameInputRef = useRef<HTMLInputElement>(null);
     const [fetchError, setFetchError] = useState<boolean>(false);
-    const [numDrivers, setNumDrivers] = useState<number>(1);
+    const [numDrivers, setNumDrivers] = useState<number | null>(1);
 
     useEffect(() => {
         // Small timeout to ensure DOM elements are mounted
@@ -493,8 +493,60 @@ const CarrierSetup: PageWithAuth = () => {
         </>
     );
 
-    const handleNumDriversChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setNumDrivers(parseInt(event.target.value) || 1);
+    const NumericInput = React.memo(
+        ({ value, onChange }: { value: number | null; onChange: (value: number | null) => void }) => {
+            const numOfDriversInputRef = useRef<HTMLInputElement>(null);
+            const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const val = e.target.value;
+                if (val === '') {
+                    onChange(null);
+                } else {
+                    const num = parseInt(val);
+                    if (!isNaN(num)) {
+                        onChange(num);
+                    }
+                }
+            };
+
+            useEffect(() => {
+                // Key text field focused on change
+                const timer = setTimeout(() => {
+                    if (plan === SubscriptionPlan.PRO) {
+                        numOfDriversInputRef.current?.focus();
+                    }
+                }, 0);
+                return () => clearTimeout(timer);
+            }, []);
+
+            return (
+                <div className="flex items-center space-x-2" onMouseDown={(e) => e.stopPropagation()}>
+                    <label htmlFor="numDrivers" className="text-gray-600">
+                        Number of drivers:
+                    </label>
+                    <input
+                        ref={numOfDriversInputRef}
+                        type="number"
+                        id="numDrivers"
+                        value={value ?? ''}
+                        onChange={handleChange}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                        min="1"
+                        data-autofocus
+                    />
+                </div>
+            );
+        },
+    );
+
+    NumericInput.displayName = 'NumericInput';
+
+    const handleNumDriversChange = (value: number | null) => {
+        setNumDrivers(value);
+    };
+
+    const isValidProPlanDrivers = (plan: SubscriptionPlan, numDrivers: number | null): boolean => {
+        if (plan !== SubscriptionPlan.PRO) return true;
+        return numDrivers !== null && !isNaN(numDrivers) && numDrivers >= 1;
     };
 
     const PlanSelection = () => (
@@ -509,7 +561,7 @@ const CarrierSetup: PageWithAuth = () => {
                         </p>
                     </div>
 
-                    <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
+                    <div className="space-y-8">
                         <div className="space-y-6">
                             <RadioGroup value={plan} onChange={setPlan} className="grid gap-4 mt-4 md:grid-cols-2">
                                 <RadioGroup.Option
@@ -612,19 +664,11 @@ const CarrierSetup: PageWithAuth = () => {
                                                                 {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers}GB
                                                             </p>
                                                         </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <label htmlFor="numDrivers" className="text-gray-600">
-                                                                Number of drivers:
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                id="numDrivers"
-                                                                value={numDrivers}
-                                                                onChange={handleNumDriversChange}
-                                                                className="w-16 px-2 py-1 border border-gray-300 rounded-md"
-                                                                min="1"
-                                                            />
-                                                        </div>
+                                                        <NumericInput
+                                                            data-autofocus
+                                                            value={numDrivers}
+                                                            onChange={handleNumDriversChange}
+                                                        />
                                                     </RadioGroup.Description>
                                                     <RadioGroup.Description
                                                         as="span"
@@ -647,13 +691,13 @@ const CarrierSetup: PageWithAuth = () => {
                                 </RadioGroup.Option>
                             </RadioGroup>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
             <div className="flex gap-4 mt-4">
                 <button
                     type="submit"
-                    disabled={isLoading || isSubmitButtonDisabled}
+                    disabled={isLoading || isSubmitButtonDisabled || !isValidProPlanDrivers(plan, numDrivers)}
                     onClick={formHook.handleSubmit(onSubmit)}
                     className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
                 >
