@@ -95,6 +95,8 @@ model Carrier {
     locations           Location[]
     equipments          Equipment[]
     subscription        Subscription?
+    rateconImportsCount Int           @default(0)
+    lastImportReset     DateTime      @default(now())
 
     @@index([name, email, carrierCode])
 }
