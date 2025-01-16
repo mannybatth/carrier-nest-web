@@ -2,20 +2,23 @@ import { Prisma } from '@prisma/client';
 import { auth } from 'auth';
 import { ExpandedCarrier, JSONResponse } from 'interfaces/models';
 import prisma from 'lib/prisma';
+import { Session } from 'next-auth';
 import type { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (req.auth) {
-        const response = await getCarrier(req);
+        const carrierId = context.params.id;
+        const response = await getCarrier(req.auth, carrierId);
         return NextResponse.json(response, { status: response.code });
     }
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (req.auth) {
-        const carrier = await getCarrier(req);
+        const carrierId = context.params.id;
+        const carrier = await getCarrier(req.auth, carrierId);
 
         if (!carrier.data?.carrier) {
             return NextResponse.json(
@@ -31,7 +34,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
         const updatedCarrier = await prisma.carrier.update({
             where: {
-                id: String(req.nextUrl.searchParams.get('id')),
+                id: carrier.data.carrier.id,
             },
             data: {
                 name: carrierData.name,
@@ -64,8 +67,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
 });
 
-async function getCarrier(req: NextAuthRequest): Promise<JSONResponse<{ carrier: ExpandedCarrier }>> {
-    const session = req.auth;
+async function getCarrier(session: Session, carrierId: string): Promise<JSONResponse<{ carrier: ExpandedCarrier }>> {
     const userCarrierId = session?.user?.defaultCarrierId;
 
     if (!userCarrierId) {
@@ -75,7 +77,7 @@ async function getCarrier(req: NextAuthRequest): Promise<JSONResponse<{ carrier:
         };
     }
 
-    const carrierIdToFind = String(req.nextUrl.searchParams.get('id'));
+    const carrierIdToFind = carrierId;
 
     if (carrierIdToFind !== userCarrierId) {
         return {

@@ -7,7 +7,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from 'lib/verification-request';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { AuthUser } from 'types';
 import { AdapterUser } from 'next-auth/adapters';
 import { JWT } from 'next-auth/jwt';
 

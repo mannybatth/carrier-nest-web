@@ -3,14 +3,15 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string; pid: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
     const session = req.auth;
-    const paymentId = req.nextUrl.searchParams.get('pid');
-    const driverId = req.nextUrl.searchParams.get('id');
+
+    const driverId = context.params.id;
+    const paymentId = context.params.pid;
 
     const payment = await prisma.driverPayment.findFirst({
         where: {

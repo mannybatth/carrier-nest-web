@@ -1,11 +1,11 @@
-import { Driver, LoadActivityAction, LoadDocument } from '@prisma/client';
+import { Driver, LoadActivityAction } from '@prisma/client';
 import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { deleteDocumentFromGCS } from 'lib/delete-doc-from-gcs';
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string; did: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
@@ -24,9 +24,12 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
         }
     }
 
+    const loadId = context.params.id;
+    const documentId = context.params.did;
+
     const load = await prisma.load.findFirst({
         where: {
-            id: req.nextUrl.searchParams.get('id'),
+            id: loadId,
             ...(!driver && { carrierId: session.user.defaultCarrierId }),
             ...(driver && { driverAssignments: { some: { driverId: driver.id } } }),
         },
@@ -36,7 +39,6 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ code: 404, errors: [{ message: 'Load not found' }] }, { status: 404 });
     }
 
-    const documentId = req.nextUrl.searchParams.get('did');
     const isPod = req.nextUrl.searchParams.get('isPod') === 'true';
     const isRatecon = req.nextUrl.searchParams.get('isRatecon') === 'true';
 

@@ -6,22 +6,22 @@ import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
 import { ExpandedInvoice, JSONResponse } from 'interfaces/models';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const invoiceId = context.params.id;
 
-    const response = await getInvoice({ session, id, req });
+    const response = await getInvoice({ session, invoiceId, req });
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const invoiceId = context.params.id;
     const invoiceData = await req.json();
 
     const invoice = await prisma.invoice.findFirst({
         where: {
-            id: String(id),
+            id: invoiceId,
             carrierId: session.user.defaultCarrierId,
         },
         include: {
@@ -57,7 +57,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
     const updatedInvoice = await prisma.invoice.update({
         where: {
-            id: String(id),
+            id: invoiceId,
         },
         data: {
             invoiceNum: invoiceData.invoiceNum,
@@ -91,13 +91,13 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     );
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const invoiceId = context.params.id;
 
     const invoice = await prisma.invoice.findFirst({
         where: {
-            id: String(id),
+            id: invoiceId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -114,7 +114,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     await prisma.invoice.delete({
         where: {
-            id: String(id),
+            id: invoiceId,
         },
     });
 
@@ -129,11 +129,11 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
 const getInvoice = async ({
     session,
-    id,
+    invoiceId,
     req,
 }: {
     session?: Session;
-    id: string | null;
+    invoiceId: string;
     req: NextAuthRequest;
 }): Promise<JSONResponse<{ invoice: ExpandedInvoice }>> => {
     const expand = req.nextUrl.searchParams.get('expand');
@@ -143,7 +143,7 @@ const getInvoice = async ({
 
     const invoice = await prisma.invoice.findFirst({
         where: {
-            id: String(id),
+            id: invoiceId,
             carrierId: session.user.defaultCarrierId,
         },
         include: {

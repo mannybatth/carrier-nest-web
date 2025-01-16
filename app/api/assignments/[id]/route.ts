@@ -4,8 +4,8 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const GET = auth(async (req: NextAuthRequest) => {
-    const assignmentId = req.nextUrl.searchParams.get('id');
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const assignmentId = context.params.id;
 
     if (!assignmentId) {
         return NextResponse.json(
@@ -158,8 +158,8 @@ export const GET = auth(async (req: NextAuthRequest) => {
     }
 });
 
-export const PATCH = auth(async (req: NextAuthRequest) => {
-    const assignmentId = req.nextUrl.searchParams.get('id');
+export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const assignmentId = context.params.id;
 
     if (!assignmentId) {
         return NextResponse.json(

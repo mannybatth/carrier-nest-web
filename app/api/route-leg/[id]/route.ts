@@ -4,13 +4,13 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const PATCH = auth(async (req: NextAuthRequest) => {
+export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
 
     try {
-        const routeLegId = req.nextUrl.searchParams.get('id') as string;
+        const routeLegId = context.params.id;
         const {
             routeLegStatus,
             startLatitude,

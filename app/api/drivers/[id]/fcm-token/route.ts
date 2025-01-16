@@ -3,7 +3,7 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const POST = auth(async (req: NextAuthRequest) => {
+export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenCarrierId = session?.user?.carrierId as string;
     const tokenDriverId = session?.user?.driverId as string;
@@ -18,8 +18,9 @@ export const POST = auth(async (req: NextAuthRequest) => {
         );
     }
 
+    const driverId = context.params.id;
+
     const { fcmToken } = await req.json();
-    const driverId = req.nextUrl.searchParams.get('id') as string;
 
     if (!fcmToken || !driverId) {
         return NextResponse.json(
@@ -101,9 +102,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
     }
 });
 
-export const PATCH = auth(async (req: NextAuthRequest) => {
+export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenDriverId = session?.user?.driverId;
+    const driverId = context.params.id;
 
     if (!tokenDriverId) {
         return NextResponse.json(
@@ -116,7 +118,6 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
     }
 
     const { deviceId, newFcmToken } = await req.json();
-    const driverId = req.nextUrl.searchParams.get('id') as string;
 
     if (!deviceId || !newFcmToken || !driverId) {
         return NextResponse.json(
@@ -180,12 +181,12 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
     }
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenDriverId = session?.user?.driverId;
+    const driverId = context.params.id;
 
     const { fcmToken } = await req.json();
-    const driverId = req.nextUrl.searchParams.get('id') as string;
 
     if (!fcmToken || !driverId) {
         return NextResponse.json(

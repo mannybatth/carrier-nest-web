@@ -4,28 +4,29 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
+import { JSONResponse } from 'interfaces/models';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
-    const response = await getLocation({ session, id });
+    const locationId = context.params.id;
+    const response = await getLocation({ session, locationId });
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
+    const locationId = context.params.id;
     const location = await prisma.location.findFirst({
         where: {
-            id: String(id),
+            id: locationId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -37,23 +38,23 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     const locationData = (await req.json()) as Prisma.LocationUpdateInput;
 
     const updatedLocation = await prisma.location.update({
-        where: { id: String(id) },
+        where: { id: locationId },
         data: locationData,
     });
 
     return NextResponse.json({ code: 200, data: { updatedLocation } }, { status: 200 });
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
+    const locationId = context.params.id;
     const location = await prisma.location.findFirst({
         where: {
-            id: String(id),
+            id: locationId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -62,25 +63,25 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ code: 404, errors: [{ message: 'Location not found' }] }, { status: 404 });
     }
 
-    await prisma.location.delete({ where: { id: String(id) } });
+    await prisma.location.delete({ where: { id: locationId } });
 
     return NextResponse.json({ code: 200, data: { result: 'Location deleted' } }, { status: 200 });
 });
 
 const getLocation = async ({
     session,
-    id,
+    locationId,
 }: {
     session: Session;
-    id: string | null;
-}): Promise<{ code: number; data?: { location: Location }; errors?: { message: string }[] }> => {
-    if (!id) {
-        return { code: 400, errors: [{ message: 'ID is required' }] };
+    locationId: string;
+}): Promise<JSONResponse<{ location: Location }>> => {
+    if (!locationId) {
+        return { code: 400, errors: [{ message: 'Location id is required' }] };
     }
 
     const location = await prisma.location.findFirst({
         where: {
-            id: String(id),
+            id: locationId,
             carrierId: session.user.defaultCarrierId,
         },
     });

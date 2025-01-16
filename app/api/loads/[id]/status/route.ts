@@ -1,10 +1,10 @@
-import { LoadStatus, LoadActivityAction } from '@prisma/client';
+import { LoadStatus, LoadActivityAction, Load, Driver } from '@prisma/client';
 import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const PATCH = auth(async (req: NextAuthRequest) => {
+export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
@@ -14,7 +14,8 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
+    const loadId = context.params.id;
+
     const { status, driverId, longitude, latitude } = (await req.json()) as {
         status: LoadStatus;
         driverId?: string;
@@ -22,14 +23,14 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
         latitude?: number;
     };
 
-    let load;
-    let driver;
+    let load: Load;
+    let driver: Driver;
 
     if (driverId) {
         const [_load, _driver] = await Promise.all([
             prisma.load.findFirst({
                 where: {
-                    id: id as string,
+                    id: loadId,
                     carrierId: tokenCarrierId,
                     driverAssignments: { some: { driverId: driverId } },
                 },
@@ -46,7 +47,7 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
     } else {
         load = await prisma.load.findFirst({
             where: {
-                id: id as string,
+                id: loadId,
                 carrierId: req.auth.user.defaultCarrierId,
             },
         });
@@ -60,7 +61,7 @@ export const PATCH = auth(async (req: NextAuthRequest) => {
     const toStatus = status;
 
     const updatedLoad = await prisma.load.update({
-        where: { id: id as string },
+        where: { id: loadId },
         data: { status },
     });
 

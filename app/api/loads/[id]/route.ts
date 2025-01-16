@@ -3,22 +3,25 @@ import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
-import { exclude } from 'interfaces/models';
+import { exclude, ExpandedLoad, JSONResponse } from 'interfaces/models';
 import { deleteDocumentFromGCS } from 'lib/delete-doc-from-gcs';
+import { Session } from 'next-auth';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenCarrierId = session?.user?.carrierId || session?.user?.defaultCarrierId;
+
+    const loadId = context.params.id;
 
     if (!session || !tokenCarrierId) {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
 
-    const response = await getLoad({ session, tokenCarrierId, query: req.nextUrl.searchParams });
+    const response = await getLoad({ session, tokenCarrierId, query: req.nextUrl.searchParams, loadId });
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenCarrierId = session?.user?.defaultCarrierId;
 
@@ -26,9 +29,11 @@ export const PUT = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
 
+    const loadId = context.params.id;
+
     const load = await prisma.load.findFirst({
         where: {
-            id: String(req.nextUrl.searchParams.get('id')),
+            id: loadId,
             carrierId: tokenCarrierId,
         },
     });
@@ -52,7 +57,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     });
 
     const updatedLoad = await prisma.load.update({
-        where: { id: String(req.nextUrl.searchParams.get('id')) },
+        where: { id: loadId },
         data: {
             ...loadData,
             carrier: { connect: { id: session.user.defaultCarrierId } },
@@ -69,7 +74,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     return NextResponse.json({ code: 200, data: { updatedLoad } }, { status: 200 });
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
     const tokenCarrierId = session?.user?.defaultCarrierId;
 
@@ -77,9 +82,11 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
     }
 
+    const loadId = context.params.id;
+
     const load = await prisma.load.findFirst({
         where: {
-            id: String(req.nextUrl.searchParams.get('id')),
+            id: loadId,
             carrierId: tokenCarrierId,
         },
         include: {
@@ -101,7 +108,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
     await Promise.all(documentsToDelete.map((document) => deleteDocumentFromGCS(document)));
 
     await prisma.load.delete({
-        where: { id: String(req.nextUrl.searchParams.get('id')) },
+        where: { id: loadId },
     });
 
     return NextResponse.json({ code: 200, data: { result: 'Load deleted' } }, { status: 200 });
@@ -111,11 +118,13 @@ const getLoad = async ({
     session,
     tokenCarrierId,
     query,
+    loadId,
 }: {
-    session?: any;
+    session?: Session;
     tokenCarrierId?: string;
     query: URLSearchParams;
-}): Promise<any> => {
+    loadId: string;
+}): Promise<JSONResponse<{ load: ExpandedLoad }>> => {
     const driverId = query.get('driverId');
     const expand = query.get('expand')?.split(',') || [];
     const expandCustomer = expand.includes('customer');
@@ -130,7 +139,7 @@ const getLoad = async ({
 
     const load = await prisma.load.findFirst({
         where: {
-            id: String(query.get('id')),
+            id: loadId,
             carrierId: session?.user?.defaultCarrierId || tokenCarrierId,
             ...(driverId ? { driverAssignments: { some: { driverId: driverId } } } : null),
         },
@@ -141,7 +150,7 @@ const getLoad = async ({
             ...(expandShipper ? { shipper: true } : {}),
             ...(expandReceiver ? { receiver: true } : {}),
             ...(expandStops ? { stops: { orderBy: { stopIndex: 'asc' } } } : {}),
-            ...(expandDriverAssignments ? { driverAssignments: true } : {}),
+            ...(expandDriverAssignments ? { driverAssignments: { include: { driver: true } } } : {}),
             ...(expandDocuments ? { loadDocuments: true, rateconDocument: true, podDocuments: true } : {}),
             ...(expandRoute ? { route: true } : {}),
         },

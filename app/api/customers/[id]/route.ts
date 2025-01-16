@@ -6,8 +6,8 @@ import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
 import { JSONResponse } from 'interfaces/models';
 
-export const GET = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const id = context.params.id;
     const session = req.auth;
 
     if (!session) {
@@ -18,8 +18,8 @@ export const GET = auth(async (req: NextAuthRequest) => {
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const id = context.params.id;
     const session = req.auth;
 
     if (!session) {
@@ -57,8 +57,8 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     return NextResponse.json({ code: 200, data: { updatedCustomer } }, { status: 200 });
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const id = context.params.id;
     const session = req.auth;
 
     if (!session) {
@@ -88,11 +88,11 @@ const getCustomer = async ({
     id,
 }: {
     session?: Session;
-    id: string | null;
+    id: string;
 }): Promise<JSONResponse<{ customer: Customer }>> => {
     const customer = await prisma.customer.findFirst({
         where: {
-            id: String(id),
+            id: id,
             carrierId: session.user.defaultCarrierId,
         },
     });

@@ -4,7 +4,7 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const POST = auth(async (req: NextAuthRequest) => {
+export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
@@ -23,10 +23,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
         }
     }
 
-    const loadId = req.nextUrl.searchParams.get('id');
+    const loadId = context.params.id;
     const load = await prisma.load.findFirst({
         where: {
-            id: String(loadId),
+            id: loadId,
             ...(!driver && { carrierId: req.auth.user.defaultCarrierId }),
             ...(driver && { driverAssignments: { some: { driverId: driver.id } } }),
         },

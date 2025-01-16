@@ -4,20 +4,20 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const POST = auth(async (req: NextAuthRequest) => {
+export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
-    if (!id) {
+    const invoiceId = context.params.id;
+    if (!invoiceId) {
         return NextResponse.json({ message: 'Invoice ID is required' }, { status: 400 });
     }
 
     try {
         const invoice = await prisma.invoice.findFirst({
             where: {
-                id: String(id),
+                id: invoiceId,
                 carrierId: req.auth.user.defaultCarrierId,
             },
             include: {
@@ -56,7 +56,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
         })();
 
         const updatedInvoice = await prisma.invoice.update({
-            where: { id: String(id) },
+            where: { id: invoiceId },
             data: {
                 status: newStatus,
                 paidAmount: newPaidAmount,

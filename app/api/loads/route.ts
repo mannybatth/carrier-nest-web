@@ -48,7 +48,7 @@ const buildOrderBy = (
 
 export const GET = auth(async (req: NextAuthRequest) => {
     if (!req.auth) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] });
     }
 
     const query = req.nextUrl.searchParams;
@@ -108,11 +108,11 @@ export const GET = auth(async (req: NextAuthRequest) => {
 
     if (limit != null || offset != null) {
         if (limit == null || offset == null) {
-            return NextResponse.json({ message: 'Limit and Offset must be set together' }, { status: 400 });
+            return NextResponse.json({ code: 400, errors: [{ message: 'Limit and Offset must be set together' }] });
         }
 
         if (isNaN(limit) || isNaN(offset)) {
-            return NextResponse.json({ message: 'Invalid limit or offset' }, { status: 400 });
+            return NextResponse.json({ code: 400, errors: [{ message: 'Invalid limit or offset' }] });
         }
     }
 
@@ -247,12 +247,12 @@ export const GET = auth(async (req: NextAuthRequest) => {
         },
     });
 
-    return NextResponse.json({ metadata, loads });
+    return NextResponse.json({ code: 200, data: { metadata, loads } });
 });
 
 export const POST = auth(async (req: NextAuthRequest) => {
     if (!req.auth) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] });
     }
 
     try {
@@ -270,7 +270,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
             });
 
             if (currentLoads >= BASIC_PLAN_TOTAL_LOADS) {
-                return NextResponse.json({ message: 'Load limit reached for the Basic Plan.' }, { status: 400 });
+                return NextResponse.json({
+                    code: 400,
+                    errors: [{ message: 'Load limit reached for the Basic Plan.' }],
+                });
             }
         }
 
@@ -395,9 +398,9 @@ export const POST = auth(async (req: NextAuthRequest) => {
             },
         });
 
-        return NextResponse.json({ load });
+        return NextResponse.json({ code: 200, data: { load } });
     } catch (error) {
         console.error('load post error', error);
-        return NextResponse.json({ message: error.message || JSON.stringify(error) }, { status: 400 });
+        return NextResponse.json({ code: 400, errors: [{ message: error.message || JSON.stringify(error) }] });
     }
 });

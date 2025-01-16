@@ -4,19 +4,19 @@ import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { calcPaginationMetadata } from 'lib/pagination';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+        return NextResponse.json({ code: 401, errors: [{ message: 'Not authenticated' }] }, { status: 401 });
     }
 
-    const id = req.nextUrl.searchParams.get('id');
+    const loadId = context.params.id;
     const limit = req.nextUrl.searchParams.get('limit') !== null ? Number(req.nextUrl.searchParams.get('limit')) : 10;
     const offset = req.nextUrl.searchParams.get('offset') !== null ? Number(req.nextUrl.searchParams.get('offset')) : 0;
 
     try {
         const total = await prisma.loadActivity.count({
             where: {
-                loadId: id as string,
+                loadId: loadId,
                 carrierId: req.auth.user.defaultCarrierId,
             },
         });
@@ -25,7 +25,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
 
         const activity = await prisma.loadActivity.findMany({
             where: {
-                loadId: id as string,
+                loadId: loadId,
                 carrierId: req.auth.user.defaultCarrierId,
             },
             orderBy: {
@@ -76,6 +76,6 @@ export const GET = auth(async (req: NextAuthRequest) => {
         });
     } catch (error) {
         console.error(error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ code: 500, errors: [{ message: 'Internal server error' }] }, { status: 500 });
     }
 });

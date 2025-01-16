@@ -5,22 +5,22 @@ import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const driverId = context.params.id;
     const expand = req.nextUrl.searchParams.get('expand');
 
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const response = await getDriver({ session, query: { id, expand } });
+    const response = await getDriver({ session, query: { driverId, expand } });
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const driverId = context.params.id;
 
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -28,7 +28,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
     const driver = await prisma.driver.findFirst({
         where: {
-            id: String(id),
+            id: driverId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -41,7 +41,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
     const updatedDriver = await prisma.driver.update({
         where: {
-            id: String(id),
+            id: driverId,
         },
         data: {
             name: driverData.name,
@@ -58,9 +58,9 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     return NextResponse.json({ code: 200, data: { updatedDriver } }, { status: 200 });
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;
-    const id = req.nextUrl.searchParams.get('id');
+    const driverId = context.params.id;
 
     if (!session) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -68,7 +68,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     const driver = await prisma.driver.findFirst({
         where: {
-            id: String(id),
+            id: driverId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -101,7 +101,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     await prisma.driver.delete({
         where: {
-            id: String(id),
+            id: driverId,
         },
     });
 
@@ -113,7 +113,7 @@ const getDriver = async ({
     query,
 }: {
     session: Session;
-    query: { id: string | null; expand: string | null };
+    query: { driverId: string; expand: string };
 }): Promise<{ code: number; data: { driver: Driver | null } }> => {
     const expand = query.expand ? String(query.expand).split(',') : [];
     const include = expand.reduce((acc, relation) => {
@@ -130,7 +130,7 @@ const getDriver = async ({
 
     const driver = await prisma.driver.findFirst({
         where: {
-            id: String(query.id),
+            id: query.driverId,
             carrierId: session.user.defaultCarrierId,
         },
         include,

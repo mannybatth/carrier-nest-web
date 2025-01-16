@@ -1,9 +1,11 @@
 import type { User } from '@prisma/client';
 
-export interface AuthUser extends User {
-    driverId: string;
-    phoneNumber: string;
-    carrierId: string;
+declare global {
+    interface AuthUser extends User {
+        driverId: string;
+        phoneNumber: string;
+        carrierId: string;
+    }
 }
 
 declare module 'next-auth/jwt' {

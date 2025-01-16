@@ -5,21 +5,21 @@ import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
 import { ExpandedEquipment, JSONResponse } from 'interfaces/models';
 
-export const GET = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const equipmentId = context.params.id;
     const session = req.auth;
 
-    const response = await getEquipment({ session, id });
+    const response = await getEquipment({ session, equipmentId });
     return NextResponse.json(response, { status: response.code });
 });
 
-export const PUT = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const equipmentId = context.params.id;
     const session = req.auth;
 
     const equipment = await prisma.equipment.findFirst({
         where: {
-            id: String(id),
+            id: equipmentId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -38,7 +38,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
     const updatedEquipment = await prisma.equipment.update({
         where: {
-            id: String(id),
+            id: equipmentId,
         },
         data: {
             equipmentNumber: equipmentData.equipmentNumber,
@@ -64,13 +64,13 @@ export const PUT = auth(async (req: NextAuthRequest) => {
     );
 });
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
-    const id = req.nextUrl.searchParams.get('id');
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    const equipmentId = context.params.id;
     const session = req.auth;
 
     const equipment = await prisma.equipment.findFirst({
         where: {
-            id: String(id),
+            id: equipmentId,
             carrierId: session.user.defaultCarrierId,
         },
     });
@@ -87,7 +87,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     await prisma.equipment.delete({
         where: {
-            id: String(id),
+            id: equipmentId,
         },
     });
 
@@ -102,12 +102,12 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
 const getEquipment = async ({
     session,
-    id,
+    equipmentId,
 }: {
     session: Session;
-    id: string | null;
+    equipmentId: string;
 }): Promise<JSONResponse<{ equipment: ExpandedEquipment }>> => {
-    if (!id) {
+    if (!equipmentId) {
         return {
             code: 400,
             errors: [{ message: 'ID is required' }],
@@ -116,7 +116,7 @@ const getEquipment = async ({
 
     const equipment = await prisma.equipment.findFirst({
         where: {
-            id: String(id),
+            id: equipmentId,
             carrierId: session.user.defaultCarrierId,
         },
         include: { drivers: true },

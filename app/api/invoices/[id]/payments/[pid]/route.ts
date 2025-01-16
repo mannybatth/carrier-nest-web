@@ -4,20 +4,21 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-export const DELETE = auth(async (req: NextAuthRequest) => {
+export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string; pid: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
     const session = req.auth;
-    const pid = req.nextUrl.searchParams.get('pid');
-    const id = req.nextUrl.searchParams.get('id');
+
+    const invoiceId = context.params.id;
+    const paymentId = context.params.pid;
 
     const payment = await prisma.invoicePayment.findFirst({
         where: {
-            id: String(pid),
+            id: paymentId,
             invoice: {
-                id: String(id),
+                id: invoiceId,
                 carrierId: session.user.defaultCarrierId,
             },
         },
@@ -29,13 +30,13 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     await prisma.invoicePayment.delete({
         where: {
-            id: String(pid),
+            id: paymentId,
         },
     });
 
     const invoice = await prisma.invoice.findFirst({
         where: {
-            id: String(id),
+            id: invoiceId,
             carrierId: session.user.defaultCarrierId,
         },
         include: {
@@ -72,7 +73,7 @@ export const DELETE = auth(async (req: NextAuthRequest) => {
 
     await prisma.invoice.update({
         where: {
-            id: String(id),
+            id: invoiceId,
         },
         data: {
             paidAmount,

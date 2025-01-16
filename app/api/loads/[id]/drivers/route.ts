@@ -3,21 +3,20 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
-// Get list of drivers assigned to load
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
     try {
-        const loadId = req.nextUrl.searchParams.get('id');
+        const loadId = context.params.id;
         const session = req.auth;
 
         const drivers = await prisma.driver.findMany({
             where: {
                 assignments: {
                     some: {
-                        loadId: String(loadId),
+                        loadId: loadId,
                     },
                 },
                 carrierId: session.user.defaultCarrierId,

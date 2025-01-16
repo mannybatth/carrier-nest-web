@@ -23,7 +23,7 @@ const buildOrderBy = (
     return undefined;
 };
 
-export const GET = auth(async (req: NextAuthRequest) => {
+export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json(
             {
@@ -35,7 +35,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
     }
 
     try {
-        const driverId = req.nextUrl.searchParams.get('id');
+        const driverId = context.params.id;
         if (!driverId) {
             return NextResponse.json(
                 {
@@ -150,7 +150,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
     }
 });
 
-export const POST = auth(async (req: NextAuthRequest) => {
+export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json(
             {
@@ -160,9 +160,9 @@ export const POST = auth(async (req: NextAuthRequest) => {
             { status: 401 },
         );
     }
+    const driverId = context.params.id;
 
     const { amount, paymentDate, driverAssignmentIds, notes } = await req.json();
-    const driverId = req.nextUrl.searchParams.get('id');
 
     if (!amount || !paymentDate || !driverId || (!driverAssignmentIds && !driverAssignmentIds.length)) {
         return NextResponse.json(
