@@ -3,7 +3,6 @@ import { Customer, LoadStopType, Prisma } from '@prisma/client';
 import startOfDay from 'date-fns/startOfDay';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
-import { FileUploader } from 'react-drag-drop-files';
 import { useFieldArray, useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -98,6 +97,36 @@ const CreateLoad: PageWithAuth = () => {
     const [ocrVerticesPage, setOcrVerticesPage] = React.useState<number>(null);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
+
+    const [dragActive, setDragActive] = React.useState(false);
+
+    const handleDrag = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true);
+        } else if (e.type === 'dragleave') {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+
+        const files = e.dataTransfer.files;
+        if (files?.[0]?.type === 'application/pdf') {
+            handleFileUpload(files[0]);
+        }
+    };
+
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files?.[0]?.type === 'application/pdf') {
+            handleFileUpload(files[0]);
+        }
+    };
 
     useEffect(() => {
         if (!copyLoadId) {
@@ -403,7 +432,7 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const getAILoad = async (documentsInBlocks: any[], documentsInLines: any[], isRetry = false): Promise<AILoad> => {
-        const response = await fetch(`${appUrl}/ai`, {
+        const response = await fetch(`${apiUrl}/ai`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -419,9 +448,7 @@ const CreateLoad: PageWithAuth = () => {
         let buffer = '';
 
         const processChunk = (chunk: string) => {
-            // console.log('chunk', chunk);
             const progress = checkForProperties(chunk, foundProperties);
-            // console.log('progress', progress);
             setAiProgress(10 + (progress || 0) * (90 / 100));
         };
 
@@ -429,7 +456,6 @@ const CreateLoad: PageWithAuth = () => {
             const { value, done } = await streamReader.read();
             if (done) {
                 setAiProgress(100);
-                // console.log('AI response', buffer);
                 const jsonString = buffer.match(/```json\s*([\s\S]*?)\s*```/);
                 try {
                     aiLoad = JSON.parse(jsonString[1]);
@@ -881,32 +907,49 @@ const CreateLoad: PageWithAuth = () => {
                     {loading && <LoadingOverlay />}
 
                     {aiProgress == 0 && !currentRateconFile && (
-                        <FileUploader multiple={false} handleChange={handleFileUpload} name="file" types={['PDF']}>
-                            <div className="flex mb-4">
-                                <label className="flex justify-center w-full px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer h-28 hover:border-gray-400 focus:outline-none">
-                                    <span className="flex items-center space-x-2">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="w-6 h-6 text-gray-600"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                            />
-                                        </svg>
-                                        <span className="font-medium text-gray-600">
-                                            Drop a rate confirmation file, or{' '}
-                                            <span className="text-blue-600 underline">browse</span>
-                                        </span>
+                        <div
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            className="mb-4"
+                        >
+                            <label
+                                className={`flex justify-center w-full px-4 transition bg-white border-2 border-dashed rounded-md appearance-none cursor-pointer h-28
+                                    ${
+                                        dragActive
+                                            ? 'border-blue-400 bg-blue-50'
+                                            : 'border-gray-300 hover:border-gray-400'
+                                    }`}
+                            >
+                                <span className="flex items-center space-x-2">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`w-6 h-6 ${dragActive ? 'text-blue-600' : 'text-gray-600'}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                        />
+                                    </svg>
+                                    <span className={`font-medium ${dragActive ? 'text-blue-600' : 'text-gray-600'}`}>
+                                        Drop a rate confirmation file, or{' '}
+                                        <span className="text-blue-600 underline">browse</span>
                                     </span>
-                                </label>
-                            </div>
-                        </FileUploader>
+                                </span>
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="application/pdf"
+                                    onChange={handleFileInput}
+                                />
+                            </label>
+                        </div>
                     )}
 
                     {currentRateconFile && (

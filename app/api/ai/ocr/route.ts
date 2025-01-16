@@ -34,117 +34,113 @@ export const POST = auth(async (req: NextAuthRequest) => {
         scope: 'https://www.googleapis.com/auth/cloud-platform',
     });
 
-    if (req.method === 'POST') {
-        try {
-            const { file } = await req.json();
+    try {
+        const { file } = await req.json();
 
-            const canImport = await canImportRatecon(carrierId);
-            if (!canImport) {
-                return NextResponse.json({ error: 'Ratecon import limit reached.' }, { status: 403 });
-            }
-
-            const response = await fetchDocumentAI(file, accessToken);
-
-            const { document } = response;
-            const { text } = document;
-            const pagesInBlocks = [];
-            const pagesInLines = [];
-
-            const getText = (textAnchor: ITextAnchor) => {
-                if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
-                    return '';
-                }
-
-                const startIndex = textAnchor.textSegments[0].startIndex || 0;
-                const endIndex = textAnchor.textSegments[0].endIndex;
-
-                return text.substring(startIndex as number, endIndex as number);
-            };
-
-            const pageProps = document.pages[0].dimension;
-
-            const annotations = extractTextAnnotations(document, getText);
-
-            const getTopY = (block) => block.layout.boundingPoly.normalizedVertices[0].y;
-            const getLeftX = (block) => block.layout.boundingPoly.normalizedVertices[0].x;
-            const getBottomY = (block) => block.layout.boundingPoly.normalizedVertices[2].y;
-
-            for (const page of document.pages) {
-                if (!page.blocks) {
-                    continue;
-                }
-                const blocks = [...page.blocks];
-
-                blocks.sort((a, b) => {
-                    const aTopY = getTopY(a);
-                    const aBottomY = getBottomY(a);
-                    const bTopY = getTopY(b);
-                    const bBottomY = getBottomY(b);
-                    const aLeftX = getLeftX(a);
-                    const bLeftX = getLeftX(b);
-
-                    if (aBottomY < bTopY) {
-                        return -1;
-                    } else if (aTopY > bBottomY) {
-                        return 1;
-                    } else {
-                        return aLeftX - bLeftX;
-                    }
-                });
-
-                const pageText = blocks.map((block) => getText(block.layout.textAnchor)).join(' ');
-                pagesInBlocks.push(pageText);
-            }
-
-            for (const page of document.pages) {
-                if (!page.lines) {
-                    continue;
-                }
-                const lines = [...page.lines];
-
-                lines.sort((a, b) => {
-                    const aTopY = getTopY(a);
-                    const aBottomY = getBottomY(a);
-                    const bTopY = getTopY(b);
-                    const bBottomY = getBottomY(b);
-                    const aLeftX = getLeftX(a);
-                    const bLeftX = getLeftX(b);
-
-                    if (aBottomY < bTopY) {
-                        return -1;
-                    } else if (aTopY > bBottomY) {
-                        return 1;
-                    } else {
-                        return aLeftX - bLeftX;
-                    }
-                });
-
-                const pageText = lines.map((block) => getText(block.layout.textAnchor)).join(' ');
-                pagesInLines.push(pageText);
-            }
-
-            const pages = document.pages.map((page) => {
-                return {
-                    pageNumber: page.pageNumber,
-                    tokens: page.tokens,
-                    dimension: page.dimension,
-                    layout: page.layout,
-                };
-            });
-
-            return NextResponse.json({
-                blocks: pagesInBlocks,
-                lines: pagesInLines,
-                pages,
-                annotations,
-                pageProps,
-            });
-        } catch (error) {
-            console.error('Error during the Document AI process:', error);
-            return NextResponse.json({ error: 'Error during the Document AI process.' }, { status: 500 });
+        const canImport = await canImportRatecon(carrierId);
+        if (!canImport) {
+            return NextResponse.json({ error: 'Ratecon import limit reached.' }, { status: 403 });
         }
-    } else {
-        return NextResponse.next();
+
+        const response = await fetchDocumentAI(file, accessToken);
+
+        const { document } = response;
+        const { text } = document;
+        const pagesInBlocks = [];
+        const pagesInLines = [];
+
+        const getText = (textAnchor: ITextAnchor) => {
+            if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
+                return '';
+            }
+
+            const startIndex = textAnchor.textSegments[0].startIndex || 0;
+            const endIndex = textAnchor.textSegments[0].endIndex;
+
+            return text.substring(startIndex as number, endIndex as number);
+        };
+
+        const pageProps = document.pages[0].dimension;
+
+        const annotations = extractTextAnnotations(document, getText);
+
+        const getTopY = (block) => block.layout.boundingPoly.normalizedVertices[0].y;
+        const getLeftX = (block) => block.layout.boundingPoly.normalizedVertices[0].x;
+        const getBottomY = (block) => block.layout.boundingPoly.normalizedVertices[2].y;
+
+        for (const page of document.pages) {
+            if (!page.blocks) {
+                continue;
+            }
+            const blocks = [...page.blocks];
+
+            blocks.sort((a, b) => {
+                const aTopY = getTopY(a);
+                const aBottomY = getBottomY(a);
+                const bTopY = getTopY(b);
+                const bBottomY = getBottomY(b);
+                const aLeftX = getLeftX(a);
+                const bLeftX = getLeftX(b);
+
+                if (aBottomY < bTopY) {
+                    return -1;
+                } else if (aTopY > bBottomY) {
+                    return 1;
+                } else {
+                    return aLeftX - bLeftX;
+                }
+            });
+
+            const pageText = blocks.map((block) => getText(block.layout.textAnchor)).join(' ');
+            pagesInBlocks.push(pageText);
+        }
+
+        for (const page of document.pages) {
+            if (!page.lines) {
+                continue;
+            }
+            const lines = [...page.lines];
+
+            lines.sort((a, b) => {
+                const aTopY = getTopY(a);
+                const aBottomY = getBottomY(a);
+                const bTopY = getTopY(b);
+                const bBottomY = getBottomY(b);
+                const aLeftX = getLeftX(a);
+                const bLeftX = getLeftX(b);
+
+                if (aBottomY < bTopY) {
+                    return -1;
+                } else if (aTopY > bBottomY) {
+                    return 1;
+                } else {
+                    return aLeftX - bLeftX;
+                }
+            });
+
+            const pageText = lines.map((block) => getText(block.layout.textAnchor)).join(' ');
+            pagesInLines.push(pageText);
+        }
+
+        const pages = document.pages.map((page) => {
+            return {
+                pageNumber: page.pageNumber,
+                tokens: page.tokens,
+                dimension: page.dimension,
+                layout: page.layout,
+            };
+        });
+
+        return NextResponse.json({
+            blocks: pagesInBlocks,
+            lines: pagesInLines,
+            pages,
+            annotations,
+            pageProps,
+        });
+    } catch (error) {
+        console.error('Error during the Document AI process:', error);
+        return NextResponse.json({ error: 'Error during the Document AI process.' }, { status: 500 });
     }
 });
 

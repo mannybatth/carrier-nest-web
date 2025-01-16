@@ -1,10 +1,11 @@
-import { StreamingTextResponse } from 'ai';
-import { NextRequest, NextResponse } from 'next/server';
-import { ChatVertexAI } from '@langchain/google-vertexai-web';
-import { PromptTemplate } from '@langchain/core/prompts';
 import { BytesOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { ChatVertexAI } from '@langchain/google-vertexai-web';
+import { StreamingTextResponse } from 'ai';
+import { auth } from 'auth';
 import { canImportRatecon } from 'lib/ratecon-import-check/ratecon-import-check-server';
-import { getToken } from 'next-auth/jwt';
+import { NextAuthRequest } from 'next-auth/lib';
+import { NextResponse } from 'next/server';
 
 interface LogisticsData {
     logistics_company: string;
@@ -172,35 +173,35 @@ Extraction output:
     "invoice_emails": ["LoadDocs@CHRobinson.com"]
 }`;
 
-export async function POST(req: NextRequest) {
-    try {
-        // Get the token using edge-compatible method
-        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-        if (!token?.user?.defaultCarrierId) {
-            return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-        const carrierId = token.user.defaultCarrierId;
+export const POST = auth(async (req: NextAuthRequest) => {
+    if (req.method !== 'POST') {
+        return new NextResponse(JSON.stringify({ error: 'Method not allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
 
+    const session = req.auth;
+    if (!session || !session.user || !session.user.defaultCarrierId) {
+        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    const carrierId = session.user.defaultCarrierId;
+
+    try {
         const { documents } = await req.json();
 
-        // Check if the ratecon can be imported
         const canImport = await canImportRatecon(carrierId);
         if (!canImport) {
             return new NextResponse(JSON.stringify({ error: 'Ratecon import limit reached.' }), {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 status: 403,
             });
         }
 
-        /**
-         * Chat models stream message chunks rather than bytes, so this
-         * output parser handles serialization and encoding.
-         */
         const outputParser = new BytesOutputParser();
 
         if (!Array.isArray(documents)) {
@@ -265,9 +266,7 @@ export async function POST(req: NextRequest) {
         return new StreamingTextResponse(stream);
     } catch (error) {
         return new NextResponse(JSON.stringify({ error: error.message }), {
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
         });
     }
-}
+});
