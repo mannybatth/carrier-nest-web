@@ -1,9 +1,9 @@
 import prisma from 'lib/prisma';
 import NextAuth, { Session } from 'next-auth';
-import AzureADProvider from 'next-auth/providers/microsoft-entra-id';
-import EmailProvider from 'next-auth/providers/nodemailer';
-import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
+import Nodemailer from 'next-auth/providers/nodemailer';
+import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
 import Twilio from 'twilio';
 import { sendVerificationRequest } from 'lib/verification-request';
 import { PrismaAdapter } from '@auth/prisma-adapter';
@@ -16,7 +16,7 @@ const twilioClient = Twilio(accountSid, authToken);
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
     providers: [
-        EmailProvider({
+        Nodemailer({
             server: {
                 host: process.env.EMAIL_SERVER_HOST,
                 port: process.env.EMAIL_SERVER_PORT,
@@ -35,17 +35,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             },
             // maxAge: 24 * 60 * 60, // How long email links are valid for (default 24h)
         }),
-        GoogleProvider({
+        Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
         }),
-        AzureADProvider({
+        MicrosoftEntraID({
             clientId: process.env.AZURE_AD_CLIENT_ID,
             clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
         }),
-        CredentialsProvider({
+        Credentials({
             id: 'driver_auth',
             name: 'driver_auth',
             type: 'credentials',
@@ -117,7 +117,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
             },
         }),
-        CredentialsProvider({
+        Credentials({
             id: 'demo_login',
             name: 'demo_login',
             type: 'credentials',

@@ -60,7 +60,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
             if (email.value === 'demo@user.com') {
                 await signIn('demo_login', { email: email.value });
             } else {
-                await signIn('email', { email: email.value, callbackUrl });
+                await signIn('nodemailer', { email: email.value, callbackUrl });
             }
         } catch (error) {
             console.error(error);
@@ -199,7 +199,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 </button>
 
                                 <button
-                                    onClick={() => signIn('azure-ad', { callbackUrl })}
+                                    onClick={() => signIn('microsoft-entra-id', { callbackUrl })}
                                     className="flex w-full items-center justify-center gap-3 rounded-md bg-[#24292F] px-3 py-1.5 text-white hover:bg-[#3c3f43] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
                                 >
                                     <span
