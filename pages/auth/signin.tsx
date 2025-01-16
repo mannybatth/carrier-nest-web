@@ -3,6 +3,8 @@ import { NextPage } from 'next';
 import { getSession, signIn } from 'next-auth/react';
 import Image from 'next/image';
 import React, { useEffect } from 'react';
+import { GetServerSideProps } from 'next';
+import { auth } from 'auth';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -41,8 +43,6 @@ type Props = {
 const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
 
-    callbackUrl = callbackUrl?.includes('homepage') ? '/' : callbackUrl;
-
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
     useEffect(() => {
@@ -60,7 +60,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
             if (email.value === 'demo@user.com') {
                 await signIn('demo_login', { email: email.value });
             } else {
-                await signIn('nodemailer', { email: email.value, callbackUrl });
+                await signIn('nodemailer', { email: email.value, redirectTo: callbackUrl });
             }
         } catch (error) {
             console.error(error);
@@ -182,7 +182,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
 
                             <div className="grid grid-cols-2 gap-4 mt-6">
                                 <button
-                                    onClick={() => signIn('google', { callbackUrl })}
+                                    onClick={() => signIn('google', { redirectTo: callbackUrl })}
                                     className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[#505050] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
                                 >
                                     <span
@@ -199,7 +199,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 </button>
 
                                 <button
-                                    onClick={() => signIn('microsoft-entra-id', { callbackUrl })}
+                                    onClick={() => signIn('microsoft-entra-id', { redirectTo: callbackUrl })}
                                     className="flex w-full items-center justify-center gap-3 rounded-md bg-[#24292F] px-3 py-1.5 text-white hover:bg-[#3c3f43] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
                                 >
                                     <span
@@ -231,21 +231,29 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     );
 };
 
-SignIn.getInitialProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    console.log('getServerSideProps called');
+
     const { res, query } = context;
-    const session = await getSession();
+    const session = await auth(context);
+
+    console.log('getServerSideProps session', session);
 
     if (session && res && session.user) {
         res.writeHead(302, {
             Location: '/',
         });
         res.end();
-        return;
+        return { props: {} };
     }
 
+    const callbackUrl = query.callbackUrl?.includes('homepage') ? '/' : query.callbackUrl;
+
     return {
-        callbackUrl: query.callbackUrl as string,
-        error: query.error as SignInErrorTypes,
+        props: {
+            callbackUrl: callbackUrl as string,
+            error: query.error as SignInErrorTypes,
+        },
     };
 };
 
