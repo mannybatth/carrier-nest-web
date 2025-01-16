@@ -2,6 +2,15 @@ import { RadioGroup } from '@headlessui/react';
 import { CheckCircleIcon } from '@heroicons/react/20/solid';
 import { Carrier, SubscriptionPlan } from '@prisma/client';
 import { PageWithAuth } from 'interfaces/auth';
+import {
+    PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER,
+    PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
+    BASIC_PLAN_TOTAL_LOADS,
+    BASIC_PLAN_AI_RATECON_IMPORTS,
+    BASIC_PLAN_MAX_STORAGE_MB,
+    BASIC_PLAN_MAX_DRIVERS,
+    PRO_PLAN_COST_PER_DRIVER,
+} from 'lib/constants';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useState, useRef, useEffect } from 'react';
@@ -87,10 +96,6 @@ const CarrierSetup: PageWithAuth = () => {
     const { update, data: session, status } = useSession();
     const [companyData, setCompanyData] = useState<CarrierObj>();
     const countryOptions = ['United States', 'Canada', 'Mexico'];
-    const planOptions = [
-        { id: SubscriptionPlan.BASIC, title: 'Basic Plan', description: 'Basic features', users: 'Free' },
-        { id: SubscriptionPlan.PRO, title: 'Pro Plan', description: 'Advanced features', users: '$20/month' },
-    ];
 
     const fields: { id: keyof Carrier; label: string; required: boolean; type: string }[] = [
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
@@ -507,73 +512,141 @@ const CarrierSetup: PageWithAuth = () => {
                     <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
                         <div className="space-y-6">
                             <RadioGroup value={plan} onChange={setPlan} className="grid gap-4 mt-4 md:grid-cols-2">
-                                {planOptions.map((planOption) => (
-                                    <RadioGroup.Option
-                                        key={planOption.id}
-                                        value={planOption.id}
-                                        className={({ checked, active }) =>
-                                            `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
-                                                ${
-                                                    checked
-                                                        ? 'bg-blue-50 border-2 border-blue-500'
-                                                        : 'border border-gray-300'
-                                                }
-                                                ${active ? 'ring-2 ring-blue-500' : ''}
-                                                hover:border-blue-500 transition-colors`
-                                        }
-                                    >
-                                        {({ checked }) => (
-                                            <>
-                                                <div className="flex flex-1">
-                                                    <div className="flex flex-col">
-                                                        <RadioGroup.Label
-                                                            as="span"
-                                                            className="block text-lg font-medium text-gray-900"
-                                                        >
-                                                            {planOption.title}
-                                                        </RadioGroup.Label>
-                                                        <RadioGroup.Description
-                                                            as="span"
-                                                            className="mt-2 text-sm text-gray-500"
-                                                        >
-                                                            {planOption.description}
-                                                        </RadioGroup.Description>
-                                                        <RadioGroup.Description
-                                                            as="span"
-                                                            className="mt-4 text-lg font-medium text-gray-900"
-                                                        >
-                                                            {planOption.users}
-                                                        </RadioGroup.Description>
-                                                    </div>
+                                <RadioGroup.Option
+                                    value={SubscriptionPlan.BASIC}
+                                    className={({ checked, active }) =>
+                                        `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
+                                            ${
+                                                checked
+                                                    ? 'bg-blue-50 border-2 border-blue-500'
+                                                    : 'border border-gray-300'
+                                            }
+                                            ${active ? 'ring-2 ring-blue-500' : ''}
+                                            hover:border-blue-500 transition-colors`
+                                    }
+                                >
+                                    {({ checked }) => (
+                                        <>
+                                            <div className="flex flex-1">
+                                                <div className="flex flex-col">
+                                                    <RadioGroup.Label
+                                                        as="span"
+                                                        className="block text-lg font-medium text-gray-900"
+                                                    >
+                                                        Basic Plan
+                                                    </RadioGroup.Label>
+                                                    <RadioGroup.Description
+                                                        as="span"
+                                                        className="mt-2 text-sm text-gray-500"
+                                                    >
+                                                        <div className="mt-1">
+                                                            <p className="text-gray-600">
+                                                                Total loads: {BASIC_PLAN_TOTAL_LOADS}
+                                                            </p>
+                                                            <p className="text-gray-600">
+                                                                AI ratecon imports per month:{' '}
+                                                                {BASIC_PLAN_AI_RATECON_IMPORTS}
+                                                            </p>
+                                                            <p className="text-gray-600">
+                                                                Max storage: {BASIC_PLAN_MAX_STORAGE_MB}MB
+                                                            </p>
+                                                            <p className="text-gray-600">
+                                                                {BASIC_PLAN_MAX_DRIVERS === 1
+                                                                    ? 'Only one driver'
+                                                                    : `Up to ${BASIC_PLAN_MAX_DRIVERS} drivers`}
+                                                            </p>
+                                                        </div>
+                                                    </RadioGroup.Description>
+                                                    <RadioGroup.Description
+                                                        as="span"
+                                                        className="mt-4 text-lg font-medium text-gray-900"
+                                                    >
+                                                        <div className="flex items-baseline">
+                                                            <span className="text-3xl font-bold">$0</span>
+                                                            <span className="ml-1 text-gray-600">per month</span>
+                                                        </div>
+                                                    </RadioGroup.Description>
                                                 </div>
-                                                {checked && (
-                                                    <CheckCircleIcon
-                                                        className="w-6 h-6 text-blue-600"
-                                                        aria-hidden="true"
-                                                    />
-                                                )}
-                                            </>
-                                        )}
-                                    </RadioGroup.Option>
-                                ))}
+                                            </div>
+                                            {checked && (
+                                                <CheckCircleIcon className="w-6 h-6 text-blue-600" aria-hidden="true" />
+                                            )}
+                                        </>
+                                    )}
+                                </RadioGroup.Option>
+                                <RadioGroup.Option
+                                    value={SubscriptionPlan.PRO}
+                                    className={({ checked, active }) =>
+                                        `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
+                                            ${
+                                                checked
+                                                    ? 'bg-blue-50 border-2 border-blue-500'
+                                                    : 'border border-gray-300'
+                                            }
+                                            ${active ? 'ring-2 ring-blue-500' : ''}
+                                            hover:border-blue-500 transition-colors`
+                                    }
+                                >
+                                    {({ checked }) => (
+                                        <>
+                                            <div className="flex flex-1">
+                                                <div className="flex flex-col">
+                                                    <RadioGroup.Label
+                                                        as="span"
+                                                        className="block text-lg font-medium text-gray-900"
+                                                    >
+                                                        Pro Plan
+                                                    </RadioGroup.Label>
+                                                    <RadioGroup.Description
+                                                        as="span"
+                                                        className="mt-2 text-sm text-gray-500"
+                                                    >
+                                                        <div className="mt-1">
+                                                            <p className="text-gray-600">Unlimited loads</p>
+                                                            <p className="text-gray-600">
+                                                                AI ratecon imports per month:{' '}
+                                                                {PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers}
+                                                            </p>
+                                                            <p className="text-gray-600">
+                                                                Max Storage:{' '}
+                                                                {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers}GB
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <label htmlFor="numDrivers" className="text-gray-600">
+                                                                Number of drivers:
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                id="numDrivers"
+                                                                value={numDrivers}
+                                                                onChange={handleNumDriversChange}
+                                                                className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                                                                min="1"
+                                                            />
+                                                        </div>
+                                                    </RadioGroup.Description>
+                                                    <RadioGroup.Description
+                                                        as="span"
+                                                        className="mt-4 text-lg font-medium text-gray-900"
+                                                    >
+                                                        <div className="flex items-baseline">
+                                                            <span className="text-3xl font-bold">
+                                                                ${PRO_PLAN_COST_PER_DRIVER * numDrivers}
+                                                            </span>
+                                                            <span className="ml-1 text-gray-600">per month</span>
+                                                        </div>
+                                                    </RadioGroup.Description>
+                                                </div>
+                                            </div>
+                                            {checked && (
+                                                <CheckCircleIcon className="w-6 h-6 text-blue-600" aria-hidden="true" />
+                                            )}
+                                        </>
+                                    )}
+                                </RadioGroup.Option>
                             </RadioGroup>
                         </div>
-                        {plan === SubscriptionPlan.PRO && (
-                            <div className="flex items-center space-x-2">
-                                <label htmlFor="numDrivers" className="text-gray-600">
-                                    Number of drivers:
-                                </label>
-                                <input
-                                    type="number"
-                                    id="numDrivers"
-                                    value={numDrivers}
-                                    onChange={handleNumDriversChange}
-                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
-                                    min="1"
-                                    max="10"
-                                />
-                            </div>
-                        )}
                     </form>
                 </div>
             </div>

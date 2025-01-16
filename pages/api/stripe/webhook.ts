@@ -283,6 +283,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 break;
             }
 
+            case 'customer.subscription.resumed': {
+                const subscription = event.data.object as Stripe.Subscription;
+
+                await prisma.subscription.updateMany({
+                    where: {
+                        stripeSubscriptionId: subscription.id,
+                    },
+                    data: {
+                        status: 'active',
+                    },
+                });
+                break;
+            }
+
             case 'invoice.paid': {
                 const invoice = event.data.object as Stripe.Invoice;
                 if (!invoice.subscription || !invoice.customer) break;

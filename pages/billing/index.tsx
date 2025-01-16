@@ -360,7 +360,7 @@ const BillingPage = () => {
                                                     onChange={handleNumDriversChange}
                                                     className="w-16 px-2 py-1 border border-gray-300 rounded-md"
                                                     min="1"
-                                                    max="10"
+                                                    disabled={currentPlan === SubscriptionPlan.PRO}
                                                 />
                                             </div>
                                             <div className="flex items-baseline">
