@@ -1,4 +1,3 @@
-import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import { stripe } from 'lib/stripe';
@@ -66,17 +65,7 @@ const getQuantityFromSubscription = (subscription: Stripe.Subscription): number 
     return firstItem?.quantity || 1;
 };
 
-export const GET = auth(async (req: NextAuthRequest) => {
-    if (!req.auth) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-});
-
-export const POST = auth(async (req: NextAuthRequest) => {
-    if (!req.auth) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
+export const POST = async (req: NextAuthRequest) => {
     const signature = req.headers.get('stripe-signature');
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -341,4 +330,4 @@ export const POST = auth(async (req: NextAuthRequest) => {
         console.error(`Error processing webhook: ${err.message}`);
         return NextResponse.json({ message: 'Webhook handler failed' }, { status: 500 });
     }
-});
+};
