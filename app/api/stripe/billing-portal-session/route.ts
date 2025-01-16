@@ -3,6 +3,7 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { stripe } from 'lib/stripe';
+import { appUrl } from 'lib/constants';
 
 export const POST = auth(async (req: NextAuthRequest) => {
     if (!req.auth) {
@@ -35,7 +36,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
     try {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${process.env.APP_URL}/billing`,
+            return_url: `${appUrl}/billing`,
         });
 
         return NextResponse.json(
