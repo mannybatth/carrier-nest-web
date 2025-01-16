@@ -157,7 +157,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 if (token.user.carrierId) token.carrierId = token.user.carrierId; // Store the driver's carrier ID in the JWT
             }
 
-            if (trigger === 'update' && token.user?.id) {
+            if (trigger === 'update') {
+                console.log('jwt trigger update');
                 const freshUser = await prisma.user.findUnique({
                     where: { id: token.user.id },
                 });
@@ -168,12 +169,26 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
             return token;
         },
-        async session({ session, user, token }: { session: Session; user: AdapterUser; token: JWT }) {
+        async session({
+            session,
+            user,
+            token,
+            trigger,
+        }: {
+            session: Session;
+            user: AdapterUser;
+            token: JWT;
+            trigger?: string;
+        }) {
             // console.log('------------------');
             // console.log('callbacks session:', session);
             // console.log('callbacks session user:', user);
             // console.log('callbacks session token:', token);
             // console.log('------------------');
+
+            if (trigger === 'update') {
+                console.log('session trigger update');
+            }
 
             if (user) {
                 session.user = user as AuthUser;
