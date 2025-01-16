@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+import { canImportRatecon } from 'lib/ratecon-import-check/ratecon-import-check-server';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webAuthLibrary = require('web-auth-library');
 
@@ -62,6 +65,16 @@ function extractTextAnnotations(document, getText) {
 }
 
 export default async function POST(req: NextRequest) {
+    // Get the token using edge-compatible method
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+    console.log('Token:', token);
+
+    if (!token?.user?.defaultCarrierId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const carrierId = token.user.defaultCarrierId;
+
     // Generate a short lived access token from the service account key credentials
     const accessToken = await webAuthLibrary.google.getAccessToken({
         credentials: {
@@ -77,6 +90,13 @@ export default async function POST(req: NextRequest) {
     if (req.method === 'POST') {
         try {
             const { file } = await req.json();
+
+            // Check if the ratecon can be imported
+            const canImport = await canImportRatecon(carrierId);
+            if (!canImport) {
+                return NextResponse.json({ error: 'Ratecon import limit reached.' }, { status: 403 });
+            }
+
             const response = await fetchDocumentAI(file, accessToken);
 
             const { document } = response;

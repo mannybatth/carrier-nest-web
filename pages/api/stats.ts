@@ -23,6 +23,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
     async function _get() {
         try {
             const session = await getServerSession(req, res, authOptions);
+            const carrierId = session.user.defaultCarrierId;
 
             const numberOfDaysToLoad = Number(req.query.timeframe) || 7;
 
@@ -31,7 +32,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
 
             const loads = await prisma.load.findMany({
                 where: {
-                    carrierId: session.user.defaultCarrierId,
+                    carrierId: carrierId,
                     shipper: {
                         date: {
                             gte: start,
@@ -60,7 +61,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
             const totalAmountPaidStats = await prisma.invoicePayment.groupBy({
                 by: ['carrierId'],
                 where: {
-                    carrierId: session.user.defaultCarrierId,
+                    carrierId: carrierId,
                     paidAt: {
                         gte: start,
                     },
@@ -69,8 +70,7 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
                     amount: true,
                 },
             });
-            const totalPaid = totalAmountPaidStats.find((status) => status.carrierId === session.user.defaultCarrierId)
-                ?._sum.amount;
+            const totalPaid = totalAmountPaidStats.find((status) => status.carrierId === carrierId)?._sum.amount;
 
             const stats: DashboardStats = {
                 totalLoads: loads.length,
