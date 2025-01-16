@@ -1,4 +1,6 @@
 import { Driver } from '@prisma/client';
+import { BASIC_PLAN_MAX_DRIVERS } from 'lib/constants';
+import { isProPlan } from 'lib/subscription';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
@@ -47,6 +49,29 @@ function handler(req: NextApiRequest, res: NextApiResponse<JSONResponse<any>>) {
         try {
             const session = await getServerSession(req, res, authOptions);
             const driverData = req.body as Driver;
+            const carrierId = session.user.defaultCarrierId;
+
+            const carrier = await prisma.carrier.findUnique({
+                where: { id: carrierId },
+                include: { subscription: true },
+            });
+
+            if (!carrier) {
+                throw new Error('Carrier not found');
+            }
+
+            const driverCount = await prisma.driver.count({
+                where: { carrierId },
+            });
+
+            const maxDrivers =
+                isProPlan(carrier.subscription) && carrier.subscription?.numberOfDrivers
+                    ? carrier.subscription.numberOfDrivers
+                    : BASIC_PLAN_MAX_DRIVERS;
+
+            if (driverCount >= maxDrivers) {
+                throw new Error('Max number of drivers limit reached');
+            }
 
             // Check if a driver with the same phone and carrierId already exists
             if (driverData.phone) {

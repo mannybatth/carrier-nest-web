@@ -4,6 +4,8 @@ import { Storage } from '@google-cloud/storage';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import prisma from '../../lib/prisma';
+import { isProPlan } from '../../lib/subscription';
 
 export const config = {
     api: {
@@ -44,6 +46,40 @@ async function uploadFile(
     };
 }
 
+async function checkStorageLimit(carrierId: string, fileSize: number): Promise<boolean> {
+    const carrier = await prisma.carrier.findUnique({
+        where: { id: carrierId },
+        include: { subscription: true },
+    });
+
+    if (!carrier) {
+        throw new Error('Carrier not found');
+    }
+
+    const documents = await prisma.loadDocument.findMany({
+        where: { carrierId },
+    });
+
+    if (!documents || documents.length === 0) {
+        return true;
+    }
+
+    const currentStorage = documents.reduce((acc, doc) => acc + doc.fileSize, 0);
+
+    // Determine the maximum storage limit based on the subscription plan
+    const maxStorage =
+        isProPlan(carrier.subscription) && carrier.subscription?.numberOfDrivers
+            ? parseInt(process.env.NEXT_PUBLIC_PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER) *
+              1024 *
+              1024 *
+              1024 * // Convert GB to bytes
+              carrier.subscription.numberOfDrivers
+            : parseInt(process.env.NEXT_PUBLIC_BASIC_PLAN_MAX_STORAGE_MB) * 1024 * 1024; // Convert MB to bytes;
+
+    // Check if the current storage plus the new file size exceeds the maximum storage limit
+    return currentStorage + fileSize <= maxStorage;
+}
+
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     if (req.method === 'POST') {
         try {
@@ -58,6 +94,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             const file: PersistentFile = data.files.file[0];
             const localFilePath = file.filepath;
             const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME;
+            const carrierId = data.fields.carrierId;
+
+            const isWithinLimit = await checkStorageLimit(carrierId, file.size);
+            if (!isWithinLimit) {
+                return res.status(400).json({ error: 'Storage limit exceeded' });
+            }
 
             const { gcsInputUri, uniqueFileName, originalFileName } = await uploadFile(
                 localFilePath,

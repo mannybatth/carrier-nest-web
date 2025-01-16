@@ -1,11 +1,13 @@
 import { Load, LoadStatus, Prisma } from '@prisma/client';
 import startOfDay from 'date-fns/startOfDay';
+import { BASIC_PLAN_TOTAL_LOADS } from 'lib/constants';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { ParsedUrlQuery } from 'querystring';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { PaginationMetadata } from '../../interfaces/table';
 import { calcPaginationMetadata } from '../../lib/pagination';
+import { isProPlan } from '../../lib/subscription';
 import prisma from '../../lib/prisma';
 import { authOptions } from './auth/[...nextauth]';
 
@@ -308,6 +310,27 @@ export const postLoads = async ({
 }): Promise<JSONResponse<{ load: Load }>> => {
     try {
         const session = await getServerSession(req, res, authOptions);
+        const carrierId = session.user.defaultCarrierId;
+
+        const subscription = await prisma.subscription.findFirst({
+            where: {
+                carrierId,
+            },
+        });
+
+        if (!isProPlan(subscription)) {
+            // Limit the number of loads for the Basic Plan
+            const currentLoads = await prisma.load.count({
+                where: { carrierId },
+            });
+
+            if (currentLoads >= BASIC_PLAN_TOTAL_LOADS) {
+                return {
+                    code: 400,
+                    errors: [{ message: 'Load limit reached for the Basic Plan.' }],
+                };
+            }
+        }
 
         const loadData = req.body as ExpandedLoad;
 

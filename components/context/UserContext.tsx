@@ -2,6 +2,7 @@ import { ExpandedCarrier } from 'interfaces/models';
 import { useSession } from 'next-auth/react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCarriers } from '../../lib/rest/carrier';
+import { isProPlan as isProPlanUtil } from '../../lib/subscription';
 
 type UserContextType = {
     carriers: ExpandedCarrier[];
@@ -37,7 +38,7 @@ export function UserProvider({ children }: UserProviderProps) {
         if (session?.user?.defaultCarrierId && carriers.length > 0) {
             const carrier = carriers.find((c) => c.id === session.user.defaultCarrierId) || null;
             setDefaultCarrier(carrier);
-            setIsProPlan(carrier?.subscription?.plan === 'PRO' && carrier?.subscription?.status === 'active');
+            setIsProPlan(isProPlanUtil(carrier?.subscription));
         }
     }, [session, carriers]);
 
