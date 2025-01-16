@@ -1,10 +1,9 @@
 import { XCircleIcon } from '@heroicons/react/24/solid';
 import { NextPage } from 'next';
-import { getSession, signIn } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import React, { useEffect } from 'react';
 import { GetServerSideProps } from 'next';
-import { auth } from 'auth';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -232,27 +231,30 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    console.log('getServerSideProps called');
-
     const { res, query } = context;
-    const session = await auth(context);
+    const url = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}/api/auth/session`;
 
-    console.log('getServerSideProps session', session);
+    const sessionResponse = await fetch(url, {
+        headers: new Headers(context.req.headers as Record<string, string>),
+    });
+    const session = await sessionResponse.json();
 
     if (session && res && session.user) {
         res.writeHead(302, {
             Location: '/',
         });
         res.end();
-        return { props: {} };
+        return {
+            props: {},
+        };
     }
 
     const callbackUrl = query.callbackUrl?.includes('homepage') ? '/' : query.callbackUrl;
 
     return {
         props: {
-            callbackUrl: callbackUrl as string,
-            error: query.error as SignInErrorTypes,
+            callbackUrl: (callbackUrl as string) || '/',
+            error: (query.error as SignInErrorTypes) || null,
         },
     };
 };
