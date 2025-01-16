@@ -232,8 +232,8 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
 };
 
 SignIn.getInitialProps = async (context) => {
-    const { req, res } = context;
-    const session = await getSession({ req });
+    const { res, query } = context;
+    const session = await getSession();
 
     if (session && res && session.user) {
         res.writeHead(302, {
@@ -244,8 +244,8 @@ SignIn.getInitialProps = async (context) => {
     }
 
     return {
-        callbackUrl: context.query.callbackUrl as string,
-        error: context.query.error as SignInErrorTypes,
+        callbackUrl: query.callbackUrl as string,
+        error: query.error as SignInErrorTypes,
     };
 };
 

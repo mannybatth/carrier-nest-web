@@ -1,8 +1,8 @@
 import { ExpandedCarrier } from 'interfaces/models';
-import { useSession } from 'next-auth/react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCarriers } from '../../lib/rest/carrier';
 import { isProPlan as isProPlanUtil } from '../../lib/subscription';
+import { useSession } from 'next-auth/react';
 
 type UserContextType = {
     carriers: ExpandedCarrier[];

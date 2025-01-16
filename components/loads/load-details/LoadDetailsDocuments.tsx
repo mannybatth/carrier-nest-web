@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useRef } from 'react';
 import { ArrowUpTrayIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { LoadDocument } from '@prisma/client';
 
@@ -23,7 +23,7 @@ const LoadDetailsDocuments: React.FC<LoadDetailsDocumentsProps> = ({
     setDocumentIdToDelete,
     setOpenDeleteDocumentConfirmation,
 }) => {
-    let podFileInput: HTMLInputElement;
+    const podFileInputRef = useRef<HTMLInputElement | null>(null);
 
     return (
         <div>
@@ -37,12 +37,12 @@ const LoadDetailsDocuments: React.FC<LoadDetailsDocumentsProps> = ({
                                     type="file"
                                     onChange={handleUploadPodsChange}
                                     style={{ display: 'none' }}
-                                    ref={(input) => (podFileInput = input)}
+                                    ref={podFileInputRef}
                                 />
                                 <button
                                     type="button"
                                     className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    onClick={() => podFileInput.click()}
+                                    onClick={() => podFileInputRef.current?.click()}
                                     disabled={docsLoading}
                                 >
                                     <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
@@ -120,7 +120,7 @@ const LoadDocumentsSection: React.FC<LoadDocumentsSectionProps> = ({
     setDocumentIdToDelete,
     setOpenDeleteDocumentConfirmation,
 }) => {
-    let fileInput: HTMLInputElement;
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     return (
         <div>
@@ -132,12 +132,12 @@ const LoadDocumentsSection: React.FC<LoadDocumentsSectionProps> = ({
                             type="file"
                             onChange={handleUploadChange}
                             style={{ display: 'none' }}
-                            ref={(input) => (fileInput = input)}
+                            ref={fileInputRef}
                         />
                         <button
                             type="button"
                             className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            onClick={() => fileInput.click()}
+                            onClick={() => fileInputRef.current?.click()}
                             disabled={docsLoading}
                         >
                             <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
