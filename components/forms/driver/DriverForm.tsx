@@ -63,7 +63,7 @@ const DriverForm: React.FC<Props> = ({
                                 Phone
                             </label>
                             <input
-                                {...register('phone')}
+                                {...register('phone', { required: 'Phone number is required' })}
                                 type="text"
                                 id="phone"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
