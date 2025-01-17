@@ -57,7 +57,7 @@ async function checkStorageLimit(carrierId: string, fileSize: number): Promise<b
         return true;
     }
 
-    const currentStorage = documents.reduce((acc, doc) => acc + doc.fileSize, 0);
+    const currentStorage = documents.reduce((acc, doc) => acc + BigInt(doc.fileSize), BigInt(0));
 
     const maxStorage =
         isProPlan(carrier.subscription) && carrier.subscription?.numberOfDrivers
@@ -68,7 +68,7 @@ async function checkStorageLimit(carrierId: string, fileSize: number): Promise<b
               carrier.subscription.numberOfDrivers
             : parseInt(process.env.NEXT_PUBLIC_BASIC_PLAN_MAX_STORAGE_MB) * 1024 * 1024;
 
-    return currentStorage + fileSize <= maxStorage;
+    return currentStorage + BigInt(fileSize) <= BigInt(maxStorage);
 }
 
 export const POST = auth(async (req: NextAuthRequest) => {
