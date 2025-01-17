@@ -12,15 +12,15 @@ const SideBarAccount: React.FC = () => {
     return (
         <div className="flex">
             <Menu as="div" className="relative inline-block w-full bg-slate-100/60 mb-2">
-                <Menu.Button className="flex flex-row items-center w-full px-4 py-4 space-x-2 text-left hover:bg-gray-200 hover:cursor-pointer active:bg-gray-300">
+                <Menu.Button className="flex flex-row relative container items-center w-full px-4 py-4 space-x-2 text-left hover:bg-gray-200 hover:cursor-pointer active:bg-gray-300">
                     <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-lg font-bold text-slate-100 rounded-full shadow-md border-2 border-gray-400 bg-neutral-400">
                         {defaultCarrier?.name?.charAt(0).toUpperCase() || ''}
                     </div>
-                    <div className="flex-1 h-8">
-                        <div className="text-sm font-medium leading-4 text-zinc-600 line-clamp-1">
+                    <div className="flex-1 flex-col w-2/3 h-8">
+                        <div className="text-sm font-medium leading-4 text-zinc-600 line-clamp-1 ">
                             {defaultCarrier?.name || ''}
                         </div>
-                        <div className="text-xs font-medium leading-4 text-zinc-500 line-clamp-1">
+                        <div className="text-xs font-medium leading-4  w-full truncate text-zinc-500">
                             {defaultCarrier?.email || ''}
                         </div>
                     </div>
