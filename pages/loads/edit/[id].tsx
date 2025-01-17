@@ -17,7 +17,7 @@ const EditLoad: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
     const router = useRouter();
 
-    const formHook = useForm<ExpandedLoad>();
+    const formHook = useForm<Partial<ExpandedLoad>>();
 
     const [loading, setLoading] = React.useState(false);
 
