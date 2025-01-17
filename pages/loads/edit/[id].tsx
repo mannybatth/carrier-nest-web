@@ -17,7 +17,7 @@ const EditLoad: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
     const router = useRouter();
 
-    const formHook = useForm<Partial<ExpandedLoad>>();
+    const formHook = useForm<ExpandedLoad>();
 
     const [loading, setLoading] = React.useState(false);
 
@@ -33,75 +33,19 @@ const EditLoad: PageWithAuth = () => {
             return;
         }
 
-        formHook.setValue('customer', {
-            id: load.customer?.id,
-            name: load.customer?.name,
-        });
+        formHook.setValue('customer', load.customer);
         formHook.setValue('refNum', load.refNum);
         formHook.setValue('rate', load.rate);
-        formHook.setValue('shipper', {
-            id: load.shipper?.id,
-            type: load.shipper?.type,
-            name: load.shipper?.name,
-            street: load.shipper?.street,
-            city: load.shipper?.city,
-            state: load.shipper?.state,
-            zip: load.shipper?.zip,
-            country: load.shipper?.country,
-            date: load.shipper?.date,
-            time: load.shipper?.time,
-            stopIndex: load.shipper?.stopIndex,
-            latitude: load.shipper?.latitude,
-            longitude: load.shipper?.longitude,
-            poNumbers: load.shipper?.poNumbers,
-            pickUpNumbers: load.shipper?.pickUpNumbers,
-            referenceNumbers: load.shipper?.referenceNumbers,
-        });
-        formHook.setValue('receiver', {
-            id: load.receiver?.id,
-            type: load.receiver?.type,
-            name: load.receiver?.name,
-            street: load.receiver?.street,
-            city: load.receiver?.city,
-            state: load.receiver?.state,
-            zip: load.receiver?.zip,
-            country: load.receiver?.country,
-            date: load.receiver?.date,
-            time: load.receiver?.time,
-            stopIndex: load.receiver?.stopIndex,
-            latitude: load.receiver?.latitude,
-            longitude: load.receiver?.longitude,
-            poNumbers: load.receiver?.poNumbers,
-            pickUpNumbers: load.receiver?.pickUpNumbers,
-            referenceNumbers: load.receiver?.referenceNumbers,
-        });
-        formHook.setValue(
-            'stops',
-            load.stops.map((stop) => ({
-                id: stop.id,
-                type: stop.type,
-                name: stop.name,
-                street: stop.street,
-                city: stop.city,
-                state: stop.state,
-                zip: stop.zip,
-                country: stop.country,
-                date: stop.date,
-                time: stop.time,
-                stopIndex: stop.stopIndex,
-                latitude: stop.latitude,
-                longitude: stop.longitude,
-                poNumbers: stop.poNumbers,
-                pickUpNumbers: stop.pickUpNumbers,
-                referenceNumbers: stop.referenceNumbers,
-            })),
-        );
+        formHook.setValue('shipper', load.shipper);
+        formHook.setValue('receiver', load.receiver);
+        formHook.setValue('stops', load.stops);
     }, [load]);
 
     const submit = async (data: ExpandedLoad) => {
         console.log('data to save', data);
 
         const loadData: ExpandedLoad = {
+            customerId: data.customer.id,
             refNum: data.refNum,
             rate: new Prisma.Decimal(data.rate),
             customer: data.customer,
