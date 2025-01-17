@@ -92,7 +92,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     fileUrl: response.gcsInputUri,
                     fileName: response.originalFileName,
                     fileType: file.type,
-                    fileSize: file.size,
+                    fileSize: BigInt(file.size),
                 };
                 const tempDocs = [simpleDoc, ...loadDocuments] as LoadDocument[];
                 setLoadDocuments(tempDocs);
@@ -133,7 +133,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     fileUrl: response.gcsInputUri,
                     fileName: response.originalFileName,
                     fileType: file.type,
-                    fileSize: file.size,
+                    fileSize: BigInt(file.size),
                 };
                 const tempDocs = [simpleDoc, ...podDocuments] as LoadDocument[];
                 setPodDocuments(tempDocs);

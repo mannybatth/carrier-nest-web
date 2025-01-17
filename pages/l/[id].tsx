@@ -212,7 +212,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                     fileUrl: uploadResponse.gcsInputUri,
                     fileName: uploadResponse.originalFileName,
                     fileType: file.type,
-                    fileSize: file.size,
+                    fileSize: BigInt(file.size),
                 };
                 const { longitude, latitude } = locationResponse;
                 await addLoadDocumentToLoad(assignment.load.id, simpleDoc, {
