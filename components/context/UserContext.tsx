@@ -46,7 +46,6 @@ export function UserProvider({ children }: UserProviderProps) {
     }, [session, carriers]);
 
     const fetchCarriers = async () => {
-        setIsLoadingCarrier(true);
         try {
             const data = await getCarriers();
             setCarriers(data);
