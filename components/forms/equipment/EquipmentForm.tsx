@@ -40,7 +40,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('equipmentNumber')}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.equipmentNumber && <span className="text-red-600">{errors.equipmentNumber.message}</span>}
+                    {errors.equipmentNumber && (
+                        <span className="text-sm text-red-600">{errors.equipmentNumber.message}</span>
+                    )}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -53,7 +55,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('type', { required: 'Type is required' })}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.type && <span className="text-red-600">{errors.type.message}</span>}
+                    {errors.type && <span className="text-sm text-red-600">{errors.type.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -66,7 +68,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('make', { required: 'Make is required' })}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.make && <span className="text-red-600">{errors.make.message}</span>}
+                    {errors.make && <span className="text-sm text-red-600">{errors.make.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -79,7 +81,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('model')}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.model && <span className="text-red-600">{errors.model.message}</span>}
+                    {errors.model && <span className="text-sm text-red-600">{errors.model.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -95,7 +97,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         onWheel={(e) => e.currentTarget.blur()}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.year && <span className="text-red-600">{errors.year.message}</span>}
+                    {errors.year && <span className="text-sm text-red-600">{errors.year.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -108,7 +110,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('vin')}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.vin && <span className="text-red-600">{errors.vin.message}</span>}
+                    {errors.vin && <span className="text-sm text-red-600">{errors.vin.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -121,7 +123,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         {...register('licensePlate')}
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                     />
-                    {errors.licensePlate && <span className="text-red-600">{errors.licensePlate.message}</span>}
+                    {errors.licensePlate && <span className="text-sm text-red-600">{errors.licensePlate.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">
@@ -137,7 +139,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         <option value="MAINTENANCE">Maintenance</option>
                         <option value="INACTIVE">Inactive</option>
                     </select>
-                    {errors.status && <span className="text-red-600">{errors.status.message}</span>}
+                    {errors.status && <span className="text-sm text-red-600">{errors.status.message}</span>}
                 </div>
 
                 <div className="col-span-6 sm:col-span-3">

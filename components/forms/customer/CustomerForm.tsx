@@ -31,7 +31,7 @@ const CustomerForm: React.FC<Props> = ({
                             autoComplete="customer-name"
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
-                        {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
+                        {errors.name && <p className="text-sm text-red-600">{errors.name?.message}</p>}
                     </div>
                 ) : (
                     <>
@@ -46,7 +46,7 @@ const CustomerForm: React.FC<Props> = ({
                                 autoComplete="customer-name"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
+                            {errors.name && <p className="text-sm text-red-600">{errors.name?.message}</p>}
                         </div>
                         <div className="col-span-12 lg:col-span-4">
                             <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">
@@ -59,7 +59,7 @@ const CustomerForm: React.FC<Props> = ({
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.contactEmail && (
-                                <p className="mt-2 text-sm text-red-600">{errors.contactEmail?.message}</p>
+                                <p className="text-sm text-red-600">{errors.contactEmail?.message}</p>
                             )}
                         </div>
                         <div className="col-span-12 lg:col-span-4">
@@ -73,7 +73,7 @@ const CustomerForm: React.FC<Props> = ({
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.billingEmail && (
-                                <p className="mt-2 text-sm text-red-600">{errors.billingEmail?.message}</p>
+                                <p className="text-sm text-red-600">{errors.billingEmail?.message}</p>
                             )}
                         </div>
                         <div className="col-span-12 lg:col-span-4">
@@ -87,7 +87,7 @@ const CustomerForm: React.FC<Props> = ({
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                             {errors.paymentStatusEmail && (
-                                <p className="mt-2 text-sm text-red-600">{errors.paymentStatusEmail?.message}</p>
+                                <p className="text-sm text-red-600">{errors.paymentStatusEmail?.message}</p>
                             )}
                         </div>
                         <div className="col-span-12 sm:col-span-6 lg:col-span-12">
@@ -101,7 +101,7 @@ const CustomerForm: React.FC<Props> = ({
                                 autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.street && <p className="mt-2 text-sm text-red-600">{errors.street?.message}</p>}
+                            {errors.street && <p className="text-sm text-red-600">{errors.street?.message}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-6 lg:col-span-3">
                             <label htmlFor="city" className="block text-sm font-medium text-gray-700">
@@ -114,7 +114,7 @@ const CustomerForm: React.FC<Props> = ({
                                 autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.city && <p className="mt-2 text-sm text-red-600">{errors.city?.message}</p>}
+                            {errors.city && <p className="text-sm text-red-600">{errors.city?.message}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                             <label htmlFor="state" className="block text-sm font-medium text-gray-700">
@@ -127,7 +127,7 @@ const CustomerForm: React.FC<Props> = ({
                                 autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.state && <p className="mt-2 text-sm text-red-600">{errors.state?.message}</p>}
+                            {errors.state && <p className="text-sm text-red-600">{errors.state?.message}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                             <label htmlFor="zip" className="block text-sm font-medium text-gray-700">
@@ -140,7 +140,7 @@ const CustomerForm: React.FC<Props> = ({
                                 autoComplete="off"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.zip && <p className="mt-2 text-sm text-red-600">{errors.zip?.message}</p>}
+                            {errors.zip && <p className="text-sm text-red-600">{errors.zip?.message}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-4 lg:col-span-3">
                             <Controller
@@ -163,7 +163,7 @@ const CustomerForm: React.FC<Props> = ({
                                                 </option>
                                             ))}
                                         </select>
-                                        {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                        {error && <p className="text-sm text-red-600">{error.message}</p>}
                                     </>
                                 )}
                             />

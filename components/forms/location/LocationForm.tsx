@@ -29,7 +29,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('name', { required: 'Name is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.name && <span className="text-red-600">{errors.name.message}</span>}
+                            {errors.name && <span className="text-sm text-red-600">{errors.name.message}</span>}
                         </div>
                     </>
                 ) : (
@@ -44,7 +44,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('name', { required: 'Name is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.name && <span className="text-red-600">{errors.name.message}</span>}
+                            {errors.name && <span className="text-sm text-red-600">{errors.name.message}</span>}
                         </div>
 
                         <div className="col-span-6 sm:col-span-3">
@@ -57,7 +57,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('street', { required: 'Street is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.street && <span className="text-red-600">{errors.street.message}</span>}
+                            {errors.street && <span className="text-sm text-red-600">{errors.street.message}</span>}
                         </div>
 
                         <div className="col-span-6 sm:col-span-3">
@@ -70,7 +70,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('city', { required: 'City is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.city && <span className="text-red-600">{errors.city.message}</span>}
+                            {errors.city && <span className="text-sm text-red-600">{errors.city.message}</span>}
                         </div>
 
                         <div className="col-span-6 sm:col-span-2">
@@ -83,7 +83,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('state', { required: 'State is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.state && <span className="text-red-600">{errors.state.message}</span>}
+                            {errors.state && <span className="text-sm text-red-600">{errors.state.message}</span>}
                         </div>
 
                         <div className="col-span-6 sm:col-span-2">
@@ -96,7 +96,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('zip', { required: 'Zip is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.zip && <span className="text-red-600">{errors.zip.message}</span>}
+                            {errors.zip && <span className="text-sm text-red-600">{errors.zip.message}</span>}
                         </div>
 
                         <div className="col-span-6 sm:col-span-2">
@@ -109,7 +109,7 @@ const LocationForm: React.FC<Props> = ({
                                 {...register('country', { required: 'Country is required' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm sm:text-sm"
                             />
-                            {errors.country && <span className="text-red-600">{errors.country.message}</span>}
+                            {errors.country && <span className="text-sm text-red-600">{errors.country.message}</span>}
                         </div>
                     </>
                 )}
