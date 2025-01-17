@@ -46,18 +46,22 @@ const DriverPaymentsTable: React.FC<DriverPaymentsTableProps> = ({
                                 <div className="flex items-center">
                                     {driverPayment.assignmentPayments.map((payment, index) => (
                                         <React.Fragment key={payment.id}>
-                                            <LoadPopover
-                                                trigger={
-                                                    <Link
-                                                        href={`/loads/${payment.loadId}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {payment.load.refNum}
-                                                    </Link>
-                                                }
-                                                assignment={payment.driverAssignment}
-                                                load={payment.load}
-                                            />
+                                            {payment.load ? (
+                                                <LoadPopover
+                                                    trigger={
+                                                        <Link
+                                                            href={`/loads/${payment.loadId}`}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            {payment.load.refNum}
+                                                        </Link>
+                                                    }
+                                                    assignment={payment.driverAssignment}
+                                                    load={payment.load}
+                                                />
+                                            ) : (
+                                                <span className="text-gray-500">Deleted Load</span>
+                                            )}
                                             {index < driverPayment.assignmentPayments.length - 1 && (
                                                 <span className="mr-1">,</span>
                                             )}
