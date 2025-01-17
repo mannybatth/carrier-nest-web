@@ -338,7 +338,7 @@ model LoadDocument {
     fileUrl          String
     fileName         String
     fileType         String
-    fileSize         Int
+    fileSize         BigInt
     loadIdForPodDoc  String?
     loadIdForRatecon String?        @unique
     driverId         String?
