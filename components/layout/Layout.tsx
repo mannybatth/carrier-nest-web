@@ -72,22 +72,13 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                     </button>
                                 </div>
                             </Transition.Child>
-                            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-                                <div className="flex px-3 pb-1">
-                                    <div className="flex-1"></div>
-                                    {/* <button
-                                        type="button"
-                                        className="inline-flex items-center justify-center w-6 h-6 rounded-md text-zinc-500 hover:bg-gray-200 active:bg-gray-300"
-                                    >
-                                        <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
-                                    </button> */}
-                                </div>
-                                <SideBarAccount></SideBarAccount>
+                            <div className="flex-1 h-0 pt-0 pb-4 overflow-y-auto">
+                                <SideBarFooter></SideBarFooter>
                                 <SideBarSearch></SideBarSearch>
                                 <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
                                 <Navigation></Navigation>
                             </div>
-                            <SideBarFooter></SideBarFooter>
+                            <SideBarAccount></SideBarAccount>
                         </div>
                     </Transition.Child>
                     <div className="flex-shrink-0 w-14">{/* Force sidebar to shrink to fit close icon */}</div>
@@ -97,22 +88,14 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
             {/* Static sidebar for desktop */}
             <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
                 <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-zinc-100">
-                    <div className="flex flex-col flex-1 pt-3 pb-4 overflow-y-auto">
-                        <div className="flex px-3 pb-1">
-                            <div className="flex-1"></div>
-                            {/* <button
-                                type="button"
-                                className="inline-flex items-center justify-center w-6 h-6 rounded-md text-zinc-500 hover:bg-gray-200 active:bg-gray-300"
-                            >
-                                <ChevronDoubleLeftIcon className="w-4 h-4 text-zinc-500"></ChevronDoubleLeftIcon>
-                            </button> */}
-                        </div>
-                        <SideBarAccount></SideBarAccount>
+                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-y-auto">
+                        <SideBarFooter></SideBarFooter>
                         <SideBarSearch></SideBarSearch>
                         <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
                         <Navigation></Navigation>
                     </div>
-                    <SideBarFooter></SideBarFooter>
+
+                    <SideBarAccount></SideBarAccount>
                 </div>
             </div>
             <div className="flex flex-col flex-1 md:pl-64">

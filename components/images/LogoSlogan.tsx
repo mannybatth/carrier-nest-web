@@ -7,13 +7,13 @@ type Props = {
 const LogoSlogan: React.FC<Props> = ({ className }: Props) => {
     return (
         <div className={className}>
-            <svg width="130" height="19" viewBox="0 0 279 19" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <svg width="105" height="19" viewBox="0 0 279 19" version="1.1" xmlns="http://www.w3.org/2000/svg">
                 <title>trucking simplified</title>
                 <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
                     <g
                         id="Large-Copy"
                         transform="translate(-945.000000, -262.000000)"
-                        fill="#929292"
+                        fill="#566D7E"
                         fillRule="nonzero"
                     >
                         <g id="trucking-simplified" transform="translate(945.152000, 262.624000)">
