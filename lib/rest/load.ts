@@ -78,7 +78,7 @@ export const createLoad = async (load: ExpandedLoad, rateconFile?: File) => {
                 fileUrl: uploadResponse.gcsInputUri,
                 fileName: uploadResponse.originalFileName,
                 fileType: rateconFile.type,
-                fileSize: rateconFile.size,
+                fileSize: BigInt(rateconFile.size),
             };
             load.rateconDocument = simpleDoc as LoadDocument;
         }
