@@ -103,7 +103,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     }
 
                     // Notify the frontend that an SMS has been sent.
-                    return null; // No session is created yet.
+                    return {}; // No session is created yet.
                 }
 
                 // If a code is provided, verify it against the stored code in the database.
