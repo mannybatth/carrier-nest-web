@@ -41,8 +41,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             allowDangerousEmailAccountLinking: true,
         }),
         MicrosoftEntraID({
-            clientId: process.env.AZURE_AD_CLIENT_ID,
-            clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+            clientId: process.env.ENTRA_ID_CLIENT_ID,
+            clientSecret: process.env.ENTRA_ID_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
         }),
         Credentials({
