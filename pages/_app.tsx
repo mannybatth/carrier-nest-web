@@ -53,7 +53,7 @@ const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
 export default function App({ Component, pageProps: { session, ...pageProps } }: ProtectedAppProps) {
     return (
         <ErrorBoundary>
-            <SessionProvider session={session} refetchOnWindowFocus={false}>
+            <SessionProvider session={session}>
                 <Head>
                     <title>Carrier Nest</title>
                     <meta name="viewport" content="initial-scale=1.0, width=device-width" />
