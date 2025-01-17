@@ -1003,13 +1003,15 @@ const CreateLoad: PageWithAuth = () => {
                         </div>
                     )}
 
-                    <div className="relative flex flex-row items-start w-full h-full gap-3 mb-4 bg-white rounded-lg">
+                    <div className="relative flex flex-row items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
                         {currentRateconFile ? (
-                            <PDFViewer
-                                fileBlob={currentRateconFile}
-                                scrollToPage={ocrVerticesPage}
-                                ocrVertices={ocrVertices}
-                            />
+                            <div className="flex-1 overflow-auto ">
+                                <PDFViewer
+                                    fileBlob={currentRateconFile}
+                                    scrollToPage={ocrVerticesPage}
+                                    ocrVertices={ocrVertices}
+                                />
+                            </div>
                         ) : null}
                         <div
                             className={`flex-1 flex ${
