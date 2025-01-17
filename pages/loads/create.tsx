@@ -244,12 +244,19 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
     };
 
+    const handleAIError = () => {
+        setCurrentRateconFile(null);
+        setLoading(false);
+        setIsRetrying(false);
+        setAiProgress(0);
+    };
+
     const handleFileUpload = async (file: File) => {
         if (!file) {
             return;
         }
 
-        // Reset entire form
+        // Reset form and state
         formHook.reset({
             customer: null,
             refNum: null,
@@ -272,11 +279,11 @@ const CreateLoad: PageWithAuth = () => {
         });
 
         setCurrentRateconFile(file);
-
         setLoading(true);
         setIsRetrying(false);
         setAiProgress(0);
 
+        // Validate PDF metadata
         let metadata: {
             title?: string;
             author?: string;
@@ -287,151 +294,183 @@ const CreateLoad: PageWithAuth = () => {
             modificationDate?: Date;
         } = null;
         let numOfPages = 0;
-
         try {
-            await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsArrayBuffer(file);
-                reader.onload = async () => {
-                    const arrayBuffer = reader.result as ArrayBuffer;
-                    const byteArray = new Uint8Array(arrayBuffer);
-                    const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
-                    metadata = pdfMetaData;
-                    numOfPages = totalPages;
-
-                    if (totalPages < 1) {
-                        notify({
-                            title: 'Error',
-                            message: 'PDF file must contain at least 1 page',
-                            type: 'error',
-                        });
-                        reject();
-                        return;
-                    } else if (totalPages > 8) {
-                        notify({
-                            title: 'Error',
-                            message: 'PDF file must contain no more than 8 pages',
-                            type: 'error',
-                        });
-                        reject();
-                        return;
-                    }
-
-                    resolve(null);
-                };
-            });
+            const result = await validatePDFFile(file);
+            metadata = result.metadata;
+            numOfPages = result.numOfPages;
         } catch (e) {
-            setLoading(false);
+            handleAIError();
             return;
         }
 
-        let logisticsCompany: string = null;
-        let customersList: Customer[] = [];
+        // Get base64 encoded file
+        let base64File: string;
         try {
-            const base64File = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => {
-                    if (reader.result) {
-                        const base64String = (reader.result as string).replace(/^data:.+;base64,/, ''); // remove the "data:*/*;base64," part
-                        resolve(base64String);
-                    }
-                };
-                reader.onerror = (error) => reject(error);
+            base64File = await getBase64FromFile(file);
+        } catch (error) {
+            notify({ title: 'Error', message: 'Error encoding file', type: 'error' });
+            handleAIError();
+            return;
+        }
+
+        // Call OCR API
+        let ocrResult;
+        try {
+            setAiProgress(5);
+            const ocrResponse = await fetch(`${apiUrl}/ai/ocr`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    file: base64File,
+                }),
             });
 
-            setAiProgress(5);
-            const [ocrResponse, customersResponse] = await Promise.all([
-                fetch(`${apiUrl}/ai/ocr`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        file: base64File,
-                    }),
-                }),
-                getAllCustomers({ limit: 999, offset: 0 }),
-            ]);
+            if (!ocrResponse.ok) {
+                ocrResult = await ocrResponse.json();
+                throw new Error(`${ocrResult?.error || 'Error processing document'}`);
+            }
+
+            ocrResult = await ocrResponse.json();
             setAiProgress(10);
 
-            const ocrResult = await ocrResponse.json();
-            customersList = customersResponse?.customers;
-
             if (ocrResult?.annotations?.lines) {
-                // console.log('ocr lines found', ocrResult.annotations.lines);
                 setOcrLines({
                     lines: ocrResult.annotations.lines,
                     blocks: ocrResult.annotations.blocks,
                     pageProps: ocrResult.pageProps,
                 });
             }
+        } catch (e) {
+            notify({
+                title: 'Error',
+                message: e?.message || 'Error processing document',
+                type: 'error',
+            });
+            handleAIError();
+            return;
+        }
 
+        // Get customers list
+        let customersList: Customer[] = [];
+        try {
+            customersList = (await getAllCustomers({ limit: 999, offset: 0 }))?.customers;
+        } catch (error) {
+            notify({ title: 'Error', message: 'Error loading customers', type: 'error' });
+            handleAIError();
+            return;
+        }
+
+        try {
             const [documentsInBlocks, documentsInLines] = await Promise.all([
-                ocrResult.blocks.map((pageText: string, index: number) => {
-                    return {
-                        pageContent: pageText,
-                        metadata: {
-                            source: 'blob',
-                            blobType: file.type,
-                            pdf: {
-                                metadata: metadata,
-                                totalPages: numOfPages,
-                            },
-                            loc: {
-                                pageNumber: index,
-                            },
+                ocrResult.blocks.map((pageText: string, index: number) => ({
+                    pageContent: pageText,
+                    metadata: {
+                        source: 'blob',
+                        blobType: file.type,
+                        pdf: {
+                            metadata: metadata,
+                            totalPages: numOfPages,
                         },
-                    };
-                }),
-                ocrResult.lines.map((pageText: string, index: number) => {
-                    return {
-                        pageContent: pageText,
-                        metadata: {
-                            source: 'blob',
-                            blobType: file.type,
-                            pdf: {
-                                metadata: metadata,
-                                totalPages: numOfPages,
-                            },
-                            loc: {
-                                pageNumber: index,
-                            },
+                        loc: {
+                            pageNumber: index,
                         },
-                    };
-                }),
+                    },
+                })),
+                ocrResult.lines.map((pageText: string, index: number) => ({
+                    pageContent: pageText,
+                    metadata: {
+                        source: 'blob',
+                        blobType: file.type,
+                        pdf: {
+                            metadata: metadata,
+                            totalPages: numOfPages,
+                        },
+                        loc: {
+                            pageNumber: index,
+                        },
+                    },
+                })),
             ]);
 
             const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false);
-
-            logisticsCompany = aiLoad?.logistics_company;
+            const logisticsCompany = aiLoad?.logistics_company;
             applyAIOutputToForm(aiLoad);
+
+            // Handle customer matching
+            handleCustomerMatching(logisticsCompany, customersList);
         } catch (e) {
-            notify({ title: 'Error', message: e?.message || 'Error reading PDF file', type: 'error' });
-        }
-
-        setCurrentRateconFile(file);
-
-        formHook.setValue('customer', null);
-
-        try {
-            if (logisticsCompany && customersList) {
-                const customerNames = customersList.map((customer) => customer.name);
-
-                const matchedIndex = fuzzySearch(logisticsCompany, customerNames);
-                if (matchedIndex === -1) {
-                    setPrefillName(logisticsCompany);
-                    setShowMissingCustomerLabel(true);
-                    setOpenAddCustomer(true);
-                } else {
-                    const matchedCustomer = customersList[matchedIndex];
-                    formHook.setValue('customer', matchedCustomer);
-                }
-            }
-        } catch (e) {
-            notify({ title: 'Error', message: e?.message || 'Error assigning a customer', type: 'error' });
+            notify({ title: 'Error', message: e?.message || 'Error processing document', type: 'error' });
+            handleAIError();
+            return;
         }
 
         setLoading(false);
         setAiProgress(0);
         setIsRetrying(false);
+    };
+
+    const validatePDFFile = async (file: File): Promise<{ metadata: any; numOfPages: number }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async () => {
+                const arrayBuffer = reader.result as ArrayBuffer;
+                const byteArray = new Uint8Array(arrayBuffer);
+                const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
+
+                if (totalPages < 1) {
+                    notify({
+                        title: 'Error',
+                        message: 'PDF file must contain at least 1 page',
+                        type: 'error',
+                    });
+                    reject(new Error('Invalid page count'));
+                    return;
+                } else if (totalPages > 8) {
+                    notify({
+                        title: 'Error',
+                        message: 'PDF file must contain no more than 8 pages',
+                        type: 'error',
+                    });
+                    reject(new Error('Too many pages'));
+                    return;
+                }
+
+                resolve({ metadata: pdfMetaData, numOfPages: totalPages });
+            };
+        });
+    };
+
+    const getBase64FromFile = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                if (reader.result) {
+                    const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+                    resolve(base64String);
+                }
+            };
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
+    const handleCustomerMatching = (logisticsCompany: string, customersList: Customer[]) => {
+        if (!logisticsCompany || !customersList) {
+            return;
+        }
+
+        formHook.setValue('customer', null);
+
+        const customerNames = customersList.map((customer) => customer.name);
+        const matchedIndex = fuzzySearch(logisticsCompany, customerNames);
+
+        if (matchedIndex === -1) {
+            setPrefillName(logisticsCompany);
+            setShowMissingCustomerLabel(true);
+            setOpenAddCustomer(true);
+        } else {
+            formHook.setValue('customer', customersList[matchedIndex]);
+        }
     };
 
     const getAILoad = async (documentsInBlocks: any[], documentsInLines: any[], isRetry = false): Promise<AILoad> => {
