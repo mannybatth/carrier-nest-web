@@ -39,7 +39,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                 </button>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-1 lg:grid-cols-1">
-                {load.route && load.route.routeLegs.length > 0 ? (
+                {load.route && load.route?.routeLegs?.length > 0 ? (
                     load.route.routeLegs.map((leg, index) => {
                         const drivers = leg.driverAssignments.map((driver) => driver.driver);
                         const locations = leg.locations;
@@ -106,7 +106,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                             ))}
                                         </p>
                                     </div>
-                                    <div className="mb-4 rounded-md bg-yellow-50 border border-slate-100 w-full p-1 px-2">
+                                    <div className="w-full p-1 px-2 mb-4 border rounded-md bg-yellow-50 border-slate-100">
                                         <span className="text-xs font-semibold text-gray-900">
                                             Driver Instructions:{' '}
                                         </span>

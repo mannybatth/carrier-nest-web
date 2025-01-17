@@ -316,7 +316,7 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                         </ul>
                     </div>
 
-                    <div className="sticky bottom-0 right-0 z-50 w-full pb-5 text-center">
+                    <div className="sticky bottom-0 right-0 z-50 w-full text-center">
                         {allListItems.filter((item) => item.selected).length >= 2 && (
                             <div className="py-3 bg-white border-t-[1px] flex">
                                 <div className="gap-1 space-x-2">
