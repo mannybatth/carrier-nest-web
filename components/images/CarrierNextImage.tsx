@@ -7,13 +7,13 @@ type Props = {
 const CarrierNextImage: React.FC<Props> = ({ className }: Props) => {
     return (
         <div className={className}>
-            <svg width="140" height="20" viewBox="0 0 425 46" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <svg width="120" height="20" viewBox="0 0 425 30" version="1.1" xmlns="http://www.w3.org/2000/svg">
                 <title>CARRIER NEST</title>
                 <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
                     <g
                         id="Large-Copy"
                         transform="translate(-871.000000, -196.000000)"
-                        fill="#929292"
+                        fill="#29465B"
                         fillRule="nonzero"
                     >
                         <g id="CARRIER-NEST" transform="translate(871.730953, 196.648000)">
