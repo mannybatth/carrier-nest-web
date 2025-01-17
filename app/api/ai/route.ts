@@ -173,6 +173,7 @@ Extraction output:
     "invoice_emails": ["LoadDocs@CHRobinson.com"]
 }`;
 
+export const maxDuration = 30;
 export const POST = auth(async (req: NextAuthRequest) => {
     if (req.method !== 'POST') {
         return new NextResponse(JSON.stringify({ error: 'Method not allowed' }), {
