@@ -468,51 +468,47 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         changeLoadStatus={changeLoadStatus}
                     ></LoadDetailsToolbar>
 
-                    <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
-                        {load ? (
-                            <>
-                                <div>
-                                    <LoadDetailsInfo />
-                                    <LoadDetailsDocuments
-                                        podDocuments={podDocuments}
-                                        loadDocuments={loadDocuments}
-                                        docsLoading={docsLoading}
-                                        handleUploadPodsChange={handleUploadPodsChange}
-                                        handleUploadDocsChange={handleUploadDocsChange}
-                                        openDocument={openDocument}
-                                        setDocumentIdToDelete={setDocumentIdToDelete}
-                                        setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
-                                    />
-                                </div>
-                                <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
-                                <LoadAssignmentsSection
-                                    removingRouteLegWithId={removingRouteLegWithId}
-                                    setOpenLegAssignment={setOpenLegAssignment}
-                                    changeLegStatusClicked={changeLegStatusClicked}
-                                    deleteLegClicked={deleteLegClicked}
-                                    editLegClicked={editLegClicked}
-                                    openRouteInMapsClicked={openRouteInMapsClicked}
+                    {load ? (
+                        <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
+                            <div>
+                                <LoadDetailsInfo />
+                                <LoadDetailsDocuments
+                                    podDocuments={podDocuments}
+                                    loadDocuments={loadDocuments}
+                                    docsLoading={docsLoading}
+                                    handleUploadPodsChange={handleUploadPodsChange}
+                                    handleUploadDocsChange={handleUploadDocsChange}
+                                    openDocument={openDocument}
+                                    setDocumentIdToDelete={setDocumentIdToDelete}
+                                    setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
                                 />
-                                <div className="mt-2">
-                                    <div className="pb-2 f">
-                                        <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                            Load Activity
-                                        </h3>
-                                        <p className="text-xs text-slate-500">
-                                            All changes made on this load are listed below
-                                        </p>
-                                    </div>
-                                    <div
-                                        className={`w-full gap-1 bg-neutral-50 border border-slate-100 p-3 rounded-lg`}
-                                    >
-                                        <LoadActivityLog loadId={loadId}></LoadActivityLog>
-                                    </div>
+                            </div>
+                            <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
+                            <LoadAssignmentsSection
+                                removingRouteLegWithId={removingRouteLegWithId}
+                                setOpenLegAssignment={setOpenLegAssignment}
+                                changeLegStatusClicked={changeLegStatusClicked}
+                                deleteLegClicked={deleteLegClicked}
+                                editLegClicked={editLegClicked}
+                                openRouteInMapsClicked={openRouteInMapsClicked}
+                            />
+                            <div className="mt-2">
+                                <div className="pb-2 f">
+                                    <h3 className="text-base font-semibold leading-6 text-gray-900">Load Activity</h3>
+                                    <p className="text-xs text-slate-500">
+                                        All changes made on this load are listed below
+                                    </p>
                                 </div>
-                            </>
-                        ) : (
+                                <div className={`w-full gap-1 bg-neutral-50 border border-slate-100 p-3 rounded-lg`}>
+                                    <LoadActivityLog loadId={loadId}></LoadActivityLog>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="px-5 sm:px-6 md:px-8">
                             <LoadDetailsSkeleton></LoadDetailsSkeleton>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </>
         </Layout>
