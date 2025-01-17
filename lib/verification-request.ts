@@ -213,8 +213,8 @@ function html({ url, host, email }: Record<'url' | 'host' | 'email', string>) {
                                                                 style="border:0;border-collapse:collapse;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:14px;line-height:16px;color:#4d4d4d;text-align:center">
                                                                 Questions? Contact us at <a
                                                                   style="border:0;margin:0;padding:0;color:#9A3412!important;font-weight:bold;text-decoration:none;white-space:nowrap"
-                                                                  href="mailto:contact@carriernest.com"
-                                                                  target="_blank">contact@carriernest.com</a>.
+                                                                  href="mailto:info@carriernest.com"
+                                                                  target="_blank">info@carriernest.com</a>.
                                                               </td>
                                                             </tr>
                                                           </tbody>
