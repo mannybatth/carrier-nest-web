@@ -130,9 +130,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                                             }`}
                                                         />
                                                     </div>
-                                                    {error && (
-                                                        <p className="mt-2 text-sm text-red-600">{error?.message}</p>
-                                                    )}
+                                                    {error && <p className="text-sm text-red-600">{error?.message}</p>}
                                                 </>
                                             )}
                                         />
@@ -179,9 +177,7 @@ const AddPaymentModal: React.FC<Props> = ({ show, invoice, onCreate, onClose }) 
                                                             </span>
                                                         </button>
                                                     </div>
-                                                    {error && (
-                                                        <p className="mt-2 text-sm text-red-600">{error?.message}</p>
-                                                    )}
+                                                    {error && <p className="text-sm text-red-600">{error?.message}</p>}
                                                 </>
                                             )}
                                         />

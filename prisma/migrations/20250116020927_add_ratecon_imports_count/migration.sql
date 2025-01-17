@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Carrier" ADD COLUMN     "lastImportReset" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "rateconImportsCount" INTEGER NOT NULL DEFAULT 0;

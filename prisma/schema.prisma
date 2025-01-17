@@ -95,6 +95,8 @@ model Carrier {
     locations           Location[]
     equipments          Equipment[]
     subscription        Subscription?
+    rateconImportsCount Int           @default(0)
+    lastImportReset     DateTime      @default(now())
 
     @@index([name, email, carrierCode])
 }
@@ -109,6 +111,7 @@ model Subscription {
     stripeCustomerId     String?
     stripeSubscriptionId String?
     plan                 SubscriptionPlan @default(BASIC)
+    numberOfDrivers      Int              @default(1)
     status               String
     createdAt            DateTime         @default(now())
     updatedAt            DateTime         @updatedAt

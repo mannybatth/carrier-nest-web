@@ -272,7 +272,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
 
                 <div className="fixed inset-0 overflow-hidden">
                     <div className="absolute inset-0 overflow-hidden">
-                        <div className="fixed inset-y-0 right-0 flex max-w-full pl-10 pointer-events-none sm:pl-16">
+                        <div className="fixed inset-y-0 right-0 flex max-w-full pointer-events-none">
                             <Transition.Child
                                 as={Fragment}
                                 enter="transform transition ease-in-out duration-500 sm:duration-200"
@@ -311,8 +311,8 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                         </div>
                                     )}
 
-                                    <div className="relative flex flex-col h-full px-5 py-6 overflow-y-scroll bg-white shadow-xl">
-                                        <div>
+                                    <div className="relative flex flex-col h-full px-5 overflow-y-scroll bg-white shadow-xl">
+                                        <div className="flex-1 py-6">
                                             <div className="flex items-start justify-between mb-2">
                                                 <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
                                                     {routeLeg ? 'Edit Assignment' : 'Create New Assignment'}
@@ -725,7 +725,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                         </div>
 
                                         {!showDriverSelection && !showLegLocationSelection && (
-                                            <div className="fixed bottom-0 right-0 left-0 py-3 px-5 bg-white border-t-[1px]">
+                                            <div className="sticky bottom-0 right-0 left-0 py-3 bg-white border-t-[1px] z-50 w-full text-center">
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"

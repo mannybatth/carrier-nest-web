@@ -48,7 +48,7 @@ const InvoiceForm: React.FC<Props> = ({
                     onWheel={(e) => e.currentTarget.blur()}
                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
-                {errors.invoiceNum && <p className="mt-2 text-sm text-red-600">{errors.invoiceNum.message}</p>}
+                {errors.invoiceNum && <p className="text-sm text-red-600">{errors.invoiceNum.message}</p>}
             </div>
 
             <div className="col-span-6 md:col-span-2">
@@ -85,7 +85,7 @@ const InvoiceForm: React.FC<Props> = ({
                                     }`}
                                 />
                             </div>
-                            {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                            {error && <p className="text-sm text-red-600">{error?.message}</p>}
                         </>
                     )}
                 />
@@ -172,7 +172,7 @@ const InvoiceForm: React.FC<Props> = ({
                                 )}
                             </Listbox>
 
-                            {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                            {error && <p className="text-sm text-red-600">{error.message}</p>}
                         </>
                     )}
                 />

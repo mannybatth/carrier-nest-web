@@ -143,36 +143,6 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
             ) : (
                 <>
                     {saveLoading && <LoadingOverlay />}
-                    <div className="fixed bottom-0 right-0 z-50 w-full px-5 pb-5 text-center pr-9">
-                        {allListItems.filter((item) => item.selected).length >= 2 && (
-                            <div className="sticky py-3 bg-white border-t-[1px] flex">
-                                <div className="gap-1 space-x-2">
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        onClick={saveSelectedItems}
-                                    >
-                                        Select ({allListItems.filter((item) => item.selected).length})
-                                    </button>
-                                    <button
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        onClick={onGoBack}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-blue-700 bg-white border-0 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        onClick={() =>
-                                            setAllListItems(allListItems.map((item) => ({ ...item, selected: false })))
-                                        }
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                                <div className="flex-1" />
-                            </div>
-                        )}
-                    </div>
 
                     <div className="flex flex-col flex-1 overflow-auto">
                         <ul role="list" className="overflow-y-auto divide-y divide-gray-200 pb-36">
@@ -344,6 +314,37 @@ const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelec
                                 </div>
                             )}
                         </ul>
+                    </div>
+
+                    <div className="sticky bottom-0 right-0 z-50 w-full text-center">
+                        {allListItems.filter((item) => item.selected).length >= 2 && (
+                            <div className="py-3 bg-white border-t-[1px] flex">
+                                <div className="gap-1 space-x-2">
+                                    <button
+                                        type="button"
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={saveSelectedItems}
+                                    >
+                                        Select ({allListItems.filter((item) => item.selected).length})
+                                    </button>
+                                    <button
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={onGoBack}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-blue-700 bg-white border-0 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        onClick={() =>
+                                            setAllListItems(allListItems.map((item) => ({ ...item, selected: false })))
+                                        }
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                                <div className="flex-1" />
+                            </div>
+                        )}
                     </div>
                 </>
             )}

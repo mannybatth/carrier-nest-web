@@ -17,4 +17,20 @@ module.exports = {
             },
         ];
     },
+    async redirects() {
+        return [
+            {
+                // /api/assignment/for-driver -> /api/assignments/for-driver
+                source: '/api/assignment/for-driver',
+                destination: '/api/assignments/for-driver',
+                permanent: true,
+            },
+            {
+                // /api/assignment/:id -> /api/assignments/:id
+                source: '/api/assignment/:id',
+                destination: '/api/assignments/:id',
+                permanent: true,
+            },
+        ];
+    },
 };

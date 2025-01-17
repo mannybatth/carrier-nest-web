@@ -19,7 +19,7 @@ const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, on
             errors?.extraItems &&
             errors?.extraItems[index] &&
             errors?.extraItems[index][name] && (
-                <p className="mt-2 text-sm text-red-600">{errors?.extraItems[index][name]?.message}</p>
+                <p className="text-sm text-red-600">{errors?.extraItems[index][name]?.message}</p>
             )
         );
     };
@@ -64,7 +64,7 @@ const InvoiceFormItem: React.FC<Props> = ({ register, errors, control, index, on
                                             onChange(e.target.value ? new Prisma.Decimal(e.target.value) : '')
                                         }
                                     ></MoneyInput>
-                                    {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                    {error && <p className="text-sm text-red-600">{error?.message}</p>}
                                 </>
                             )}
                         />

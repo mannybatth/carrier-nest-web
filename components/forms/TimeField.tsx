@@ -72,7 +72,7 @@ interface Props {
     onChange?: onChangeType;
     showSeconds?: boolean;
     input: ReactElement | null;
-    inputRef?: () => HTMLInputElement | null;
+    inputRef?: React.RefObject<HTMLInputElement>;
     colon?: string;
     style?: CSSProperties | Record<string, unknown>;
 }

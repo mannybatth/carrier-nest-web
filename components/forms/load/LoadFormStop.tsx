@@ -157,24 +157,20 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
             return (
                 errors.shipper &&
                 errors.shipper[name] &&
-                errors.shipper[name].message && (
-                    <p className="mt-2 text-sm text-red-600">{errors.shipper[name].message}</p>
-                )
+                errors.shipper[name].message && <p className="text-sm text-red-600">{errors.shipper[name].message}</p>
             );
         } else if (props.type === LoadStopType.RECEIVER) {
             return (
                 errors.receiver &&
                 errors.receiver[name] &&
-                errors.receiver[name].message && (
-                    <p className="mt-2 text-sm text-red-600">{errors.receiver[name].message}</p>
-                )
+                errors.receiver[name].message && <p className="text-sm text-red-600">{errors.receiver[name].message}</p>
             );
         } else {
             return (
                 errors?.stops &&
                 errors?.stops[index] &&
                 errors?.stops[index][name] && (
-                    <p className="mt-2 text-sm text-red-600">{errors?.stops[index][name]?.message}</p>
+                    <p className="text-sm text-red-600">{errors?.stops[index][name]?.message}</p>
                 )
             );
         }
@@ -331,7 +327,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         }`}
                                     />
                                 </div>
-                                {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                {error && <p className="text-sm text-red-600">{error?.message}</p>}
                             </>
                         )}
                     />
@@ -380,7 +376,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         <ClockIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                                     </div>
                                 </div>
-                                {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                {error && <p className="text-sm text-red-600">{error?.message}</p>}
                             </>
                         )}
                     /> */}
@@ -497,7 +493,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     )}
                                 </div>
 
-                                {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                {error && <p className="text-sm text-red-600">{error.message}</p>}
                             </Combobox>
                         )}
                     />
@@ -573,7 +569,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                         </option>
                                     ))}
                                 </select>
-                                {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                {error && <p className="text-sm text-red-600">{error.message}</p>}
                             </>
                         )}
                     />

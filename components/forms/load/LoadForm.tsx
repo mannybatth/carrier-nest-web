@@ -206,7 +206,7 @@ const LoadForm: React.FC<Props> = ({
                                         )}
                                     </div>
 
-                                    {error && <p className="mt-2 text-sm text-red-600">{error.message}</p>}
+                                    {error && <p className="text-sm text-red-600">{error.message}</p>}
                                 </Combobox>
                             )}
                         />
@@ -225,7 +225,7 @@ const LoadForm: React.FC<Props> = ({
                             onMouseLeave={mouseHoverOutField}
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
-                        {errors.refNum && <p className="mt-2 text-sm text-red-600">{errors.refNum?.message}</p>}
+                        {errors.refNum && <p className="text-sm text-red-600">{errors.refNum?.message}</p>}
                     </div>
 
                     <div className="col-span-6 sm:col-span-3">
@@ -249,7 +249,7 @@ const LoadForm: React.FC<Props> = ({
                                                 onChange(e.target.value ? new Prisma.Decimal(e.target.value) : '')
                                             }
                                         ></MoneyInput>
-                                        {error && <p className="mt-2 text-sm text-red-600">{error?.message}</p>}
+                                        {error && <p className="text-sm text-red-600">{error?.message}</p>}
                                     </>
                                 )}
                             />

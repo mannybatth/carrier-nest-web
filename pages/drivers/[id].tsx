@@ -529,12 +529,12 @@ const DriverDetailsPage: PageWithAuth = () => {
                             </div>
 
                             <div className="col-span-12">
-                                <h3 className="mb-2">Equipments assigned to driver</h3>
                                 {loadingDriver ? (
                                     <LoadsTableSkeleton limit={lastLoadsTableLimit} />
                                 ) : (
                                     driver.equipments?.length > 0 && (
                                         <>
+                                            <h3 className="mb-2">Equipments assigned to driver</h3>
                                             <EquipmentsTable
                                                 equipments={driver.equipments || []}
                                                 sort={equipmentSort}

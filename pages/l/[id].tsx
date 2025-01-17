@@ -4,7 +4,7 @@ import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/reac
 import { LoadDocument, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
-import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
+import React, { ChangeEvent, Fragment, useEffect, useRef, useState } from 'react';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriverAssignment, ExpandedLoadDocument } from '../../interfaces/models';
@@ -84,7 +84,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
     const [docsLoading, setDocsLoading] = useState(false);
     const [dropOffDatePassed, setDropOffDatePassed] = useState(false);
 
-    let fileInput: HTMLInputElement;
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         if (assignmentId && driverId) {
@@ -378,7 +378,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                         <button
                                             type="button"
                                             className="flex-grow flex justify-center items-center rounded-md bg-purple-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
-                                            onClick={() => fileInput.click()}
+                                            onClick={() => fileInputRef.current?.click()}
                                             disabled={docsLoading || statusLoading}
                                         >
                                             {(docsLoading || statusLoading) && loadingSvg}
@@ -389,7 +389,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                             type="file"
                                             onChange={handleFileChange}
                                             style={{ display: 'none' }}
-                                            ref={(input) => (fileInput = input)}
+                                            ref={fileInputRef}
                                         />
                                     </>
                                 )}

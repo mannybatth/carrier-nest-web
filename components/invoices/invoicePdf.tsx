@@ -3,10 +3,10 @@ import { Customer } from '@prisma/client';
 import { Document, Page, pdf, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { useSession } from 'next-auth/react';
 import React from 'react';
+import { formatValue } from 'react-currency-input-field';
 import { ExpandedCarrier, ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';
 import { invoiceTermOptions } from '../../lib/invoice/invoice-utils';
 import { getCarrierById } from '../../lib/rest/carrier';
-import { formatValue } from 'react-currency-input-field';
 
 const styles = StyleSheet.create({
     body: {

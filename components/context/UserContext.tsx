@@ -1,7 +1,8 @@
 import { ExpandedCarrier } from 'interfaces/models';
-import { useSession } from 'next-auth/react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCarriers } from '../../lib/rest/carrier';
+import { isProPlan as isProPlanUtil } from '../../lib/subscription';
+import { useSession } from 'next-auth/react';
 
 type UserContextType = {
     carriers: ExpandedCarrier[];
@@ -9,6 +10,7 @@ type UserContextType = {
     setCarriers: React.Dispatch<React.SetStateAction<ExpandedCarrier[]>>;
     setDefaultCarrier: React.Dispatch<React.SetStateAction<ExpandedCarrier | null>>;
     isProPlan: boolean;
+    isLoadingCarrier: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -17,6 +19,7 @@ const UserContext = createContext<UserContextType>({
     setCarriers: () => null,
     setDefaultCarrier: () => null,
     isProPlan: false,
+    isLoadingCarrier: true,
 });
 
 type UserProviderProps = {
@@ -28,6 +31,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
     const [isProPlan, setIsProPlan] = useState(false);
+    const [isLoadingCarrier, setIsLoadingCarrier] = useState(true);
 
     useEffect(() => {
         fetchCarriers();
@@ -37,16 +41,19 @@ export function UserProvider({ children }: UserProviderProps) {
         if (session?.user?.defaultCarrierId && carriers.length > 0) {
             const carrier = carriers.find((c) => c.id === session.user.defaultCarrierId) || null;
             setDefaultCarrier(carrier);
-            setIsProPlan(carrier?.subscription?.plan === 'PRO' && carrier?.subscription?.status === 'active');
+            setIsProPlan(isProPlanUtil(carrier?.subscription));
         }
     }, [session, carriers]);
 
     const fetchCarriers = async () => {
+        setIsLoadingCarrier(true);
         try {
             const data = await getCarriers();
             setCarriers(data);
         } catch (error) {
             console.error('Failed to fetch carriers:', error);
+        } finally {
+            setIsLoadingCarrier(false);
         }
     };
 
@@ -58,6 +65,7 @@ export function UserProvider({ children }: UserProviderProps) {
                 setCarriers,
                 setDefaultCarrier,
                 isProPlan,
+                isLoadingCarrier,
             }}
         >
             {children}

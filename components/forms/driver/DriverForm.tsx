@@ -29,7 +29,7 @@ const DriverForm: React.FC<Props> = ({
                             autoComplete="driver-name"
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
-                        {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
+                        {errors.name && <p className="text-sm text-red-600">{errors.name?.message}</p>}
                     </div>
                 ) : (
                     <>
@@ -44,7 +44,7 @@ const DriverForm: React.FC<Props> = ({
                                 autoComplete="driver-name"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name?.message}</p>}
+                            {errors.name && <p className="text-sm text-red-600">{errors.name?.message}</p>}
                         </div>
                         <div className="col-span-6 lg:col-span-3">
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -56,19 +56,19 @@ const DriverForm: React.FC<Props> = ({
                                 id="email"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email?.message}</p>}
+                            {errors.email && <p className="text-sm text-red-600">{errors.email?.message}</p>}
                         </div>
                         <div className="col-span-6 lg:col-span-3">
                             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                                 Phone
                             </label>
                             <input
-                                {...register('phone')}
+                                {...register('phone', { required: 'Phone number is required' })}
                                 type="text"
                                 id="phone"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
-                            {errors.phone && <p className="mt-2 text-sm text-red-600">{errors.phone?.message}</p>}
+                            {errors.phone && <p className="text-sm text-red-600">{errors.phone?.message}</p>}
                         </div>
                         <div className="grid grid-cols-1 col-span-6 gap-6 lg:grid-cols-4">
                             <div>
