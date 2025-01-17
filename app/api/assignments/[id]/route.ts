@@ -184,12 +184,13 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
     }
 
     try {
+        const body = await req.json();
         const updatedAssignment = await prisma.driverAssignment.updateMany({
             where: {
                 id: assignmentId,
                 carrierId: tokenCarrierId,
             },
-            data: req.body as Prisma.DriverAssignmentUpdateManyMutationInput,
+            data: body as Prisma.DriverAssignmentUpdateManyMutationInput,
         });
 
         if (updatedAssignment.count === 0) {
