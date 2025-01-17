@@ -14,10 +14,17 @@ import { isProPlan } from 'lib/subscription';
  * and update the last import reset date.
  *
  * @param carrierId - The unique identifier of the carrier.
+ * @param shouldIncrement - If true, increments the import count when checking. Defaults to false.
  * @returns A promise that resolves to a boolean indicating whether the ratecon can be imported.
  * @throws Will throw an error if the carrier is not found.
  */
-export async function canImportRatecon(carrierId: string): Promise<boolean> {
+export async function canImportRatecon({
+    carrierId,
+    shouldIncrement = false,
+}: {
+    carrierId: string;
+    shouldIncrement?: boolean;
+}): Promise<boolean> {
     const carrier = await prisma.carrier.findUnique({
         where: { id: carrierId },
         include: { subscription: true },
@@ -30,9 +37,8 @@ export async function canImportRatecon(carrierId: string): Promise<boolean> {
     const now = new Date();
     const startOfCurrentMonth = startOfMonth(now);
 
-    if (isAfter(carrier.lastImportReset, startOfCurrentMonth)) {
-        carrier.rateconImportsCount = 0;
-        carrier.lastImportReset = now;
+    // Reset count if lastImportReset is null or if it's from a previous month
+    if (!carrier.lastImportReset || isAfter(startOfCurrentMonth, carrier.lastImportReset)) {
         await prisma.carrier.update({
             where: { id: carrierId },
             data: {
@@ -40,6 +46,7 @@ export async function canImportRatecon(carrierId: string): Promise<boolean> {
                 lastImportReset: now,
             },
         });
+        carrier.rateconImportsCount = 0;
     }
 
     const maxImports =
@@ -48,12 +55,14 @@ export async function canImportRatecon(carrierId: string): Promise<boolean> {
             : BASIC_PLAN_AI_RATECON_IMPORTS;
 
     if (carrier.rateconImportsCount < maxImports) {
-        await prisma.carrier.update({
-            where: { id: carrierId },
-            data: {
-                rateconImportsCount: { increment: 1 },
-            },
-        });
+        if (shouldIncrement) {
+            await prisma.carrier.update({
+                where: { id: carrierId },
+                data: {
+                    rateconImportsCount: { increment: 1 },
+                },
+            });
+        }
         return true;
     }
 

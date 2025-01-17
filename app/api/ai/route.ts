@@ -194,7 +194,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
     try {
         const { documents } = await req.json();
 
-        const canImport = await canImportRatecon(carrierId);
+        const canImport = await canImportRatecon({
+            carrierId,
+            shouldIncrement: true,
+        });
         if (!canImport) {
             return new NextResponse(JSON.stringify({ error: 'Ratecon import limit reached.' }), {
                 headers: { 'Content-Type': 'application/json' },
