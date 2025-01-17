@@ -164,7 +164,9 @@ const CarrierSetup: PageWithAuth = () => {
                     window.location.href = url;
                 } else {
                     notify({ title: 'Carrier created successfully', type: 'success' });
-                    await update();
+                    await update({
+                        isUpdate: true,
+                    });
                     await replace('/');
                 }
             } else {
