@@ -172,7 +172,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ fileBlob, scrollToPage, scrollToX
             <div className="absolute inset-0 pointer-events-none">
                 {ocrVertices?.map((vertices, index) => drawBox(vertices))}
             </div>
-            <div ref={containerRef} className="flex-col h-full overflow-y-scroll  bg-slate-300">
+            <div ref={containerRef} className="flex-col h-full min-h-screen bg-slate-300">
                 {/* ReactPDF Worker for performance */}
                 <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`}>
                     {/* Render a simple log or message to ensure Viewer is working */}
