@@ -64,17 +64,15 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                     <meta name="description" content="Carrier Nest - Transportation Management System" />
                     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
                 </Head>
-                <Suspense fallback={<Spinner />}>
-                    {Component.authenticationEnabled ? (
-                        <AuthWrapper>
-                            <UserProvider>
-                                <Component {...pageProps} />
-                            </UserProvider>
-                        </AuthWrapper>
-                    ) : (
-                        <Component {...pageProps} />
-                    )}
-                </Suspense>
+                {Component.authenticationEnabled ? (
+                    <AuthWrapper>
+                        <UserProvider>
+                            <Component {...pageProps} />
+                        </UserProvider>
+                    </AuthWrapper>
+                ) : (
+                    <Component {...pageProps} />
+                )}
                 <Toaster position="top-right" />
             </SessionProvider>
         </ErrorBoundary>
