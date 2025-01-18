@@ -20,6 +20,10 @@ Prisma.Decimal.prototype.toJSON = function () {
     return this.toNumber();
 };
 
+BigInt.prototype['toJSON'] = function () {
+    return this.toString();
+};
+
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, object> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
 
