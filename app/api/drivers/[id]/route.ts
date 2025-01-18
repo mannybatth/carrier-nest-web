@@ -50,7 +50,7 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
         });
 
         // If the driver exists, return an error response
-        if (existingDriver) {
+        if (existingDriver && existingDriver.id !== driverId) {
             return NextResponse.json(
                 {
                     code: 409,
