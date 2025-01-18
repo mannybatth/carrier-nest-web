@@ -118,12 +118,15 @@ const DriversPage: PageWithAuth = () => {
     };
 
     const deleteDriver = async (id: string) => {
-        await deleteDriverById(id);
+        try {
+            await deleteDriverById(id);
+            notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
+            reloadDrivers({ sort, limit, offset, useTableLoading: true });
 
-        notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
-        reloadDrivers({ sort, limit, offset, useTableLoading: true });
-
-        setDriverIdToDelete(null);
+            setDriverIdToDelete(null);
+        } catch (error) {
+            notify({ title: 'Error Deleting Driver', message: error.message, type: 'error' });
+        }
     };
 
     return (
