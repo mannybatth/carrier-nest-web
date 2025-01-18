@@ -25,14 +25,21 @@ const buildOrderBy = (sortBy: string, sortDir: string) => {
 };
 
 export const GET = auth(async (req: NextAuthRequest) => {
+    if (!req.auth) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+
     const response = await getDrivers({ req });
     return NextResponse.json(response, { status: response.code });
 });
 
 export const POST = auth(async (req: NextAuthRequest) => {
+    if (!req.auth) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+
     try {
         const session = req.auth;
-        const driverData = (await req.json()) as Driver;
         const carrierId = session.user.defaultCarrierId;
 
         const carrier = await prisma.carrier.findUnique({
@@ -56,6 +63,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
         if (driverCount >= maxDrivers) {
             throw new Error('Max number of drivers limit reached');
         }
+
+        const driverData = (await req.json()) as Driver;
+
+        driverData.phone = driverData.phone?.trim();
 
         // Check if a driver with the same phone and carrierId already exists
         if (driverData.phone) {
