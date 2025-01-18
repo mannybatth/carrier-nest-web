@@ -11,6 +11,11 @@ export const uploadFileToGCS = async (
         body: formData,
     });
 
+    if (!response.ok) {
+        const json = await response.json();
+        throw new Error(json?.error || 'Failed to upload file');
+    }
+
     const result: { gcsInputUri: string; uniqueFileName: string; originalFileName: string } = await response.json();
     return result;
 };
