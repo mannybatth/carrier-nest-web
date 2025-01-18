@@ -39,6 +39,26 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
 
     const driverData = await req.json();
 
+    if (driverData.phone) {
+        const existingDriver = await prisma.driver.findFirst({
+            where: {
+                phone: driverData.phone,
+                carrierId: session.user.defaultCarrierId,
+            },
+        });
+
+        // If the driver exists, return an error response
+        if (existingDriver) {
+            return NextResponse.json(
+                {
+                    code: 409,
+                    errors: [{ message: 'A driver with the given phone number already exists.' }],
+                },
+                { status: 409 },
+            );
+        }
+    }
+
     const updatedDriver = await prisma.driver.update({
         where: {
             id: driverId,
