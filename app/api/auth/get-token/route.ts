@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 
 export const GET = auth(async (req: NextAuthRequest) => {
     try {
+        console.log('headers', req.headers);
         const token = await getToken({ req, secret: process.env.AUTH_SECRET });
         if (!token) {
             return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
