@@ -53,24 +53,28 @@ const EditDriver: PageWithAuth = () => {
     const submit = async (data: Driver) => {
         setLoading(true);
 
-        const driverData: ExpandedDriver = {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            defaultChargeType: data.defaultChargeType,
-            perMileRate: new Prisma.Decimal(data.perMileRate),
-            perHourRate: new Prisma.Decimal(data.perHourRate),
-            takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
-        };
+        try {
+            const driverData: ExpandedDriver = {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                defaultChargeType: data.defaultChargeType,
+                perMileRate: new Prisma.Decimal(data.perMileRate),
+                perHourRate: new Prisma.Decimal(data.perHourRate),
+                takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
+            };
 
-        const newDriver = await updateDriver(driver.id, driverData);
+            const newDriver = await updateDriver(driver.id, driverData);
 
-        notify({ title: 'Driver updated', message: 'Driver updated successfully' });
+            notify({ title: 'Driver updated', message: 'Driver updated successfully' });
 
-        // Redirect to driver page
-        await router.push(`/drivers/${newDriver.id}`);
-
-        setLoading(false);
+            // Redirect to driver page
+            await router.push(`/drivers/${newDriver.id}`);
+        } catch (error) {
+            notify({ title: error.message, type: 'error' });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
