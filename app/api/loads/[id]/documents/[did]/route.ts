@@ -6,13 +6,17 @@ import prisma from 'lib/prisma';
 import { deleteDocumentFromGCS } from 'lib/delete-doc-from-gcs';
 
 export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string; did: string } }) => {
-    if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    }
-
     const session = req.auth;
     const driverId = req.nextUrl.searchParams.get('driverId');
+    const loadId = context.params.id;
+    const documentId = context.params.did;
+
     let driver: Driver = null;
+
+    // FIX: Needs to be allowed for driver page that doesn't have a login
+    if (!req.auth && !driverId) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
 
     if (driverId) {
         driver = await prisma.driver.findFirst({
@@ -23,9 +27,6 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
             return NextResponse.json({ code: 404, errors: [{ message: 'Driver not found' }] }, { status: 404 });
         }
     }
-
-    const loadId = context.params.id;
-    const documentId = context.params.did;
 
     const load = await prisma.load.findFirst({
         where: {

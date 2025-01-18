@@ -3,6 +3,7 @@ import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
+import { exclude } from 'interfaces/models';
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const assignmentId = context.params.id;
@@ -18,8 +19,10 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
     }
 
     const tokenCarrierId = req.auth?.user?.carrierId || req.auth?.user?.defaultCarrierId;
+    const did = req.nextUrl.searchParams.get('did');
 
-    if (!tokenCarrierId) {
+    // FIX: Needs to be allowed for driver page that doesn't have a login
+    if (!tokenCarrierId && !did) {
         return NextResponse.json(
             {
                 code: 401,
@@ -34,6 +37,7 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
             where: {
                 id: assignmentId,
                 carrierId: tokenCarrierId,
+                ...(did ? { driverId: did } : {}),
             },
             include: {
                 driver: true,
@@ -137,6 +141,11 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
                 },
                 { status: 404 },
             );
+        }
+
+        // Exclude the 'rate' field from the load objects if carrierId is set
+        if (req.auth?.user?.carrierId && driverAssignment.load) {
+            (driverAssignment as any).load = exclude(driverAssignment.load, ['rate']);
         }
 
         return NextResponse.json(

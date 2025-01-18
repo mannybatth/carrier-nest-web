@@ -5,12 +5,21 @@ import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
 export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
-    if (!req.auth) {
-        return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
+    const routeLegId = context.params.id;
+
+    if (!routeLegId) {
+        return NextResponse.json(
+            {
+                code: 400,
+                errors: [{ message: 'Invalid or missing route leg ID' }],
+            },
+            { status: 400 },
+        );
     }
 
     try {
-        const routeLegId = context.params.id;
+        const tokenCarrierId = req.auth?.user?.carrierId || req.auth?.user?.defaultCarrierId;
+
         const {
             routeLegStatus,
             startLatitude,
@@ -21,6 +30,11 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
             longitude,
             driverId,
         } = await req.json();
+
+        // FIX: Needs to be allowed for driver page that doesn't have a login
+        if (!tokenCarrierId && !driverId) {
+            return NextResponse.json({ code: 401, errors: [{ message: 'Unauthorized' }] }, { status: 401 });
+        }
 
         if (!routeLegId || !routeLegStatus) {
             return NextResponse.json({ code: 400, errors: [{ message: 'Missing required fields' }] }, { status: 400 });
@@ -60,7 +74,14 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
             }
 
             const routeLeg = await prisma.routeLeg.update({
-                where: { id: routeLegId },
+                where: {
+                    id: routeLegId,
+                    driverAssignments: {
+                        some: {
+                            driverId: driverIdFromSession,
+                        },
+                    },
+                },
                 data: dataToUpdate,
                 include: {
                     route: {

@@ -5,13 +5,16 @@ import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 
 export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
-    if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    }
-
     const body = await req.json();
     const driverId = body.driverId as string;
+    const loadId = context.params.id;
+
     let driver: Driver = null;
+
+    // FIX: Needs to be allowed for driver page that doesn't have a login
+    if (!req.auth && !driverId) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
 
     if (driverId) {
         driver = await prisma.driver.findFirst({
@@ -23,7 +26,6 @@ export const POST = auth(async (req: NextAuthRequest, context: { params: { id: s
         }
     }
 
-    const loadId = context.params.id;
     const load = await prisma.load.findFirst({
         where: {
             id: loadId,

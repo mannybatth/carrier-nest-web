@@ -1,4 +1,4 @@
-import { LoadStopType } from '@prisma/client';
+import { Load, LoadStopType } from '@prisma/client';
 import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
@@ -236,12 +236,163 @@ const getLoad = async ({
             ...(expandCustomer ? { customer: true } : {}),
             ...(expandCarrier ? { carrier: true } : {}),
             ...(expandInvoice ? { invoice: true } : {}),
-            ...(expandShipper ? { shipper: true } : {}),
-            ...(expandReceiver ? { receiver: true } : {}),
-            ...(expandStops ? { stops: { orderBy: { stopIndex: 'asc' } } } : {}),
-            ...(expandDriverAssignments ? { driverAssignments: { include: { driver: true } } } : {}),
-            ...(expandDocuments ? { loadDocuments: true, rateconDocument: true, podDocuments: true } : {}),
-            ...(expandRoute ? { route: true } : {}),
+            ...(expandShipper
+                ? {
+                      shipper: {
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandReceiver
+                ? {
+                      receiver: {
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandStops
+                ? {
+                      stops: {
+                          orderBy: {
+                              stopIndex: 'asc',
+                          },
+                          select: {
+                              id: true,
+                              type: true,
+                              name: true,
+                              street: true,
+                              city: true,
+                              state: true,
+                              zip: true,
+                              country: true,
+                              date: true,
+                              time: true,
+                              stopIndex: true,
+                              latitude: true,
+                              longitude: true,
+                              poNumbers: true,
+                              pickUpNumbers: true,
+                              referenceNumbers: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandDriverAssignments
+                ? {
+                      driverAssignments: {
+                          select: {
+                              id: true,
+                              assignedAt: true,
+                              driver: {
+                                  select: {
+                                      id: true,
+                                      name: true,
+                                      email: true,
+                                      phone: true,
+                                  },
+                              },
+                              chargeType: true,
+                              chargeValue: true,
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandDocuments
+                ? {
+                      loadDocuments: {
+                          orderBy: {
+                              createdAt: 'desc',
+                          },
+                      },
+                      rateconDocument: true,
+                      podDocuments: {
+                          orderBy: {
+                              createdAt: 'desc',
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandRoute
+                ? {
+                      route: {
+                          select: {
+                              id: true,
+                              loadId: true,
+                              routeLegs: {
+                                  orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
+                                  select: {
+                                      id: true,
+                                      driverInstructions: true,
+                                      locations: { select: { id: true, loadStop: true, location: true } },
+                                      scheduledDate: true,
+                                      scheduledTime: true,
+                                      startedAt: true,
+                                      startLatitude: true,
+                                      startLongitude: true,
+                                      createdAt: true,
+                                      endedAt: true,
+                                      endLatitude: true,
+                                      endLongitude: true,
+                                      distanceMiles: true,
+                                      durationHours: true,
+                                      status: true,
+                                      routeId: true,
+                                      driverAssignments: {
+                                          select: {
+                                              id: true,
+                                              assignedAt: true,
+                                              driver: {
+                                                  select: {
+                                                      id: true,
+                                                      name: true,
+                                                      email: true,
+                                                      phone: true,
+                                                  },
+                                              },
+                                              chargeType: true,
+                                              chargeValue: true,
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      },
+                  }
+                : {}),
         },
     });
 
@@ -251,8 +402,14 @@ const getLoad = async ({
 
     if (driverId) {
         const loadWithoutRate = exclude(load, ['rate']);
-        return { code: 200, data: { load: loadWithoutRate } };
+        return {
+            code: 200,
+            data: { load: loadWithoutRate as Omit<Load, 'rate'> },
+        };
     } else {
-        return { code: 200, data: { load } };
+        return {
+            code: 200,
+            data: { load: load as Load },
+        };
     }
 };

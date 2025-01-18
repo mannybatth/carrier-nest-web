@@ -72,11 +72,34 @@ async function checkStorageLimit(carrierId: string, fileSize: number): Promise<b
 }
 
 export const POST = auth(async (req: NextAuthRequest) => {
-    if (!req.auth) {
+    const assignmentId = req.nextUrl.searchParams.get('aid');
+    const driverId = req.nextUrl.searchParams.get('did');
+
+    // FIX: Needs to be allowed for driver page that doesn't have a login
+    if (!req.auth && !(assignmentId && driverId)) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const carrierId = req.auth.user.defaultCarrierId;
+    let carrierId = req.auth?.user?.defaultCarrierId;
+
+    if (assignmentId && driverId) {
+        const driver = await prisma.driver.findUnique({
+            where: {
+                id: driverId,
+                assignments: {
+                    some: {
+                        id: assignmentId,
+                    },
+                },
+            },
+        });
+
+        if (!driver) {
+            return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
+        }
+
+        carrierId = driver.carrierId;
+    }
 
     try {
         const formData = await req.formData();
