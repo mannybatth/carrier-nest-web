@@ -6,25 +6,25 @@ import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    if (!req.auth) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+
     const session = req.auth;
     const driverId = context.params.id;
     const expand = req.nextUrl.searchParams.get('expand');
-
-    if (!session) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    }
 
     const response = await getDriver({ session, query: { driverId, expand } });
     return NextResponse.json(response, { status: response.code });
 });
 
 export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
-    const session = req.auth;
-    const driverId = context.params.id;
-
-    if (!session) {
+    if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
+
+    const session = req.auth;
+    const driverId = context.params.id;
 
     const driver = await prisma.driver.findFirst({
         where: {
@@ -37,7 +37,9 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
         return NextResponse.json({ code: 404, errors: [{ message: 'Driver not found' }] }, { status: 404 });
     }
 
-    const driverData = await req.json();
+    const driverData = (await req.json()) as Driver;
+
+    driverData.phone = driverData.phone?.trim();
 
     if (driverData.phone) {
         const existingDriver = await prisma.driver.findFirst({
@@ -79,12 +81,12 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
 });
 
 export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
-    const session = req.auth;
-    const driverId = context.params.id;
-
-    if (!session) {
+    if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
+
+    const session = req.auth;
+    const driverId = context.params.id;
 
     const driver = await prisma.driver.findFirst({
         where: {
