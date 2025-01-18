@@ -347,8 +347,8 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                             {new Intl.DateTimeFormat('en-US', {
                                                 month: 'short',
                                                 day: '2-digit',
-                                            }).format(new Date(assignment.routeLeg.scheduledDate))}
-                                            , {assignment.routeLeg.scheduledTime}
+                                            }).format(new Date(assignment.routeLeg.scheduledDate))}{' '}
+                                            @ {assignment.routeLeg.scheduledTime}
                                         </span>
                                     </div>
                                 </div>
