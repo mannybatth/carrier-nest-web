@@ -50,8 +50,8 @@ export const getAllAssignments = async ({
     return data;
 };
 
-export const getAssignmentById = async (id: string): Promise<ExpandedDriverAssignment> => {
-    const response = await fetch(apiUrl + '/assignments/' + id);
+export const getAssignmentById = async (id: string, driverId?: string): Promise<ExpandedDriverAssignment> => {
+    const response = await fetch(apiUrl + '/assignments/' + id + (driverId ? `?did=${driverId}` : ''));
     const { data, errors }: JSONResponse<ExpandedDriverAssignment> = await response.json();
 
     if (errors) {

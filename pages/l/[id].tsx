@@ -96,7 +96,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
         setAssignmentLoading(true);
 
         try {
-            const assignment = await getAssignmentById(assignmentId);
+            const assignment = await getAssignmentById(assignmentId, driverId);
             setAssignment(assignment);
             setLoadDocuments([...assignment.load.podDocuments].filter((ld) => ld));
             setDropOffDatePassed(isDate24HrInThePast(new Date(assignment.load.receiver.date)));
@@ -135,6 +135,11 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                 longitude: null,
                                 latitude: null,
                             });
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0,
                         },
                     );
                 } catch (e) {
@@ -205,7 +210,10 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
 
         setDocsLoading(true);
         try {
-            const [uploadResponse, locationResponse] = await Promise.all([uploadFileToGCS(file), getDeviceLocation()]);
+            const [uploadResponse, locationResponse] = await Promise.all([
+                uploadFileToGCS(file, driverId, assignmentId),
+                getDeviceLocation(),
+            ]);
             if (uploadResponse?.uniqueFileName) {
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: uploadResponse.uniqueFileName,
@@ -339,8 +347,8 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                                             {new Intl.DateTimeFormat('en-US', {
                                                 month: 'short',
                                                 day: '2-digit',
-                                            }).format(new Date(assignment.routeLeg.scheduledDate))}
-                                            , {assignment.routeLeg.scheduledTime}
+                                            }).format(new Date(assignment.routeLeg.scheduledDate))}{' '}
+                                            @ {assignment.routeLeg.scheduledTime}
                                         </span>
                                     </div>
                                 </div>
