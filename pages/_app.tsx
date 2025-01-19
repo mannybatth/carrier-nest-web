@@ -8,6 +8,7 @@ import 'polyfills';
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 import { UserProvider } from '../components/context/UserContext';
 import ErrorBoundary from '../components/layout/ErrorBoundary';
@@ -70,6 +71,7 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                 </SessionProvider>
             </ErrorBoundary>
             <Analytics />
+            <SpeedInsights />
         </>
     );
 }
