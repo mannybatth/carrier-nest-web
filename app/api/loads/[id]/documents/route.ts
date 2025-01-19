@@ -3,6 +3,7 @@ import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
+import 'polyfills';
 
 export const POST = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const body = await req.json();

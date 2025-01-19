@@ -1,11 +1,11 @@
-import { Prisma } from '@prisma/client';
 import { NextComponentType, NextPageContext } from 'next';
 import { Session } from 'next-auth';
 import { SessionProvider } from 'next-auth/react';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import React, { Suspense } from 'react';
+import 'polyfills';
+import React from 'react';
 import { Toaster } from 'react-hot-toast';
 
 import { UserProvider } from '../components/context/UserContext';
@@ -14,15 +14,6 @@ import Spinner from '../components/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
-
-// Configure Prisma Decimal serialization
-Prisma.Decimal.prototype.toJSON = function () {
-    return this.toNumber();
-};
-
-BigInt.prototype['toJSON'] = function () {
-    return this.toString();
-};
 
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, object> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
