@@ -1,7 +1,5 @@
-import { BytesOutputParser } from '@langchain/core/output_parsers';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { ChatVertexAI } from '@langchain/google-vertexai-web';
-import { StreamingTextResponse } from 'ai';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { streamText } from 'ai';
 import { auth } from 'auth';
 import { canImportRatecon } from 'lib/ratecon-import-check/ratecon-import-check-server';
 import { NextAuthRequest } from 'next-auth/lib';
@@ -30,11 +28,7 @@ interface LogisticsData {
     invoice_emails: string[];
 }
 
-const template = `{context}
-
-{question}`;
-
-const question = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
+const system = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
 
 Output Format:
 {
@@ -206,8 +200,6 @@ export const POST = auth(async (req: NextAuthRequest) => {
             });
         }
 
-        const outputParser = new BytesOutputParser();
-
         if (!Array.isArray(documents)) {
             throw new Error('Invalid input. Expected arrays.');
         }
@@ -220,54 +212,48 @@ export const POST = auth(async (req: NextAuthRequest) => {
             return item.pageContent as string;
         });
 
-        const promptTemplate = new PromptTemplate({
-            template,
-            inputVariables: ['question', 'context'],
-        });
-
-        const model = new ChatVertexAI({
-            model: 'gemini-1.5-pro-001',
-            maxOutputTokens: 2048,
-            temperature: 0,
-            verbose: process.env.NODE_ENV === 'development',
-            safetySettings: [
-                {
-                    category: 'HARM_CATEGORY_HATE_SPEECH',
-                    threshold: 'BLOCK_ONLY_HIGH',
-                },
-                {
-                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                    threshold: 'BLOCK_ONLY_HIGH',
-                },
-                {
-                    category: 'HARM_CATEGORY_HARASSMENT',
-                    threshold: 'BLOCK_ONLY_HIGH',
-                },
-                {
-                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                    threshold: 'BLOCK_ONLY_HIGH',
-                },
-            ],
-            authOptions: {
+        const vertex = createVertex({
+            location: 'us-central1',
+            project: process.env.GCP_PROJECT_ID,
+            googleAuthOptions: {
                 credentials: {
                     type: 'service_account',
                     private_key: process.env.GCP_PRIVATE_KEY,
                     client_email: process.env.GCP_CLIENT_EMAIL,
                     client_id: process.env.GCP_CLIENT_ID,
                     project_id: process.env.GCP_PROJECT_ID,
-                    token_uri: 'https://oauth2.googleapis.com/token',
                 },
             },
         });
 
-        const chain = promptTemplate.pipe(model).pipe(outputParser);
-
-        const stream = await chain.stream({
-            question: question,
-            context: JSON.stringify(context),
+        const result = streamText({
+            model: vertex('gemini-1.5-pro-001', {
+                safetySettings: [
+                    {
+                        category: 'HARM_CATEGORY_HATE_SPEECH',
+                        threshold: 'BLOCK_ONLY_HIGH',
+                    },
+                    {
+                        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                        threshold: 'BLOCK_ONLY_HIGH',
+                    },
+                    {
+                        category: 'HARM_CATEGORY_HARASSMENT',
+                        threshold: 'BLOCK_ONLY_HIGH',
+                    },
+                    {
+                        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                        threshold: 'BLOCK_ONLY_HIGH',
+                    },
+                ],
+            }),
+            maxTokens: 2048,
+            temperature: 0,
+            system: system,
+            prompt: JSON.stringify(context),
         });
 
-        return new StreamingTextResponse(stream);
+        return result.toTextStreamResponse();
     } catch (error) {
         return new NextResponse(JSON.stringify({ error: error.message }), {
             headers: { 'Content-Type': 'application/json' },
