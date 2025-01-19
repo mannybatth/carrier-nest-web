@@ -103,6 +103,8 @@ const CreateLoad: PageWithAuth = () => {
 
     const [dragActive, setDragActive] = React.useState(false);
 
+    const [aiLimitReached, setAiLimitReached] = React.useState(false);
+
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -340,12 +342,20 @@ const CreateLoad: PageWithAuth = () => {
                 });
             }
         } catch (e) {
+            console.error('Error processing document:', e);
             notify({
                 title: 'Error',
                 message: e?.message || 'Error processing document',
                 type: 'error',
             });
             handleAIError();
+
+            // Handle ratecon limit reached, set the file object to pdfviewer
+            // Set aiLimitReached to make the user more aware of the limit reached
+            if (e?.message.includes('limit reached')) {
+                setCurrentRateconFile(file);
+                setAiLimitReached(true);
+            }
             return;
         }
 
@@ -938,12 +948,20 @@ const CreateLoad: PageWithAuth = () => {
                 </div>
 
                 {!isProPlan && !isLoadingCarrier && (
-                    <div className="mx-5 mb-6 md:mx-0 md:px-8">
-                        <div className="p-6 border border-blue-100 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div className="mx-5 mb-6 md:mx-0 md:px-8 transition-all">
+                        <div
+                            className={`p-6 border rounded-lg bg-gradient-to-r ${
+                                aiLimitReached
+                                    ? 'border-red-300 from-red-100 to-red-200'
+                                    : 'border-blue-100 from-blue-50 to-indigo-50'
+                            } `}
+                        >
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                     <h3 className="text-lg font-medium text-blue-900">
-                                        Enhance your load management with AI
+                                        {aiLimitReached
+                                            ? 'AI load import limit reached, unlock the speed + accuracy of AI by upgrading to Pro'
+                                            : 'Enhance your load management with AI'}
                                     </h3>
                                     <p className="mt-1 text-sm text-blue-700">
                                         Your plan has limited AI document processing. Upgrade to Pro for unlimited AI
@@ -954,7 +972,7 @@ const CreateLoad: PageWithAuth = () => {
                                     <Link href="/billing">
                                         <button
                                             type="button"
-                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            className="inline-flex animate-pulse items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         >
                                             Upgrade Plan
                                         </button>
