@@ -2,7 +2,6 @@ import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
-import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import prisma from 'lib/prisma';
@@ -18,20 +17,21 @@ const storage = new Storage({
 });
 
 async function uploadFile(
-    localFilePath: string,
+    fileBuffer: Buffer,
     originalFileName: string,
     bucketName: string,
 ): Promise<{ gcsInputUri: string; uniqueFileName: string; originalFileName: string }> {
     const extension = path.extname(originalFileName).toLowerCase();
     const uniqueFileName = `${uuidv4()}${extension}`;
 
-    await storage.bucket(bucketName).upload(localFilePath, {
-        destination: uniqueFileName,
+    const bucket = storage.bucket(bucketName);
+    const blob = bucket.file(uniqueFileName);
+
+    await blob.save(fileBuffer, {
         resumable: false,
     });
 
-    await storage.bucket(bucketName).file(uniqueFileName).makePublic();
-    await fs.unlink(localFilePath);
+    await blob.makePublic();
 
     return {
         gcsInputUri: `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`,
@@ -104,27 +104,25 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
     try {
         const formData = await req.formData();
-        const file = formData.get('file');
+        const file = formData.get('file') as unknown as {
+            arrayBuffer: () => Promise<ArrayBuffer>;
+            name: string;
+            size: number;
+        };
 
-        if (!file || typeof file === 'string' || !('arrayBuffer' in file)) {
+        if (!file || !file.arrayBuffer) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
         const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME;
+        const isWithinLimit = await checkStorageLimit(carrierId, file.size);
 
-        // Use the correct size property from the File object
-        const fileSize = 'size' in file ? file.size : 0;
-        const isWithinLimit = await checkStorageLimit(carrierId, fileSize);
         if (!isWithinLimit) {
             return NextResponse.json({ error: 'Storage limit exceeded' }, { status: 400 });
         }
 
-        // Create a temporary file to store the uploaded content
-        const tempPath = `/tmp/${Date.now()}-${file.name}`;
-        const buffer = await file.arrayBuffer();
-        await fs.writeFile(tempPath, Buffer.from(buffer));
-
-        const { gcsInputUri, uniqueFileName, originalFileName } = await uploadFile(tempPath, file.name, bucketName);
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const { gcsInputUri, uniqueFileName, originalFileName } = await uploadFile(buffer, file.name, bucketName);
 
         return NextResponse.json({ gcsInputUri, uniqueFileName, originalFileName });
     } catch (error) {
