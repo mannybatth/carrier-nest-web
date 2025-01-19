@@ -6,6 +6,7 @@ import prisma from 'lib/prisma';
 import { exclude, ExpandedLoad, JSONResponse } from 'interfaces/models';
 import { deleteDocumentFromGCS } from 'lib/delete-doc-from-gcs';
 import { Session } from 'next-auth';
+import 'polyfills';
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const session = req.auth;

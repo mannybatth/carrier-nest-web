@@ -8,6 +8,7 @@ import { BASIC_PLAN_TOTAL_LOADS } from 'lib/constants';
 import { ExpandedLoad } from 'interfaces/models';
 import { calcPaginationMetadata } from 'lib/pagination';
 import { isProPlan } from 'lib/subscription';
+import 'polyfills';
 
 const buildOrderBy = (
     sortBy: string,

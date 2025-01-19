@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import prisma from 'lib/prisma';
 import { isProPlan } from 'lib/subscription';
+import 'polyfills';
 
 const storage = new Storage({
     projectId: process.env.GCP_PROJECT_ID,
