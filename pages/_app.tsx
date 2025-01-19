@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import 'polyfills';
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
 
 import { UserProvider } from '../components/context/UserContext';
 import ErrorBoundary from '../components/layout/ErrorBoundary';
@@ -47,25 +48,28 @@ const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
 
 export default function App({ Component, pageProps: { session, ...pageProps } }: ProtectedAppProps) {
     return (
-        <ErrorBoundary>
-            <SessionProvider session={session}>
-                <Head>
-                    <title>Carrier Nest</title>
-                    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-                    <meta name="description" content="Carrier Nest - Transportation Management System" />
-                    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-                </Head>
-                {Component.authenticationEnabled ? (
-                    <AuthWrapper>
-                        <UserProvider>
-                            <Component {...pageProps} />
-                        </UserProvider>
-                    </AuthWrapper>
-                ) : (
-                    <Component {...pageProps} />
-                )}
-                <Toaster position="top-right" />
-            </SessionProvider>
-        </ErrorBoundary>
+        <>
+            <ErrorBoundary>
+                <SessionProvider session={session}>
+                    <Head>
+                        <title>Carrier Nest</title>
+                        <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                        <meta name="description" content="Carrier Nest - Transportation Management System" />
+                        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+                    </Head>
+                    {Component.authenticationEnabled ? (
+                        <AuthWrapper>
+                            <UserProvider>
+                                <Component {...pageProps} />
+                            </UserProvider>
+                        </AuthWrapper>
+                    ) : (
+                        <Component {...pageProps} />
+                    )}
+                    <Toaster position="top-right" />
+                </SessionProvider>
+            </ErrorBoundary>
+            <Analytics />
+        </>
     );
 }
