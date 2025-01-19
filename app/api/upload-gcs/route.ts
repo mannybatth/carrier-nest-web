@@ -105,14 +105,14 @@ export const POST = auth(async (req: NextAuthRequest) => {
         const formData = await req.formData();
         const file = formData.get('file');
 
-        if (!file || !(file instanceof File)) {
+        if (!file || typeof file === 'string' || !('arrayBuffer' in file)) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
         const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME;
 
         // Use the correct size property from the File object
-        const fileSize = file.size || 0;
+        const fileSize = 'size' in file ? file.size : 0;
         const isWithinLimit = await checkStorageLimit(carrierId, fileSize);
         if (!isWithinLimit) {
             return NextResponse.json({ error: 'Storage limit exceeded' }, { status: 400 });
