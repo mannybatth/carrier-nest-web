@@ -105,6 +105,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
                     quantity: numDrivers || 1,
                 },
             ],
+            allow_promotion_codes: true,
             success_url: carrierEmail
                 ? `${appUrl}?refresh_session=true`
                 : `${appUrl}/billing?checkout_session_id={CHECKOUT_SESSION_ID}&refresh_session=true`,
