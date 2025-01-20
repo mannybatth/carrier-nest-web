@@ -519,7 +519,7 @@ const CreateLoad: PageWithAuth = () => {
                     }
                 } catch (error) {
                     console.error('Error parsing JSON:', error);
-                    throw new Error('Failed to parse AI response');
+                    throw new Error('Failed read document');
                 }
                 break;
             }
