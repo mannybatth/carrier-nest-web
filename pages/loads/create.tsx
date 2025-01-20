@@ -508,11 +508,18 @@ const CreateLoad: PageWithAuth = () => {
             const { value, done } = await streamReader.read();
             if (done) {
                 setAiProgress(100);
-                const jsonString = buffer.match(/```json\s*([\s\S]*?)\s*```/);
                 try {
-                    aiLoad = JSON.parse(jsonString[1]);
+                    // First try to extract JSON from code fence
+                    const jsonMatch = buffer.match(/```json\s*([\s\S]*?)\s*```/);
+                    if (jsonMatch) {
+                        aiLoad = JSON.parse(jsonMatch[1]);
+                    } else {
+                        // If no code fence found, try parsing the entire buffer as JSON
+                        aiLoad = JSON.parse(buffer);
+                    }
                 } catch (error) {
                     console.error('Error parsing JSON:', error);
+                    throw new Error('Failed read document');
                 }
                 break;
             }
@@ -705,6 +712,14 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const looselyCompareAddresses = (str1: string, str2: string) => {
+        if (!str1 || !str2) {
+            return false;
+        }
+
+        if (str1 === str2) {
+            return true;
+        }
+
         // Normalize strings: remove special characters and convert to lowercase
         const normalize = (str) =>
             str
@@ -948,7 +963,7 @@ const CreateLoad: PageWithAuth = () => {
                 </div>
 
                 {!isProPlan && !isLoadingCarrier && (
-                    <div className="mx-5 mb-6 md:mx-0 md:px-8 transition-all">
+                    <div className="mx-5 mb-6 transition-all md:mx-0 md:px-8">
                         <div
                             className={`p-6 border rounded-lg bg-gradient-to-r ${
                                 aiLimitReached
@@ -972,7 +987,7 @@ const CreateLoad: PageWithAuth = () => {
                                     <Link href="/billing">
                                         <button
                                             type="button"
-                                            className="inline-flex animate-pulse items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm animate-pulse hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         >
                                             Upgrade Plan
                                         </button>
