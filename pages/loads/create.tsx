@@ -712,6 +712,14 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const looselyCompareAddresses = (str1: string, str2: string) => {
+        if (!str1 || !str2) {
+            return false;
+        }
+
+        if (str1 === str2) {
+            return true;
+        }
+
         // Normalize strings: remove special characters and convert to lowercase
         const normalize = (str) =>
             str
