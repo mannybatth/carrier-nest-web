@@ -7,9 +7,13 @@ import {
     DocumentDuplicateIcon,
     CurrencyDollarIcon,
     ChartBarIcon,
+    DevicePhoneMobileIcon,
+    BanknotesIcon,
+    TruckIcon,
 } from '@heroicons/react/24/outline';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
 
@@ -57,10 +61,21 @@ const Homepage = () => {
             icon: MapPinIcon,
         },
         {
+            name: 'Driver App',
+            desc: 'Allow drivers to view assigned route details, upload documents, and track accurate location.',
+            icon: DevicePhoneMobileIcon,
+        },
+        {
+            name: 'Driver Payroll',
+            desc: 'Add driver pay to each assignment based on per mile, per load, or hourly basis.',
+            icon: BanknotesIcon,
+        },
+        {
             name: 'Invoice Generation',
             desc: 'See POD ready loads and generate invoices with one click.',
             icon: ReceiptRefundIcon,
         },
+
         {
             name: 'Document Management',
             desc: 'All load documents are connected to each load so you can easily see/download them.',
@@ -76,6 +91,11 @@ const Homepage = () => {
             desc: 'Track different metrics to stay informed about company activity.',
             icon: ChartBarIcon,
         },
+        {
+            name: 'Equipment Management',
+            desc: 'Keep track of your equipment status, location and driver assignments.',
+            icon: TruckIcon,
+        },
     ];
 
     // Define an array of border color classes
@@ -88,6 +108,7 @@ const Homepage = () => {
         'border-pink-700',
         'border-indigo-700',
         'border-teal-700',
+        'border-lime-700',
     ];
 
     const textColors = [
@@ -99,6 +120,7 @@ const Homepage = () => {
         'text-pink-700',
         'text-indigo-700',
         'text-teal-700',
+        'text-lime-700',
     ];
 
     return (
@@ -125,7 +147,7 @@ const Homepage = () => {
 
                         {status !== 'authenticated' && (
                             <button
-                                className="p-2 text-sm font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
+                                className="p-2 text-sm  font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
                                 onClick={() => signIn()}
                             >
                                 Get Started!
@@ -208,14 +230,14 @@ const Homepage = () => {
                                 operations.
                             </p>
                         </div>
-                        <div className="relative w-full">
+                        <div className="relative w-full bg-slate-50 rounded-xl ">
                             <Image
                                 src="/dashboard.png"
                                 alt="App Dashboard Overview"
                                 width={1920}
                                 height={1080}
                                 loading="lazy"
-                                className="border rounded-lg shadow-none border-slate-100"
+                                className="  rounded-xl shadow-none "
                             />
                         </div>
                     </div>
@@ -236,6 +258,61 @@ const Homepage = () => {
                     >
                         Start Free Trial
                     </button>
+                </div>
+                <div className="px-10 mt-16 py-10 text-center  rounded-2xl bg-slate-50 ">
+                    <div className="flex flex-col md:flex-row justify-between items-center">
+                        <div>
+                            <h2 className="mb-2 text-4xl font-extrabold text-slate-800 text-start">
+                                Carrier Nest Driver App
+                            </h2>
+                            <p className="max-w-4xl px-0 mx-auto mb-8 text-md font-light text-slate-500 text-start">
+                                Take Control of Your Routes with Ease
+                            </p>
+                            <p className="max-w-3xl px-0 mx-auto mb-8 text-md font-medium text-slate-900 text-left ">
+                                Introducing our iPhone app for drivers! Simplify your day with tools designed for your
+                                workflow:
+                                <ul className="list-decimal list-inside style gap-2 pb-4 pt-2 pl-0">
+                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl shadow-sm text-slate-600 border border-slate-400">
+                                        View Assigned Routes
+                                    </li>
+                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                        Start & Complete Routes
+                                    </li>
+                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                        Upload Load Documents
+                                    </li>
+                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                        Automatic Location Tracking
+                                    </li>
+                                </ul>
+                            </p>
+                            <p className="  text-slate-600 rounded-md text-start px-0 py-1 font-extrabold text-xl max-w-xl">
+                                Efficient. Intuitive. Built for drivers. Download now and drive smarter!
+                            </p>
+                            <div className="flex w-full text-left py-2">
+                                <Link
+                                    href={'https://apps.apple.com/us/app/carrier-nest/id6471352606'}
+                                    className="text-left"
+                                >
+                                    <button className="px-6 py-3 font-semibold text-white transition m-0 bg-blue-600 rounded-md hover:bg-blue-700">
+                                        Download Driver App
+                                    </button>
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="mt-8 md:mt-0">
+                            <div className="relative w-full  rounded-xl p-4  ">
+                                <Image
+                                    src="/carriernestiphoneapp.png"
+                                    alt="App Dashboard Overview"
+                                    width={350}
+                                    height={500}
+                                    loading="lazy"
+                                    className="  rounded-xl shadow-none "
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Footer */}
