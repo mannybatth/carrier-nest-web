@@ -272,16 +272,16 @@ const Homepage = () => {
                                 Introducing our iPhone app for drivers! Simplify your day with tools designed for your
                                 workflow:
                                 <ul className="list-decimal list-inside style gap-2 pb-4 pt-2 pl-0">
-                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl shadow-sm text-slate-600 border border-slate-400">
+                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg shadow-sm text-slate-600 border border-slate-400">
                                         View Assigned Routes
                                     </li>
-                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
                                         Start & Complete Routes
                                     </li>
-                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
                                         Upload Load Documents
                                     </li>
-                                    <li className="bg-slate-50 mb-2 font-thin rounded-md w-fit px-2 py-1 text-xl  shadow-sm text-slate-600 border border-slate-400">
+                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
                                         Automatic Location Tracking
                                     </li>
                                 </ul>
