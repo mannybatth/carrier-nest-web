@@ -11,6 +11,7 @@ import {
     BanknotesIcon,
     TruckIcon,
 } from '@heroicons/react/24/outline';
+import { CheckBadgeIcon } from '@heroicons/react/24/solid';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -159,11 +160,12 @@ const Homepage = () => {
                 {/* Hero Section */}
                 <main id="mainContent" tabIndex={-1} role="main" className="pt-16 md:pt-20">
                     <section className="grid items-center grid-cols-1 gap-8 md:grid-cols-12">
-                        <div className="md:col-span-6">
+                        <div className="md:col-span-6 ">
                             <h1 className="text-4xl font-extrabold text-gray-900 md:text-5xl">Trucking Simplified.</h1>
                             <p className="mt-4 text-lg text-gray-700 md:text-xl">
-                                Carrier Nest lets you focus on growing your business. We aim to simplify logistics for
-                                owner-operators and medium-sized trucking companies.
+                                Simplify your trucking management with Carrier Nest. Start your free trial today-
+                                <span className="font-semibold underline text-black">no credit card required</span>.
+                                Experience streamlined logistics and business growth.
                             </p>
                             <div className="mt-6">
                                 <div className="flex flex-wrap gap-4">
@@ -259,53 +261,58 @@ const Homepage = () => {
                         Start Free Trial
                     </button>
                 </div>
-                <div className="px-10 mt-16 py-10 text-center  rounded-2xl bg-slate-50 ">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="px-12 mt-16 py-10 text-center  rounded-2xl bg-white w-full">
+                    <div className="flex flex-col md:flex-row md:justify-center items-center">
                         <div>
-                            <h2 className="mb-2 text-4xl font-extrabold text-slate-800 text-start">
+                            <h2 className="text-center md:text-start mb-2 text-3xl font-extrabold text-gray-900">
                                 Carrier Nest Driver App
                             </h2>
-                            <p className="max-w-4xl px-0 mx-auto mb-8 text-md font-light text-slate-500 text-start">
+                            <p className="max-w-4xl px-0 mx-auto mb-6  text-md font-light text-slate-500 text-center md:text-start">
                                 Take Control of Your Routes with Ease
                             </p>
-                            <p className="max-w-3xl px-0 mx-auto mb-8 text-md font-medium text-slate-900 text-left ">
-                                Introducing our iPhone app for drivers! Simplify your day with tools designed for your
-                                workflow:
-                                <ul className="list-decimal list-inside style gap-2 pb-4 pt-2 pl-0">
-                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg shadow-sm text-slate-600 border border-slate-400">
-                                        View Assigned Routes
+
+                            <div className="max-w-3xl px-0 mx-auto mb-6 text-lg font-normal text-gray-700 text-center md:text-start">
+                                <p>Introducing our iPhone app for drivers</p>
+                                <p>Designed to streamline your daily operations:</p>
+
+                                <ul className="list-none list-inside style gap-2 pb-4 pt-2 pl-0 flex flex-col justify-center md:justify-start items-center md:items-start">
+                                    <li className="flex flex-row items-center gap-2 bg-slate-50 mb-2 font-light rounded-md w-fit px-2 py-0.5 text-md shadow-sm text-slate-600 ">
+                                        <CheckBadgeIcon color="#2563eb" height={20} width={20} /> View Assigned Routes
                                     </li>
-                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
-                                        Start & Complete Routes
+                                    <li className="flex flex-row items-center gap-2 bg-slate-50 mb-2 font-light rounded-md w-fit px-2 py-0.5 text-md shadow-sm text-slate-600 ">
+                                        <CheckBadgeIcon color="#2563eb" height={20} width={20} /> Start & Complete
+                                        Routes
                                     </li>
-                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
-                                        Upload Load Documents
+                                    <li className="flex flex-row items-center gap-2 bg-slate-50 mb-2 font-light rounded-md w-fit px-2 py-0.5 text-md shadow-sm text-slate-600 ">
+                                        <CheckBadgeIcon color="#2563eb" height={20} width={20} /> Upload Load Documents
                                     </li>
-                                    <li className="bg-white mb-2 font-thin rounded-md w-fit px-2 py-1 text-lg  shadow-sm text-slate-600 border border-slate-400">
-                                        Automatic Location Tracking
+                                    <li className="flex flex-row items-center gap-2 bg-slate-50 mb-2 font-light rounded-md w-fit px-2 py-0.5 text-md shadow-sm text-slate-600 ">
+                                        <CheckBadgeIcon color="#2563eb" height={20} width={20} /> Automatic Location
+                                        Tracking
                                     </li>
                                 </ul>
-                            </p>
-                            <p className="  text-slate-600 rounded-md text-start px-0 py-1 font-extrabold text-xl max-w-xl">
-                                Efficient. Intuitive. Built for drivers. Download now and drive smarter!
-                            </p>
-                            <div className="flex w-full text-left py-2">
+                            </div>
+                            <div className="  text-slate-800 rounded-md text-center md:text-start px-0 py-1 font-light text-2xl max-w-xl">
+                                <p>Efficient. Intuitive. Built for drivers.</p>
+                                <p>Download now and drive smarter!</p>
+                            </div>
+                            <div className="flex w-full text-left py-2 items-center md:items-start justify-center md:justify-start">
                                 <Link
                                     href={'https://apps.apple.com/us/app/carrier-nest/id6471352606'}
                                     className="text-left"
                                 >
-                                    <button className="px-6 py-3 font-semibold text-white transition m-0 bg-blue-600 rounded-md hover:bg-blue-700">
+                                    <button className="px-6 py-3 font-semibold text-blue-600 rounded-md transition m-0 bg-white shadow-md border-2 border-blue-600">
                                         Download Driver App
                                     </button>
                                 </Link>
                             </div>
                         </div>
-                        <div className="mt-8 md:mt-0">
+                        <div className="mt-8 md:mt-0 md:pl-8">
                             <div className="relative w-full  rounded-xl p-4  ">
                                 <Image
                                     src="/carriernestiphoneapp.png"
                                     alt="App Dashboard Overview"
-                                    width={350}
+                                    width={275}
                                     height={500}
                                     loading="lazy"
                                     className="  rounded-xl shadow-none "
