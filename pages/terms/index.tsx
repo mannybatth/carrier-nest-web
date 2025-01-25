@@ -70,8 +70,8 @@ const Terms = () => {
                             <ul className="list-disc pl-6 text-gray-700 mt-2 space-y-2">
                                 <li>
                                     <strong>Subscription Plans:</strong> CarrierNest offers subscription-based access to
-                                    premium features ("Subscription"). Details about available plans, pricing, and
-                                    billing cycles are provided in the app or on the website.
+                                    premium features (&quot;Subscription&quot;). Details about available plans, pricing,
+                                    and billing cycles are provided in the app or on the website.
                                 </li>
                                 <li>
                                     <strong>Free Trials:</strong> CarrierNest may offer free trials of certain
@@ -172,9 +172,10 @@ const Terms = () => {
                         <section>
                             <h2 className="text-xl font-semibold mt-4">8. Disclaimer of Warranties</h2>
                             <p className="text-gray-700 mt-2">
-                                The Services are provided on an "as-is" and "as-available" basis. CarrierNest makes no
-                                warranties, express or implied, regarding the Services, including but not limited to
-                                merchantability, fitness for a particular purpose, or non-infringement.
+                                The Services are provided on an &quot;as-is&quot; and &quot;as-available&quot; basis.
+                                CarrierNest makes no warranties, express or implied, regarding the Services, including
+                                but not limited to merchantability, fitness for a particular purpose, or
+                                non-infringement.
                             </p>
                             <div className="my-4" />
                         </section>
@@ -188,8 +189,8 @@ const Terms = () => {
                                     consequential damages, including loss of profits, revenue, or data.
                                 </li>
                                 <li>
-                                    CarrierNest's total liability for claims related to the Services will not exceed the
-                                    amount you paid for the Services in the 12 months preceding the claim.
+                                    CarrierNest&apos;s total liability for claims related to the Services will not
+                                    exceed the amount you paid for the Services in the 12 months preceding the claim.
                                 </li>
                             </ul>
                             <div className="my-4" />
@@ -209,11 +210,10 @@ const Terms = () => {
                             <h2 className="text-xl font-semibold mt-4">11. Changes to the Terms</h2>
                             <p className="text-gray-700 mt-2">
                                 CarrierNest reserves the right to modify these Terms at any time. Updates will be posted
-                                on the app or website, and the "Last Updated" date will reflect the changes. Your
-                                continued use of the Services after changes constitutes your acceptance of the updated
-                                Terms.
+                                on the app or website, and the &quot;Last Updated&quot; date will reflect the changes.
+                                Your continued use of the Services after changes constitutes your acceptance of the
+                                updated Terms.
                             </p>
-                            <div className="my-4" />
                         </section>
 
                         <section>
