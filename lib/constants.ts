@@ -1,9 +1,9 @@
 const getAppUrl = () => {
     switch (process.env.NEXT_PUBLIC_VERCEL_ENV) {
         case 'production':
-            return process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL;
+            return `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
         case 'preview':
-            return process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL;
+            return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`;
         default:
             return 'http://localhost:3000';
     }
