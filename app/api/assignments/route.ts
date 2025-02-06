@@ -8,6 +8,7 @@ import { CreateAssignmentRequest, UpdateAssignmentRequest } from 'interfaces/ass
 import { ExpandedDriverAssignment } from 'interfaces/models';
 import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
+import { appUrl } from 'lib/constants';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -563,7 +564,7 @@ async function sendSmsNotifications(assignments: ExpandedDriverAssignment[], loa
         if (!driver.phone) {
             continue;
         }
-        const linkToLoad = `${process.env.NEXT_PUBLIC_VERCEL_URL}/l/${assignment.id}?did=${driver.id}`;
+        const linkToLoad = `${appUrl}/l/${assignment.id}?did=${driver.id}`;
         const textMessage = isUpdate
             ? `Your assignment has been updated.\n\nView Load: ${linkToLoad}`
             : `You have a new assignment.\n\nView Load: ${linkToLoad}`;
