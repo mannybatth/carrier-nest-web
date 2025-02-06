@@ -1,7 +1,15 @@
-export const appUrl =
-    process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3000' // development api
-        : process.env.NEXT_PUBLIC_VERCEL_URL;
+const getAppUrl = () => {
+    switch (process.env.NEXT_PUBLIC_VERCEL_ENV) {
+        case 'production':
+            return `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
+        case 'preview':
+            return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`;
+        default:
+            return 'http://localhost:3000';
+    }
+};
+
+export const appUrl = getAppUrl();
 export const apiUrl = `${appUrl}/api`;
 
 export const BASIC_PLAN_MAX_DRIVERS = parseInt(process.env.NEXT_PUBLIC_BASIC_PLAN_MAX_DRIVERS);

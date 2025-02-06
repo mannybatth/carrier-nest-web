@@ -18,6 +18,7 @@ import { useForm } from 'react-hook-form';
 import { notify } from '../../components/Notification';
 import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
 import { createCheckoutSession } from '../../lib/rest/stripe';
+import { truncate } from 'fs';
 
 type CarrierOperation = {
     carrierOperationDesc: string;
@@ -55,7 +56,7 @@ type StepProps = {
 
 const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
     <li
-        className={`relative flex-1 ${
+        className={`relative flex-1 transition-all ${
             step.number < 3
                 ? `after:content-[''] after:w-0.5 after:h-full after:inline-block after:absolute after:-bottom-11 after:left-5 ${
                       isCompleted ? 'after:bg-blue-600' : 'after:bg-gray-200'
@@ -77,10 +78,14 @@ const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
                 {step.number}
             </span>
             <div className={`block w-full ${(!isCompleted && !isActive && 'opacity-50') || ''}`}>
-                <h4 className={`text-base mb-2 ${isActive || isCompleted ? 'text-blue-600' : 'text-gray-900'}`}>
+                <h4
+                    className={`text-base mb-2 ${isActive || isCompleted ? 'text-blue-600' : 'text-gray-900'} ${
+                        isActive ? 'font-bold' : 'font-normal'
+                    }`}
+                >
                     {step.title}
                 </h4>
-                <p className="mb-4 text-sm text-gray-600">{step.description}</p>
+                <p className="mb-4 text-sm text-gray-600 transition-all duration-200">{step.description}</p>
                 {isActive && <div className="mt-4">{children}</div>}
             </div>
         </div>
@@ -101,8 +106,8 @@ const CarrierSetup: PageWithAuth = () => {
         { id: 'name', label: 'Company Name', required: true, type: 'input' },
         { id: 'email', label: 'Contact Email', required: true, type: 'input' },
         { id: 'phone', label: 'Phone Number', required: true, type: 'input' },
-        { id: 'mcNum', label: 'MC Number', required: false, type: 'input' },
-        { id: 'dotNum', label: 'DOT Number', required: false, type: 'input' },
+        { id: 'mcNum', label: 'MC Number', required: true, type: 'input' },
+        { id: 'dotNum', label: 'DOT Number', required: true, type: 'input' },
         { id: 'street', label: 'Street Address', required: true, type: 'input' },
         { id: 'city', label: 'City', required: true, type: 'input' },
         { id: 'state', label: 'State', required: true, type: 'input' },
@@ -197,6 +202,9 @@ const CarrierSetup: PageWithAuth = () => {
 
     const handleBack = () => {
         setCompanyData(undefined);
+        if (activeStep === 1) {
+            formHook.reset();
+        }
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
     };
 
@@ -343,13 +351,22 @@ const CarrierSetup: PageWithAuth = () => {
             ) : (
                 DisplayCardSkeleton()
             )}
-            <button
-                className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                onClick={handleNext}
-                disabled={!companyData && !fetchError}
-            >
-                Continue
-            </button>
+            <div className="gap-2 flex flex-col md:flex-row">
+                <button
+                    className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    onClick={handleNext}
+                    disabled={!companyData && !fetchError}
+                >
+                    Continue
+                </button>
+                <button
+                    className="py-2.5 px-12 mt-4 text-xs font-normal text-blue-600 border border-slate-200 rounded-lg  hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    onClick={handleNext}
+                    disabled={companyData ? true : false}
+                >
+                    Enter Company Info Manually
+                </button>
+            </div>
         </>
     );
 
@@ -359,8 +376,8 @@ const CarrierSetup: PageWithAuth = () => {
                 <div className="px-8 py-10 m-0 bg-white border-2 border-gray-200">
                     <div className="mb-8 text-center">
                         <h1 className="text-3xl font-bold text-gray-900">Set Up Your Carrier Account</h1>
-                        <p className="px-2 py-1 m-auto mt-2 text-base text-gray-500 bg-yellow-100 rounded-lg w-fit">
-                            Please review the information below and fill in any missing details
+                        <p className="px-2 py-1 m-auto mt-2 text-base text-red-500 bg-yellow-100 rounded-lg w-fit">
+                            Please review the information below and fill in all required(*) details
                         </p>
                     </div>
                     <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
@@ -380,11 +397,17 @@ const CarrierSetup: PageWithAuth = () => {
                                             </label>
                                             <input
                                                 ref={field.id === 'name' ? companyNameInputRef : null}
-                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm placeholder:text-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 id={field.id}
                                                 type="text"
+                                                placeholder={field.id === 'phone' ? '213-456-1111' : ''}
                                                 {...formHook.register(field.id, {
                                                     required: field.required ? `${field.label} is required` : false,
+                                                    pattern: field.id === 'phone' && {
+                                                        value: /^\d{3}-\d{3}-\d{4}$/,
+                                                        message: 'Invalid phone number format: 213-456-1111',
+                                                    },
+
                                                     onBlur:
                                                         field.id === 'name'
                                                             ? async (e) => {
@@ -392,6 +415,8 @@ const CarrierSetup: PageWithAuth = () => {
                                                                       handleCarrierCode(e.target.value);
                                                                   }
                                                               }
+                                                            : field.id === 'phone'
+                                                            ? (e) => formHook.trigger('phone')
                                                             : undefined,
                                                 })}
                                             />
@@ -431,6 +456,11 @@ const CarrierSetup: PageWithAuth = () => {
                                                     required: field.required ? `${field.label} is required` : false,
                                                 })}
                                             />
+                                            {formHook.formState.errors[field.id] && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    {formHook.formState.errors[field.id].message}
+                                                </p>
+                                            )}
                                         </div>
                                     ))}
                             </div>
@@ -470,6 +500,11 @@ const CarrierSetup: PageWithAuth = () => {
                                                         required: field.required ? `${field.label} is required` : false,
                                                     })}
                                                 />
+                                            )}
+                                            {formHook.formState.errors[field.id] && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    {formHook.formState.errors[field.id].message}
+                                                </p>
                                             )}
                                         </div>
                                     ))}

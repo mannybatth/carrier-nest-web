@@ -35,20 +35,22 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
                 <div className="flex flex-col border rounded-lg border-slate-200">
                     <div className="flex flex-row justify-between w-full p-2 rounded-tl-lg rounded-tr-lg bg-slate-100">
                         <p className="text-sm text-slate-900">
-                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(2)} miles
+                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(2)} miles{' '}
                         </p>
                         <p className="text-sm text-slate-900">
                             Travel Time: {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())}
                         </p>
                     </div>
-
+                    <span className="absolute mt-11  ml-2 text-xs bg-slate-400/80 font-semibold text-slate-200 px-1 py-0.5 rounded-md">
+                        ${Number(Number(load.rate) / Number(load.routeDistanceMiles)).toFixed(2)}/mile
+                    </span>
                     {load && load.routeEncoded && (
                         <Image
-                            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
+                            src={`https://api.mapbox.com/styles/v1/mapbox/light-v9/static/path-4+4169E1-0.99(${encodeURIComponent(
                                 load.routeEncoded,
-                            )})/auto/1275x200?padding=25,25,25,25&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                            )})/auto/1275x250?padding=25,25,25,25&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
                             width={1200}
-                            height={200}
+                            height={250}
                             alt="Load Route"
                             loading="lazy"
                             className="w-full h-auto"

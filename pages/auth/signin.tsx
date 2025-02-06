@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import React, { useEffect } from 'react';
 import { GetServerSideProps } from 'next';
+import Link from 'next/link';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -84,6 +85,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                         <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
                             Sign in to your account
                         </h2>
+
                         {/* <p className="mt-2 text-sm leading-6 text-gray-500">
                             Not a member?{' '}
                             <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-500">
@@ -118,7 +120,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 <div>
                                     <label
                                         htmlFor="email"
-                                        className="block text-sm font-medium leading-6 text-gray-900"
+                                        className="block text-md font-medium leading-6 text-gray-900"
                                     >
                                         Email address
                                     </label>
@@ -135,6 +137,13 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 </div>
 
                                 <div>
+                                    <div className="text-gray-400 text-sm font-light p-0 m-0 pb-3">
+                                        By signing up, you agree to our
+                                        <Link href="/terms" className="font-medium">
+                                            {` Terms of Use`}
+                                        </Link>
+                                        .
+                                    </div>
                                     <button
                                         type="submit"
                                         disabled={loadingSubmit}
