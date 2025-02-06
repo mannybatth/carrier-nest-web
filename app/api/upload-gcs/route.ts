@@ -81,7 +81,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    let carrierId = req.auth?.user?.defaultCarrierId;
+    let carrierId = req.auth?.user?.defaultCarrierId || req.auth?.user?.carrierId;
 
     if (assignmentId && driverId) {
         const driver = await prisma.driver.findUnique({
@@ -100,6 +100,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
         }
 
         carrierId = driver.carrierId;
+    }
+
+    if (!carrierId) {
+        return NextResponse.json({ error: 'Carrier ID not found' }, { status: 400 });
     }
 
     try {
