@@ -356,6 +356,7 @@ const CarrierSetup: PageWithAuth = () => {
                     className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
                     onClick={handleNext}
                     disabled={!companyData && !fetchError}
+                    autoFocus
                 >
                     Continue
                 </button>
@@ -443,14 +444,18 @@ const CarrierSetup: PageWithAuth = () => {
                                                 {field.label}{' '}
                                                 {field.required && <span className="text-red-500">*</span>}
                                                 {field.id === 'carrierCode' && (
-                                                    <span className="ml-2 text-sm text-gray-500">
-                                                        (Driver login code)
+                                                    <span className="ml-2 text-sm font-normal text-yellow-600">
+                                                        (Driver phone app login code)
                                                     </span>
                                                 )}
                                             </label>
                                             <input
-                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm disabled:bg-gray-100 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 id={field.id}
+                                                disabled={
+                                                    field.id === 'carrierCode' &&
+                                                    formHook.getValues('carrierCode') !== ''
+                                                }
                                                 type="text"
                                                 {...formHook.register(field.id, {
                                                     required: field.required ? `${field.label} is required` : false,
