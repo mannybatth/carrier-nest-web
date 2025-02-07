@@ -8,6 +8,12 @@ import prisma from 'lib/prisma';
 import { JSONResponse } from 'interfaces/models';
 import { PaginationMetadata } from 'interfaces/table';
 import { calcPaginationMetadata } from 'lib/pagination';
+import Twilio from 'twilio';
+import { send } from 'process';
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = Twilio(accountSid, authToken);
 
 const buildOrderBy = (sortBy: string, sortDir: string) => {
     if (sortBy && sortDir) {
@@ -64,7 +70,11 @@ export const POST = auth(async (req: NextAuthRequest) => {
             throw new Error('Max number of drivers limit reached');
         }
 
-        const driverData = (await req.json()) as Driver;
+        // const driverData = (await req.json()) as Driver;
+        const { driver: driverData, sendAppLinkSMS } = (await req.json()) as {
+            driver: Driver;
+            sendAppLinkSMS: boolean;
+        };
 
         driverData.phone = driverData.phone?.trim();
 
@@ -106,6 +116,9 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 },
             },
         });
+
+        sendAppLinkSMS && sendSmsNotifications(driver.name, carrier.name, driverData.phone);
+
         return NextResponse.json(
             {
                 code: 200,
@@ -181,3 +194,13 @@ const getDrivers = async ({
         data: { metadata, drivers },
     };
 };
+
+async function sendSmsNotifications(driverName: string, companyName: string, driverPhone: string) {
+    const driverAppDownloadLink = 'https://apps.apple.com/us/app/carrier-nest/id6471352606';
+    const textMessage = `Hi ${driverName},\n\nWelcome to ${companyName}! Download the driver app by clicking the following link ${driverAppDownloadLink}\n\nTo finish app setup, contact company once the app is installed. \n\nThank you! \n\nPlease ignore this message if it does not concern you.`;
+    await client.messages.create({
+        body: textMessage,
+        from: '+18883429736',
+        to: driverPhone,
+    });
+}
