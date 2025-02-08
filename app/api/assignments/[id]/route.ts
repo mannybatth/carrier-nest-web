@@ -4,6 +4,7 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { exclude } from 'interfaces/models';
+import 'polyfills';
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const assignmentId = context.params.id;
