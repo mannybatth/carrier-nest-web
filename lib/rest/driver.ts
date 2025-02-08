@@ -78,13 +78,13 @@ export const fullTextSearchDriversByName = async (value: string) => {
     return data.drivers;
 };
 
-export const createDriver = async (driver: Partial<Driver>) => {
+export const createDriver = async (driver: Partial<Driver>, sendAppLinkSMS: boolean) => {
     const response = await fetch(apiUrl + '/drivers', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(driver),
+        body: JSON.stringify({ driver: driver, sendAppLinkSMS: sendAppLinkSMS }),
     });
     const { data, errors }: JSONResponse<{ driver: Driver }> = await response.json();
 
