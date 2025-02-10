@@ -4,6 +4,7 @@ import AssignmentDropDown from './AssignmentDropDown';
 import AssignmentStatusDropDown from './AssignmentStatusDropDown';
 import Spinner from '../../Spinner';
 import { useLoadContext } from 'components/context/LoadContext';
+import { parse, format } from 'date-fns';
 
 type LoadAssignmentsSectionProps = {
     removingRouteLegWithId: string;
@@ -57,8 +58,16 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                     <div>
                                         <h3 className="font-semibold text-gray-900 text-md">Assignment #{index + 1}</h3>
                                         <p className="text-sm text-gray-500">
-                                            Assigned on: {new Date(leg.scheduledDate).toLocaleDateString()} @{' '}
-                                            {leg.scheduledTime}
+                                            Assigned on:{' '}
+                                            {format(
+                                                parse(
+                                                    (leg.scheduledDate as unknown as string).replace(/Z$/, ''),
+                                                    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                                                    new Date(),
+                                                ),
+                                                'M/d/yyyy',
+                                            )}{' '}
+                                            @ {leg.scheduledTime}
                                         </p>
                                         <p className="text-sm text-gray-500">
                                             Started on:{' '}
