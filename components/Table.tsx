@@ -30,11 +30,11 @@ type Props = {
     headers: TableHeader[];
     rows: TableDataRow[];
     sort: Sort;
-    loading: boolean;
+    loading?: boolean;
     emptyState?: React.ReactNode;
     onRowClick?: (id: string, index: number) => void;
     rowLink?: (id: string) => string;
-    changeSort: (sort: Sort) => void;
+    changeSort?: (sort: Sort) => void;
 };
 
 const Table: React.FC<Props> = ({
@@ -54,6 +54,10 @@ const Table: React.FC<Props> = ({
     }, [sortProps]);
 
     const onChangeSort = (key: string) => {
+        if (changeSort === null) {
+            return;
+        }
+
         if (key === sort?.key && sort?.order === 'desc') {
             changeSort(null);
             setSort(null);
@@ -98,7 +102,7 @@ const Table: React.FC<Props> = ({
                     <div className="text-center text-gray-600">No data</div>
                 )
             ) : (
-                <div className="-mx-4 overflow-x-auto overflow-y-visible sm:-mx-6 lg:-mx-8">
+                <div className="-mx-4  overflow-y-visible sm:-mx-6 lg:-mx-8">
                     <div className="inline-block min-w-full align-middle md:px-6 lg:px-8">
                         <table className="min-w-full divide-y divide-gray-300">
                             <thead className="bg-gray-50">
