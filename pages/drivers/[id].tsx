@@ -11,7 +11,7 @@ import { notify } from '../../components/Notification';
 import Pagination from '../../components/Pagination';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedDriver, ExpandedDriverPayment, ExpandedLoad } from '../../interfaces/models';
+import { ExpandedDriver, ExpandedDriverAssignment, ExpandedDriverPayment, ExpandedLoad } from '../../interfaces/models';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
 import { deleteDriverById, getDriverById } from '../../lib/rest/driver';
@@ -22,6 +22,11 @@ import { deleteEquipmentById } from '../../lib/rest/equipment';
 import { getChargeTypeLabel } from 'lib/driver/driver-utils';
 import { deleteDriverPayment, getDriverPayments } from '../../lib/rest/driver-payment';
 import DriverPaymentsTable from '../../components/drivers/DriverPaymentsTable';
+import { getAllAssignments } from 'lib/rest/assignment';
+import { AssignmentsTableSkeleton, DriverAssignmentsTable } from 'components/loads/DriverAssignmentsTable';
+import AssignmentsTable from 'components/assignment/AssignmentsTable';
+import { RouteLegStatus } from '@prisma/client';
+import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 
 type ActionsDropdownProps = {
     driver: ExpandedDriver;
@@ -115,7 +120,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     const [lastPaymentsTableLimit, setLastPaymentsTableLimit] = useLocalStorage('lastPaymentsTableLimit', limitProp);
 
     const [loadingDriver, setLoadingDriver] = React.useState(true);
-    const [loadingLoads, setLoadingLoads] = React.useState(true);
+    const [loadingAssignments, setLoadingAssignments] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
 
     const [openDeleteDriverConfirmation, setOpenDeleteDriverConfirmation] = React.useState(false);
@@ -126,6 +131,7 @@ const DriverDetailsPage: PageWithAuth = () => {
 
     const [driver, setDriver] = React.useState<ExpandedDriver | null>(null);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
+    const [assignmentsList, setAssignmentsList] = React.useState<ExpandedDriverAssignment[]>([]);
 
     const [sort, setSort] = React.useState<Sort>(sortProps);
     const [equipmentSort, setEquipmentSort] = React.useState<Sort>(equipmentSortProps);
@@ -157,7 +163,7 @@ const DriverDetailsPage: PageWithAuth = () => {
     useEffect(() => {
         setLimit(limitProp);
         setOffset(offsetProp);
-        reloadLoads({ sort, limit: limitProp, offset: offsetProp });
+        reloadAssignments({ sort, limit: limitProp, offset: offsetProp });
     }, [limitProp, offsetProp]);
 
     const changeSort = (sort: Sort) => {
@@ -170,7 +176,7 @@ const DriverDetailsPage: PageWithAuth = () => {
             { shallow: true },
         );
         setSort(sort);
-        reloadLoads({ sort, limit, offset, useTableLoading: true });
+        reloadAssignments({ sort, limit, offset, useTableLoading: true });
     };
 
     const changeEquipmentSort = (sort: Sort) => {
@@ -193,7 +199,7 @@ const DriverDetailsPage: PageWithAuth = () => {
         setLoadingDriver(false);
     };
 
-    const reloadLoads = async ({
+    const reloadAssignments = async ({
         sort,
         limit,
         offset,
@@ -204,17 +210,19 @@ const DriverDetailsPage: PageWithAuth = () => {
         offset: number;
         useTableLoading?: boolean;
     }) => {
-        !useTableLoading && setLoadingLoads(true);
+        !useTableLoading && setLoadingAssignments(true);
         useTableLoading && setTableLoading(true);
-        const { loads, metadata: metadataResponse } = await getLoadsExpanded({
-            driverId,
+        const { assignments, metadata: metadataResponse } = await getAllAssignments({
+            driverIds: [driverId],
             limit,
             offset,
             sort,
         });
-        setLoadsList(loads);
+
+        console.log('assignments', assignments);
+        setAssignmentsList(assignments);
         setMetadata(metadataResponse);
-        setLoadingLoads(false);
+        setLoadingAssignments(false);
         setTableLoading(false);
     };
 
@@ -275,7 +283,7 @@ const DriverDetailsPage: PageWithAuth = () => {
         );
         setLimit(metadata.prev.limit);
         setOffset(metadata.prev.offset);
-        reloadLoads({ sort, limit: metadata.prev.limit, offset: metadata.prev.offset, useTableLoading: true });
+        reloadAssignments({ sort, limit: metadata.prev.limit, offset: metadata.prev.offset, useTableLoading: true });
     };
 
     const nextPage = async () => {
@@ -289,14 +297,14 @@ const DriverDetailsPage: PageWithAuth = () => {
         );
         setLimit(metadata.next.limit);
         setOffset(metadata.next.offset);
-        reloadLoads({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
+        reloadAssignments({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
     const deleteLoad = async (id: string) => {
         await deleteLoadById(id);
 
         notify({ title: 'Load deleted', message: 'Load deleted successfully' });
-        reloadLoads({ sort, limit, offset, useTableLoading: true });
+        reloadAssignments({ sort, limit, offset, useTableLoading: true });
     };
 
     const deleteDriver = async (id: string) => {
@@ -314,6 +322,36 @@ const DriverDetailsPage: PageWithAuth = () => {
             reloadDriver();
         } catch (error) {
             notify({ title: 'Error', message: error.message, type: 'error' });
+        }
+    };
+
+    const updateAssignmentsList = (assignments, newRouteLeg) => {
+        return assignments.map((assignment) => {
+            if (assignment.routeLegId === newRouteLeg.routeLegId) {
+                return {
+                    ...newRouteLeg,
+                };
+            }
+            return assignment;
+        });
+    };
+
+    const changeLegStatusClicked = async (legStatus: RouteLegStatus, routeLegId: string) => {
+        console.log('changeLegStatusClicked', legStatus, routeLegId);
+        try {
+            const { loadStatus, routeLeg: newRouteLeg } = await updateRouteLegStatus(routeLegId, legStatus);
+
+            // Insert the updated route leg into the
+            assignmentsList.find((assignment) => assignment.routeLeg.id === routeLegId).routeLeg.status =
+                newRouteLeg.status;
+            const updatedAssignmentsList = updateAssignmentsList(assignmentsList, newRouteLeg);
+
+            // Update the load context with the updated route legs
+            setAssignmentsList(updatedAssignmentsList);
+
+            notify({ title: 'Load Assignment Status', message: 'Load assignment successfully updated' });
+        } catch (error) {
+            notify({ title: 'Error Updating Load Assignment ', type: 'error' });
         }
     };
 
@@ -466,36 +504,34 @@ const DriverDetailsPage: PageWithAuth = () => {
                                 <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
                             )}
 
-                            <div className="col-span-12 mt-4">
-                                <h3 className="mb-2">Assigned Loads</h3>
-                                {loadingLoads ? (
-                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                            <div className="col-span-12 mt-4 relative">
+                                <h3 className="mb-2">Load assignments</h3>
+                                {loadingAssignments ? (
+                                    <AssignmentsTableSkeleton limit={lastLoadsTableLimit} />
                                 ) : (
-                                    <LoadsTable
-                                        loads={loadsList}
+                                    <DriverAssignmentsTable
+                                        assignments={assignmentsList}
                                         headers={[
-                                            'refNum',
-                                            'status',
-                                            'shipper.date',
-                                            'receiver.date',
-                                            'shipper.city',
-                                            'receiver.city',
-                                            'rate',
+                                            'load.refNum',
+                                            'routeLeg.scheduledDate',
+                                            'routeLeg.locations',
+                                            'routeLeg.driverInstructions',
+                                            'routeLeg.status',
+                                            'actions',
                                         ]}
-                                        sort={sort}
-                                        changeSort={changeSort}
-                                        deleteLoad={(id: string) => {
+                                        deleteAssignment={(id: string) => {
                                             setOpenDeleteLoadConfirmation(true);
                                             setLoadIdToDelete(id);
                                         }}
                                         loading={tableLoading}
-                                    ></LoadsTable>
+                                        changeLegStatusClicked={changeLegStatusClicked}
+                                    ></DriverAssignmentsTable>
                                 )}
 
-                                {loadsList.length !== 0 && !loadingLoads && (
+                                {assignmentsList.length !== 0 && !loadingAssignments && (
                                     <Pagination
                                         metadata={metadata}
-                                        loading={loadingLoads || tableLoading}
+                                        loading={loadingAssignments || tableLoading}
                                         onPrevious={() => previousPage()}
                                         onNext={() => nextPage()}
                                     ></Pagination>

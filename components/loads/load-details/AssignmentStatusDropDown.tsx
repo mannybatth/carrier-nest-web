@@ -43,7 +43,7 @@ const AssignmentStatusDropDown: React.FC<AssignmentStatusDropDownProps> = ({
                     data-tooltip-id="tooltip"
                     data-tooltip-content={qTipText}
                     data-tooltip-place="top-start"
-                    className="inline-flex justify-center items-center w-full px-2 py-[4px] text-xs font-semibold text-slate-700 bg-white shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                    className="inline-flex justify-center items-center whitespace-nowrap w-full px-2 py-[4px] text-xs font-semibold text-slate-700 bg-white shadow-none border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
                     disabled={disabled}
                 >
                     <span className={`inline-block w-2 h-2 mr-2 rounded-full ${statusDotColors[status]}`}></span>
