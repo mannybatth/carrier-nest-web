@@ -10,6 +10,9 @@ type Props = {
 const DriverForm: React.FC<Props> = ({
     formHook: {
         register,
+        trigger,
+        getValues,
+        clearErrors,
         formState: { errors },
     },
     condensed,
@@ -35,7 +38,7 @@ const DriverForm: React.FC<Props> = ({
                     <>
                         <div className="col-span-6">
                             <label htmlFor="driver-name" className="block text-sm font-medium text-gray-700">
-                                Name
+                                Name <span className="text-red-600">*</span>
                             </label>
                             <input
                                 {...register('name', { required: 'Driver name is required' })}
@@ -60,10 +63,17 @@ const DriverForm: React.FC<Props> = ({
                         </div>
                         <div className="col-span-6 lg:col-span-3">
                             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                                Phone
+                                Phone <span className="text-red-600">*</span>
                             </label>
                             <input
-                                {...register('phone', { required: 'Phone number is required' })}
+                                {...register('phone', {
+                                    required: 'Phone number is required',
+                                    pattern: {
+                                        value: /^[1-9]\d{9}$/,
+                                        message: 'Invalid phone number, valid format: 2134561111',
+                                    },
+                                    onBlur: (e) => trigger('phone'),
+                                })}
                                 type="text"
                                 id="phone"
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -73,10 +83,18 @@ const DriverForm: React.FC<Props> = ({
                         <div className="grid grid-cols-1 col-span-6 gap-6 lg:grid-cols-4">
                             <div>
                                 <label htmlFor="defaultChargeType" className="block text-sm font-medium text-gray-700">
-                                    Default Pay Type
+                                    Default Pay Type <span className="text-red-600">*</span>
                                 </label>
                                 <select
-                                    {...register('defaultChargeType')}
+                                    {...register('defaultChargeType', {
+                                        required: 'Pay type is required',
+                                        onChange: () => {
+                                            trigger('defaultChargeType');
+                                            clearErrors('perMileRate');
+                                            clearErrors('perHourRate');
+                                            clearErrors('takeHomePercent');
+                                        },
+                                    })}
                                     id="defaultChargeType"
                                     defaultValue=""
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -89,15 +107,25 @@ const DriverForm: React.FC<Props> = ({
                                     <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
                                     <option value={ChargeType.PERCENTAGE_OF_LOAD}>Percentage of Load</option>
                                 </select>
+                                {errors.defaultChargeType && (
+                                    <p className="text-sm text-red-600">{errors.defaultChargeType?.message}</p>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="perMileRate" className="block text-sm font-medium text-gray-700">
-                                    Per Mile Rate
+                                    Per Mile Rate{' '}
+                                    {getValues('defaultChargeType') === ChargeType.PER_MILE && (
+                                        <span className="text-red-600">*</span>
+                                    )}
                                 </label>
                                 <input
                                     type="number"
                                     {...register('perMileRate', {
                                         valueAsNumber: true,
+                                        required:
+                                            getValues('defaultChargeType') === ChargeType.PER_MILE
+                                                ? 'Per Mile Rate is required'
+                                                : false,
                                     })}
                                     id="perMileRate"
                                     placeholder="Enter rate per mile"
@@ -106,15 +134,25 @@ const DriverForm: React.FC<Props> = ({
                                     onWheel={(e) => e.currentTarget.blur()}
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
+                                {errors.perMileRate && (
+                                    <p className="text-sm text-red-600">{errors.perMileRate?.message}</p>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="perHourRate" className="block text-sm font-medium text-gray-700">
-                                    Per Hour Rate
+                                    Per Hour Rate{' '}
+                                    {getValues('defaultChargeType') === ChargeType.PER_HOUR && (
+                                        <span className="text-red-600">*</span>
+                                    )}
                                 </label>
                                 <input
                                     type="number"
                                     {...register('perHourRate', {
                                         valueAsNumber: true,
+                                        required:
+                                            getValues('defaultChargeType') === ChargeType.PER_HOUR
+                                                ? 'Per Hour Rate is required'
+                                                : false,
                                     })}
                                     id="perHourRate"
                                     placeholder="Enter rate per hour"
@@ -123,15 +161,25 @@ const DriverForm: React.FC<Props> = ({
                                     onWheel={(e) => e.currentTarget.blur()}
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
+                                {errors.perHourRate && (
+                                    <p className="text-sm text-red-600">{errors.perHourRate?.message}</p>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="takeHomePercent" className="block text-sm font-medium text-gray-700">
-                                    Take Home Percent
+                                    Take Home Percent{' '}
+                                    {getValues('defaultChargeType') === ChargeType.PERCENTAGE_OF_LOAD && (
+                                        <span className="text-red-600">*</span>
+                                    )}
                                 </label>
                                 <input
                                     type="number"
                                     {...register('takeHomePercent', {
                                         valueAsNumber: true,
+                                        required:
+                                            getValues('defaultChargeType') === ChargeType.PERCENTAGE_OF_LOAD
+                                                ? 'Take Home Percent is required'
+                                                : false,
                                     })}
                                     id="takeHomePercent"
                                     placeholder="Enter percentage of load"
@@ -141,6 +189,9 @@ const DriverForm: React.FC<Props> = ({
                                     onWheel={(e) => e.currentTarget.blur()}
                                     className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
+                                {errors.takeHomePercent && (
+                                    <p className="text-sm text-red-600">{errors.takeHomePercent?.message}</p>
+                                )}
                             </div>
                         </div>
                     </>
