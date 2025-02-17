@@ -37,10 +37,11 @@ const errors: Record<SignInErrorTypes, string> = {
 
 type Props = {
     callbackUrl: string;
+    requestType?: 'signin' | 'signup';
     error: SignInErrorTypes;
 };
 
-const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
+const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
 
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
@@ -83,7 +84,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                             className="w-[100px] mb-4"
                         ></Image>
                         <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                            Sign in to your account
+                            {requestType === 'signin' ? 'Sign in to your account' : 'Sign up for an account'}
                         </h2>
 
                         {/* <p className="mt-2 text-sm leading-6 text-gray-500">
@@ -122,7 +123,10 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                         htmlFor="email"
                                         className="block text-md font-medium leading-6 text-gray-900"
                                     >
-                                        Email address
+                                        Email address{' '}
+                                        <span className="text-xs font-light text-gray-400">
+                                            (signin token will be emailed)
+                                        </span>{' '}
                                     </label>
                                     <div className="mt-2">
                                         <input
@@ -137,7 +141,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 </div>
 
                                 <div>
-                                    <div className="text-gray-400 text-sm font-light p-0 m-0 pb-3">
+                                    <div className="text-gray-400 text-xs font-light p-0 m-0 pb-3">
                                         By signing up, you agree to our
                                         <Link href="/terms" className="font-medium">
                                             {` Terms of Use`}
@@ -170,8 +174,10 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                                 ></path>
                                             </svg>
-                                        ) : (
+                                        ) : requestType === 'signin' ? (
                                             'Sign in with email'
+                                        ) : (
+                                            'Sign up with email'
                                         )}
                                     </button>
                                 </div>

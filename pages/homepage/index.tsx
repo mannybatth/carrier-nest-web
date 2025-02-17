@@ -149,7 +149,7 @@ const Homepage = () => {
                         {status !== 'authenticated' && (
                             <button
                                 className="p-2 text-sm  font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
-                                onClick={() => signIn()}
+                                onClick={() => signIn(undefined, { callbackUrl: `/?requestType=signup` })}
                             >
                                 Get Started!
                             </button>
@@ -171,7 +171,11 @@ const Homepage = () => {
                                 <div className="flex flex-wrap gap-4">
                                     <button
                                         className="px-6 py-3 font-semibold text-white transition bg-blue-600 rounded-md hover:bg-blue-700"
-                                        onClick={() => (status === 'authenticated' ? router.push('/') : signIn())}
+                                        onClick={() =>
+                                            status === 'authenticated'
+                                                ? router.push('/')
+                                                : signIn(undefined, { callbackUrl: `/?requestType=signup` })
+                                        }
                                     >
                                         Get Started
                                     </button>
@@ -256,7 +260,11 @@ const Homepage = () => {
                     </p>
                     <button
                         className="px-8 py-3 font-semibold text-blue-600 transition bg-white rounded-md hover:bg-gray-100"
-                        onClick={() => (status === 'authenticated' ? router.push('/') : signIn())}
+                        onClick={() =>
+                            status === 'authenticated'
+                                ? router.push('/')
+                                : signIn(undefined, { callbackUrl: `/?requestType=signup` })
+                        }
                     >
                         Start Free Trial
                     </button>
