@@ -101,7 +101,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                       </p>
                                                   )}
                                                   {i < assignment.routeLeg.locations.length - 1 && (
-                                                      <div className="fixed flex -ml-1 opacity-50">
+                                                      <div className="absolute flex -ml-1 opacity-50">
                                                           <p className="w-0.5 h-5 bg-gray-200 mt-4 -ml-2 rounded-md"></p>
                                                           <p className="w-[8px] h-0.5 bg-gray-200 mt-4 -ml-0.5 rounded-md"></p>
                                                           {i == assignment.routeLeg.locations.length - 2 && (
