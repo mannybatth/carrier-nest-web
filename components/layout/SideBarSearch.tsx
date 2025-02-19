@@ -153,7 +153,23 @@ const SideBarSearch: React.FC = () => {
                                                                             )
                                                                         }
                                                                     >
-                                                                        {group === 'loads' && `# ${item.refNum}`}
+                                                                        {group === 'loads' && (
+                                                                            <p className="font-medium uppercase">
+                                                                                # {item.refNum}
+                                                                                {item.stopName
+                                                                                    ? ` - (${item.stopType} Name: ` +
+                                                                                      item.stopName +
+                                                                                      ')'
+                                                                                    : ''}
+                                                                                {item.stopCity
+                                                                                    ? ` - (${item.stopType}: ` +
+                                                                                      item.stopCity +
+                                                                                      ', ' +
+                                                                                      item.stopState +
+                                                                                      ')'
+                                                                                    : ''}
+                                                                            </p>
+                                                                        )}
                                                                         {group === 'drivers' && item.name}
                                                                         {group === 'customers' && item.name}
                                                                     </Combobox.Option>
