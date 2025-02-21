@@ -297,8 +297,6 @@ export const POST = auth(async (req: NextAuthRequest) => {
             });
         }
 
-        console.log('findDuplicateLoad', findDuplicateLoad);
-
         const load = await prisma.load.create({
             data: {
                 refNum: loadData.refNum || '',

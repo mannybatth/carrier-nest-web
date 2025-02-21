@@ -761,7 +761,6 @@ const CreateLoad: PageWithAuth = () => {
         let minDistance = Infinity;
 
         const getBoundingBoxCenter = (vertices: { x: number; y: number }[]) => {
-            console.log('Vertices:', vertices);
             const x = (vertices[0].x + vertices[2].x) / 2;
             const y = (vertices[0].y + vertices[2].y) / 2;
 
@@ -778,7 +777,6 @@ const CreateLoad: PageWithAuth = () => {
             // Compute the center of the current bounding box
             const currentCenter = getBoundingBoxCenter(boundingPoly.vertices);
 
-            console.log(targetBoundary);
             // Compute the center of the target boundary
             const targetCenter = getBoundingBoxCenter(targetBoundary.vertices);
 
@@ -830,7 +828,6 @@ const CreateLoad: PageWithAuth = () => {
                     ?.toString()
                     .replace(replaceExp, '')
                     .toLowerCase();
-            console.log('Value name:', value);
 
             // Find in lines data for value
             const matchingLine = ocrLines?.blocks?.find((line) =>
