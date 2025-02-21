@@ -236,14 +236,18 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
-        const newLoad = await createLoad(loadData, currentRateconFile);
+        try {
+            const newLoad = await createLoad(loadData, currentRateconFile);
 
-        notify({ title: 'New load created', message: 'New load created successfully' });
+            notify({ title: 'New load created', message: 'New load created successfully' });
 
-        // Redirect to load page
-        await router.push(`/loads/${newLoad.id}`);
-
-        setLoading(false);
+            // Redirect to load page
+            await router.push(`/loads/${newLoad.id}`);
+            setLoading(false);
+        } catch (error) {
+            setLoading(false);
+            notify({ title: 'Error saving load', message: `${error.message}`, type: 'error' });
+        }
     };
 
     const handleAIError = () => {
@@ -757,7 +761,6 @@ const CreateLoad: PageWithAuth = () => {
         let minDistance = Infinity;
 
         const getBoundingBoxCenter = (vertices: { x: number; y: number }[]) => {
-            console.log('Vertices:', vertices);
             const x = (vertices[0].x + vertices[2].x) / 2;
             const y = (vertices[0].y + vertices[2].y) / 2;
 
@@ -774,7 +777,6 @@ const CreateLoad: PageWithAuth = () => {
             // Compute the center of the current bounding box
             const currentCenter = getBoundingBoxCenter(boundingPoly.vertices);
 
-            console.log(targetBoundary);
             // Compute the center of the target boundary
             const targetCenter = getBoundingBoxCenter(targetBoundary.vertices);
 
@@ -826,7 +828,6 @@ const CreateLoad: PageWithAuth = () => {
                     ?.toString()
                     .replace(replaceExp, '')
                     .toLowerCase();
-            console.log('Value name:', value);
 
             // Find in lines data for value
             const matchingLine = ocrLines?.blocks?.find((line) =>

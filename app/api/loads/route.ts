@@ -280,6 +280,23 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
         const loadData = (await req.json()) as ExpandedLoad;
 
+        const findDuplicateLoad = await prisma.load.findFirst({
+            where: {
+                carrierId,
+                refNum: loadData.refNum,
+                customer: {
+                    id: loadData.customer.id,
+                },
+            },
+        });
+
+        if (findDuplicateLoad) {
+            return NextResponse.json({
+                code: 400,
+                errors: [{ message: `Load# ${loadData.refNum} already exists for ${loadData.customer.name}` }],
+            });
+        }
+
         const load = await prisma.load.create({
             data: {
                 refNum: loadData.refNum || '',
