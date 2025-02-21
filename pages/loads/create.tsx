@@ -236,14 +236,18 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
-        const newLoad = await createLoad(loadData, currentRateconFile);
+        try {
+            const newLoad = await createLoad(loadData, currentRateconFile);
 
-        notify({ title: 'New load created', message: 'New load created successfully' });
+            notify({ title: 'New load created', message: 'New load created successfully' });
 
-        // Redirect to load page
-        await router.push(`/loads/${newLoad.id}`);
-
-        setLoading(false);
+            // Redirect to load page
+            await router.push(`/loads/${newLoad.id}`);
+            setLoading(false);
+        } catch (error) {
+            setLoading(false);
+            notify({ title: 'Error saving load', message: `${error.message}`, type: 'error' });
+        }
     };
 
     const handleAIError = () => {
