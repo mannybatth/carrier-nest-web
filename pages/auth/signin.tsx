@@ -5,6 +5,7 @@ import Image from 'next/image';
 import React, { useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
+import { appUrl } from 'lib/constants';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -195,6 +196,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 mt-6">
+                                {callbackUrl}
                                 <button
                                     onClick={() => signIn('google', { redirectTo: callbackUrl })}
                                     className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[#505050] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
@@ -247,7 +249,8 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
     const { res, query } = context;
-    const url = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}/api/auth/session`;
+    const baseUrl = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}`;
+    const url = `${baseUrl}/api/auth/session`;
 
     const headers = { ...context.req.headers } as Record<string, string>;
 
@@ -271,11 +274,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
-    const callbackUrl = query.callbackUrl?.includes('homepage') ? '/' : query.callbackUrl;
+    const callbackUrl = query.callbackUrl?.includes('homepage') ? appUrl : query.callbackUrl;
 
     return {
         props: {
-            callbackUrl: (callbackUrl as string) || '/',
+            callbackUrl: (callbackUrl as string) || appUrl,
             error: (query.error as SignInErrorTypes) || null,
         },
     };

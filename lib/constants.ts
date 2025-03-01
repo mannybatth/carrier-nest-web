@@ -5,7 +5,7 @@ const getAppUrl = () => {
         case 'preview':
             return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`;
         case 'idx':
-            return 'https://9002-idx-carrier-nest-web-1740848788616.cluster-fnjdffmttjhy2qqdugh3yehhs2.cloudworkstations.dev';
+            return 'https://9000-idx-carrier-nest-web-1740863210242.cluster-fnjdffmttjhy2qqdugh3yehhs2.cloudworkstations.dev';
         default:
             return 'http://localhost:3000';
     }

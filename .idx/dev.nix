@@ -6,6 +6,9 @@
   ];
   idx.extensions = [
     "eamodio.gitlens"
+    "dbaeumer.vscode-eslint"
+    "esbenp.prettier-vscode"
+    "streetsidesoftware.code-spell-checker"
   ];
   idx.previews = {
     enable = true;
