@@ -9,6 +9,8 @@
     "dbaeumer.vscode-eslint"
     "esbenp.prettier-vscode"
     "streetsidesoftware.code-spell-checker"
+    "bradlc.vscode-tailwindcss"
+    "heybourn.headwind"
   ];
   idx.previews = {
     enable = true;
