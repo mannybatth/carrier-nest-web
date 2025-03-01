@@ -9,6 +9,7 @@ import { sendVerificationRequest } from 'lib/verification-request';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { AdapterUser } from 'next-auth/adapters';
 import { JWT } from 'next-auth/jwt';
+import { appUrl } from 'lib/constants';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -39,6 +40,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
+            redirectProxyUrl: `${appUrl}/api/auth`,
         }),
         MicrosoftEntraID({
             clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,

@@ -249,8 +249,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const { res, query } = context;
     const url = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}/api/auth/session`;
 
+    const headers = { ...context.req.headers } as Record<string, string>;
+
+    // Remove hop-by-hop or invalid headers
+    delete headers.connection;
+    delete headers.upgrade;
+    delete headers['accept-encoding'];
+
     const sessionResponse = await fetch(url, {
-        headers: new Headers(context.req.headers as Record<string, string>),
+        headers: headers,
     });
     const session = await sessionResponse.json();
 

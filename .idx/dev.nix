@@ -1,12 +1,14 @@
-{pkgs}: {
+{ pkgs }: {
   channel = "stable-24.05";
   packages = [
     pkgs.nodejs_20
+    pkgs.openssl.dev
   ];
   idx.extensions = [
-    
+    "eamodio.gitlens"
   ];
   idx.previews = {
+    enable = true;
     previews = {
       web = {
         command = [
@@ -16,9 +18,10 @@
           "--"
           "--port"
           "$PORT"
-          "--hostname"
-          "0.0.0.0"
         ];
+        env = {
+          NEXT_PUBLIC_VERCEL_ENV = "idx";
+        };
         manager = "web";
       };
     };
