@@ -1,6 +1,7 @@
 import React, { ChangeEvent, useRef } from 'react';
 import { ArrowUpTrayIcon, PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { LoadDocument } from '@prisma/client';
+import Spinner from 'components/Spinner';
 
 type LoadDetailsDocumentsProps = {
     podDocuments: LoadDocument[];
@@ -24,32 +25,42 @@ const LoadDetailsDocuments: React.FC<LoadDetailsDocumentsProps> = ({
     setOpenDeleteDocumentConfirmation,
 }) => {
     const podFileInputRef = useRef<HTMLInputElement | null>(null);
+    const [podUploading, setPodUploading] = React.useState(false);
+
+    const handleFileUploadClicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPodUploading(true);
+        await handleUploadPodsChange(e);
+        setPodUploading(false);
+    };
 
     return (
         <div>
             <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                 <div className="border-b border-gray-200 sm:border-none">
                     <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                        <dt className="text-gray-500">PODs</dt>
+                        <dt className="text-gray-500">POD/BOL Files</dt>
                         <dd className="text-gray-900">
-                            <div>
-                                <input
-                                    type="file"
-                                    onChange={handleUploadPodsChange}
-                                    style={{ display: 'none' }}
-                                    ref={podFileInputRef}
-                                />
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    onClick={() => podFileInputRef.current?.click()}
-                                    disabled={docsLoading}
-                                >
-                                    <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                                    <span className="block md:hidden">Upload POD</span>
-                                    <span className="hidden md:block">Upload POD</span>
-                                </button>
-                            </div>
+                            {podUploading && <Spinner className="w-5 h-5" />}
+                            {!podUploading && (
+                                <div>
+                                    <input
+                                        type="file"
+                                        onChange={(e) => handleFileUploadClicked(e)}
+                                        style={{ display: 'none' }}
+                                        ref={podFileInputRef}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                        onClick={() => podFileInputRef.current?.click()}
+                                        disabled={docsLoading}
+                                    >
+                                        <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                        <span className="block md:hidden">Upload</span>
+                                        <span className="hidden md:block">Upload</span>
+                                    </button>
+                                </div>
+                            )}
                         </dd>
                     </div>
                     {podDocuments.length > 0 && (
@@ -122,29 +133,40 @@ const LoadDocumentsSection: React.FC<LoadDocumentsSectionProps> = ({
 }) => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    const [uploadDoc, setUploadDoc] = React.useState(false);
+
+    const handleUploadDocsClicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setUploadDoc(true);
+        await handleUploadChange(e);
+        setUploadDoc(false);
+    };
+
     return (
         <div>
             <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
                 <dt className="text-gray-500">{title}</dt>
                 <dd className="text-gray-900">
-                    <div>
-                        <input
-                            type="file"
-                            onChange={handleUploadChange}
-                            style={{ display: 'none' }}
-                            ref={fileInputRef}
-                        />
-                        <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={docsLoading}
-                        >
-                            <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
-                            <span className="block md:hidden">Upload</span>
-                            <span className="hidden md:block">Upload Doc</span>
-                        </button>
-                    </div>
+                    {uploadDoc && <Spinner className="w-5 h-5" />}
+                    {!uploadDoc && (
+                        <div>
+                            <input
+                                type="file"
+                                onChange={(e) => handleUploadDocsClicked(e)}
+                                style={{ display: 'none' }}
+                                ref={fileInputRef}
+                            />
+                            <button
+                                type="button"
+                                className="inline-flex items-center px-3 py-1 ml-5 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={docsLoading}
+                            >
+                                <ArrowUpTrayIcon className="w-4 h-4 mr-1 text-gray-500" />
+                                <span className="block md:hidden">Upload</span>
+                                <span className="hidden md:block">Upload Doc</span>
+                            </button>
+                        </div>
+                    )}
                 </dd>
             </div>
             {documents.length > 0 && (
