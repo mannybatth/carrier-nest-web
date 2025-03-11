@@ -36,7 +36,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                     <p className="text-xs text-slate-500">Tasks assigned to drivers for this load</p>
                 </div>
                 <button
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-2 py-2 text-xs font-medium text-white bg-blue-600 whitespace-nowrap rounded-md hover:bg-blue-700 md:text-sm"
                     onClick={() => setOpenLegAssignment(true)}
                 >
                     Add Assignment
