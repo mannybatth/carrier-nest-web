@@ -12,7 +12,7 @@ import {
     TruckIcon,
 } from '@heroicons/react/24/outline';
 import { CheckBadgeIcon } from '@heroicons/react/24/solid';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -141,7 +141,9 @@ const Homepage = () => {
                                     ? 'bg-blue-600 text-white hover:bg-blue-700 '
                                     : 'bg-slate-200 text-slate-500 hover:bg-slate-300 '
                             }  rounded-md `}
-                            onClick={() => (status === 'authenticated' ? router.push('/') : signIn())}
+                            onClick={() => {
+                                status === 'authenticated' ? router.push('/') : router.push('/auth/signin');
+                            }}
                         >
                             {status === 'authenticated' ? 'Dashboard' : 'Sign In'}
                         </button>
@@ -149,7 +151,7 @@ const Homepage = () => {
                         {status !== 'authenticated' && (
                             <button
                                 className="p-2 text-sm  font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
-                                onClick={() => signIn(undefined, { callbackUrl: `/?requestType=signup` })}
+                                onClick={() => router.push('/auth/signin')}
                             >
                                 Get Started!
                             </button>
@@ -172,9 +174,7 @@ const Homepage = () => {
                                     <button
                                         className="px-6 py-3 font-semibold text-white transition bg-blue-600 rounded-md hover:bg-blue-700"
                                         onClick={() =>
-                                            status === 'authenticated'
-                                                ? router.push('/')
-                                                : signIn(undefined, { callbackUrl: `/?requestType=signup` })
+                                            status === 'authenticated' ? router.push('/') : router.push('/auth/signin')
                                         }
                                     >
                                         Get Started
@@ -260,11 +260,7 @@ const Homepage = () => {
                     </p>
                     <button
                         className="px-8 py-3 font-semibold text-blue-600 transition bg-white rounded-md hover:bg-gray-100"
-                        onClick={() =>
-                            status === 'authenticated'
-                                ? router.push('/')
-                                : signIn(undefined, { callbackUrl: `/?requestType=signup` })
-                        }
+                        onClick={() => (status === 'authenticated' ? router.push('/') : router.push('/auth/signin'))}
                     >
                         Start Free Trial
                     </button>

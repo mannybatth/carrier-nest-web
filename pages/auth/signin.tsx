@@ -5,6 +5,7 @@ import Image from 'next/image';
 import React, { useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
+import { appUrl } from 'lib/constants';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -73,8 +74,8 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
 
     return (
         <div className="flex flex-1 min-h-full">
-            <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
-                <div className="w-full max-w-sm mx-auto lg:w-96">
+            <div className="flex flex-col flex-1 justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+                <div className="mx-auto w-full max-w-sm lg:w-96">
                     <div>
                         <Image
                             src="/logo_truck.svg"
@@ -83,7 +84,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                             height={72}
                             className="w-[100px] mb-4"
                         ></Image>
-                        <h2 className="mt-8 text-2xl font-bold leading-9 tracking-tight text-gray-900">
+                        <h2 className="mt-8 text-2xl font-bold tracking-tight leading-9 text-gray-900">
                             {requestType === 'signin' ? 'Sign in to your account' : 'Sign up for an account'}
                         </h2>
 
@@ -96,7 +97,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                     </div>
 
                     {error && (
-                        <div className="p-4 mt-3 rounded-md bg-red-50">
+                        <div className="p-4 mt-3 bg-red-50 rounded-md">
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <XCircleIcon className="w-5 h-5 text-red-400" aria-hidden="true" />
@@ -121,7 +122,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                                 <div>
                                     <label
                                         htmlFor="email"
-                                        className="block text-md font-medium leading-6 text-gray-900"
+                                        className="block font-medium leading-6 text-gray-900 text-md"
                                     >
                                         Email address{' '}
                                         <span className="text-xs font-light text-gray-400">
@@ -141,7 +142,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                                 </div>
 
                                 <div>
-                                    <div className="text-gray-400 text-xs font-light p-0 m-0 pb-3">
+                                    <div className="p-0 pb-3 m-0 text-xs font-light text-gray-400">
                                         By signing up, you agree to our
                                         <Link href="/terms" className="font-medium">
                                             {` Terms of Use`}
@@ -155,7 +156,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                                     >
                                         {loadingSubmit ? (
                                             <svg
-                                                className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
+                                                className="mr-3 -ml-1 w-5 h-5 text-white animate-spin"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
@@ -186,10 +187,10 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
 
                         <div className="mt-10">
                             <div className="relative">
-                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="flex absolute inset-0 items-center" aria-hidden="true">
                                     <div className="w-full border-t border-gray-200" />
                                 </div>
-                                <div className="relative flex justify-center text-sm font-medium leading-6">
+                                <div className="flex relative justify-center text-sm font-medium leading-6">
                                     <span className="px-6 text-gray-900 bg-white">Or continue with</span>
                                 </div>
                             </div>
@@ -233,9 +234,9 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                     </div>
                 </div>
             </div>
-            <div className="relative flex-1 hidden w-0 lg:block">
+            <div className="hidden relative flex-1 w-0 lg:block">
                 <img
-                    className="absolute inset-0 object-cover w-full h-full"
+                    className="object-cover absolute inset-0 w-full h-full"
                     style={{ objectPosition: '40% 50%' }}
                     src="/cover.jpg"
                     alt=""
@@ -247,10 +248,18 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
     const { res, query } = context;
-    const url = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}/api/auth/session`;
+    const baseUrl = `${context.req.headers['x-forwarded-proto']}://${context.req.headers.host}`;
+    const url = `${baseUrl}/api/auth/session`;
+
+    const headers = { ...context.req.headers } as Record<string, string>;
+
+    // Remove hop-by-hop or invalid headers
+    delete headers.connection;
+    delete headers.upgrade;
+    delete headers['accept-encoding'];
 
     const sessionResponse = await fetch(url, {
-        headers: new Headers(context.req.headers as Record<string, string>),
+        headers: headers,
     });
     const session = await sessionResponse.json();
 
@@ -264,11 +273,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
-    const callbackUrl = query.callbackUrl?.includes('homepage') ? '/' : query.callbackUrl;
+    const callbackUrl = query.callbackUrl?.includes('homepage') ? appUrl : query.callbackUrl;
 
     return {
         props: {
-            callbackUrl: (callbackUrl as string) || '/',
+            callbackUrl: (callbackUrl as string) || appUrl,
             error: (query.error as SignInErrorTypes) || null,
         },
     };

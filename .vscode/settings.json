@@ -10,7 +10,9 @@
     "html.format.wrapAttributes": "auto",
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
-    "cSpell.words": ["tailwindcss"],
+    "cSpell.words": [
+        "tailwindcss"
+    ],
     "headwind.runOnSave": true,
     "workbench.settings.enableNaturalLanguageSearch": false,
     "css.validate": false,
@@ -19,5 +21,10 @@
     "javascript.validate.enable": false,
     "javascript.format.enable": false,
     "typescript.surveys.enabled": false,
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "IDX.aI.enableInlineCompletion": true,
+    "IDX.aI.enableCodebaseIndexing": true,
+    "gitlens.currentLine.enabled": false,
+    "gitlens.codeLens.authors.enabled": false,
+    "gitlens.codeLens.recentChange.enabled": false
 }

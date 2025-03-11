@@ -5,6 +5,9 @@ import AssignmentStatusDropDown from './AssignmentStatusDropDown';
 import Spinner from '../../Spinner';
 import { useLoadContext } from 'components/context/LoadContext';
 import { parse, format } from 'date-fns';
+import { MapPinIcon } from '@heroicons/react/24/solid';
+import Image from 'next/image';
+import { MapIcon } from '@heroicons/react/24/outline';
 
 type LoadAssignmentsSectionProps = {
     removingRouteLegWithId: string;
@@ -33,7 +36,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                     <p className="text-xs text-slate-500">Tasks assigned to drivers for this load</p>
                 </div>
                 <button
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-2 py-2 text-xs font-medium text-white bg-blue-600 whitespace-nowrap rounded-md hover:bg-blue-700 md:text-sm"
                     onClick={() => setOpenLegAssignment(true)}
                 >
                     Add Assignment
@@ -45,11 +48,17 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                         const drivers = leg.driverAssignments.map((driver) => driver.driver);
                         const locations = leg.locations;
                         const legStatus = leg.status;
+                        const startLat = leg.startLatitude;
+                        const startLng = leg.startLongitude;
+                        const endLat = leg.endLatitude;
+                        const endLng = leg.endLongitude;
+
+                        const api_key = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
                         return (
                             <div className="relative p-4 bg-white border-2 rounded-lg" key={`routelegs-${index}`}>
                                 {removingRouteLegWithId === leg.id && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
                                         <Spinner />
                                         <span className="ml-2 text-gray-600">Removing assignment...</span>
                                     </div>
@@ -138,8 +147,8 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                     key={`route-legs-stops-stop-${index}`}
                                                     className="flex items-center flex-grow"
                                                 >
-                                                    <div className="flex flex-col p-2 border rounded-md bg-gray-50 min-w-[200px] flex-grow">
-                                                        <div className="flex items-center gap-2">
+                                                    <div className="relative flex flex-col p-2 border rounded-md bg-gray-50 min-w-[200px] flex-grow">
+                                                        <div className="relative flex items-center gap-2">
                                                             <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
                                                                 {index + 1}
                                                             </span>
@@ -157,6 +166,30 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                         <p className="text-xs text-gray-600">
                                                             {item.city}, {item.state}
                                                         </p>
+                                                        <span className="absolute right-0 bottom-0 m-2 max-h-fit ounded-full border border-white rounded-lg">
+                                                            {index === 0 && startLat && startLng && (
+                                                                <Image
+                                                                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-l+00c04b(${startLng},${startLat})/${startLng},${startLat},8/80x80?access_token=${api_key}`}
+                                                                    width={200}
+                                                                    height={200}
+                                                                    alt="Load Route"
+                                                                    loading="lazy"
+                                                                    className="w-full h-fit rounded-lg"
+                                                                ></Image>
+                                                            )}
+                                                        </span>
+                                                        <span className="absolute right-0 bottom-0 m-2  border border-white rounded-lg">
+                                                            {index === locations.length - 1 && endLat && endLng && (
+                                                                <Image
+                                                                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-l+ff0000(${endLng},${endLat})/${endLng},${endLat},8/80x80?access_token=${api_key}`}
+                                                                    width={200}
+                                                                    height={200}
+                                                                    alt="Load Route"
+                                                                    loading="lazy"
+                                                                    className="w-full h-fit rounded-lg"
+                                                                ></Image>
+                                                            )}
+                                                        </span>
                                                     </div>
                                                     {!isLast && (
                                                         <div className="flex-shrink-0 mx-2">
