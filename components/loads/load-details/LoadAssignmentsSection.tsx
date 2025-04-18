@@ -29,7 +29,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
     const [load, setLoad] = useLoadContext();
 
     return (
-        <div className="mt-4">
+        <div className="mt-4" id="load-assignments">
             <div className="flex items-center justify-between mb-2">
                 <div>
                     <h2 className="text-base font-semibold leading-6 text-gray-900">Load Assignments</h2>

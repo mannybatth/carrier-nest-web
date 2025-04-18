@@ -100,7 +100,7 @@ const AssignmentsPage = () => {
                 limit,
                 offset,
                 sort,
-                showUnpaidOnly,
+                showNotInvoicedOnly: showUnpaidOnly,
                 driverIds,
             });
 

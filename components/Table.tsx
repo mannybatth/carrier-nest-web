@@ -213,27 +213,30 @@ const RowTemplate: React.FC<RowTemplateProps> = ({ row, rowIndex }) => {
                                             className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                                         >
                                             <div className="py-1">
-                                                {row.menuItems?.map((menuItem, index) => (
-                                                    <Menu.Item key={`menu-item-${index}`}>
-                                                        {({ active }) => (
-                                                            <a
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    menuItem.onClick();
-                                                                }}
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-gray-100 text-gray-900'
-                                                                        : 'text-gray-700',
-                                                                    'block px-4 py-2 text-sm',
-                                                                )}
-                                                            >
-                                                                {menuItem.title}
-                                                            </a>
-                                                        )}
-                                                    </Menu.Item>
-                                                ))}
+                                                {row.menuItems
+                                                    ?.filter((i) => i != null)
+                                                    .map((menuItem, index) => (
+                                                        <Menu.Item key={`menu-item-${index}`}>
+                                                            {({ active }) => (
+                                                                <a
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        menuItem.onClick();
+                                                                        close();
+                                                                    }}
+                                                                    className={classNames(
+                                                                        active
+                                                                            ? 'bg-gray-100 text-gray-900'
+                                                                            : 'text-gray-700',
+                                                                        'block px-4 py-2 text-sm',
+                                                                    )}
+                                                                >
+                                                                    {menuItem.title}
+                                                                </a>
+                                                            )}
+                                                        </Menu.Item>
+                                                    ))}
                                             </div>
                                         </Menu.Items>
                                     </Transition>

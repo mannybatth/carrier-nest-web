@@ -60,6 +60,7 @@ model User {
     sessions         Session[]
     defaultCarrier   Carrier?         @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
     carriers         Carrier[]        @relation("CarrierToUser")
+    createdInvoices  DriverInvoice[]  @relation("UserCreatedInvoices")
 
     @@index([name, email, defaultCarrierId])
 }
@@ -74,31 +75,34 @@ model VerificationToken {
 }
 
 model Carrier {
-    id                  String        @id @default(cuid())
-    createdAt           DateTime      @default(now())
-    updatedAt           DateTime      @updatedAt
-    email               String        @unique
-    name                String
-    dotNum              String?
-    mcNum               String?
-    street              String
-    city                String
-    state               String
-    zip                 String
-    country             String
-    phone               String?
-    carrierCode         String        @unique
-    customers           Customer[]
-    drivers             Driver[]
-    invoices            Invoice[]
-    loads               Load[]
-    defaultCarrierUsers User[]        @relation("defaultCarrier")
-    users               User[]        @relation("CarrierToUser")
-    locations           Location[]
-    equipments          Equipment[]
-    subscription        Subscription?
-    rateconImportsCount Int           @default(0)
-    lastImportReset     DateTime      @default(now())
+    id                     String                  @id @default(cuid())
+    createdAt              DateTime                @default(now())
+    updatedAt              DateTime                @updatedAt
+    email                  String                  @unique
+    name                   String
+    dotNum                 String?
+    mcNum                  String?
+    street                 String
+    city                   String
+    state                  String
+    zip                    String
+    country                String
+    phone                  String?
+    carrierCode            String                  @unique
+    customers              Customer[]
+    drivers                Driver[]
+    driverInvoices         DriverInvoice[]
+    invoices               Invoice[]
+    lineItemCharges        LineItemCharge[]
+    driverInvoiceLineItems DriverInvoiceLineItem[]
+    loads                  Load[]
+    defaultCarrierUsers    User[]                  @relation("defaultCarrier")
+    users                  User[]                  @relation("CarrierToUser")
+    locations              Location[]
+    equipments             Equipment[]
+    subscription           Subscription?
+    rateconImportsCount    Int                     @default(0)
+    lastImportReset        DateTime                @default(now())
 
     @@index([name, email, carrierCode])
 }
@@ -450,6 +454,9 @@ model Driver {
     takeHomePercent   Decimal?
     equipments        Equipment[]
 
+    driverInvoices   DriverInvoice[]         @relation("DriverInvoices")
+    invoiceLineItems DriverInvoiceLineItem[] // Added opposite relation field
+
     @@index([name, carrierId])
 }
 
@@ -505,6 +512,79 @@ model DriverAssignment {
     billedDurationHours Decimal?
     billedLoadRate      Decimal?
     assignmentPayments  AssignmentPayment[]
+    invoiceId           String? // each assignment can only belong to one invoice
+    invoice             DriverInvoice?      @relation("InvoiceAssignments", fields: [invoiceId], references: [id])
 
     @@unique([driverId, routeLegId])
+}
+
+model DriverInvoicePayment {
+    id          String        @id @default(cuid())
+    invoiceId   String
+    invoice     DriverInvoice @relation(fields: [invoiceId], references: [id])
+    amount      Float
+    paymentDate DateTime
+    notes       String?
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+}
+
+model DriverInvoice {
+    id          String              @id @default(cuid())
+    invoiceNum  Int
+    carrierId   String
+    carrier     Carrier             @relation(fields: [carrierId], references: [id])
+    driverId    String
+    driver      Driver              @relation("DriverInvoices", fields: [driverId], references: [id])
+    createdById String
+    createdBy   User                @relation("UserCreatedInvoices", fields: [createdById], references: [id])
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
+    notes       String?
+    fromDate    DateTime
+    toDate      DateTime
+    totalAmount Decimal
+    status      DriverInvoiceStatus @default(PENDING)
+
+    assignments DriverAssignment[]      @relation("InvoiceAssignments")
+    lineItems   DriverInvoiceLineItem[]
+    payments    DriverInvoicePayment[]
+
+    @@unique([carrierId, invoiceNum])
+}
+
+model DriverInvoiceLineItem {
+    id          String   @id @default(cuid())
+    invoiceId   String
+    driverId    String
+    carrierId   String
+    chargeId    String? // Link to reusable charge catalog
+    description String
+    amount      Decimal // positive or negative
+    createdAt   DateTime @default(now())
+
+    invoice DriverInvoice   @relation(fields: [invoiceId], references: [id])
+    driver  Driver          @relation(fields: [driverId], references: [id])
+    carrier Carrier         @relation(fields: [carrierId], references: [id])
+    charge  LineItemCharge? @relation(fields: [chargeId], references: [id])
+}
+
+model LineItemCharge {
+    id            String   @id @default(cuid())
+    carrierId     String
+    carrier       Carrier  @relation(fields: [carrierId], references: [id])
+    name          String // e.g., "Fuel Advance", "Parking Fee"
+    defaultAmount Decimal? // optional default
+    createdAt     DateTime @default(now())
+
+    invoiceLineItems DriverInvoiceLineItem[]
+
+    @@unique([carrierId, name]) // so carrier has unique charges
+}
+
+enum DriverInvoiceStatus {
+    PENDING
+    APPROVED
+    PARTIALLY_PAID
+    PAID
 }
