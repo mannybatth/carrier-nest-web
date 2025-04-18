@@ -19,3 +19,9 @@ export enum DashboardStatsTimeFrameType {
     YEAR = '364',
     ALL = `3640`,
 }
+
+export interface DriverInvoiceStats {
+    payableBalance: number;
+    approvedBalance: number;
+    totalPaidThisMonth: number;
+}

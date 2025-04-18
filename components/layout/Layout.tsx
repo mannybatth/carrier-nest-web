@@ -112,7 +112,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     <div className="flex-1 min-w-0 ml-1 mr-1">{smHeaderComponent}</div>
                 </div>
 
-                <main className="flex-1 mb-64">{children}</main>
+                <main className="flex-1 mb-8">{children}</main>
             </div>
         </div>
     );

@@ -52,10 +52,12 @@ export const GET = auth(async (req: NextAuthRequest) => {
             req.nextUrl.searchParams.get('offset') !== undefined
                 ? Number(req.nextUrl.searchParams.get('offset'))
                 : undefined;
-        const showUnpaidOnly = req.nextUrl.searchParams.get('showUnpaidOnly') === 'true';
+        const showCompletedOnly = req.nextUrl.searchParams.get('showCompletedOnly') === 'true';
+        const showNotInvoicedOnly = req.nextUrl.searchParams.get('showNotInvoicedOnly') === 'true';
         const driverIds = req.nextUrl.searchParams.get('driverIds')
             ? (req.nextUrl.searchParams.get('driverIds') as string).split(',')
             : [];
+        const invoiceId = req.nextUrl.searchParams.get('invoiceId');
 
         if (!carrierId) {
             return NextResponse.json({ code: 400, errors: [{ message: 'Carrier ID is required' }] }, { status: 400 });
@@ -78,10 +80,19 @@ export const GET = auth(async (req: NextAuthRequest) => {
         }
 
         const whereClause: Prisma.DriverAssignmentWhereInput = { carrierId };
-        if (showUnpaidOnly) {
-            whereClause.assignmentPayments = {
-                none: {},
+        if (showCompletedOnly) {
+            whereClause.routeLeg = {
+                status: 'COMPLETED',
             };
+        }
+        if (showNotInvoicedOnly) {
+            if (invoiceId) {
+                // either matched id, OR no invoice at all
+                whereClause.OR = [{ invoiceId: invoiceId }, { invoice: { is: null } }];
+            } else {
+                // only the “not invoiced” ones
+                whereClause.invoice = { is: null };
+            }
         }
 
         if (driverIds?.length > 0) {

@@ -56,6 +56,20 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const router = useRouter();
 
     useEffect(() => {
+        // Check if there's a hash in the URL
+        if (router.asPath.includes('#')) {
+            const id = router.asPath.split('#')[1];
+            // Optionally, use a timeout to wait for content to load
+            setTimeout(() => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100); // Adjust delay as needed
+        }
+    }, [router.asPath, load]);
+
+    useEffect(() => {
         if (!load) {
             return;
         }
