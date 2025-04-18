@@ -178,9 +178,18 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
         const updatedAssignments = invoice.assignments.map((assignment) => {
             return {
                 ...assignment,
-                billedDistanceMiles: assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles,
-                billedDurationHours: assignment.billedDurationHours || assignment.routeLeg.durationHours,
-                billedLoadRate: assignment.billedLoadRate || assignment.load.rate,
+                billedDistanceMiles:
+                    assignment.chargeType === 'PER_MILE'
+                        ? assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles
+                        : undefined,
+                billedDurationHours:
+                    assignment.chargeType === 'PER_HOUR'
+                        ? assignment.billedDurationHours || assignment.routeLeg.durationHours
+                        : undefined,
+                billedLoadRate:
+                    assignment.chargeType === 'PERCENTAGE_OF_LOAD'
+                        ? assignment.billedLoadRate || assignment.load.rate
+                        : undefined,
             };
         });
         setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
