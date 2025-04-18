@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Driver, DriverInvoiceStatus, Prisma } from '@prisma/client';
 
 export type JSONResponse<T> = {
     code: number;
@@ -453,3 +453,184 @@ export function exclude<ExpandedLoad, Key extends keyof ExpandedLoad>(
         ? (Object.fromEntries(filteredEntries) as Omit<ExpandedLoad, Key>)
         : ({} as Omit<ExpandedLoad, Key>);
 }
+
+/**
+ * Driver invoice model
+ */
+const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>()({
+    include: {
+        driver: {
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+            },
+        },
+
+        carrier: {
+            select: {
+                id: true,
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
+                phone: true,
+                email: true,
+                name: true,
+                mcNum: true,
+                dotNum: true,
+            },
+        },
+        createdBy: {
+            select: {
+                id: true,
+                name: true,
+                email: true,
+            },
+        },
+
+        assignments: {
+            select: {
+                id: true,
+                createdAt: true,
+                updatedAt: true,
+                chargeType: true,
+                chargeValue: true,
+                billedDistanceMiles: true,
+                billedDurationHours: true,
+                billedLoadRate: true,
+                assignedAt: true,
+                load: {
+                    select: {
+                        id: true,
+                        refNum: true,
+                        rate: true,
+                        customer: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                routeLeg: {
+                    select: {
+                        id: true,
+                        scheduledDate: true,
+                        scheduledTime: true,
+                        distanceMiles: true,
+                        durationHours: true,
+                        startedAt: true,
+                        endedAt: true,
+                        locations: {
+                            include: {
+                                loadStop: true,
+                                location: true,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        lineItems: {
+            select: {
+                id: true,
+                description: true,
+                amount: true,
+                createdAt: true,
+            },
+        },
+        payments: {
+            select: {
+                id: true,
+                amount: true,
+                paymentDate: true,
+                notes: true,
+                createdAt: true,
+            },
+        },
+    },
+});
+export type ExpandedDriverInvoice = Partial<Prisma.DriverInvoiceGetPayload<typeof expandedDriverInvoice>>;
+
+const expandedLineItemCharge = Prisma.validator<Prisma.LineItemChargeDefaultArgs>()({
+    include: {
+        invoiceLineItems: {
+            select: {
+                id: true,
+                description: true,
+                amount: true,
+                createdAt: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        },
+    },
+});
+export type ExpandedLineItemCharge = Partial<Prisma.LineItemChargeGetPayload<typeof expandedLineItemCharge>>;
+
+const expandedDriverInvoiceLineItem = Prisma.validator<Prisma.DriverInvoiceLineItemDefaultArgs>()({
+    include: {
+        charge: {
+            select: {
+                id: true,
+                name: true,
+                defaultAmount: true,
+            },
+        },
+        driver: {
+            select: {
+                id: true,
+                name: true,
+            },
+        },
+        invoice: {
+            select: {
+                id: true,
+                invoiceNum: true,
+                status: true,
+            },
+        },
+    },
+});
+export type ExpandedDriverInvoiceLineItem = Partial<
+    Prisma.DriverInvoiceLineItemGetPayload<typeof expandedDriverInvoiceLineItem>
+>;
+
+export type SimplifiedDriverInvoice = {
+    id: string;
+    invoiceNum: number;
+    createdAt: Date;
+    status: DriverInvoiceStatus;
+    driver: Driver;
+    assignmentCount: number;
+    totalAmount: number;
+};
+
+export enum UIDriverInvoiceStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    PARTIALLY_PAID = 'partially paid',
+    PAID = 'paid',
+}
+
+export type DriverInvoiceLineItem = {
+    id?: string;
+    description: string;
+    amount: string;
+};
+
+export type NewDriverInvoice = {
+    invoiceNum?: number;
+    updatedAt?: string;
+    status?: 'PENDING' | 'APPROVED' | 'PAID' | 'PARTIALLY_PAID';
+    notes: string;
+    fromDate: string;
+    toDate: string;
+    totalAmount?: string;
+    driverId: string;
+    assignments: ExpandedDriverAssignment[];
+    lineItems: DriverInvoiceLineItem[];
+};
