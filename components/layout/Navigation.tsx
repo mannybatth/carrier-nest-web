@@ -7,6 +7,7 @@ import {
     UserGroupIcon,
     WrenchIcon,
     CreditCardIcon,
+    BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -16,10 +17,10 @@ import React from 'react';
 const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon },
     { name: 'Loads', href: '/loads', icon: TruckIcon },
-    { name: 'Customers', href: '/customers', icon: UserGroupIcon },
-    { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
-    { name: 'Assignments Pay', href: '/assignments', icon: UserGroupIcon },
     { name: 'Invoices', href: '/invoices', icon: CurrencyDollarIcon },
+    { name: 'Driver Pay', href: '/driverinvoices?show=all', icon: BanknotesIcon },
+    { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
+    { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Stop Locations', href: '/locations', icon: MapPinIcon },
     { name: 'Equipments', href: '/equipments', icon: WrenchIcon },
     { name: 'Plan & Billing', href: '/billing', icon: CreditCardIcon },
@@ -32,7 +33,7 @@ const Navigation: React.FC = () => {
         const splits = href.split('/');
         const current = router.pathname.split('/');
         if (splits.length > 0 && current.length > 0) {
-            return splits[1] === current[1];
+            return router.pathname === href;
         }
         return false;
     };
