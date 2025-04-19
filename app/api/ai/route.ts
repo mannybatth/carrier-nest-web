@@ -227,7 +227,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
         });
 
         const result = streamText({
-            model: vertex('gemini-1.5-pro-001', {
+            model: vertex('gemini-2.0-flash-001', {
                 safetySettings: [
                     {
                         category: 'HARM_CATEGORY_HATE_SPEECH',
