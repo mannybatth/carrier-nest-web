@@ -308,7 +308,11 @@ export const POST = auth(async (req: NextAuthRequest) => {
             },
         });
 
-        const nextRefNum = lastLoad ? `LD-${lastLoad.refNum + 1}` : 'LD-1';
+        // Extract the numeric part from the last refNum and increment it
+        // If no last load found, start with LD-1
+        const lastLoadNum = lastLoad ? parseInt(lastLoad.refNum.split('LD-')[1], 10) : 0;
+
+        const nextRefNum = `LD-${lastLoadNum + 1}`;
 
         const load = await prisma.load.create({
             data: {
