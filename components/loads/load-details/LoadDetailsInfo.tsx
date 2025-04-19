@@ -51,23 +51,10 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                     </dd>
                 </div>
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Created At</dt>
-                    <dd className="text-right text-gray-900">
-                        {new Date(load.createdAt).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                            hour: 'numeric',
-                            minute: 'numeric',
-                            second: 'numeric',
-                            hour12: true,
-                        })}
-                    </dd>
-                </div>
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
                     <dt className="text-gray-500">Load #</dt>
                     <dd className="text-right text-gray-900">{load.loadNum}</dd>
                 </div>
+
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
                     <dt className="text-gray-500">Drivers</dt>
                     <dd className="text-right text-gray-900">
@@ -94,6 +81,20 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                             ) : (
                                 <div className="text-gray-400">No driver assigned</div>
                             ))}
+                    </dd>
+                </div>
+                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                    <dt className="text-gray-500">Created At</dt>
+                    <dd className="text-right text-gray-900">
+                        {new Date(load.createdAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            second: 'numeric',
+                            hour12: true,
+                        })}
                     </dd>
                 </div>
                 <div className="border-b border-gray-200">
