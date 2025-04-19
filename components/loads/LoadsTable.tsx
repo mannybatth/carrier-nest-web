@@ -19,6 +19,7 @@ type Props = {
 const defaultHeaders = [
     'refNum',
     'customer.name',
+    'loadNum',
     'status',
     'shipper.date',
     'receiver.date',
@@ -40,8 +41,9 @@ export const LoadsTable: React.FC<Props> = ({
         <Table
             loading={loading}
             headers={[
-                ...[headers.includes('refNum') ? { key: 'refNum', title: 'Load/Order #' } : null],
+                ...[headers.includes('refNum') ? { key: 'refNum', title: 'Order #' } : null],
                 ...[headers.includes('customer.name') ? { key: 'customer.name', title: 'Customer' } : null],
+                ...[headers.includes('loadNum') ? { key: 'loadNum', title: 'Load #' } : null],
                 ...[headers.includes('status') ? { key: 'status', title: 'Status' } : null],
                 ...[headers.includes('shipper.date') ? { key: 'shipper.date', title: 'Pickup' } : null],
                 ...[headers.includes('receiver.date') ? { key: 'receiver.date', title: 'Drop Off' } : null],
@@ -54,6 +56,7 @@ export const LoadsTable: React.FC<Props> = ({
                 items: [
                     ...[headers.includes('refNum') ? { value: load.refNum } : null],
                     ...[headers.includes('customer.name') ? { value: load.customer?.name } : null],
+                    ...[headers.includes('loadNum') ? { value: load.loadNum } : null],
                     ...[
                         headers.includes('status')
                             ? {

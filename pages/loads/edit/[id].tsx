@@ -34,7 +34,7 @@ const EditLoad: PageWithAuth = () => {
         }
 
         formHook.setValue('customer', load.customer);
-        formHook.setValue('refNum', load.refNum);
+        formHook.setValue('loadNum', load.loadNum);
         formHook.setValue('rate', load.rate);
         formHook.setValue('shipper', load.shipper);
         formHook.setValue('receiver', load.receiver);
@@ -46,7 +46,7 @@ const EditLoad: PageWithAuth = () => {
 
         const loadData: ExpandedLoad = {
             customerId: data.customer.id,
-            refNum: data.refNum,
+            loadNum: data.loadNum,
             rate: new Prisma.Decimal(data.rate),
             customer: data.customer,
             shipper: data.shipper,

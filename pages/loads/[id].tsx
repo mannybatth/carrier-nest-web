@@ -431,7 +431,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 href: '/loads',
                             },
                             {
-                                label: load ? `# ${load.refNum}` : '',
+                                label: load ? `${load.refNum}` : '',
                             },
                         ]}
                     ></BreadCrumb>

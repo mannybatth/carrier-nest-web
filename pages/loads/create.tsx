@@ -147,7 +147,7 @@ const CreateLoad: PageWithAuth = () => {
                 }
 
                 formHook.setValue('customer', load.customer);
-                formHook.setValue('refNum', load.refNum);
+                formHook.setValue('loadNum', load.loadNum);
                 formHook.setValue('rate', load.rate);
                 formHook.setValue('shipper', load.shipper);
                 formHook.setValue('receiver', load.receiver);
@@ -168,7 +168,7 @@ const CreateLoad: PageWithAuth = () => {
 
         const loadData: ExpandedLoad = {
             customerId: data.customer.id,
-            refNum: data.refNum,
+            loadNum: data.loadNum,
             rate: new Prisma.Decimal(data.rate),
             customer: data.customer,
             shipper: data.shipper,
@@ -265,7 +265,7 @@ const CreateLoad: PageWithAuth = () => {
         // Reset form and state
         formHook.reset({
             customer: null,
-            refNum: null,
+            loadNum: null,
             rate: null,
             shipper: {
                 name: null,
@@ -609,7 +609,7 @@ const CreateLoad: PageWithAuth = () => {
         // Reset entire form
         formHook.reset({
             customer: null,
-            refNum: null,
+            loadNum: null,
             rate: null,
             shipper: {
                 name: null,
@@ -635,7 +635,7 @@ const CreateLoad: PageWithAuth = () => {
             });
         }
 
-        formHook.setValue('refNum', load.load_number);
+        formHook.setValue('loadNum', load.load_number);
         formHook.setValue('rate', load.rate ? new Prisma.Decimal(load.rate) : null);
 
         // Select first PU stop as shipper

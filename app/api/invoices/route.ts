@@ -117,6 +117,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                           select: {
                               id: true,
                               refNum: true,
+                              loadNum: true,
                               rate: true,
                               customer: true,
                           },

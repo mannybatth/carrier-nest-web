@@ -466,7 +466,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                                                             Select
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Ref #
+                                                            Order #
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                             Route
@@ -925,7 +925,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                                                         <thead>
                                                             <tr className="bg-gray-100">
                                                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Ref #
+                                                                    Order #
                                                                 </th>
                                                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                                     Route
@@ -1159,7 +1159,7 @@ const InvoiceSkeleton = () => {
                             <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                                 <thead>
                                     <tr className="bg-gray-100">
-                                        {['Select', 'Ref #', 'Route', 'Charge Type', 'Amount', 'Status'].map(
+                                        {['Select', 'Order #', 'Route', 'Charge Type', 'Amount', 'Status'].map(
                                             (header) => (
                                                 <th key={header} className="py-3 px-4">
                                                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />

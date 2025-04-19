@@ -15,7 +15,7 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
         <div>
             <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Load #</dt>
+                    <dt className="text-gray-500">Order #</dt>
                     <dd className="text-right text-gray-900">{load.refNum}</dd>
                 </div>
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
@@ -37,6 +37,7 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                         )}
                     </dd>
                 </div>
+
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
                     <dt className="text-gray-500">Rate</dt>
                     <dd className="text-right text-gray-900">
@@ -48,6 +49,24 @@ const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
                             decimalScale: 2,
                         })}
                     </dd>
+                </div>
+                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                    <dt className="text-gray-500">Created At</dt>
+                    <dd className="text-right text-gray-900">
+                        {new Date(load.createdAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            second: 'numeric',
+                            hour12: true,
+                        })}
+                    </dd>
+                </div>
+                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
+                    <dt className="text-gray-500">Load #</dt>
+                    <dd className="text-right text-gray-900">{load.loadNum}</dd>
                 </div>
                 <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
                     <dt className="text-gray-500">Drivers</dt>

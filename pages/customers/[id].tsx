@@ -385,6 +385,7 @@ const CustomerDetailsPage: PageWithAuth = () => {
                                         loads={loadsList}
                                         headers={[
                                             'refNum',
+                                            'loadNum',
                                             'status',
                                             'shipper.date',
                                             'receiver.date',

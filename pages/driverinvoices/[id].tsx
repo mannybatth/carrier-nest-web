@@ -903,7 +903,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                 <thead>
                                                     <tr className="bg-gray-100">
                                                         <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Ref #
+                                                            Order #
                                                         </th>
 
                                                         <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
