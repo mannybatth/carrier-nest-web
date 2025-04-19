@@ -73,6 +73,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         if (!load) {
             return;
         }
+        console.log('Load details page load', load);
         setLoadDocuments([load.rateconDocument, ...load.loadDocuments].filter((ld) => ld));
         setPodDocuments(load.podDocuments || []);
     }, [load]);
@@ -421,7 +422,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     secondaryButtonAction={() => setOpenDeleteLegConfirmation(false)}
                     onClose={() => setOpenDeleteLegConfirmation(false)}
                 />
-                <div className="relative max-w-4xl py-2 mx-auto">
+                <div className="relative max-w-7xl py-2 mx-auto">
                     {downloadingDocs && <LoadingOverlay />}
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
