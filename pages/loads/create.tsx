@@ -1076,7 +1076,7 @@ const CreateLoad: PageWithAuth = () => {
                         </div>
                     )}
 
-                    <div className="relative flex flex-row items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
+                    <div className="relative flex lg:flex-row items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
                         {currentRateconFile ? (
                             <div className="flex-1 overflow-auto ">
                                 <PDFViewer
