@@ -50,8 +50,8 @@ export const loadStatus = (load: ExpandedLoad): UILoadStatus => {
         return UILoadStatus.POD_READY;
     }
 
-    const dropOffDate = new Date(load.receiver.date);
-    if (load.status === LoadStatus.DELIVERED || isDate24HrInThePast(dropOffDate)) {
+    /* const dropOffDate = new Date(load.receiver.date); */
+    if (load.status === LoadStatus.DELIVERED) {
         return UILoadStatus.DELIVERED;
     }
 

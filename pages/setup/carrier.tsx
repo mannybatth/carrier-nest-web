@@ -19,6 +19,7 @@ import { notify } from '../../components/Notification';
 import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
 import { createCheckoutSession } from '../../lib/rest/stripe';
 import { truncate } from 'fs';
+import { tenDigitPhone } from 'lib/helpers/regExpressions';
 
 type CarrierOperation = {
     carrierOperationDesc: string;
@@ -401,12 +402,13 @@ const CarrierSetup: PageWithAuth = () => {
                                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm placeholder:text-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 id={field.id}
                                                 type="text"
-                                                placeholder={field.id === 'phone' ? '213-456-1111' : ''}
+                                                placeholder={field.id === 'phone' ? '2134561111' : ''}
                                                 {...formHook.register(field.id, {
                                                     required: field.required ? `${field.label} is required` : false,
                                                     pattern: field.id === 'phone' && {
-                                                        value: /^\d{3}-\d{3}-\d{4}$/,
-                                                        message: 'Invalid phone number format: 213-456-1111',
+                                                        value: tenDigitPhone,
+                                                        message:
+                                                            'Invalid phone number entered, valid format 2134561111',
                                                     },
 
                                                     onBlur:

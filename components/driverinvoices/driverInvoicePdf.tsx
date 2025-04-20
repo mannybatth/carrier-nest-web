@@ -14,17 +14,29 @@ const formatCurrency = (value: number): string => {
     }).format(value);
 };
 
+const formatPhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters and format as (XXX) XXX-XXXX
+    const cleaned = ('' + phone).replace(/\D/g, '');
+    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+    if (match) {
+        return `(${match[1]}) ${match[2]}-${match[3]}`;
+    }
+    return phone;
+};
+
 // Define styles for the PDF
 const styles = StyleSheet.create({
     page: {
         padding: 30,
+        paddingBottom: 40,
         fontSize: 10,
         fontFamily: 'Helvetica',
         color: '#374151', // gray-700
         backgroundColor: '#FFFFFF',
+        position: 'relative', // For absolute positioning of footer
     },
     accentBar: {
-        height: 8,
+        height: 10,
         backgroundColor: '#cccccc',
         marginBottom: 16,
         borderRadius: 1,
@@ -32,13 +44,14 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 16,
+        marginBottom: 48,
     },
     headerTitle: {
         fontSize: 20,
         fontFamily: 'Helvetica-Bold',
         marginBottom: 4,
         color: '#111827', // gray-900
+        textTransform: 'capitalize',
     },
     headerSubtitle: {
         fontSize: 10,
@@ -53,12 +66,14 @@ const styles = StyleSheet.create({
     },
     section: {
         marginBottom: 16,
+        // This helps prevent section from breaking across pages
+        breakInside: 'avoid',
     },
     sectionTitle: {
-        fontSize: 12,
+        fontSize: 11,
         fontFamily: 'Helvetica-Bold',
-        marginBottom: 8,
-        paddingBottom: 4,
+        marginBottom: 4,
+        paddingBottom: 2,
         borderBottomWidth: 2,
         borderBottomColor: '#efefef', // gray-200
         color: '#111827', // gray-900
@@ -66,6 +81,7 @@ const styles = StyleSheet.create({
     twoColumn: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginBottom: 16,
     },
     column: {
         width: '48%',
@@ -73,7 +89,8 @@ const styles = StyleSheet.create({
     companyName: {
         fontFamily: 'Helvetica-Bold',
         marginBottom: 2,
-        fontSize: 11,
+        fontSize: 10,
+        color: '#000000',
     },
     companyDetails: {
         fontSize: 9,
@@ -82,7 +99,7 @@ const styles = StyleSheet.create({
     },
     detailRow: {
         flexDirection: 'row',
-        marginBottom: 3,
+        marginBottom: 2,
     },
     detailLabel: {
         width: 70,
@@ -102,6 +119,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         borderWidth: 1,
         borderColor: '#E5E7EB', // gray-200
+        // This prevents the card from breaking across pages
+        breakInside: 'avoid',
     },
     cardHeader: {
         borderBottomWidth: 1,
@@ -114,32 +133,29 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontFamily: 'Helvetica-Bold',
-        fontSize: 10,
+        fontSize: 11,
         color: '#111827', // gray-900
     },
     cardAmount: {
         fontFamily: 'Helvetica-Bold',
-        fontSize: 10,
+        fontSize: 11,
         color: '#2eb82e', // emerald-500
     },
     cardContent: {
-        flexDirection: 'row',
-    },
-    cardLabels: {
-        width: '30%',
-    },
-    cardValues: {
-        width: '70%',
+        flexDirection: 'column',
     },
     cardRow: {
+        flexDirection: 'row',
         marginBottom: 6,
     },
     cardLabel: {
         fontFamily: 'Helvetica-Bold',
         color: '#6B7280', // gray-500
+        width: '20%',
     },
     cardValue: {
         color: '#111827', // gray-900
+        width: '80%',
     },
     lineItemRow: {
         flexDirection: 'row',
@@ -147,6 +163,11 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6', // gray-100
+    },
+    lineItemLastRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 6,
     },
     lineItemDescription: {
         flex: 1,
@@ -172,7 +193,7 @@ const styles = StyleSheet.create({
     grandTotal: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 8,
+        marginTop: 4,
         paddingTop: 4,
         paddingBottom: 4,
         borderBottomWidth: 3,
@@ -180,7 +201,7 @@ const styles = StyleSheet.create({
         borderTopStyle: 'dashed',
         borderBottomStyle: 'solid',
         borderTopColor: '#cccccc', // gray-200
-        borderBottomColor: '#bbbbbb', // gray-200
+        borderBottomColor: '#666666', // gray-200
     },
     grandTotalLabel: {
         fontFamily: 'Helvetica-Bold',
@@ -265,6 +286,26 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         textAlign: 'center',
     },
+    // Footer styles
+    footer: {
+        position: 'absolute',
+        bottom: 30,
+        left: 30,
+        right: 30,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 9,
+        color: '#6B7280', // gray-500
+    },
+    pageNumber: {
+        fontSize: 9,
+        fontFamily: 'Helvetica-Bold',
+        color: '#4B5563', // gray-600
+        textAlign: 'right',
+    },
 });
 
 export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({ invoice }) => {
@@ -307,9 +348,6 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
         let badgeStyle;
 
         switch (status) {
-            case 'DRAFT':
-                badgeStyle = styles.statusDraft;
-                break;
             case 'PENDING':
                 badgeStyle = styles.statusPending;
                 break;
@@ -323,7 +361,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                 badgeStyle = styles.statusPartiallyPaid;
                 break;
             default:
-                badgeStyle = styles.statusDraft;
+                badgeStyle = styles.statusPending;
         }
 
         return (
@@ -345,17 +383,17 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                     <View>
                         <Text style={styles.headerTitle}>{invoice.driver.name}</Text>
                         {invoice.driver.phone && (
-                            <Text style={styles.headerSubtitle}>Phone: {invoice.driver.phone}</Text>
+                            <Text style={styles.headerSubtitle}>Phone: {formatPhoneNumber(invoice.driver.phone)}</Text>
                         )}
                     </View>
                     <View>
-                        <Text style={styles.invoiceNumber}>Invoice #{invoice.invoiceNum}</Text>
+                        <Text style={styles.invoiceNumber}>INVOICE #{invoice.invoiceNum}</Text>
                         {renderStatusBadge(invoice.status)}
                     </View>
                 </View>
 
                 {/* Bill To & Details */}
-                <View style={[styles.section, styles.twoColumn]}>
+                <View style={[styles.section, styles.twoColumn]} wrap={false}>
                     <View style={styles.column}>
                         <Text style={styles.sectionTitle}>Bill To</Text>
                         <Text style={styles.companyName}>{invoice.carrier.name}</Text>
@@ -363,28 +401,38 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         <Text style={styles.companyDetails}>
                             {invoice.carrier.city}, {invoice.carrier.state} {invoice.carrier.zip}
                         </Text>
-                        <Text style={[styles.companyDetails, { marginTop: 2 }]}>{invoice.carrier.phone}</Text>
-                        <Text style={styles.companyDetails}>{invoice.carrier.email}</Text>
+                        <Text style={[styles.companyDetails, { marginTop: 8 }]}>
+                            Phone: {formatPhoneNumber(invoice.carrier.phone)}
+                        </Text>
+                        <Text style={styles.companyDetails}>Email: {invoice.carrier.email}</Text>
                     </View>
                     <View style={styles.column}>
                         <Text style={styles.sectionTitle}>Details</Text>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>{symbols.calendar} Created:</Text>
+                            <Text style={styles.detailLabel}>{symbols.calendar} Created At:</Text>
                             <Text style={styles.detailValue}>
                                 {new Date(invoice.createdAt).toLocaleString('en-US', {
                                     year: 'numeric',
                                     month: 'short',
                                     day: '2-digit',
+                                    hour: 'numeric',
+                                    minute: 'numeric',
+                                    second: 'numeric',
+                                    hour12: true,
                                 })}
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>{symbols.calendar} Updated:</Text>
+                            <Text style={styles.detailLabel}>{symbols.calendar} Updated At:</Text>
                             <Text style={styles.detailValue}>
                                 {new Date(invoice.updatedAt).toLocaleString('en-US', {
                                     year: 'numeric',
                                     month: 'short',
                                     day: '2-digit',
+                                    hour: 'numeric',
+                                    minute: 'numeric',
+                                    second: 'numeric',
+                                    hour12: true,
                                 })}
                             </Text>
                         </View>
@@ -400,7 +448,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
 
                 {/* Notes */}
                 {invoice.notes && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Invoice Notes</Text>
                         <Text style={styles.notes}>{invoice.notes}</Text>
                     </View>
@@ -434,27 +482,35 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         const route = a.routeLeg.locations
                             .map((loc) =>
                                 loc.loadStop
-                                    ? `${loc.loadStop.name} (${loc.loadStop.city})`
+                                    ? `${loc.loadStop.name} (${loc.loadStop.city}, ${loc.loadStop.state})`
                                     : loc.location
-                                    ? `${loc.location.name} (${loc.location.city})`
+                                    ? `${loc.location.name} (${loc.location.city}, ${loc.location.state})`
                                     : '',
                             )
                             .join(' > ');
 
-                        const trip = `${(a.billedDistanceMiles ?? a.routeLeg.distanceMiles).toFixed(0)} mi / ${(
-                            a.billedDurationHours ?? a.routeLeg.durationHours
+                        const trip = `${(a.billedDistanceMiles ?? a.routeLeg?.distanceMiles ?? 0).toFixed(0)} mi / ${(
+                            a.billedDurationHours ??
+                            a.routeLeg?.durationHours ??
+                            0
                         ).toFixed(1)} hr`;
 
                         let chargeLabel = '';
                         switch (a.chargeType) {
                             case 'PER_MILE':
-                                chargeLabel = `${a.chargeValue}/mi`;
+                                chargeLabel = `${a.chargeValue}/mi for ${
+                                    a.billedDistanceMiles ?? a.routeLeg.distanceMiles
+                                } miles`;
                                 break;
                             case 'PER_HOUR':
-                                chargeLabel = `${a.chargeValue}/hr`;
+                                chargeLabel = `${a.chargeValue}/hr for ${
+                                    a.billedDurationHours ?? a.routeLeg.durationHours
+                                } hours`;
                                 break;
                             case 'PERCENTAGE_OF_LOAD':
-                                chargeLabel = `${a.chargeValue}% load`;
+                                chargeLabel = `${a.chargeValue}% of load rate (${formatCurrency(
+                                    Number(a.billedLoadRate ?? a.load.rate),
+                                )})`;
                                 break;
                             case 'FIXED_PAY':
                                 chargeLabel = 'Fixed Pay';
@@ -462,7 +518,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         }
 
                         return (
-                            <View key={a.id} style={styles.card}>
+                            <View key={a.id} style={styles.card} wrap={false}>
                                 <View style={styles.cardHeader}>
                                     <Text style={styles.cardTitle}>
                                         {symbols.document} Ref #{a.load.refNum}
@@ -471,43 +527,32 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                                 </View>
 
                                 <View style={styles.cardContent}>
-                                    {/* Labels Column */}
-                                    <View style={styles.cardLabels}>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardLabel}>{symbols.map} Route</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardLabel}>{symbols.truck} Trip Details</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardLabel}>{symbols.money} Charge Type</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardLabel}>{symbols.clock} Status</Text>
-                                        </View>
+                                    <View style={styles.cardRow}>
+                                        <Text style={styles.cardLabel}>{symbols.map} Route</Text>
+                                        <Text style={styles.cardValue}>{route}</Text>
                                     </View>
-
-                                    {/* Values Column */}
-                                    <View style={styles.cardValues}>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardValue}>{route}</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardValue}>{trip}</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardValue}>{chargeLabel}</Text>
-                                        </View>
-                                        <View style={styles.cardRow}>
-                                            <Text style={styles.cardValue}>
-                                                Completed{' '}
-                                                {new Date(a.routeLeg.endedAt).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: '2-digit',
-                                                })}
-                                            </Text>
-                                        </View>
+                                    <View style={styles.cardRow}>
+                                        <Text style={styles.cardLabel}>{symbols.truck} Trip Details</Text>
+                                        <Text style={styles.cardValue}>{trip}</Text>
+                                    </View>
+                                    <View style={styles.cardRow}>
+                                        <Text style={styles.cardLabel}>{symbols.money} Charge Type</Text>
+                                        <Text style={styles.cardValue}>{chargeLabel}</Text>
+                                    </View>
+                                    <View style={styles.cardRow}>
+                                        <Text style={styles.cardLabel}>{symbols.clock} Status</Text>
+                                        <Text style={styles.cardValue}>
+                                            Completed @
+                                            {new Date(a.routeLeg.endedAt).toLocaleString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: '2-digit',
+                                                hour: 'numeric',
+                                                minute: 'numeric',
+                                                second: 'numeric',
+                                                hour12: true,
+                                            })}
+                                        </Text>
                                     </View>
                                 </View>
                             </View>
@@ -517,10 +562,15 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
 
                 {/* Line Items */}
                 {invoice.lineItems.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Line Items</Text>
-                        {invoice.lineItems.map((li) => (
-                            <View key={li.id} style={styles.lineItemRow}>
+                        {invoice.lineItems.map((li, index) => (
+                            <View
+                                key={li.id}
+                                style={
+                                    index + 1 !== invoice.lineItems.length ? styles.lineItemRow : styles.lineItemLastRow
+                                }
+                            >
                                 <Text style={styles.lineItemDescription}>{li.description}</Text>
                                 <Text
                                     style={[
@@ -536,7 +586,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                 )}
 
                 {/* Totals */}
-                <View style={styles.section}>
+                <View style={styles.section} wrap={false}>
                     <Text style={styles.sectionTitle}>Invoice Total</Text>
                     <View style={styles.totalsRow}>
                         <Text style={styles.totalsLabel}>Assignments Total</Text>
@@ -552,6 +602,15 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         <Text style={styles.grandTotalLabel}>Grand Total</Text>
                         <Text style={styles.grandTotalValue}>{formatCurrency(Number(invoice.totalAmount))}</Text>
                     </View>
+                </View>
+
+                {/* Footer with page number */}
+                <View fixed style={styles.footer}>
+                    <Text style={styles.footerText}>Invoice #{invoice.invoiceNum}</Text>
+                    <Text
+                        style={styles.pageNumber}
+                        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+                    />
                 </View>
             </Page>
 
@@ -577,7 +636,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         </View>
                     ) : (
                         invoice.payments.map((p) => (
-                            <View key={p.id} style={[styles.card, { marginBottom: 12 }]}>
+                            <View key={p.id} style={[styles.card, { marginBottom: 12 }]} wrap={false}>
                                 <View style={styles.cardHeader}>
                                     <Text style={styles.cardTitle}>
                                         {symbols.calendar} {new Date(p.paymentDate).toLocaleDateString()}
@@ -596,7 +655,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                 </View>
 
                 {/* Payment Summary */}
-                <View style={styles.section}>
+                <View style={styles.section} wrap={false}>
                     <Text style={styles.sectionTitle}>Payment Summary</Text>
                     <View style={styles.totalsRow}>
                         <Text style={styles.totalsLabel}>Invoice Total</Text>
@@ -624,11 +683,13 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                     )}
                 </View>
 
-                {/* Footer */}
-                <View style={{ position: 'absolute', bottom: 30, left: 30, right: 30, textAlign: 'center' }}>
-                    <Text style={{ fontSize: 9, color: '#6B7280', textAlign: 'center' }}>
-                        This is an official payment record for Invoice #{invoice.invoiceNum}
-                    </Text>
+                {/* Footer with page number */}
+                <View fixed style={styles.footer}>
+                    <Text style={styles.footerText}>Payment History for Invoice #{invoice.invoiceNum}</Text>
+                    <Text
+                        style={styles.pageNumber}
+                        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+                    />
                 </View>
             </Page>
         </Document>

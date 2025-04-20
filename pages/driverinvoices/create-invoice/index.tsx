@@ -178,9 +178,18 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
         const updatedAssignments = invoice.assignments.map((assignment) => {
             return {
                 ...assignment,
-                billedDistanceMiles: assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles,
-                billedDurationHours: assignment.billedDurationHours || assignment.routeLeg.durationHours,
-                billedLoadRate: assignment.billedLoadRate || assignment.load.rate,
+                billedDistanceMiles:
+                    assignment.chargeType === 'PER_MILE'
+                        ? assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles
+                        : undefined,
+                billedDurationHours:
+                    assignment.chargeType === 'PER_HOUR'
+                        ? assignment.billedDurationHours || assignment.routeLeg.durationHours
+                        : undefined,
+                billedLoadRate:
+                    assignment.chargeType === 'PERCENTAGE_OF_LOAD'
+                        ? assignment.billedLoadRate || assignment.load.rate
+                        : undefined,
             };
         });
         setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
@@ -508,7 +517,7 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                                                             Select
                                                         </th>
                                                         <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Ref #
+                                                            Order #
                                                         </th>
 
                                                         <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -962,7 +971,7 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                                                         <thead>
                                                             <tr className="bg-gray-100">
                                                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Ref #
+                                                                    Order #
                                                                 </th>
 
                                                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

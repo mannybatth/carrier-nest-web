@@ -70,20 +70,6 @@ export const getLoadById = async (id: string, driverId?: string, expandCarrier =
 };
 
 export const createLoad = async (load: ExpandedLoad, rateconFile?: File) => {
-    const response = await fetch(apiUrl + '/loads', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(load),
-    });
-
-    const { data, errors }: JSONResponse<{ load: Load }> = await response.json();
-
-    if (errors) {
-        throw new Error(errors.map((e) => e.message).join(', '));
-    }
-
     if (rateconFile) {
         const uploadResponse = await uploadFileToGCS(rateconFile);
         if (uploadResponse?.uniqueFileName) {
@@ -96,6 +82,20 @@ export const createLoad = async (load: ExpandedLoad, rateconFile?: File) => {
             };
             load.rateconDocument = simpleDoc as LoadDocument;
         }
+    }
+
+    const response = await fetch(apiUrl + '/loads', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(load),
+    });
+
+    const { data, errors }: JSONResponse<{ load: Load }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
     }
 
     return data.load;

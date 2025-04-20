@@ -46,7 +46,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
         <Table
             loading={loading}
             headers={[
-                ...[headers.includes('load.refNum') ? { key: 'refNum', title: 'Load/Order #' } : null],
+                ...[headers.includes('load.refNum') ? { key: 'refNum', title: 'Order #' } : null],
                 ...[headers.includes('routeLeg.scheduledDate') ? { key: 'startTime', title: 'Start Time' } : null],
                 ...[headers.includes('routeLeg.locations') ? { key: 'locations', title: 'Stops' } : null],
                 ...[

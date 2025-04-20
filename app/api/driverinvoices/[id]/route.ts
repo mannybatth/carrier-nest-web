@@ -211,11 +211,19 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
             };
 
             if (assignment.chargeType === 'PER_MILE') {
-                data.billedDistanceMiles = new Prisma.Decimal(assignment.billedDistanceMiles || 0);
+                // Only set to null if the value is undefined (not 0 or empty string)
+                data.billedDistanceMiles =
+                    assignment.billedDistanceMiles === undefined
+                        ? null
+                        : new Prisma.Decimal(assignment.billedDistanceMiles);
             } else if (assignment.chargeType === 'PER_HOUR') {
-                data.billedDurationHours = new Prisma.Decimal(assignment.billedDurationHours || 0);
+                data.billedDurationHours =
+                    assignment.billedDurationHours === undefined
+                        ? null
+                        : new Prisma.Decimal(assignment.billedDurationHours);
             } else if (assignment.chargeType === 'PERCENTAGE_OF_LOAD') {
-                data.billedLoadRate = new Prisma.Decimal(assignment.billedLoadRate || 0);
+                data.billedLoadRate =
+                    assignment.billedLoadRate === undefined ? null : new Prisma.Decimal(assignment.billedLoadRate);
             }
 
             return prisma.driverAssignment.update({
@@ -341,9 +349,9 @@ async function deleteDriverInvoice(req: NextAuthRequest, { params }: { params: {
             prisma.driverAssignment.updateMany({
                 where: { id: { in: assignmentIds }, carrierId },
                 data: {
-                    billedLoadRate: new Prisma.Decimal(0),
-                    billedDistanceMiles: new Prisma.Decimal(0),
-                    billedDurationHours: new Prisma.Decimal(0),
+                    billedLoadRate: null,
+                    billedDistanceMiles: null,
+                    billedDurationHours: null,
                 },
             }),
             // Disconnect any assignments from the invoice

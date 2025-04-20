@@ -128,7 +128,7 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
     const updatedLoad = await prisma.load.update({
         where: { id: loadId },
         data: {
-            refNum: loadData.refNum || '',
+            loadNum: loadData.loadNum || '',
             rate: loadData.rate || 0,
             carrier: { connect: { id: session.user.defaultCarrierId } },
             customer: { connect: { id: loadData.customer.id } },

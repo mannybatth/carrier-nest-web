@@ -5,6 +5,7 @@ import React from 'react';
 import { ExpandedDriver } from '../../interfaces/models';
 import { Sort } from '../../interfaces/table';
 import Table from '../Table';
+import { formatPhoneNumber } from 'lib/helpers/format';
 
 type Props = {
     drivers: ExpandedDriver[];
@@ -31,7 +32,7 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                 items: [
                     { value: driver.name },
                     { value: driver.email },
-                    { value: driver.phone },
+                    { value: formatPhoneNumber(driver.phone) },
                     { value: getChargeTypeLabel(driver.defaultChargeType) }, // Added new column value
                 ],
                 menuItems: [

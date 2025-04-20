@@ -18,189 +18,6 @@ export type SimplifiedDriverInvoice = {
     totalAmount: number;
 };
 
-const invoicesJSON = {
-    code: 200,
-    data: {
-        metadata: {
-            total: 10,
-            currentOffset: 0,
-            currentLimit: 10,
-        },
-        invoices: [
-            {
-                id: 'inv_1',
-                invoiceNum: 1001,
-                createdAt: '2024-12-01T10:15:00Z',
-                status: 'DRAFT',
-                driver: {
-                    id: 'drv_1',
-                    name: 'John Doe',
-                    email: 'john@example.com',
-                    phone: '+11234567890',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-10-01T09:00:00Z',
-                    updatedAt: '2024-11-01T12:00:00Z',
-                },
-                assignmentCount: 3,
-                totalAmount: 1850.0,
-            },
-            {
-                id: 'inv_2',
-                invoiceNum: 1002,
-                createdAt: '2024-12-02T08:30:00Z',
-                status: 'SENT',
-                driver: {
-                    id: 'drv_2',
-                    name: 'Jane Smith',
-                    email: 'jane@example.com',
-                    phone: '+19876543210',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-11-15T08:00:00Z',
-                    updatedAt: '2024-11-29T14:20:00Z',
-                },
-                assignmentCount: 2,
-                totalAmount: 920.5,
-            },
-            {
-                id: 'inv_3',
-                invoiceNum: 1003,
-                createdAt: '2024-12-03T11:45:00Z',
-                status: 'PAID',
-                driver: {
-                    id: 'drv_3',
-                    name: 'Carlos Mendoza',
-                    email: 'carlos@example.com',
-                    phone: '+14151234567',
-                    carrierId: 'carrier_1',
-                    createdAt: '2022-05-01T10:00:00Z',
-                    updatedAt: '2024-11-10T17:00:00Z',
-                },
-                assignmentCount: 1,
-                totalAmount: 650.0,
-            },
-            {
-                id: 'inv_4',
-                invoiceNum: 1004,
-                createdAt: '2024-12-04T09:00:00Z',
-                status: 'PARTIALLY_PAID',
-                driver: {
-                    id: 'drv_1',
-                    name: 'John Doe',
-                    email: 'john@example.com',
-                    phone: '+11234567890',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-10-01T09:00:00Z',
-                    updatedAt: '2024-11-01T12:00:00Z',
-                },
-                assignmentCount: 2,
-                totalAmount: 1175.75,
-            },
-            {
-                id: 'inv_5',
-                invoiceNum: 1005,
-                createdAt: '2024-12-05T10:30:00Z',
-                status: 'VOIDED',
-                driver: {
-                    id: 'drv_4',
-                    name: 'Lena Nguyen',
-                    email: 'lena@example.com',
-                    phone: '+12025559876',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-08-12T13:45:00Z',
-                    updatedAt: '2024-10-22T15:10:00Z',
-                },
-                assignmentCount: 1,
-                totalAmount: 0,
-            },
-            {
-                id: 'inv_6',
-                invoiceNum: 1006,
-                createdAt: '2024-12-06T08:00:00Z',
-                status: 'SENT',
-                driver: {
-                    id: 'drv_5',
-                    name: 'Ahmed Khan',
-                    email: 'ahmed@example.com',
-                    phone: '+12125556677',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-12-20T12:00:00Z',
-                    updatedAt: '2024-11-30T18:45:00Z',
-                },
-                assignmentCount: 4,
-                totalAmount: 2120.0,
-            },
-            {
-                id: 'inv_7',
-                invoiceNum: 1007,
-                createdAt: '2024-12-07T13:20:00Z',
-                status: 'DRAFT',
-                driver: {
-                    id: 'drv_6',
-                    name: 'Emily Taylor',
-                    email: 'emily@example.com',
-                    phone: '+15145552323',
-                    carrierId: 'carrier_1',
-                    createdAt: '2024-01-03T09:45:00Z',
-                    updatedAt: '2024-11-05T08:30:00Z',
-                },
-                assignmentCount: 2,
-                totalAmount: 1080.0,
-            },
-            {
-                id: 'inv_8',
-                invoiceNum: 1008,
-                createdAt: '2024-12-08T14:00:00Z',
-                status: 'PAID',
-                driver: {
-                    id: 'drv_2',
-                    name: 'Jane Smith',
-                    email: 'jane@example.com',
-                    phone: '+19876543210',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-11-15T08:00:00Z',
-                    updatedAt: '2024-11-29T14:20:00Z',
-                },
-                assignmentCount: 3,
-                totalAmount: 1435.0,
-            },
-            {
-                id: 'inv_9',
-                invoiceNum: 1009,
-                createdAt: '2024-12-09T11:10:00Z',
-                status: 'PARTIALLY_PAID',
-                driver: {
-                    id: 'drv_5',
-                    name: 'Ahmed Khan',
-                    email: 'ahmed@example.com',
-                    phone: '+12125556677',
-                    carrierId: 'carrier_1',
-                    createdAt: '2023-12-20T12:00:00Z',
-                    updatedAt: '2024-11-30T18:45:00Z',
-                },
-                assignmentCount: 1,
-                totalAmount: 850.25,
-            },
-            {
-                id: 'inv_10',
-                invoiceNum: 1010,
-                createdAt: '2024-12-10T15:35:00Z',
-                status: 'SENT',
-                driver: {
-                    id: 'drv_3',
-                    name: 'Carlos Mendoza',
-                    email: 'carlos@example.com',
-                    phone: '+14151234567',
-                    carrierId: 'carrier_1',
-                    createdAt: '2022-05-01T10:00:00Z',
-                    updatedAt: '2024-11-10T17:00:00Z',
-                },
-                assignmentCount: 3,
-                totalAmount: 1795.6,
-            },
-        ],
-    },
-};
-
 const buildOrderBy = (
     sortBy: string,
     sortDir: 'asc' | 'desc',
@@ -417,11 +234,19 @@ export const POST = auth(async (req: NextAuthRequest) => {
             };
 
             if (assignment.chargeType === 'PER_MILE') {
-                data.billedDistanceMiles = new Prisma.Decimal(assignment.billedDistanceMiles || 0);
+                // Only set to null if the value is undefined (not 0 or empty string)
+                data.billedDistanceMiles =
+                    assignment.billedDistanceMiles === undefined
+                        ? null
+                        : new Prisma.Decimal(assignment.billedDistanceMiles);
             } else if (assignment.chargeType === 'PER_HOUR') {
-                data.billedDurationHours = new Prisma.Decimal(assignment.billedDurationHours || 0);
+                data.billedDurationHours =
+                    assignment.billedDurationHours === undefined
+                        ? null
+                        : new Prisma.Decimal(assignment.billedDurationHours);
             } else if (assignment.chargeType === 'PERCENTAGE_OF_LOAD') {
-                data.billedLoadRate = new Prisma.Decimal(assignment.billedLoadRate || 0);
+                data.billedLoadRate =
+                    assignment.billedLoadRate === undefined ? null : new Prisma.Decimal(assignment.billedLoadRate);
             }
 
             return prisma.driverAssignment.update({

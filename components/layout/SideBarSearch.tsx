@@ -155,7 +155,10 @@ const SideBarSearch: React.FC = () => {
                                                                     >
                                                                         {group === 'loads' && (
                                                                             <p className="font-medium uppercase">
-                                                                                # {item.refNum}
+                                                                                {item.refNum}
+                                                                                {item.loadNum
+                                                                                    ? ` (Load# ${item.loadNum})`
+                                                                                    : ''}
                                                                                 {item.stopName
                                                                                     ? ` - (${item.stopType} Name: ` +
                                                                                       item.stopName +

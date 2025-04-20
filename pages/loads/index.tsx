@@ -81,6 +81,7 @@ const LoadsPage: PageWithAuth = () => {
             offset,
             sort,
         });
+
         setLastLoadsTableLimit(loads.length !== 0 ? loads.length : lastLoadsTableLimit);
         setLoadsList(loads);
         setMetadata(metadataResponse);
@@ -161,7 +162,7 @@ const LoadsPage: PageWithAuth = () => {
                         setLoadIdToDelete(null);
                     }}
                 ></SimpleDialog>
-                <div className="py-2 mx-auto max-w-7xl">
+                <div className="py-2 mx-auto max-w-7xl  ">
                     {!isProPlan && !isLoadingCarrier && (
                         <div className="mx-5 my-4 mb-6 sm:mx-6 md:mx-8">
                             <div className="p-6 border border-blue-100 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">

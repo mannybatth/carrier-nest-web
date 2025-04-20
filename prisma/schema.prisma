@@ -133,6 +133,7 @@ model Load {
     createdAt          DateTime            @default(now())
     updatedAt          DateTime            @updatedAt
     refNum             String
+    loadNum            String
     shipperId          String
     receiverId         String
     rate               Decimal
@@ -155,6 +156,7 @@ model Load {
     route              Route?
     assignmentPayments AssignmentPayment[]
 
+    @@unique([carrierId, refNum])
     @@index([refNum, carrierId, userId, customerId])
 }
 

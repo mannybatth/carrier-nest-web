@@ -1,4 +1,5 @@
 import { Driver, ChargeType } from '@prisma/client';
+import { tenDigitPhone } from 'lib/helpers/regExpressions';
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -69,7 +70,7 @@ const DriverForm: React.FC<Props> = ({
                                 {...register('phone', {
                                     required: 'Phone number is required',
                                     pattern: {
-                                        value: /^[1-9]\d{9}$/,
+                                        value: tenDigitPhone,
                                         message: 'Invalid phone number, valid format: 2134561111',
                                     },
                                     onBlur: (e) => trigger('phone'),

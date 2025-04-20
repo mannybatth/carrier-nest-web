@@ -12,6 +12,8 @@ import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
 import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';
 import { updateLoad } from '../../../lib/rest/load';
+import PDFViewer from 'components/PDFViewer';
+import Spinner from 'components/Spinner';
 
 const EditLoad: PageWithAuth = () => {
     const [load, setLoad] = useLoadContext();
@@ -24,6 +26,8 @@ const EditLoad: PageWithAuth = () => {
     const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
     const [prefillName, setPrefillName] = React.useState(null);
+    const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
+    const [downloadRateconFile, setDownloadRateconFile] = React.useState(false);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
@@ -34,19 +38,48 @@ const EditLoad: PageWithAuth = () => {
         }
 
         formHook.setValue('customer', load.customer);
-        formHook.setValue('refNum', load.refNum);
+        formHook.setValue('loadNum', load.loadNum);
         formHook.setValue('rate', load.rate);
         formHook.setValue('shipper', load.shipper);
         formHook.setValue('receiver', load.receiver);
         formHook.setValue('stops', load.stops);
+
+        if (load.rateconDocument && load.rateconDocument.fileUrl) {
+            downloadRateCon(load.rateconDocument.fileUrl);
+        }
     }, [load]);
+
+    const downloadRateCon = async (fileUrl: string) => {
+        setDownloadRateconFile(true);
+        try {
+            // Fetch the file from Google Cloud Storage (fileUrl is the public URL of the file)
+            const response = await fetch(fileUrl);
+
+            // Check if the response is successful
+            if (!response.ok) {
+                throw new Error('Failed to fetch file');
+            }
+
+            // Convert the response to a Blob (binary large object)
+            const fileBlob = await response.blob();
+
+            // Create a file from the Blob, optionally you can set the file name based on the URL or your preference
+            const file = new File([fileBlob], 'downloaded-file', { type: fileBlob.type });
+
+            // Set the file to state
+            setCurrentRateconFile(file);
+        } catch (error) {
+            console.error('Error downloading file:', error);
+        }
+        setDownloadRateconFile(false);
+    };
 
     const submit = async (data: ExpandedLoad) => {
         console.log('data to save', data);
 
         const loadData: ExpandedLoad = {
             customerId: data.customer.id,
-            refNum: data.refNum,
+            loadNum: data.loadNum,
             rate: new Prisma.Decimal(data.rate),
             customer: data.customer,
             shipper: data.shipper,
@@ -124,7 +157,7 @@ const EditLoad: PageWithAuth = () => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Load</h1>}>
-            <div className="max-w-4xl py-2 mx-auto">
+            <div className={`${load?.rateconDocument ? 'max-w-full' : 'max-w-7xl'}  py-2 mx-auto`}>
                 <BreadCrumb
                     className="sm:px-6 md:px-8"
                     paths={[
@@ -147,27 +180,51 @@ const EditLoad: PageWithAuth = () => {
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
                     {(loading || !load) && <LoadingOverlay />}
-                    <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <LoadForm
-                            formHook={formHook}
-                            openAddCustomerFromProp={openAddCustomer}
-                            setOpenAddCustomerFromProp={setOpenAddCustomer}
-                            showMissingCustomerLabel={showMissingCustomerLabel}
-                            setShowMissingCustomerLabel={setShowMissingCustomerLabel}
-                            prefillName={prefillName}
-                            setPrefillName={setPrefillName}
-                            parentStopsFieldArray={stopsFieldArray}
-                        ></LoadForm>
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Save Load
-                            </button>
+
+                    <div className="relative flex flex-col lg:flex-row  lg:items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
+                        {/* Check if the PDF file exists */}
+                        {currentRateconFile ? (
+                            <div className="flex-1 overflow-auto">
+                                <PDFViewer fileBlob={currentRateconFile} />
+                            </div>
+                        ) : (
+                            load?.rateconDocument && (
+                                <div className="flex items-center justify-center flex-1 p-4 font-semi">
+                                    <Spinner /> Loading Rate Confirmation...
+                                </div>
+                            )
+                        )}
+
+                        <div
+                            className={`flex-1 flex ${
+                                currentRateconFile
+                                    ? 'relative lg:sticky top-2 overflow-y-scroll lg:max-h-screen bg-white p-1'
+                                    : ''
+                            } rounded-md `}
+                        >
+                            <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
+                                <LoadForm
+                                    formHook={formHook}
+                                    openAddCustomerFromProp={openAddCustomer}
+                                    setOpenAddCustomerFromProp={setOpenAddCustomer}
+                                    showMissingCustomerLabel={showMissingCustomerLabel}
+                                    setShowMissingCustomerLabel={setShowMissingCustomerLabel}
+                                    prefillName={prefillName}
+                                    setPrefillName={setPrefillName}
+                                    parentStopsFieldArray={stopsFieldArray}
+                                />
+                                <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                    <div className="flex-1"></div>
+                                    <button
+                                        type="submit"
+                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        Save Load
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </Layout>

@@ -8,6 +8,7 @@ export async function loadSearch(
     SearchResult<{
         id: string;
         refNum: string;
+        loadNum?: string; // Make loadNum optional
         stopName: string;
         stopCity: string;
         stopState: string;
@@ -19,6 +20,7 @@ export async function loadSearch(
         SearchResult<{
             id: string;
             refNum: string;
+            loadNum?: string; // Make loadNum optional
             stopName: string;
             stopCity: string;
             stopState: string;
@@ -30,12 +32,17 @@ export async function loadSearch(
         prisma.$queryRaw`
             SELECT DISTINCT ON (l."refNum")
                    l.id,
-                   -- Apply conditional empty string if similarity is lower than 0.2 for refNum, stopName, and stopCity
+                   -- Apply conditional empty string if similarity is lower than 0.2 for refNum, loadNum, stopName, and stopCity
                    CASE
-                       WHEN GREATEST(similarity(l."refNum", ${query}), similarity(ls."name", ${query}), similarity(ls."city", ${query})) >= 0.2
+                       WHEN GREATEST(similarity(l."refNum", ${query}), similarity(l."loadNum", ${query}), similarity(ls."name", ${query}), similarity(ls."city", ${query})) >= 0.2
                        THEN l."refNum"
                        ELSE l."refNum"
                    END as "refNum",
+                   CASE
+                       WHEN similarity(l."loadNum", ${query}) >= 0.2
+                       THEN l."loadNum"
+                       ELSE NULL
+                   END as "loadNum",  -- Include loadNum only if similarity is >= 0.2
                    CASE
                        WHEN similarity(ls."name", ${query}) >= 0.2
                        THEN ls."name"
@@ -50,6 +57,7 @@ export async function loadSearch(
                    ls."type" as "stopType", -- Return the LoadStop type without lookup
                    GREATEST(
                        similarity(l."refNum", ${query}),
+                       similarity(l."loadNum", ${query}),
                        similarity(ls."name", ${query}),
                        similarity(ls."city", ${query})
                    ) as sim
@@ -60,9 +68,11 @@ export async function loadSearch(
                 ls."loadIdAsStop" = l.id
             WHERE (
                 l."refNum" % ${query} OR
+                l."loadNum" % ${query} OR  -- Add condition for loadNum
                 ls."name" % ${query} OR
                 ls."city" % ${query} OR
                 l."refNum" ILIKE ${'%' + query + '%'} OR
+                l."loadNum" ILIKE ${'%' + query + '%'} OR  -- ILIKE for loadNum
                 ls."name" ILIKE ${'%' + query + '%'} OR
                 ls."city" ILIKE ${'%' + query + '%'} OR
                 EXISTS (
@@ -73,11 +83,12 @@ export async function loadSearch(
             )
               AND l."carrierId" = ${carrierId}
             ORDER BY l."refNum", sim DESC
-            LIMIT 5
+            LIMIT 10
         `,
     ]);
     return loads.filter((c) => c.sim > 0);
 }
+
 export async function customerSearch(
     query: string,
     carrierId: string,

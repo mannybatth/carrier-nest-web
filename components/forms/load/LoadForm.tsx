@@ -217,7 +217,7 @@ const LoadForm: React.FC<Props> = ({
                             Load/Order #
                         </label>
                         <input
-                            {...register('refNum', { required: 'Load/Order # is required' })}
+                            {...register('loadNum', { required: 'Load/Order # is required' })}
                             type="text"
                             id="reference-num"
                             autoComplete="reference-num"
@@ -225,7 +225,7 @@ const LoadForm: React.FC<Props> = ({
                             onMouseLeave={mouseHoverOutField}
                             className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
-                        {errors.refNum && <p className="text-sm text-red-600">{errors.refNum?.message}</p>}
+                        {errors.loadNum && <p className="text-sm text-red-600">{errors.loadNum?.message}</p>}
                     </div>
 
                     <div className="col-span-6 sm:col-span-3">
