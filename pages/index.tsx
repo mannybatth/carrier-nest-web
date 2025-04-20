@@ -20,6 +20,8 @@ import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
 import { DashboardStats, DashboardStatsTimeFrameType } from '../interfaces/stats';
 import { getDashboardStats, getUpcomingLoads } from '../lib/rest/dashboard';
+import LoadViewToggle from 'components/loads/loadviewtoggle';
+import Spinner from 'components/Spinner';
 
 const StatBoxSkeleton = () => {
     return (
@@ -78,6 +80,8 @@ const Dashboard: PageWithAuth = () => {
 
     const reloadLoads = async () => {
         const loads = await getUpcomingLoads();
+        console.log('loads', loads);
+
         setLoadsList(loads);
         setLoadsLoading(false);
     };
@@ -126,273 +130,52 @@ const Dashboard: PageWithAuth = () => {
                 <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8 ">
                     <h1 className="text-2xl font-bold text-slate-700">
                         Welcome back
-                        <span className="font-light text-black">
+                        <span className="font-light text-black cappitalize">
                             &nbsp;{session?.user?.name ? session?.user?.name + '!' : defaultCarrier?.name + '!'}
                         </span>
                     </h1>
 
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
-                <div className="px-0 md:px-8 ">
-                    {!loadsLoading && (
-                        <>
-                            {loadsList.length === 0 ? (
-                                <div className="relative mx-5 mb-4 overflow-hidden border border-gray-200 shadow-sm md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
-                                    <div className="flex flex-col items-center max-w-2xl px-6 py-16 mx-auto text-center">
-                                        <div className="flex items-center justify-center p-3 mb-6 bg-blue-100 rounded-full">
-                                            <ClipboardDocumentCheckIcon
-                                                className="w-8 h-8 text-blue-600"
-                                                aria-hidden="true"
-                                            />
-                                        </div>
-                                        <h2 className="mt-2 text-2xl font-semibold text-gray-900">No Upcoming Loads</h2>
-                                        <p className="max-w-sm mt-2 text-gray-500">
-                                            You don&rsquo;t have any upcoming or in-progress loads at the moment. Ready
-                                            to add your next load?
-                                        </p>
-                                        <div className="flex flex-col items-center mt-8 gap-y-6">
-                                            <Link href="/loads/create" className="w-full sm:w-auto">
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
-                                                >
-                                                    <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
-                                                    Create New Load
-                                                </button>
-                                            </Link>
-                                        </div>
+                <div className="px-0 md:px-8  ">
+                    <>
+                        {!loadsLoading && loadsList.length === 0 ? (
+                            <div className="relative mx-5 mb-4 overflow-hidden border border-gray-200 shadow-sm md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
+                                <div className="flex flex-col items-center max-w-2xl px-6 py-16 mx-auto text-center">
+                                    <div className="flex items-center justify-center p-3 mb-6 bg-blue-100 rounded-full">
+                                        <ClipboardDocumentCheckIcon
+                                            className="w-8 h-8 text-blue-600"
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+                                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">No Upcoming Loads</h2>
+                                    <p className="max-w-sm mt-2 text-gray-500">
+                                        You don&rsquo;t have any upcoming or in-progress loads at the moment. Ready to
+                                        add your next load?
+                                    </p>
+                                    <div className="flex flex-col items-center mt-8 gap-y-6">
+                                        <Link href="/loads/create" className="w-full sm:w-auto">
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                                            >
+                                                <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
+                                                Create New Load
+                                            </button>
+                                        </Link>
                                     </div>
                                 </div>
-                            ) : (
-                                <>
-                                    <h3 className="px-5 mb-2 font-bold md:px-0">Upcoming & In Progress Loads</h3>
-                                    <div className="flex pb-10 overflow-x-auto">
-                                        <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
-                                            {loadsList.map((load, index) => (
-                                                <li
-                                                    key={index}
-                                                    className="overflow-hidden border border-gray-200 rounded-xl w-80"
-                                                >
-                                                    <Link href={`/loads/${load.id}`}>
-                                                        {load && load.routeEncoded && (
-                                                            <Image
-                                                                src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/path-5(${encodeURIComponent(
-                                                                    load.routeEncoded,
-                                                                )})/auto/900x300?padding=50,50,50,50&access_token=${
-                                                                    process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-                                                                }`}
-                                                                width={900}
-                                                                height={300}
-                                                                alt="Load Route"
-                                                                loading="lazy"
-                                                                className="w-full h-auto mb-1"
-                                                            ></Image>
-                                                        )}
-                                                        {!(load && load.routeEncoded) && (
-                                                            <div className="flex items-center p-6 border-b gap-x-4 border-gray-900/5 bg-gray-50"></div>
-                                                        )}
-                                                        <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
-                                                            <div className="flex justify-between py-2 gap-x-4">
-                                                                <dt className="text-gray-500">
-                                                                    <div className="text-xs">{load.refNum}</div>
-                                                                    <div className="font-medium text-gray-900">
-                                                                        {load.customer.name}
-                                                                    </div>
-                                                                </dt>
-                                                                <dd className="text-gray-700">
-                                                                    <LoadStatusBadge load={load} />
-                                                                </dd>
-                                                            </div>
-                                                            <div className="flex justify-between py-3 gap-x-4">
-                                                                <ul role="list" className="flex-1">
-                                                                    <li>
-                                                                        <div className="relative z-auto pb-3">
-                                                                            <span
-                                                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                                                aria-hidden="true"
-                                                                            />
-                                                                            <div className="relative flex items-center space-x-3">
-                                                                                <div className="relative px-1">
-                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                                        <TruckIcon
-                                                                                            className="w-5 h-5 text-green-800"
-                                                                                            aria-hidden="true"
-                                                                                        />
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="text-xs text-gray-500">
-                                                                                        <span className="text-sm font-medium text-gray-900">
-                                                                                            {new Intl.DateTimeFormat(
-                                                                                                'en-US',
-                                                                                                {
-                                                                                                    year: 'numeric',
-                                                                                                    month: 'long',
-                                                                                                    day: '2-digit',
-                                                                                                },
-                                                                                            ).format(
-                                                                                                new Date(
-                                                                                                    load.shipper.date,
-                                                                                                ),
-                                                                                            )}
-                                                                                        </span>{' '}
-                                                                                        @ {load.shipper.time}
-                                                                                        <div>{load.shipper.name}</div>
-                                                                                        <div>
-                                                                                            {load.shipper.city},{' '}
-                                                                                            {load.shipper.state}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </li>
-                                                                    {load.stops.length > 0 && (
-                                                                        <li>
-                                                                            <div className="relative pb-3">
-                                                                                <span
-                                                                                    className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                                                    aria-hidden="true"
-                                                                                />
-                                                                                <div className="relative flex items-center space-x-3">
-                                                                                    <div className="relative px-1">
-                                                                                        <div className="flex items-center justify-center w-8 h-8 ">
-                                                                                            <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <div className="flex-1 min-w-0">
-                                                                                        <div className="text-xs text-gray-500">
-                                                                                            <div>
-                                                                                                {load.stops.length} stop
-                                                                                                {load.stops.length >
-                                                                                                    1 && 's'}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </li>
-                                                                    )}
-                                                                    <li>
-                                                                        <div className="relative pb-2">
-                                                                            <div className="relative flex items-center space-x-3">
-                                                                                <div className="relative px-1">
-                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                                        <MapPinIcon
-                                                                                            className="w-5 h-5 text-red-800"
-                                                                                            aria-hidden="true"
-                                                                                        />
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="text-xs text-gray-500">
-                                                                                        <span className="text-sm font-medium text-gray-900">
-                                                                                            {new Intl.DateTimeFormat(
-                                                                                                'en-US',
-                                                                                                {
-                                                                                                    year: 'numeric',
-                                                                                                    month: 'long',
-                                                                                                    day: '2-digit',
-                                                                                                },
-                                                                                            ).format(
-                                                                                                new Date(
-                                                                                                    load.receiver.date,
-                                                                                                ),
-                                                                                            )}
-                                                                                        </span>{' '}
-                                                                                        @ {load.receiver.time}
-                                                                                        <div>{load.receiver.name}</div>
-                                                                                        <div>
-                                                                                            {load.receiver.city},{' '}
-                                                                                            {load.receiver.state}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        </dl>
-                                                    </Link>
-                                                    <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
-                                                        <div></div>
-                                                        <div className="flex justify-between py-3">
-                                                            <dt className="">
-                                                                <div className="text-xs text-gray-500">
-                                                                    Driver details
-                                                                </div>
-                                                                <div>
-                                                                    {load.driverAssignments?.length > 0 ? (
-                                                                        Array.from(
-                                                                            new Map(
-                                                                                load.driverAssignments.map(
-                                                                                    (assignment) => [
-                                                                                        assignment.driver.id,
-                                                                                        assignment,
-                                                                                    ],
-                                                                                ),
-                                                                            ).values(),
-                                                                        ).map(
-                                                                            (assignment, index, uniqueAssignments) => (
-                                                                                <span
-                                                                                    key={`${assignment.driver.id}-${index}`}
-                                                                                >
-                                                                                    <Link
-                                                                                        href={`/drivers/${assignment.driver.id}`}
-                                                                                        className="font-medium"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                        }}
-                                                                                    >
-                                                                                        {assignment.driver?.name}
-                                                                                    </Link>
-                                                                                    {index <
-                                                                                    uniqueAssignments.length - 1
-                                                                                        ? ', '
-                                                                                        : ''}
-                                                                                </span>
-                                                                            ),
-                                                                        )
-                                                                    ) : (
-                                                                        <div className="text-gray-400">
-                                                                            No driver assigned
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </dt>
-                                                            <dd className=""></dd>
-                                                        </div>
-                                                    </dl>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </>
-                            )}
-                        </>
-                    )}
-                    {loadsLoading && (
-                        <>
-                            <h3 className="px-5 mb-2 font-bold md:px-0">Upcoming & In Progress Loads</h3>
-                            <div className="flex pb-10 overflow-x-scroll hide-scroll-bar">
-                                <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
-                                    {[...Array(10)].map((_, index) => (
-                                        <li
-                                            key={index}
-                                            className="overflow-hidden cursor-pointer rounded-xl w-80 h-96 animate-pulse"
-                                        >
-                                            <div className="w-full h-full bg-slate-200"></div>
-                                        </li>
-                                    ))}
-                                </ul>
                             </div>
-                        </>
-                    )}
+                        ) : (
+                            <LoadViewToggle loadsList={loadsLoading ? [] : loadsList} />
+                        )}
+                    </>
 
-                    <div className="mx-4 mt-2 bg-gray-100 rounded-lg md:mx-0">
+                    <div className="mx-4 mt-2 bg-slate-50 border border-gray-200 rounded-lg md:mx-0">
                         <div className="flex flex-row justify-between p-4 pb-2 mb-2 border-b place-items-baseline border-slate-200">
-                            <h2 className="mb-4 text-lg font-bold leading-6 text-gray-700">Loads Activity Overview</h2>
+                            <h2 className="mb-4 text-base font-medium leading-6 text-gray-700">
+                                Loads Activity Overview
+                            </h2>
                             <div className="relative inline-flex rounded-md shadow-sm">
                                 <button
                                     type="button"
