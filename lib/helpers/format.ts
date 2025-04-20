@@ -7,3 +7,13 @@ export const formatPhoneNumber = (phone: string): string => {
     }
     return phone;
 };
+
+// Format date helper function
+// This function formats a date string into a more readable format
+export const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit',
+    }).format(new Date(dateString));
+};
