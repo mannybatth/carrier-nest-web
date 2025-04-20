@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Tab } from '@headlessui/react';
@@ -1039,15 +1039,12 @@ const LoadingLoadMapView = () => {
     return (
         <div className="px-5 md:px-0 pb-0 relative">
             {/* Map loading skeleton */}
-            <div
-                className="w-full h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10 animate-pulse"
-                style={{ background: '#f0f0f0' }}
-            >
-                {/* Map placeholder image */}
+            <div className="w-full h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10 bg-gray-100">
+                {/* Map placeholder with shimmer effect */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <MapIcon className="w-16 h-16 text-gray-300" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent shimmer-effect"></div>
                 </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
             </div>
 
             {/* Loads list skeleton overlay */}
@@ -1058,16 +1055,16 @@ const LoadingLoadMapView = () => {
                         {Array.from({ length: skeletonCount }).map((_, i) => (
                             <div
                                 key={i}
-                                className="snap-start flex-shrink-0 w-72 m-2 bg-white rounded-lg border border-gray-200 shadow-sm overflow-visible animate-pulse"
+                                className="snap-start flex-shrink-0 w-72 m-2 bg-white rounded-lg border border-gray-200 shadow-sm overflow-visible"
                             >
                                 <div className="p-3 pb-1">
                                     <div className="relative flex justify-between items-start mb-2">
                                         <div className="w-full">
-                                            <div className="h-3 w-16 bg-gray-200 rounded mb-2"></div>
-                                            <div className="h-4 w-36 bg-gray-300 rounded"></div>
+                                            <div className="h-3 w-16 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                                            <div className="h-4 w-36 bg-gray-300 rounded animate-pulse"></div>
                                         </div>
                                         <div className="absolute -top-6 right-0">
-                                            <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
+                                            <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse"></div>
                                         </div>
                                     </div>
 
@@ -1077,7 +1074,7 @@ const LoadingLoadMapView = () => {
                                                 <TruckIcon className="w-3 h-3 text-green-300" aria-hidden="true" />
                                             </div>
                                         </div>
-                                        <div className="h-3 w-40 bg-gray-200 rounded"></div>
+                                        <div className="h-3 w-40 bg-gray-200 rounded animate-pulse"></div>
                                     </div>
 
                                     <div className="flex items-center space-x-2 mb-2">
@@ -1086,44 +1083,22 @@ const LoadingLoadMapView = () => {
                                                 <MapPinIcon className="w-3 h-3 text-red-300" aria-hidden="true" />
                                             </div>
                                         </div>
-                                        <div className="h-3 w-40 bg-gray-200 rounded"></div>
+                                        <div className="h-3 w-40 bg-gray-200 rounded animate-pulse"></div>
                                     </div>
 
                                     <div className="flex justify-between items-center text-xs">
-                                        <div className="h-3 w-20 bg-gray-200 rounded"></div>
-                                        <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                                        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
                                     </div>
                                 </div>
                                 <div className="p-3 pt-1">
-                                    <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                                    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
-
-            {/* Add shimmer effect styles */}
-            <style jsx>{`
-                @keyframes shimmer {
-                    0% {
-                        transform: translateX(-100%);
-                    }
-                    100% {
-                        transform: translateX(100%);
-                    }
-                }
-                .shimmer-effect {
-                    animation: shimmer 2s infinite;
-                }
-                .hide-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .hide-scrollbar {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
         </div>
     );
 };
