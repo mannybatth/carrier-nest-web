@@ -656,7 +656,11 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
 
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 {load.routeDistanceMiles
-                                                    ? `${load.routeDistanceMiles?.toFixed(0)} mi`
+                                                    ? `${
+                                                          isNaN(Number(load.routeDistanceMiles))
+                                                              ? '0'
+                                                              : Number(load.routeDistanceMiles).toFixed(0)
+                                                      } mi`
                                                     : 'N/A'}
                                                 {load.routeDurationHours && (
                                                     <div className="text-xs text-gray-400">
@@ -866,7 +870,11 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                                 <div className="flex justify-between items-center text-xs">
                                                     <div className="text-gray-500">
                                                         {load.routeDistanceMiles
-                                                            ? `${load.routeDistanceMiles?.toFixed(0)} mi`
+                                                            ? `${
+                                                                  isNaN(Number(load.routeDistanceMiles))
+                                                                      ? '0'
+                                                                      : Number(load.routeDistanceMiles).toFixed(0)
+                                                              } mi`
                                                             : 'N/A'}
                                                         {load.routeDurationHours && (
                                                             <span>
