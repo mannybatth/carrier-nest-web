@@ -30,11 +30,19 @@ const Navigation: React.FC = () => {
     const router = useRouter();
 
     const isActive = (href: string) => {
-        const splits = href.split('/');
-        const current = router.pathname.split('/');
-        if (splits.length > 0 && current.length > 0) {
-            return router.pathname === href;
+        const currentPath = router.pathname; // e.g., '/loads/123' or '/driverinvoices/create-invoice'
+        const targetPath = href.split('?')[0]; // Remove any query parameters from href
+
+        // Special case for the root path '/'
+        if (targetPath === '/' && currentPath === '/') {
+            return true;
         }
+
+        // If targetPath is not '/', check if currentPath starts with targetPath
+        if (targetPath !== '/' && currentPath.startsWith(targetPath)) {
+            return true;
+        }
+
         return false;
     };
 
