@@ -21,11 +21,16 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
     const map = useRef<mapboxgl.Map | null>(null);
     const carouselRef = useRef<HTMLDivElement>(null);
 
-    const scrollBy = (distance: number) => {
-        if (carouselRef.current) {
-            carouselRef.current.scrollBy({ left: distance, behavior: 'smooth' });
-        }
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    const boundPadding = {
+        top: screenHeight * 0.1, // 10% of the screen height
+        bottom: screenHeight * 0.1, // 10% of the screen height
+        left: screenWidth < 500 ? screenWidth * 0.1 : screenWidth * 0.35, // 10% of the screen width
+        right: screenWidth * 0.1, // 10% of the screen width
     };
+
     // Decode polyline function
     const decodePolyline = (encoded: string) => {
         if (!encoded) return [];
@@ -232,8 +237,8 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                 // Fit map to bounds with padding
                 if (!bounds.isEmpty()) {
                     map.current.fitBounds(bounds, {
-                        padding: { top: 100, bottom: 100, left: 350, right: 100 },
-                        maxZoom: 15,
+                        padding: boundPadding,
+                        maxZoom: 18,
 
                         // Animation settings:
                         animate: true, // default is true, but explicit is fine
@@ -586,7 +591,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
-                                    {loadsList.map((load, index) => (
+                                    {loadsList?.map((load, index) => (
                                         <tr
                                             key={index}
                                             className={`hover:bg-gray-50 cursor-pointer ${
@@ -653,7 +658,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
 
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 {load.routeDistanceMiles
-                                                    ? `${load.routeDistanceMiles.toFixed(0)} mi`
+                                                    ? `${load.routeDistanceMiles?.toFixed(0)} mi`
                                                     : 'N/A'}
                                                 {load.routeDurationHours && (
                                                     <div className="text-xs text-gray-400">
@@ -710,7 +715,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                         />
 
                         {/* Compact load cards overlay */}
-                        <div className="absolute bottom-0 top-0 left-0 z-20 px-0 pb-0    overflow-y-auto hide-scrollbar">
+                        <div className="relative md:absolute bottom-0 top-0 left-0 z-20 px-0 pb-0 overflow-x-auto md:overflow-y-auto hide-scrollbar">
                             <div className="relative  ">
                                 {/* Prev button */}
                                 {/*  <button
@@ -723,9 +728,9 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                 {/* Scroll container */}
                                 <div
                                     ref={carouselRef}
-                                    className="             flex flex-col
-                  overflow-y-auto   hide-scrollbar
-                  px-2
+                                    className="             flex flex-row md:flex-col md:overflow-y-auto md:overflow-x-hidden
+                  overflow-x-auto   hide-scrollbar
+                  px-0 md:px-2
                   my-4
                 "
                                 >
@@ -771,13 +776,8 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                                             const bounds = new mapboxgl.LngLatBounds();
                                                             coords.forEach((c) => bounds.extend(c as [number, number]));
                                                             map.current.fitBounds(bounds, {
-                                                                padding: {
-                                                                    top: 100,
-                                                                    bottom: 100,
-                                                                    left: 350,
-                                                                    right: 100,
-                                                                },
-                                                                maxZoom: 15,
+                                                                padding: boundPadding,
+                                                                maxZoom: 18,
                                                             });
                                                         }
                                                     }
@@ -816,13 +816,8 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                                             const bounds = new mapboxgl.LngLatBounds();
                                                             coords.forEach((c) => bounds.extend(c as [number, number]));
                                                             map.current.fitBounds(bounds, {
-                                                                padding: {
-                                                                    top: 100,
-                                                                    bottom: 100,
-                                                                    left: 350,
-                                                                    right: 100,
-                                                                },
-                                                                maxZoom: 15,
+                                                                padding: boundPadding,
+                                                                maxZoom: 18,
                                                             });
                                                         }
                                                     }
@@ -873,7 +868,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                                 <div className="flex justify-between items-center text-xs">
                                                     <div className="text-gray-500">
                                                         {load.routeDistanceMiles
-                                                            ? `${load.routeDistanceMiles.toFixed(0)} mi`
+                                                            ? `${load.routeDistanceMiles?.toFixed(0)} mi`
                                                             : 'N/A'}
                                                         {load.routeDurationHours && (
                                                             <span>
