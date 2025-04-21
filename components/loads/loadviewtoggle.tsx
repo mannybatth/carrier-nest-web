@@ -328,7 +328,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
 
     return (
         <div className="flex flex-col w-full mx-auto mt-6 mb-8">
-            <div className="flex items-center justify-between mb-4 px-5 md:px-0 ">
+            <div className="flex items-center justify-between mb-4 px-4 md:px-0 ">
                 <h3 className="font-medium text-base">Upcoming & In Progress Loads</h3>
                 <Tab.Group selectedIndex={selectedIndex} onChange={changeViewMode}>
                     <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-lg">
@@ -544,7 +544,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                 (loadsList.length === 0 ? (
                     <LoadingLoadViewTableSkeleton />
                 ) : (
-                    <div className="px-5 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
+                    <div className=" mx-4 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
                         <div className="inline-block min-w-full align-middle">
                             <table className="min-w-full divide-y divide-gray-200 border-collapse">
                                 <thead>
@@ -709,10 +709,10 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                 (loadsList.length === 0 ? (
                     <LoadingLoadMapView />
                 ) : (
-                    <div className="px-5 md:px-0 pb-0 relative ">
+                    <div className="px-4 md:px-0 pb-0 relative ">
                         <div
                             ref={mapContainer}
-                            className="w-full h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10"
+                            className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10"
                             style={{ background: '#f8f8f8' }}
                         />
 
