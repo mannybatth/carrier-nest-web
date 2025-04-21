@@ -80,7 +80,6 @@ const Dashboard: PageWithAuth = () => {
 
     const reloadLoads = async () => {
         const loads = await getUpcomingLoads();
-        console.log('loads', loads);
 
         setLoadsList(loads);
         setLoadsLoading(false);
