@@ -12,6 +12,7 @@ export const getLoadsExpanded = async ({
     limit,
     offset,
     expand,
+    getDriverAssignments,
 }: {
     sort?: Sort;
     customerId?: string;
@@ -19,9 +20,10 @@ export const getLoadsExpanded = async ({
     limit?: number;
     offset?: number;
     expand?: string;
+    getDriverAssignments?: boolean;
 } = {}): Promise<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams({
-        expand: expand || 'customer,shipper,receiver',
+        expand: expand || `customer,shipper,receiver${getDriverAssignments ? ',driverAssignments' : ''}`,
     });
     if (sort && sort.key) {
         params.append('sortBy', sort.key);
@@ -41,6 +43,7 @@ export const getLoadsExpanded = async ({
     if (offset !== undefined) {
         params.append('offset', offset.toString());
     }
+
     const response = await fetch(apiUrl + '/loads?' + params.toString());
     const { data, errors }: JSONResponse<{ loads: ExpandedLoad[]; metadata: PaginationMetadata }> =
         await response.json();
