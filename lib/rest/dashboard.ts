@@ -2,8 +2,8 @@ import { apiUrl } from '../constants';
 import { ExpandedLoad, JSONResponse } from '../../interfaces/models';
 import { DashboardStats } from '../../interfaces/stats';
 
-export const getUpcomingLoads = async (): Promise<ExpandedLoad[]> => {
-    const response = await fetch(`${apiUrl}/loads/upcoming`);
+export const getUpcomingLoads = async (todayDataOnly: boolean): Promise<ExpandedLoad[]> => {
+    const response = await fetch(`${apiUrl}/loads/upcoming?todayDataOnly=${todayDataOnly}`, { cache: 'no-cache' });
     const { data, errors }: JSONResponse<ExpandedLoad[]> = await response.json();
 
     if (errors) {
