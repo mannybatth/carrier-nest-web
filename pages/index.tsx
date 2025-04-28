@@ -8,7 +8,7 @@ import Layout from '../components/layout/Layout';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
 import { getUpcomingLoads } from '../lib/rest/dashboard';
-import LoadViewToggle from '../components/loads/LoadViewToggle';
+import LoadViewToggle from '../components/loads/DashboardLoadViewToggle';
 import DashboardStatsDigest from '../components/DashboardStatsDigest';
 
 const Dashboard: PageWithAuth = () => {
