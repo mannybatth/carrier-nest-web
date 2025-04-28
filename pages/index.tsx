@@ -27,7 +27,6 @@ const Dashboard: PageWithAuth = () => {
         setLoadsLoading(true);
         setLoadsList([]);
         const loads = await getUpcomingLoads(todayDataOnly ?? todayData);
-        console.log('loads', loads);
         setLoadsList(loads);
         setLoadsLoading(false);
     };
