@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import React, { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { Sort } from 'interfaces/table';

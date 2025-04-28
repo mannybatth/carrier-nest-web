@@ -1,8 +1,7 @@
+/* eslint-disable react/prop-types */
 'use client';
 
-import type React from 'react';
-
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronDownIcon, ChevronUpIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import Spinner from './Spinner';
@@ -154,11 +153,13 @@ const Table = ({
     // Render empty state
     if (!rows || rows.length === 0) {
         return (
-            emptyState || (
-                <div className="flex items-center justify-center p-8 text-gray-500 bg-gray-50 rounded-lg">
-                    <p>No data available</p>
-                </div>
-            )
+            <>
+                {emptyState || (
+                    <div className="flex items-center justify-center p-8 text-gray-500 bg-gray-50 rounded-lg">
+                        <p>No data available</p>
+                    </div>
+                )}
+            </>
         );
     }
 

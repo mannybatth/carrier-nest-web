@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ExpandedLoad } from 'interfaces/models';
 import { formatCurrency } from 'lib/helpers/calculateDriverPay';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import {
     BarChart,
@@ -149,7 +149,9 @@ export default function DashboardStatsDigest({ data: loadsList }: DashboardStats
                 <div className="mx-auto max-w-7xl space-y-6">
                     <div className="flex flex-col justify-between gap-0   sm:items-start">
                         <h2 className="text-3xl font-bold tracking-tight text-[#1D1D1F]">Analytics Overview</h2>
-                        <p className="text-sm text-[#86868B]">Insights into today's loads and leading performers</p>
+                        <p className="text-sm text-[#86868B]">
+                            Insights into today&apos;s loads and leading performers
+                        </p>
                     </div>
 
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">

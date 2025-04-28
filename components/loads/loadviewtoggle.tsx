@@ -348,7 +348,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                     <h3 className="text-xl font-semibold text-[#1D1D1F]">Upcoming Load Runs</h3>
                     {showTodayOnly && (
                         <p className="font-light text-gray-500 text-xs">
-                            Showing today's pick-ups and deliveries, along with any undelivered loads
+                            Showing today&apos;s pick-ups and deliveries, along with any undelivered loads
                         </p>
                     )}
                     {!showTodayOnly && (
