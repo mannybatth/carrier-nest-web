@@ -11,11 +11,11 @@ type Props = {
 const Pagination: React.FC<Props> = ({ metadata, loading, onPrevious, onNext }) => {
     return (
         <div
-            className="flex items-center justify-between px-1 py-3 bg-white border-t border-gray-200 sm:px-6"
+            className="flex items-center justify-between px-1 py-3 pt-5  border-l border-r border-b rounded-bl-lg rounded-br-lg -mt-3 roudned bg-gray-50/40 border-gray-200 sm:px-4"
             aria-label="Pagination"
         >
-            <div className="hidden sm:block">
-                <p className="text-sm text-gray-700">
+            <div className="px-3 sm:px-0 block">
+                <p className="text-sm text-gray-600 font-semibold">
                     {metadata.total > 0 && (
                         <>
                             Showing <span className="font-medium">{metadata.currentOffset + 1}</span> to{' '}

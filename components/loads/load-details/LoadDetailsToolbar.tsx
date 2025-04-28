@@ -32,7 +32,7 @@ const LoadDetailsToolbar: React.FC<LoadDetailsToolbarProps> = ({
 
     useEffect(() => {
         if (load) {
-            setDropOffDatePassed(isDate24HrInThePast(new Date(load.receiver.date)));
+            //setDropOffDatePassed(isDate24HrInThePast(new Date(load.receiver.date)));
             setLoadStatusValue(loadStatus(load));
         }
     }, [load]);

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Tab } from '@headlessui/react';
 import { MapPinIcon, TruckIcon, TableCellsIcon, ViewColumnsIcon, MapIcon } from '@heroicons/react/24/outline';
@@ -8,8 +7,15 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { ExpandedLoad } from 'interfaces/models';
 import LoadStatusBadge from './LoadStatusBadge';
 import { formatDate } from 'lib/helpers/format';
+import { format } from 'date-fns';
+import SwitchWithLabel from 'components/switchWithLabel';
 
-export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[] }) {
+interface LoadViewToggleProps {
+    loadsList: ExpandedLoad[];
+    todayDataOnly: () => void;
+}
+
+const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnly }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const viewModes = ['table', 'map'];
     const [viewMode, setViewMode] = useState(viewModes[selectedIndex]);
@@ -21,6 +27,14 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
 
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
+
+    const [showTodayOnly, setShowTodayOnly] = useState(localStorage.getItem('todayDataOnly') === 'true');
+    const todayDataOnlyClicked = () => {
+        setShowTodayOnly((prev) => !prev);
+        todayDataOnly();
+    };
+
+    const today = format(new Date(), 'PPP'); // e.g. Apr 25, 2025
 
     const boundPadding = {
         top: screenHeight * 0.1, // 10% of the screen height
@@ -328,11 +342,31 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
 
     return (
         <div className="flex flex-col w-full mx-auto mt-6 mb-8">
-            <div className="flex items-center justify-between mb-4 px-4 md:px-0 ">
-                <h3 className="font-medium text-base">Upcoming & In Progress Loads</h3>
-                <Tab.Group selectedIndex={selectedIndex} onChange={changeViewMode}>
-                    <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-lg">
-                        {/* <Tab
+            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 px-0   ">
+                <div className="flex flex-col flex-1">
+                    <h3 className="text-xl font-semibold text-[#1D1D1F]">Upcoming Load Runs</h3>
+                    {showTodayOnly && (
+                        <p className="font-light text-gray-500 text-xs">
+                            Showing today&apos;s pick-ups and deliveries, along with any undelivered loads
+                        </p>
+                    )}
+                    {!showTodayOnly && (
+                        <p className="font-light text-gray-500 text-xs">
+                            Showing load runs for next 7 days & past undelivered loads{' '}
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex flex-row gap-3  ">
+                    <SwitchWithLabel
+                        checked={showTodayOnly}
+                        label="Show Today's Runs Only"
+                        onChange={todayDataOnlyClicked}
+                    />
+
+                    <Tab.Group selectedIndex={selectedIndex} onChange={changeViewMode}>
+                        <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-lg">
+                            {/* <Tab
                             className={({ selected }) =>
                                 `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
                 ${
@@ -345,34 +379,35 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                             <ViewColumnsIcon className="h-4 w-4" />
                             <span className="hidden sm:inline">Cards</span>
                         </Tab> */}
-                        <Tab
-                            className={({ selected }) =>
-                                `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                            <Tab
+                                className={({ selected }) =>
+                                    `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
                 ${
                     selected
                         ? 'bg-white shadow text-gray-900'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-white/[0.12]'
                 }`
-                            }
-                        >
-                            <TableCellsIcon className="h-4 w-4" />
-                            <span className="hidden sm:inline">Table</span>
-                        </Tab>
-                        <Tab
-                            className={({ selected }) =>
-                                `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                                }
+                            >
+                                <TableCellsIcon className="h-4 w-4" />
+                                <span className="hidden sm:inline">Table</span>
+                            </Tab>
+                            <Tab
+                                className={({ selected }) =>
+                                    `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
                 ${
                     selected
                         ? 'bg-white shadow text-gray-900'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-white/[0.12]'
                 }`
-                            }
-                        >
-                            <MapIcon className="h-4 w-4" />
-                            <span className="hidden sm:inline">Map</span>
-                        </Tab>
-                    </Tab.List>
-                </Tab.Group>
+                                }
+                            >
+                                <MapIcon className="h-4 w-4" />
+                                <span className="hidden sm:inline">Map</span>
+                            </Tab>
+                        </Tab.List>
+                    </Tab.Group>
+                </div>
             </div>
 
             {/*  {viewMode === 'card' && (
@@ -544,7 +579,7 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                 (loadsList.length === 0 ? (
                     <LoadingLoadViewTableSkeleton />
                 ) : (
-                    <div className=" mx-4 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
+                    <div className=" mx-0 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
                         <div className="inline-block min-w-full align-middle">
                             <table className="min-w-full divide-y divide-gray-200 border-collapse">
                                 <thead>
@@ -589,116 +624,146 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
-                                    {loadsList?.map((load, index) => (
-                                        <tr
-                                            key={index}
-                                            className={`hover:bg-gray-50 cursor-pointer ${
-                                                load.driverAssignments?.length === 0 && 'bg-red-50'
-                                            }`}
-                                            onClick={() => (window.location.href = `/loads/${load.id}`)}
-                                        >
-                                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                                                <div className="flex flex-col">
-                                                    <div className="text-xs text-gray-500">Order# {load.refNum}</div>
-                                                    <div className="text-xs text-gray-500">Load# {load.loadNum}</div>
-                                                    <div className="font-medium text-gray-900">
-                                                        {load.customer.name}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                <LoadStatusBadge load={load} />
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="flex-shrink-0 mt-0.5">
-                                                        <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
-                                                            <TruckIcon
-                                                                className="w-3 h-3 text-green-800"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-medium text-gray-900">
-                                                            {formatDate(load.shipper.date.toString())}
-                                                        </div>
-                                                        <div className="text-gray-500">{load.shipper.time}</div>
-                                                        <div className="text-gray-500">{load.shipper.name}</div>
-                                                        <div className="text-gray-500">
-                                                            {load.shipper.city}, {load.shipper.state}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="flex-shrink-0 mt-0.5">
-                                                        <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
-                                                            <MapPinIcon
-                                                                className="w-3 h-3 text-red-800"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-medium text-gray-900">
-                                                            {formatDate(load.receiver.date.toString())}
-                                                        </div>
-                                                        <div className="text-gray-500">{load.receiver.time}</div>
-                                                        <div className="text-gray-500">{load.receiver.name}</div>
-                                                        <div className="text-gray-500">
-                                                            {load.receiver.city}, {load.receiver.state}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
+                                    {loadsList?.map((load, index) => {
+                                        // Calculate if shipper/receiver/loadstop dates are in the past
+                                        const allDates = [
+                                            load.shipper.date,
+                                            load.receiver.date,
+                                            ...load.stops.map((stop) => stop.date),
+                                        ];
 
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {load.routeDistanceMiles
-                                                    ? `${
-                                                          isNaN(Number(load.routeDistanceMiles))
-                                                              ? '0'
-                                                              : Number(load.routeDistanceMiles).toFixed(0)
-                                                      } mi`
-                                                    : 'N/A'}
-                                                {load.routeDurationHours && (
-                                                    <div className="text-xs text-gray-400">
-                                                        {Math.floor(Number(load.routeDurationHours))}h{' '}
-                                                        {Math.round((Number(load.routeDurationHours) % 1) * 60)}m
+                                        const now = new Date();
+                                        now.setHours(0, 0, 0, 0); // Set current time to midnight
+
+                                        const allDatesInPast = allDates.every((dateStr) => {
+                                            const date = new Date(dateStr);
+                                            date.setHours(0, 0, 0, 0); // Set stop date to midnight
+                                            return date < now;
+                                        });
+
+                                        return (
+                                            <tr
+                                                key={index}
+                                                className={`hover:bg-gray-50 cursor-pointer ${
+                                                    load.driverAssignments?.length === 0 && !allDatesInPast
+                                                        ? 'bg-red-50'
+                                                        : ''
+                                                } ${allDatesInPast ? 'bg-red-100 animate-none' : ''}`}
+                                                onClick={() => (window.location.href = `/loads/${load.id}`)}
+                                            >
+                                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                                                    <div className="flex flex-col">
+                                                        <div className="text-xs text-gray-500">
+                                                            Order# {load.refNum}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            Load# {load.loadNum}
+                                                        </div>
+                                                        <div className="font-base text-gray-900 font-semibold">
+                                                            {load.customer.name.toUpperCase()}
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                {load.driverAssignments?.length > 0 ? (
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {Array.from(
-                                                            new Map(
-                                                                load.driverAssignments.map((assignment) => [
-                                                                    assignment.driver.id,
-                                                                    assignment,
-                                                                ]),
-                                                            ).values(),
-                                                        ).map((assignment, index, uniqueAssignments) => (
-                                                            <Link
-                                                                key={`${assignment.driver.id}-${index}`}
-                                                                href={`/drivers/${assignment.driver.id}`}
-                                                                className="font-medium cursor-pointer hover:underline"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                }}
-                                                            >
-                                                                {assignment.driver?.name}
-                                                                {index < uniqueAssignments.length - 1 ? ', ' : ''}
-                                                            </Link>
-                                                        ))}
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <LoadStatusBadge load={load} />
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <div className="flex items-start space-x-2">
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                                                                <TruckIcon
+                                                                    className="w-3 h-3 text-green-800"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium text-gray-900">
+                                                                {formatDate(load.shipper.date.toString())}
+                                                            </div>
+                                                            <div className="text-gray-500">{load.shipper.time}</div>
+                                                            <div className="text-gray-500 truncate">
+                                                                {load.shipper.name.toUpperCase()}
+                                                            </div>
+                                                            <div className="text-gray-500 capitalize">
+                                                                {load.shipper.city.toLowerCase()},{' '}
+                                                                {load.shipper.state.toUpperCase()}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-gray-400">No driver assigned</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <div className="flex items-start space-x-2">
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
+                                                                <MapPinIcon
+                                                                    className="w-3 h-3 text-red-800"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium text-gray-900">
+                                                                {formatDate(load.receiver.date.toString())}
+                                                            </div>
+                                                            <div className="text-gray-500">{load.receiver.time}</div>
+                                                            <div className="text-gray-500 truncate">
+                                                                {load.receiver.name.toUpperCase()}
+                                                            </div>
+                                                            <div className="text-gray-500 capitalize">
+                                                                {load.receiver.city.toLowerCase()},{' '}
+                                                                {load.receiver.state.toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                    {load.routeDistanceMiles
+                                                        ? `${
+                                                              isNaN(Number(load.routeDistanceMiles))
+                                                                  ? '0'
+                                                                  : Number(load.routeDistanceMiles).toFixed(0)
+                                                          } mi`
+                                                        : 'N/A'}
+                                                    {load.routeDurationHours && (
+                                                        <div className="text-xs text-gray-400">
+                                                            {Math.floor(Number(load.routeDurationHours))}h{' '}
+                                                            {Math.round((Number(load.routeDurationHours) % 1) * 60)}m
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    {load.driverAssignments?.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {Array.from(
+                                                                new Map(
+                                                                    load.driverAssignments.map((assignment) => [
+                                                                        assignment.driver.id,
+                                                                        assignment,
+                                                                    ]),
+                                                                ).values(),
+                                                            ).map((assignment, index, uniqueAssignments) => (
+                                                                <Link
+                                                                    key={`${assignment.driver.id}-${index}`}
+                                                                    href={`/drivers/${assignment.driver.id}`}
+                                                                    className="font-medium cursor-pointer hover:underline"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                    }}
+                                                                >
+                                                                    {assignment.driver?.name}
+                                                                    {index < uniqueAssignments.length - 1 ? ', ' : ''}
+                                                                </Link>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400">No driver assigned</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -736,56 +801,48 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                   my-4
                 "
                                 >
-                                    {loadsList.map((load, i) => (
-                                        <div
-                                            key={load.id}
-                                            className={`
+                                    {loadsList.map((load, i) => {
+                                        const allDates = [
+                                            load.shipper.date,
+                                            load.receiver.date,
+                                            ...load.stops.map((stop) => stop.date),
+                                        ];
+
+                                        const now = new Date();
+                                        now.setHours(0, 0, 0, 0); // Set current time to midnight
+
+                                        const allDatesInPast = allDates.every((dateStr) => {
+                                            const date = new Date(dateStr);
+                                            date.setHours(0, 0, 0, 0); // Set stop date to midnight
+                                            return date < now;
+                                        });
+
+                                        return (
+                                            <div
+                                                key={load.id}
+                                                className={`
                       snap-start
                       flex-shrink-0
                       w-72 m-2
                        ${
-                           load.driverAssignments.length === 0
-                               ? 'bg-red-50/85 hover:bg-red-50'
-                               : 'bg-white hover:bg-slate-50'
-                       } rounded-lg
+                           load.driverAssignments.length === 0 && !allDatesInPast
+                               ? 'bg-red-50 hover:bg-red-100'
+                               : ' bg-white hover:bg-slate-50'
+                       } ${allDatesInPast ? '!bg-red-100 !hover:bg-red-200' : ' '} rounded-lg
                       border
-                      ${selectedLoadId === load.id ? 'border-blue-600 ring-2 ring-blue-500' : 'border-gray-200'}
+                      ${selectedLoadId === load.id ? 'border-blue-800 ring-2 ring-blue-700' : 'border-gray-200'}
                       shadow-sm hover:shadow-xl
                       transition-shadow
                       cursor-pointer
                       overflow-visible
                     `}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const newId = load.id === selectedLoadId ? null : load.id;
-                                                setSelectedLoadId(newId);
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    const newId = load.id === selectedLoadId ? null : load.id;
+                                                    setSelectedLoadId(newId);
 
-                                                if (newId === null) {
-                                                    // Reset all routes
-                                                    loadsList.forEach((l) => {
-                                                        const rid = `route-${l.id}`;
-                                                        if (map.current!.getLayer(rid)) {
-                                                            map.current!.setPaintProperty(rid, 'line-color', '#3b82f6')
-                                                                .setPaintProperty(rid, 'line-width', 3)
-                                                                .setPaintProperty(rid, 'line-opacity', 0.8);
-                                                        }
-                                                    });
-
-                                                    if (map.current && load.routeEncoded) {
-                                                        // fit bounds
-                                                        const coords = decodePolyline(load.routeEncoded);
-                                                        if (coords.length) {
-                                                            const bounds = new mapboxgl.LngLatBounds();
-                                                            coords.forEach((c) => bounds.extend(c as [number, number]));
-                                                            map.current.fitBounds(bounds, {
-                                                                padding: boundPadding,
-                                                                maxZoom: 18,
-                                                            });
-                                                        }
-                                                    }
-                                                } else {
-                                                    if (map.current && load.routeEncoded) {
-                                                        // reset all routes
+                                                    if (newId === null) {
+                                                        // Reset all routes
                                                         loadsList.forEach((l) => {
                                                             const rid = `route-${l.id}`;
                                                             if (map.current!.getLayer(rid)) {
@@ -795,132 +852,177 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                                                                     '#3b82f6',
                                                                 )
                                                                     .setPaintProperty(rid, 'line-width', 3)
-                                                                    .setPaintProperty(rid, 'line-opacity', 0);
+                                                                    .setPaintProperty(rid, 'line-opacity', 0.8);
                                                             }
                                                         });
 
-                                                        // highlight selected
-                                                        const selectedRouteId = `route-${load.id}`;
-                                                        if (map.current.getLayer(selectedRouteId)) {
-                                                            map.current
-                                                                .setPaintProperty(
-                                                                    selectedRouteId,
-                                                                    'line-color',
-                                                                    '#00008B',
-                                                                )
-                                                                .setPaintProperty(selectedRouteId, 'line-width', 4)
-                                                                .setPaintProperty(selectedRouteId, 'line-opacity', 1);
+                                                        if (map.current && load.routeEncoded) {
+                                                            // fit bounds
+                                                            const coords = decodePolyline(load.routeEncoded);
+                                                            if (coords.length) {
+                                                                const bounds = new mapboxgl.LngLatBounds();
+                                                                coords.forEach((c) =>
+                                                                    bounds.extend(c as [number, number]),
+                                                                );
+                                                                map.current.fitBounds(bounds, {
+                                                                    padding: boundPadding,
+                                                                    maxZoom: 18,
+                                                                });
+                                                            }
                                                         }
-
-                                                        // fit bounds
-                                                        const coords = decodePolyline(load.routeEncoded);
-                                                        if (coords.length) {
-                                                            const bounds = new mapboxgl.LngLatBounds();
-                                                            coords.forEach((c) => bounds.extend(c as [number, number]));
-                                                            map.current.fitBounds(bounds, {
-                                                                padding: boundPadding,
-                                                                maxZoom: 18,
+                                                    } else {
+                                                        if (map.current && load.routeEncoded) {
+                                                            // reset all routes
+                                                            loadsList.forEach((l) => {
+                                                                const rid = `route-${l.id}`;
+                                                                if (map.current!.getLayer(rid)) {
+                                                                    map.current!.setPaintProperty(
+                                                                        rid,
+                                                                        'line-color',
+                                                                        '#3b82f6',
+                                                                    )
+                                                                        .setPaintProperty(rid, 'line-width', 3)
+                                                                        .setPaintProperty(rid, 'line-opacity', 0);
+                                                                }
                                                             });
+
+                                                            // highlight selected
+                                                            const selectedRouteId = `route-${load.id}`;
+                                                            if (map.current.getLayer(selectedRouteId)) {
+                                                                map.current
+                                                                    .setPaintProperty(
+                                                                        selectedRouteId,
+                                                                        'line-color',
+                                                                        '#00008B',
+                                                                    )
+                                                                    .setPaintProperty(selectedRouteId, 'line-width', 4)
+                                                                    .setPaintProperty(
+                                                                        selectedRouteId,
+                                                                        'line-opacity',
+                                                                        1,
+                                                                    );
+                                                            }
+
+                                                            // fit bounds
+                                                            const coords = decodePolyline(load.routeEncoded);
+                                                            if (coords.length) {
+                                                                const bounds = new mapboxgl.LngLatBounds();
+                                                                coords.forEach((c) =>
+                                                                    bounds.extend(c as [number, number]),
+                                                                );
+                                                                map.current.fitBounds(bounds, {
+                                                                    padding: boundPadding,
+                                                                    maxZoom: 18,
+                                                                });
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            }}
-                                        >
-                                            <div className="p-3 pb-1">
-                                                <div className="relative flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <div className="text-xs text-gray-500">{load.refNum}</div>
-                                                        <div className="font-semibold text-sm text-gray-900 truncate uppercase">
-                                                            {load.customer.name}
+                                                }}
+                                            >
+                                                <div className="p-3 pb-1">
+                                                    <div className="relative flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <div className="text-xs text-gray-500">{load.refNum}</div>
+                                                            <div className="font-semibold text-sm text-gray-900 truncate uppercase">
+                                                                {load.customer.name}
+                                                            </div>
+                                                        </div>
+                                                        <div className="absolute -top-6 right-0">
+                                                            <LoadStatusBadge load={load} />
                                                         </div>
                                                     </div>
-                                                    <div className="absolute -top-6 right-0">
-                                                        <LoadStatusBadge load={load} />
-                                                    </div>
-                                                </div>
 
-                                                <div className="flex items-center space-x-2 mb-1.5">
-                                                    <div className="flex-shrink-0">
-                                                        <div className="flex items-center justify-center w-5 h-5 bg-green-100 rounded-full">
-                                                            <TruckIcon
-                                                                className="w-3 h-3 text-green-800"
-                                                                aria-hidden="true"
-                                                            />
+                                                    <div className="flex items-center space-x-2 mb-1.5">
+                                                        <div className="flex-shrink-0">
+                                                            <div className="flex items-center justify-center w-5 h-5 bg-green-100 rounded-full">
+                                                                <TruckIcon
+                                                                    className="w-3 h-3 text-green-800"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-xs text-gray-600 truncate capitalize">
+                                                            {load.shipper.name.toUpperCase()} (
+                                                            {load.shipper.city.toLowerCase()},{' '}
+                                                            {load.shipper.state.toUpperCase()})
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-gray-600 truncate">
-                                                        {load.shipper.name}, {load.shipper.city}
-                                                    </div>
-                                                </div>
 
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <div className="flex-shrink-0">
-                                                        <div className="flex items-center justify-center w-5 h-5 bg-red-100 rounded-full">
-                                                            <MapPinIcon
-                                                                className="w-3 h-3 text-red-800"
-                                                                aria-hidden="true"
-                                                            />
+                                                    <div className="flex items-center space-x-2 mb-2">
+                                                        <div className="flex-shrink-0">
+                                                            <div className="flex items-center justify-center w-5 h-5 bg-red-100 rounded-full">
+                                                                <MapPinIcon
+                                                                    className="w-3 h-3 text-red-800"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-xs text-gray-600 truncate capitalize">
+                                                            {load.receiver.name.toUpperCase()} (
+                                                            {load.receiver.city.toLowerCase()},{' '}
+                                                            {load.receiver.state.toUpperCase()})
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-gray-600 truncate">
-                                                        {load.receiver.name}, {load.receiver.city}
-                                                    </div>
-                                                </div>
 
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <div className="text-gray-500">
-                                                        {load.routeDistanceMiles
-                                                            ? `${
-                                                                  isNaN(Number(load.routeDistanceMiles))
-                                                                      ? '0'
-                                                                      : Number(load.routeDistanceMiles).toFixed(0)
-                                                              } mi`
-                                                            : 'N/A'}
-                                                        {load.routeDurationHours && (
-                                                            <span>
-                                                                {' '}
-                                                                · {Math.floor(Number(load.routeDurationHours))}h{' '}
-                                                                {Math.round((Number(load.routeDurationHours) % 1) * 60)}
-                                                                m
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex justify-start">
-                                                        <Link
-                                                            href={`/loads/${load.id}`}
-                                                            className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            View Load →
-                                                        </Link>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="font-medium text-xs text-gray-700 truncate p-3 pt-1">
-                                                {load.driverAssignments?.length ? (
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {Array.from(
-                                                            new Map(
-                                                                load.driverAssignments.map((a) => [a.driver.id, a]),
-                                                            ).values(),
-                                                        ).map((assignment, i, arr) => (
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <div className="text-gray-500">
+                                                            {load.routeDistanceMiles
+                                                                ? `${
+                                                                      isNaN(Number(load.routeDistanceMiles))
+                                                                          ? '0'
+                                                                          : Number(load.routeDistanceMiles).toFixed(0)
+                                                                  } mi`
+                                                                : 'N/A'}
+                                                            {load.routeDurationHours && (
+                                                                <span>
+                                                                    {' '}
+                                                                    · {Math.floor(
+                                                                        Number(load.routeDurationHours),
+                                                                    )}h{' '}
+                                                                    {Math.round(
+                                                                        (Number(load.routeDurationHours) % 1) * 60,
+                                                                    )}
+                                                                    m
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex justify-start">
                                                             <Link
-                                                                key={`${assignment.driver.id}-${i}`}
-                                                                href={`/drivers/${assignment.driver.id}`}
-                                                                className="font-medium hover:underline"
+                                                                href={`/loads/${load.id}`}
+                                                                className="text-xs font-medium text-blue-600 hover:text-blue-800"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {assignment.driver.name}
-                                                                {i < arr.length - 1 ? ', ' : ''}
+                                                                View Load →
                                                             </Link>
-                                                        ))}
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-gray-400">No driver assigned</span>
-                                                )}
+                                                </div>
+                                                <div className="font-medium text-xs text-gray-700 truncate p-3 pt-1">
+                                                    {load.driverAssignments?.length ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {Array.from(
+                                                                new Map(
+                                                                    load.driverAssignments.map((a) => [a.driver.id, a]),
+                                                                ).values(),
+                                                            ).map((assignment, i, arr) => (
+                                                                <Link
+                                                                    key={`${assignment.driver.id}-${i}`}
+                                                                    href={`/drivers/${assignment.driver.id}`}
+                                                                    className="font-medium hover:underline"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    {assignment.driver.name}
+                                                                    {i < arr.length - 1 ? ', ' : ''}
+                                                                </Link>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400">No driver assigned</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Next button */}
@@ -936,7 +1038,8 @@ export default function LoadViewToggle({ loadsList }: { loadsList: ExpandedLoad[
                 ))}
         </div>
     );
-}
+};
+export default LoadViewToggle;
 
 const LoadingLoadViewTableSkeleton = () => {
     // Create an array of 8 items to map over
