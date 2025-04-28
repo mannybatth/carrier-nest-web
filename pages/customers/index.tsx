@@ -166,7 +166,7 @@ const CustomersPage: PageWithAuth = () => {
                             <Link href="/customers/create">
                                 <button
                                     type="button"
-                                    className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm leading-4 font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="inline-flex items-center px-3.5 h-full py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     + Create Customer
                                 </button>
