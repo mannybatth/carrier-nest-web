@@ -1,17 +1,15 @@
 import { ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/24/solid';
-import classNames from 'classnames';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import React, { Fragment } from 'react';
+import React from 'react';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
-import { DashboardStats, DashboardStatsTimeFrameType } from '../interfaces/stats';
-import { getDashboardStats, getUpcomingLoads } from '../lib/rest/dashboard';
-import LoadViewToggle from 'components/loads/LoadViewToggle';
-import DashboardStatsDigest from 'components/DashboardStatsDigest';
+import { getUpcomingLoads } from '../lib/rest/dashboard';
+import LoadViewToggle from '../components/loads/LoadViewToggle';
+import DashboardStatsDigest from '../components/DashboardStatsDigest';
 
 const Dashboard: PageWithAuth = () => {
     const { data: session } = useSession();

@@ -7,7 +7,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { ExpandedLoad } from 'interfaces/models';
 import LoadStatusBadge from './LoadStatusBadge';
 import { formatDate } from 'lib/helpers/format';
-import { Switch } from '@headlessui/react';
 import { format } from 'date-fns';
 import SwitchWithLabel from 'components/switchWithLabel';
 
