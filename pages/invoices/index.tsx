@@ -229,16 +229,16 @@ const InvoicesPage: PageWithAuth = () => {
                             </dl>
                         )}
                     </div>
-                    <div className="px-5 sm:px-6 md:px-8">
-                        <div className="items-center border-b border-gray-200 lg:space-x-4 lg:flex">
-                            <h2 className="mb-3 text-lg font-medium leading-6 text-gray-900 lg:mb-0 lg:flex-1">
+                    <div className="px-5 sm:px-6 md:px-8 ">
+                        <div className="items-center lg:space-x-4 lg:flex border  px-5 my-4 md:block sm:px-2 md:px-4 mx-0 py-4 pb-5 -mb-2 mt-0 bg-white shadow-md  border-gray-200  border-t border-l border-r rounded-tl-lg rounded-tr-lg ">
+                            <h2 className="flex-1 text-xl font-bold text-gray-600 mb-3   leading-6  lg:mb-0 lg:flex-1">
                                 {isBrowsing ? 'All' : null}
                                 {!isBrowsing && withStatus === UIInvoiceStatus.NOT_PAID ? 'Pending' : null}
                                 {withStatus === UIInvoiceStatus.PARTIALLY_PAID ? 'Partially Paid' : null}
                                 {withStatus === UIInvoiceStatus.OVERDUE ? 'Overdue' : null}
                                 {withStatus === UIInvoiceStatus.PAID ? 'Fully Paid' : null} Invoices
                             </h2>
-                            <nav className="flex -mb-px md:space-x-4" aria-label="Tabs">
+                            <nav className="flex -mb-px md:space-x-4 overflow-x-auto" aria-label="Tabs">
                                 <a
                                     onClick={() => {
                                         router.push({
