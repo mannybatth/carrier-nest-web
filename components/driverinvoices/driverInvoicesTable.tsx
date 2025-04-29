@@ -147,7 +147,7 @@ const DriverInvoicesTable: React.FC<Props> = ({
             sort={sort}
             changeSort={changeSort}
             emptyState={
-                <div className="my-5 text-center">
+                <div className="my-0 bg-white text-center border border-gray-200 rounded-lg shadow-sm p-6">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-12 h-12 mx-auto text-gray-400"

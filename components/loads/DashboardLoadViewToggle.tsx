@@ -772,7 +772,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
 
             {viewMode === 'map' &&
                 (loadsList.length === 0 ? (
-                    <LoadingLoadMapView />
+                    <LoadingLoadMapViewSkeleton />
                 ) : (
                     <div className="px-4 md:px-0 pb-0 relative ">
                         <div
@@ -1136,7 +1136,7 @@ const LoadingLoadViewTableSkeleton = () => {
     );
 };
 
-const LoadingLoadMapView = () => {
+export const LoadingLoadMapViewSkeleton = () => {
     // Number of skeleton cards to display
     const skeletonCount = 5;
 

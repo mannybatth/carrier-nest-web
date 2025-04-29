@@ -148,7 +148,6 @@ const LoadsPage: PageWithAuth = () => {
         setLastLoadsTableLimit(loads.length !== 0 ? loads.length : lastLoadsTableLimit);
         setLoadsList(loads);
 
-        console.log('loads', loads);
         setMetadata(metadataResponse);
         setLoadingLoads(false);
         setTableLoading(false);
