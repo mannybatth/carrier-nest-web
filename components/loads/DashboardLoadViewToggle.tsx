@@ -774,7 +774,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                 (loadsList.length === 0 ? (
                     <LoadingLoadMapViewSkeleton />
                 ) : (
-                    <div className="px-4 md:px-0 pb-0 relative ">
+                    <div className="px-0 pb-0 relative ">
                         <div
                             ref={mapContainer}
                             className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10"
