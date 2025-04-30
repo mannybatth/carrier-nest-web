@@ -236,7 +236,7 @@ const Table = ({
     return (
         <div className="relative w-full">
             {loading && (
-                <div className="absolute inset-0 z-2 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray/80 backdrop-blur-sm">
                     <Spinner />
                 </div>
             )}
