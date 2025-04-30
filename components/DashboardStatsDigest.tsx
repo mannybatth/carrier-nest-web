@@ -418,7 +418,11 @@ export default function DashboardStatsDigest({ data: loadsList }: DashboardStats
                                                 formatter={(value: number, name: string) => {
                                                     if (name === 'Distance (miles)')
                                                         return [`${value.toLocaleString()} mi`, 'Distance'];
-                                                    if (name === 'Rate ($)') return [`$${value.toFixed(2)}`, 'Rate'];
+                                                    if (name === 'Rate ($)') {
+                                                        const n = Number(value);
+                                                        // if it still isn't a number, fall back to raw
+                                                        return isNaN(n) ? [value, name] : [`$${n.toFixed(2)}`, 'Rate'];
+                                                    }
                                                     return [value, name];
                                                 }}
                                                 wrapperStyle={{ outline: 'none' }}
