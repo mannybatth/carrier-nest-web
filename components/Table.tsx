@@ -187,7 +187,7 @@ const Table = ({
                 <Menu as="td" className="relative px-2 py-3 text-right">
                     <div>
                         <Menu.Button
-                            className="flex items-center justify-center w-8 h-8 text-gray-400 rounded-full
+                            className="flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 rounded-full
                    hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
                             aria-label="Row actions"
                         >
@@ -242,7 +242,7 @@ const Table = ({
             )}
 
             {isScrollable && (
-                <div className="text-xs text-gray-300 w-full text-center md:border-x py-1 pb-3 bg-white -mb-2">
+                <div className="text-xs text-gray-300 w-full text-center  border-x py-1 pb-3 bg-white -mb-2">
                     <span>← Scroll horizontally to view more →</span>
                 </div>
             )}
