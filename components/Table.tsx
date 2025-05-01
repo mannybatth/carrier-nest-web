@@ -52,6 +52,94 @@ type Props = {
     stickyHeader?: boolean;
 };
 
+// Row content component - moved outside main component for better memoization
+const RowContent = React.memo(
+    ({
+        row,
+        rowIndex,
+        headers,
+        handleMenuItemClick,
+    }: {
+        row: TableDataRow;
+        rowIndex: number;
+        headers: TableHeader[];
+        handleMenuItemClick: (e: React.MouseEvent, onClick: () => void) => void;
+    }) => (
+        <>
+            {row.items.map((item, index) => {
+                const header = headers[index];
+                return (
+                    <td
+                        key={`item-${rowIndex}-${index}`}
+                        className={cn(
+                            'px-4 py-3',
+                            item.className,
+                            header?.priority && header.priority > 1 && 'hidden md:table-cell',
+                        )}
+                    >
+                        {item.value ? <div className="text-gray-900">{item.value}</div> : item.node}
+                    </td>
+                );
+            })}
+
+            {row.menuItems?.length > 0 && (
+                <Menu as="td" className="relative px-2 py-3 text-right">
+                    <div>
+                        <Menu.Button
+                            className="flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 rounded-full
+               hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                            aria-label="Row actions"
+                        >
+                            <EllipsisVerticalIcon className="w-5 h-5" />
+                        </Menu.Button>
+                    </div>
+
+                    <Transition
+                        as={Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                    >
+                        <Menu.Items
+                            className="absolute right-0 z-20 mt-1 w-48 rounded-md bg-white shadow-lg
+               ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        >
+                            <div className="py-1">
+                                {row.menuItems.map((menuItem, idx) => (
+                                    <Menu.Item key={idx}>
+                                        {({ active }) => (
+                                            <button
+                                                onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
+                                                className={`${
+                                                    active ? 'bg-gray-100' : ''
+                                                } block w-full px-4 py-2 text-left text-sm text-gray-700`}
+                                                role="menuitem"
+                                            >
+                                                {menuItem.title}
+                                            </button>
+                                        )}
+                                    </Menu.Item>
+                                ))}
+                            </div>
+                        </Menu.Items>
+                    </Transition>
+                </Menu>
+            )}
+        </>
+    ),
+    (prevProps, nextProps) => {
+        // Custom comparison function for memoization
+        return (
+            prevProps.row.id === nextProps.row.id &&
+            prevProps.rowIndex === nextProps.rowIndex &&
+            prevProps.row.items.length === nextProps.row.items.length
+        );
+    },
+);
+
 const Table = ({
     headers,
     rows,
@@ -65,7 +153,6 @@ const Table = ({
     stickyHeader = false,
 }: Props) => {
     const [sort, setSort] = useState<Sort>(sortProps);
-    const [menuOpen, setMenuOpen] = useState<string | null>(null);
     const [isScrollable, setIsScrollable] = useState(false);
 
     // Update sort when props change
@@ -125,26 +212,15 @@ const Table = ({
         [sort],
     );
 
-    // Handle menu toggle
-    const handleMenuToggle = useCallback((e: React.MouseEvent, rowId: string) => {
-        e.stopPropagation();
-
-        setMenuOpen((prevState) => (prevState === rowId ? null : rowId));
-        e.preventDefault();
-    }, []);
-
     // Handle menu item click
     const handleMenuItemClick = useCallback((e: React.MouseEvent, onClick: () => void) => {
         e.preventDefault();
         e.stopPropagation();
         onClick();
-        setMenuOpen(null);
     }, []);
 
     // Handle click outside to close menu
-    const handleClickOutside = useCallback(() => {
-        if (menuOpen) setMenuOpen(null);
-    }, [menuOpen]);
+    const handleClickOutside = useCallback(() => {}, []);
 
     useEffect(() => {
         document.addEventListener('click', handleClickOutside);
@@ -163,75 +239,6 @@ const Table = ({
             </>
         );
     }
-
-    // Row content component
-    const RowContent = ({ row, rowIndex }: { row: TableDataRow; rowIndex: number }) => (
-        <>
-            {row.items.map((item, index) => {
-                const header = headers[index];
-                return (
-                    <td
-                        key={`item-${rowIndex}-${index}`}
-                        className={cn(
-                            'px-4 py-3',
-                            item.className,
-                            header?.priority && header.priority > 1 && 'hidden md:table-cell',
-                        )}
-                    >
-                        {item.value ? <div className="text-gray-900">{item.value}</div> : item.node}
-                    </td>
-                );
-            })}
-
-            {row.menuItems?.length > 0 && (
-                <Menu as="td" className="relative px-2 py-3 text-right">
-                    <div>
-                        <Menu.Button
-                            className="flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 rounded-full
-                   hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                            aria-label="Row actions"
-                        >
-                            <EllipsisVerticalIcon className="w-5 h-5" />
-                        </Menu.Button>
-                    </div>
-
-                    <Transition
-                        as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                    >
-                        <Menu.Items
-                            static
-                            className="absolute right-0 z-20 mt-1 w-48 rounded-md bg-white shadow-lg
-                   ring-1 ring-black ring-opacity-5 focus:outline-none"
-                        >
-                            <div className="py-1">
-                                {row.menuItems.map((menuItem, idx) => (
-                                    <Menu.Item key={idx}>
-                                        {({ active }) => (
-                                            <button
-                                                onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
-                                                className={`${
-                                                    active ? 'bg-gray-100' : ''
-                                                } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                                                role="menuitem"
-                                            >
-                                                {menuItem.title}
-                                            </button>
-                                        )}
-                                    </Menu.Item>
-                                ))}
-                            </div>
-                        </Menu.Items>
-                    </Transition>
-                </Menu>
-            )}
-        </>
-    );
 
     return (
         <div className="relative w-full">
@@ -289,29 +296,41 @@ const Table = ({
                             )}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                        {rows.map((row, rowIndex) => (
-                            <tr
-                                key={`row-${rowIndex}`}
-                                className={cn(
-                                    'group transition-colors',
-                                    (onRowClick || rowLink) && 'cursor-pointer hover:bg-gray-50',
-                                )}
-                                onClick={() => onRowClick && onRowClick(row.id, rowIndex)}
-                            >
-                                {rowLink ? (
-                                    <Link
-                                        href={rowLink(row.id)}
-                                        className="contents"
-                                        aria-label={`View details for row ${rowIndex + 1}`}
-                                    >
-                                        <RowContent row={row} rowIndex={rowIndex} />
-                                    </Link>
-                                ) : (
-                                    <RowContent row={row} rowIndex={rowIndex} />
-                                )}
-                            </tr>
-                        ))}
+                    <tbody className="divide-y divide-gray-200 bg-white transition-none">
+                        {rows.map((row, rowIndex) => {
+                            return (
+                                <tr
+                                    key={`row-${row.id}`}
+                                    className={cn(
+                                        'group transition-colors',
+                                        (onRowClick || rowLink) && 'cursor-pointer hover:bg-gray-50',
+                                    )}
+                                    onClick={() => onRowClick && onRowClick(row.id, rowIndex)}
+                                >
+                                    {rowLink ? (
+                                        <Link
+                                            href={rowLink(row.id)}
+                                            className="contents"
+                                            aria-label={`View details for row ${rowIndex + 1}`}
+                                        >
+                                            <RowContent
+                                                row={row}
+                                                rowIndex={rowIndex}
+                                                headers={headers}
+                                                handleMenuItemClick={handleMenuItemClick}
+                                            />
+                                        </Link>
+                                    ) : (
+                                        <RowContent
+                                            row={row}
+                                            rowIndex={rowIndex}
+                                            headers={headers}
+                                            handleMenuItemClick={handleMenuItemClick}
+                                        />
+                                    )}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
