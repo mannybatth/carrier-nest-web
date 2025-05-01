@@ -777,7 +777,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                     <div className="px-0 pb-0 relative ">
                         <div
                             ref={mapContainer}
-                            className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10"
+                            className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative "
                             style={{ background: '#f8f8f8' }}
                         />
 
