@@ -139,6 +139,8 @@ const RowContent = React.memo(
         );
     },
 );
+// Give RowContent a displayName for ESLint
+RowContent.displayName = 'RowContent';
 
 const Table = ({
     headers,
@@ -220,6 +222,7 @@ const Table = ({
     }, []);
 
     // Handle click outside to close menu
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     const handleClickOutside = useCallback(() => {}, []);
 
     useEffect(() => {
