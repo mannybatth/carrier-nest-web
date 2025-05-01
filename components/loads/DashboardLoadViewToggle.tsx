@@ -1046,7 +1046,7 @@ const LoadingLoadViewTableSkeleton = () => {
     const skeletonRows = Array(6).fill(null);
 
     return (
-        <div className="px-5 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
+        <div className="px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
             <div className="inline-block min-w-full align-middle">
                 <table className="min-w-full divide-y divide-gray-200 border-collapse">
                     <thead>
@@ -1141,9 +1141,9 @@ export const LoadingLoadMapViewSkeleton = () => {
     const skeletonCount = 5;
 
     return (
-        <div className="px-5 md:px-0 pb-0 relative">
+        <div className="px-0 pb-0 relative">
             {/* Map loading skeleton */}
-            <div className="w-full h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10 bg-gray-100">
+            <div className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10 bg-gray-100">
                 {/* Map placeholder with shimmer effect */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <MapIcon className="w-16 h-16 text-gray-300" />
@@ -1152,10 +1152,10 @@ export const LoadingLoadMapViewSkeleton = () => {
             </div>
 
             {/* Loads list skeleton overlay */}
-            <div className="absolute bottom-0 top-0 left-0 z-20 px-0 pb-0 overflow-y-auto hide-scrollbar">
+            <div className="relative md:absolute bottom-0 top-0 left-0 z-20 px-0 pb-0 overflow-x-auto md:overflow-y-auto hide-scrollbar">
                 <div className="relative">
                     {/* Scroll container */}
-                    <div className="flex flex-col overflow-y-auto hide-scrollbar px-2 my-4">
+                    <div className="flex flex-row md:flex-col overflow-y-auto hide-scrollbar px-2 my-4">
                         {Array.from({ length: skeletonCount }).map((_, i) => (
                             <div
                                 key={i}
