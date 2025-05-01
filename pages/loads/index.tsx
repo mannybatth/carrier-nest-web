@@ -430,7 +430,7 @@ const LoadsPage: PageWithAuth = () => {
                         </div>
                     </div>
                     <div className="px-5 my-4 md:block  sm:px-2 md:px-4 mx-5 sm:mx-6 md:mx-8 py-4 pb-5 -mb-2 mt-0 bg-white shadow-sm  border-gray-200  border-t border-l border-r rounded-tl-lg rounded-tr-lg">
-                        <div className="flex flex-col sm:flex-row items-center justify-between">
+                        <div className="flex flex-row items-center justify-between">
                             <h1 className="flex-1 text-xl mb-2 sm:mb-0 font-bold text-gray-800">All Loads</h1>
                             <div className="flex gap-2">
                                 <LoadsTableSortDropdown
@@ -438,7 +438,7 @@ const LoadsPage: PageWithAuth = () => {
                                     currentSort={sort}
                                     onChange={changeSort}
                                 />
-                                <Link href="/loads/create">
+                                <Link className="hidden sm:block" href="/loads/create">
                                     <button
                                         type="button"
                                         className="inline-flex items-center px-3.5 h-full py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
