@@ -371,6 +371,14 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
         );
     };
 
+    const safeFixed = (value: unknown, decimals: number): string => {
+        const num = Number(value);
+        if (Number.isNaN(num)) {
+            return (0).toFixed(decimals);
+        }
+        return num.toFixed(decimals);
+    };
+
     return (
         <Document>
             {/* Main Invoice Page */}
@@ -489,11 +497,10 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                             )
                             .join(' > ');
 
-                        const trip = `${(a.billedDistanceMiles ?? a.routeLeg?.distanceMiles ?? 0).toFixed(0)} mi / ${(
-                            a.billedDurationHours ??
-                            a.routeLeg?.durationHours ??
-                            0
-                        ).toFixed(1)} hr`;
+                        const trip = [
+                            safeFixed(a.billedDistanceMiles ?? a.routeLeg?.distanceMiles, 0) + ' mi',
+                            safeFixed(a.billedDurationHours ?? a.routeLeg?.durationHours, 1) + ' hr',
+                        ].join(' / ');
 
                         let chargeLabel = '';
                         switch (a.chargeType) {
@@ -521,7 +528,7 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                             <View key={a.id} style={styles.card} wrap={false}>
                                 <View style={styles.cardHeader}>
                                     <Text style={styles.cardTitle}>
-                                        {symbols.document} Ref #{a.load.refNum}
+                                        {symbols.document} Order #{a.load.refNum}
                                     </Text>
                                     <Text style={styles.cardAmount}>{formatCurrency(amount)}</Text>
                                 </View>
