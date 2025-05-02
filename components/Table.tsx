@@ -108,21 +108,26 @@ const RowContent = React.memo(
                ring-1 ring-black ring-opacity-5 focus:outline-none"
                         >
                             <div className="py-1">
-                                {row.menuItems.map((menuItem, idx) => (
-                                    <Menu.Item key={idx}>
-                                        {({ active }) => (
-                                            <button
-                                                onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
-                                                className={`${
-                                                    active ? 'bg-gray-100' : ''
-                                                } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                                                role="menuitem"
-                                            >
-                                                {menuItem.title}
-                                            </button>
-                                        )}
-                                    </Menu.Item>
-                                ))}
+                                {row.menuItems.map((menuItem, idx) => {
+                                    // Check if menuItem is valid
+                                    if (!menuItem) return null;
+
+                                    return (
+                                        <Menu.Item key={idx}>
+                                            {({ active }) => (
+                                                <button
+                                                    onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
+                                                    className={`${
+                                                        active ? 'bg-gray-100' : ''
+                                                    } block w-full px-4 py-2 text-left text-sm text-gray-700`}
+                                                    role="menuitem"
+                                                >
+                                                    {menuItem.title}
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    );
+                                })}
                             </div>
                         </Menu.Items>
                     </Transition>
