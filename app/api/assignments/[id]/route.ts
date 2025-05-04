@@ -50,6 +50,7 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
                         customer: true,
                         podDocuments: true,
                         carrier: true,
+                        invoice: true,
                     },
                 },
                 routeLeg: {
