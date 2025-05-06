@@ -64,13 +64,10 @@ export const GET = auth(async (req: NextAuthRequest) => {
     let whereClause: Prisma.DriverAssignmentWhereInput = {};
 
     if (assignedOnly) {
-        const tenDaysAgo = subDays(new Date(), 10);
+        // const tenDaysAgo = subDays(new Date(), 10);
 
         whereClause = {
             routeLeg: {
-                scheduledDate: {
-                    gte: tenDaysAgo,
-                },
                 status: {
                     not: RouteLegStatus.COMPLETED,
                 },
