@@ -15,7 +15,7 @@ interface LoadViewToggleProps {
     todayDataOnly: () => void;
 }
 
-const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnly }) => {
+const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDataOnly }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const viewModes = ['table', 'map'];
     const [viewMode, setViewMode] = useState(viewModes[selectedIndex]);
@@ -124,7 +124,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                 const bounds = new mapboxgl.LngLatBounds();
 
                 // Add markers and routes for each load
-                loadsList.forEach((load) => {
+                loadsList?.forEach((load) => {
                     if (!map.current) return;
 
                     // Add origin marker (shipper)
@@ -319,7 +319,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
 
         function updateRouteColors() {
             // Update all route colors based on selection
-            loadsList.forEach((load) => {
+            loadsList?.forEach((load) => {
                 const routeId = `route-${load.id}`;
                 if (map.current && map.current.getLayer(routeId)) {
                     map.current.setPaintProperty(
@@ -576,7 +576,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
             )} */}
 
             {viewMode === 'table' &&
-                (loadsList.length === 0 ? (
+                (loadsList?.length === 0 ? (
                     <LoadingLoadViewTableSkeleton />
                 ) : (
                     <div className=" mx-0 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
@@ -771,7 +771,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                 ))}
 
             {viewMode === 'map' &&
-                (loadsList.length === 0 ? (
+                (loadsList?.length === 0 ? (
                     <LoadingLoadMapViewSkeleton />
                 ) : (
                     <div className="px-0 pb-0 relative ">
@@ -801,7 +801,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                   my-4
                 "
                                 >
-                                    {loadsList.map((load, i) => {
+                                    {loadsList?.map((load, i) => {
                                         const allDates = [
                                             load.shipper.date,
                                             load.receiver.date,
@@ -843,7 +843,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
 
                                                     if (newId === null) {
                                                         // Reset all routes
-                                                        loadsList.forEach((l) => {
+                                                        loadsList?.forEach((l) => {
                                                             const rid = `route-${l.id}`;
                                                             if (map.current!.getLayer(rid)) {
                                                                 map.current!.setPaintProperty(
@@ -873,7 +873,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList, todayDataOnl
                                                     } else {
                                                         if (map.current && load.routeEncoded) {
                                                             // reset all routes
-                                                            loadsList.forEach((l) => {
+                                                            loadsList?.forEach((l) => {
                                                                 const rid = `route-${l.id}`;
                                                                 if (map.current!.getLayer(rid)) {
                                                                     map.current!.setPaintProperty(
