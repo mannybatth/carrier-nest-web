@@ -94,7 +94,7 @@ const Dashboard: PageWithAuth = () => {
                         )}
                     </>
 
-                    {!loadsLoading && loadsList.length !== 0 && <DashboardStatsDigest data={loadsList} />}
+                    <DashboardStatsDigest data={loadsList} loading={loadsLoading} />
                 </div>
             </div>
         </Layout>
