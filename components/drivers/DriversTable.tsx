@@ -52,7 +52,7 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
             sort={sort}
             changeSort={changeSort}
             emptyState={
-                <div className="my-5 text-center">
+                <div className="my-0 text-center border border-gray-200 rounded-lg shadow-sm p-6 bg-white">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-12 h-12 mx-auto text-gray-400"
