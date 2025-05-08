@@ -107,9 +107,10 @@ function calculateStats(loads: ExpandedLoad[]): Stats {
 
 interface DashboardStatsProps {
     data: ExpandedLoad[];
+    loading?: boolean;
 }
 
-export default function DashboardStatsDigest({ data: loadsList }: DashboardStatsProps) {
+export default function DashboardStatsDigest({ data: loadsList, loading }: DashboardStatsProps) {
     const stats = calculateStats(loadsList);
 
     const [activeCustomer, setActiveCustomer] = useState<string | null>(null);
@@ -141,9 +142,9 @@ export default function DashboardStatsDigest({ data: loadsList }: DashboardStats
         }
     };
 
-    return loadsList.length === 0 ? (
+    return loading ? (
         loadingSkeleton()
-    ) : (
+    ) : loadsList.length > 0 ? (
         <div className="flex min-h-screen w-full flex-col bg-white   rounded-lg mb-8 overflow-clip">
             <main className="flex-1 py-6">
                 <div className="mx-auto max-w-7xl space-y-6">
@@ -549,6 +550,8 @@ export default function DashboardStatsDigest({ data: loadsList }: DashboardStats
                 </div>
             </main>
         </div>
+    ) : (
+        <div className=" "></div>
     );
 }
 

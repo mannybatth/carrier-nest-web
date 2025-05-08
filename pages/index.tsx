@@ -60,9 +60,9 @@ const Dashboard: PageWithAuth = () => {
                 <div className="px-6 md:px-8  ">
                     <>
                         {!loadsLoading && loadsList?.length === 0 ? (
-                            <div className="relative mx-5 mb-4 overflow-hidden border border-gray-200 shadow-sm md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
-                                <div className="flex flex-col items-center max-w-2xl px-6 py-16 mx-auto text-center">
-                                    <div className="flex items-center justify-center p-3 mb-6 bg-blue-100 rounded-full">
+                            <div className="relative mx-5 mb-4 overflow-hidden border border-blue-100 shadow-md md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
+                                <div className="flex flex-col items-center justify-center max-w-2xl px-6 py-16 mx-auto text-center h-[88vh]">
+                                    <div className="flex items-center justify-center p-3 mb-2 bg-blue-100 rounded-full">
                                         <ClipboardDocumentCheckIcon
                                             className="w-8 h-8 text-blue-600"
                                             aria-hidden="true"
@@ -94,7 +94,7 @@ const Dashboard: PageWithAuth = () => {
                         )}
                     </>
 
-                    <DashboardStatsDigest data={loadsList} />
+                    <DashboardStatsDigest data={loadsList} loading={loadsLoading} />
                 </div>
             </div>
         </Layout>
