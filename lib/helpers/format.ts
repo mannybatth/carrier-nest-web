@@ -17,3 +17,12 @@ export const formatDate = (dateString: string) => {
         day: '2-digit',
     }).format(new Date(dateString));
 };
+
+export const formatTimeTo12Hour = (timeStr: string): string => {
+    const [hourStr, minuteStr] = timeStr.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${minute.toString().padStart(2, '0')} ${ampm}`;
+};
