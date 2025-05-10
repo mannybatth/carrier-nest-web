@@ -10,7 +10,7 @@ import { removeRouteLegById } from 'lib/rest/assignment';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import React, { ChangeEvent, useEffect, useState } from 'react';
+import React, { ChangeEvent, use, useEffect, useState } from 'react';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -55,6 +55,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
     const router = useRouter();
 
+    // Check to see if search query containts editAssignmentID
+    const { routeLegId } = router.query;
+
     useEffect(() => {
         // Check if there's a hash in the URL
         if (router.asPath.includes('#')) {
@@ -67,7 +70,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 }
             }, 100); // Adjust delay as needed
         }
-    }, [router.asPath, load]);
+
+        if (routeLegId && routeLegId !== 'undefined' && load) {
+            editLegClicked(routeLegId as string);
+        }
+    }, [router.asPath, load, routeLegId]);
 
     useEffect(() => {
         if (!load) {

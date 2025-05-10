@@ -4,11 +4,13 @@ import { Tab } from '@headlessui/react';
 import { MapPinIcon, TruckIcon, TableCellsIcon, ViewColumnsIcon, MapIcon } from '@heroicons/react/24/outline';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ExpandedLoad } from 'interfaces/models';
+import { ExpandedDriverAssignment, ExpandedLoad } from 'interfaces/models';
 import LoadStatusBadge from './LoadStatusBadge';
 import { formatDate } from 'lib/helpers/format';
 import { format } from 'date-fns';
 import SwitchWithLabel from 'components/switchWithLabel';
+import { getAssignmentById } from 'lib/rest/assignment';
+import AssignmentPopup from 'components/assignment/AssignmentPopup';
 
 interface LoadViewToggleProps {
     loadsList: ExpandedLoad[];
@@ -16,6 +18,27 @@ interface LoadViewToggleProps {
 }
 
 const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDataOnly }) => {
+    const [loadingAssignment, setLoadingAssignment] = useState(false);
+    const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+    const [modalAssignment, setModalAssignment] = useState<ExpandedDriverAssignment | null>(null);
+    const [assignmentId, setAssignmentId] = useState<string | null>(null);
+
+    // Get assignment by assignment ID
+    const getAssignment = async (assId: string, driverId: string) => {
+        setAssignmentModalOpen(true);
+        setLoadingAssignment(true);
+        if (assId === assignmentId) {
+            setLoadingAssignment(false);
+            return;
+        }
+
+        const assignment: ExpandedDriverAssignment = await getAssignmentById(assId);
+
+        setModalAssignment(assignment);
+        setAssignmentId(assignment.id);
+        setLoadingAssignment(false);
+    };
+
     const [selectedIndex, setSelectedIndex] = useState(0);
     const viewModes = ['table', 'map'];
     const [viewMode, setViewMode] = useState(viewModes[selectedIndex]);
@@ -342,6 +365,12 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
 
     return (
         <div className="flex flex-col w-full mx-auto mt-6 mb-8">
+            <AssignmentPopup
+                isOpen={assignmentModalOpen}
+                onClose={() => setAssignmentModalOpen(false)}
+                assignment={modalAssignment}
+                loading={loadingAssignment}
+            />
             <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 px-0   ">
                 <div className="flex flex-col flex-1">
                     <h3 className="text-xl font-semibold text-[#1D1D1F]">Upcoming Load Runs</h3>
@@ -749,6 +778,11 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                     href={`/drivers/${assignment.driver.id}`}
                                                                     className="font-medium cursor-pointer hover:underline"
                                                                     onClick={(e) => {
+                                                                        getAssignment(
+                                                                            assignment.id,
+                                                                            assignment.driver.id,
+                                                                        );
+                                                                        e.preventDefault();
                                                                         e.stopPropagation();
                                                                     }}
                                                                 >
@@ -1009,7 +1043,14 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                     key={`${assignment.driver.id}-${i}`}
                                                                     href={`/drivers/${assignment.driver.id}`}
                                                                     className="font-medium hover:underline"
-                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onClick={(e) => {
+                                                                        getAssignment(
+                                                                            assignment.id,
+                                                                            assignment.driver.id,
+                                                                        );
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                    }}
                                                                 >
                                                                     {assignment.driver.name}
                                                                     {i < arr.length - 1 ? ', ' : ''}
