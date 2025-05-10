@@ -116,12 +116,12 @@ const AssignmentPopup: React.FC<AssignmentPopupProps> = ({ isOpen, onClose, assi
                         leaveFrom="translate-y-0 opacity-100"
                         leaveTo="translate-y-4 opacity-0"
                     >
-                        <Dialog.Panel className="relative w-full max-w-2xl p-6 overflow-hidden bg-white rounded-2xl shadow-xl">
+                        <Dialog.Panel className="relative w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-6 bg-white rounded-2xl shadow-xl">
                             <button
                                 onClick={onClose}
-                                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+                                className=" absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1 transition"
                             >
-                                <XMarkIcon className="w-6 h-6" />
+                                <XMarkIcon className="w-5 h-5" />
                             </button>
 
                             <Dialog.Title className="text-2xl font-semibold text-gray-900 mb-1">
