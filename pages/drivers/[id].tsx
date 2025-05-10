@@ -219,7 +219,6 @@ const DriverDetailsPage: PageWithAuth = () => {
             sort,
         });
 
-        console.log('assignments', assignments);
         setAssignmentsList(assignments);
         setMetadata(metadataResponse);
         setLoadingAssignments(false);
@@ -337,7 +336,6 @@ const DriverDetailsPage: PageWithAuth = () => {
     };
 
     const changeLegStatusClicked = async (legStatus: RouteLegStatus, routeLegId: string) => {
-        console.log('changeLegStatusClicked', legStatus, routeLegId);
         try {
             const { loadStatus, routeLeg: newRouteLeg } = await updateRouteLegStatus(routeLegId, legStatus);
 
@@ -503,89 +501,71 @@ const DriverDetailsPage: PageWithAuth = () => {
                             ) : (
                                 <CustomerDetailsSkeleton></CustomerDetailsSkeleton>
                             )}
-
-                            <div className="col-span-12 mt-4 relative">
-                                <h3 className="mb-2">Load assignments</h3>
-                                {loadingAssignments ? (
-                                    <AssignmentsTableSkeleton limit={lastLoadsTableLimit} />
-                                ) : (
-                                    <DriverAssignmentsTable
-                                        assignments={assignmentsList}
-                                        headers={[
-                                            'load.refNum',
-                                            'routeLeg.scheduledDate',
-                                            'routeLeg.locations',
-                                            'routeLeg.driverInstructions',
-                                            'routeLeg.status',
-                                            'actions',
-                                        ]}
-                                        deleteAssignment={(id: string) => {
-                                            setOpenDeleteLoadConfirmation(true);
-                                            setLoadIdToDelete(id);
-                                        }}
-                                        loading={tableLoading}
-                                        changeLegStatusClicked={changeLegStatusClicked}
-                                    ></DriverAssignmentsTable>
-                                )}
-
-                                {assignmentsList.length !== 0 && !loadingAssignments && (
-                                    <Pagination
-                                        metadata={metadata}
-                                        loading={loadingAssignments || tableLoading}
-                                        onPrevious={() => previousPage()}
-                                        onNext={() => nextPage()}
-                                    ></Pagination>
-                                )}
+                        </div>
+                        <div className="  px-5 md:block sm:px-2 md:px-4 my-8 py-4 pb-5 -mb-2   bg-white shadow-md  border-gray-200  border-t border-l border-r rounded-tl-lg rounded-tr-lg">
+                            <div className="flex flex-col md:flex-row items-center justify-between">
+                                <h3 className=" flex-1 text-xl font-bold text-gray-800">Load assignments</h3>
                             </div>
+                        </div>
+                        <div className=" px-0">
+                            {loadingAssignments ? (
+                                <AssignmentsTableSkeleton limit={lastLoadsTableLimit} />
+                            ) : (
+                                <DriverAssignmentsTable
+                                    assignments={assignmentsList}
+                                    headers={[
+                                        'load.refNum',
+                                        'routeLeg.scheduledDate',
+                                        'routeLeg.locations',
+                                        'routeLeg.driverInstructions',
+                                        'routeLeg.status',
+                                        'actions',
+                                    ]}
+                                    deleteAssignment={(id: string) => {
+                                        setOpenDeleteLoadConfirmation(true);
+                                        setLoadIdToDelete(id);
+                                    }}
+                                    loading={tableLoading}
+                                    changeLegStatusClicked={changeLegStatusClicked}
+                                ></DriverAssignmentsTable>
+                            )}
 
-                            <div className="col-span-12">
-                                <h3 className="mb-2">Assignment Payments</h3>
-                                {loadingDriverPayments ? (
-                                    <LoadsTableSkeleton limit={lastPaymentsTableLimit} />
-                                ) : (
+                            {assignmentsList.length !== 0 && !loadingAssignments && (
+                                <Pagination
+                                    metadata={metadata}
+                                    loading={loadingAssignments || tableLoading}
+                                    onPrevious={() => previousPage()}
+                                    onNext={() => nextPage()}
+                                ></Pagination>
+                            )}
+                        </div>
+
+                        <div className="my-8 px-0">
+                            {loadingDriver ? (
+                                <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                            ) : (
+                                driver.equipments?.length > 0 && (
                                     <>
-                                        <DriverPaymentsTable
-                                            payments={driverPayments}
-                                            sort={sort}
-                                            changeSort={changeSort}
-                                            loading={loadingDriverPayments}
-                                            setPaymentToDelete={setPaymentToDelete}
-                                            setConfirmOpen={setDeletePaymentConfirmOpen}
-                                        />
-                                        {driverPayments.length !== 0 && !loadingDriverPayments && (
-                                            <Pagination
-                                                metadata={driverPaymentsMetadata}
-                                                loading={loadingDriverPayments}
-                                                onPrevious={previousDriverPaymentsPage}
-                                                onNext={nextDriverPaymentsPage}
-                                            />
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                                        <div className="  px-5 md:block sm:px-2 md:px-4 my-8 py-4 pb-5 -mb-2   bg-white shadow-md  border-gray-200  border-t border-l border-r rounded-tl-lg rounded-tr-lg">
+                                            <h3 className="flex flex-col md:flex-row items-center justify-between">
+                                                Assigned Equipment
+                                            </h3>
+                                        </div>
 
-                            <div className="col-span-12">
-                                {loadingDriver ? (
-                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
-                                ) : (
-                                    driver.equipments?.length > 0 && (
-                                        <>
-                                            <h3 className="mb-2">Equipments assigned to driver</h3>
-                                            <EquipmentsTable
-                                                equipments={driver.equipments || []}
-                                                sort={equipmentSort}
-                                                loading={false}
-                                                changeSort={changeEquipmentSort}
-                                                deleteEquipment={(id: string) => {
-                                                    setOpenDeleteEquipmentConfirmation(true);
-                                                    setEquipmentIdToDelete(id);
-                                                }}
-                                                hideDriversColumn={true}
-                                            />
-                                        </>
-                                    )
-                                )}
-                            </div>
+                                        <EquipmentsTable
+                                            equipments={driver.equipments || []}
+                                            sort={equipmentSort}
+                                            loading={false}
+                                            changeSort={changeEquipmentSort}
+                                            deleteEquipment={(id: string) => {
+                                                setOpenDeleteEquipmentConfirmation(true);
+                                                setEquipmentIdToDelete(id);
+                                            }}
+                                            hideDriversColumn={true}
+                                        />
+                                    </>
+                                )
+                            )}
                         </div>
                     </div>
                 </div>

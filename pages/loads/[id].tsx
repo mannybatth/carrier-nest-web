@@ -80,7 +80,6 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         if (!load) {
             return;
         }
-        console.log('Load details page load', load);
         setLoadDocuments([load.rateconDocument, ...load.loadDocuments].filter((ld) => ld));
         setPodDocuments(load.podDocuments || []);
     }, [load]);
