@@ -82,10 +82,18 @@ export const GET = auth(async (req: NextAuthRequest) => {
                 podDocuments: true,
                 invoice: true,
                 driverAssignments: {
-                    select: {
-                        id: true,
-                        assignedAt: true,
+                    include: {
                         driver: true,
+                        routeLeg: {
+                            include: {
+                                locations: {
+                                    include: {
+                                        loadStop: true,
+                                        location: true,
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },
