@@ -115,6 +115,8 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
     const router = useRouter();
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
+    console.log('DriverAssignmentsTable', assignments);
+
     const toggleRow = (id: string) => {
         setExpandedRows((prev) => ({
             ...prev,
@@ -228,7 +230,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                     <Fragment key={assignment.id}>
                                         <tr
                                             className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                                                isExpanded ? 'bg-gray-50' : ''
+                                                isExpanded ? 'bg-blue-50' : ''
                                             }`}
                                             onClick={() => toggleRow(assignment.id)}
                                         >
@@ -236,9 +238,13 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center mb-.5">
-                                                        <span className="text-sm font-semibold text-gray-900">
+                                                        <Link
+                                                            href={`/loads/${assignment.load.id}`}
+                                                            target="_blank"
+                                                            className="text-sm  font-semibold w-fit text-blue-600 rounded-lg  hover:bg-text-800 hover:underline transition text-center"
+                                                        >
                                                             Order# {assignment.load.refNum}
-                                                        </span>
+                                                        </Link>
                                                     </div>
 
                                                     <div className="flex items-center mt-0 text-xs text-gray-500">
@@ -267,35 +273,71 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-start">
-                                                        {pickupLocation && (
-                                                            <div className="flex-1 min-w-0 pr-2">
-                                                                <div className="flex items-center">
-                                                                    <div className="h-3 w-3 rounded-full bg-green-500 mr-1.5 flex-shrink-0"></div>
-                                                                    <span className="text-sm font-semibold text-gray-900 truncate">
-                                                                        {pickupLocation.city}, {pickupLocation.state}
-                                                                    </span>
+                                                        {assignment.routeLeg.locations.length > 0 && (
+                                                            <>
+                                                                {/* First location (pickup) */}
+                                                                <div className="flex-1 min-w-0 pr-2">
+                                                                    <div className="flex items-center">
+                                                                        <div className="h-3 w-3 rounded-full bg-green-500/60 mr-1.5 flex-shrink-0"></div>
+                                                                        <span className="text-sm font-semibold text-gray-900 truncate">
+                                                                            {assignment.routeLeg.locations[0].loadStop
+                                                                                ?.city ||
+                                                                                assignment.routeLeg.locations[0]
+                                                                                    .location?.city}
+                                                                            ,
+                                                                            {assignment.routeLeg.locations[0].loadStop
+                                                                                ?.state ||
+                                                                                assignment.routeLeg.locations[0]
+                                                                                    .location?.state}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                                                                        {assignment.routeLeg.locations[0].loadStop
+                                                                            ?.name ||
+                                                                            assignment.routeLeg.locations[0].location
+                                                                                ?.name}
+                                                                    </p>
                                                                 </div>
-                                                                <p className="text-xs text-gray-500 truncate mt-0.5">
-                                                                    {pickupLocation.name}
-                                                                </p>
-                                                            </div>
-                                                        )}
 
-                                                        <ArrowLongRightIcon className="w-4 h-4 mx-1 text-gray-400 flex-shrink-0 mt-1" />
+                                                                <ArrowLongRightIcon className="w-4 h-4 mx-1 text-gray-400 flex-shrink-0 mt-1" />
 
-                                                        {deliveryLocation && (
-                                                            <div className="flex-1 min-w-0 pl-2">
-                                                                <div className="flex items-center">
-                                                                    <div className="h-3 w-3 rounded-full bg-red-500 mr-1.5 flex-shrink-0"></div>
-                                                                    <span className="text-sm font-semibold text-gray-900 truncate">
-                                                                        {deliveryLocation.city},{' '}
-                                                                        {deliveryLocation.state}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-xs text-gray-500 truncate mt-0.5">
-                                                                    {deliveryLocation.name}
-                                                                </p>
-                                                            </div>
+                                                                {/* Last location (delivery) */}
+                                                                {assignment.routeLeg.locations.length > 1 && (
+                                                                    <div className="flex-1 min-w-0 pl-2">
+                                                                        <div className="flex items-center">
+                                                                            <div className="h-3 w-3 rounded-full bg-red-500/60 mr-1.5 flex-shrink-0"></div>
+                                                                            <span className="text-sm font-semibold text-gray-900 truncate">
+                                                                                {assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].loadStop?.city ||
+                                                                                    assignment.routeLeg.locations[
+                                                                                        assignment.routeLeg.locations
+                                                                                            .length - 1
+                                                                                    ].location?.city}
+                                                                                ,
+                                                                                {assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].loadStop?.state ||
+                                                                                    assignment.routeLeg.locations[
+                                                                                        assignment.routeLeg.locations
+                                                                                            .length - 1
+                                                                                    ].location?.state}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                                                                            {assignment.routeLeg.locations[
+                                                                                assignment.routeLeg.locations.length - 1
+                                                                            ].loadStop?.name ||
+                                                                                assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].location?.name}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </>
                                                         )}
                                                     </div>
 
@@ -315,6 +357,17 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                 hrs
                                                             </span>
                                                         </div>
+                                                        {assignment.routeLeg.locations.length > 2 && (
+                                                            <>
+                                                                <span className="mx-2 text-gray-300">•</span>
+                                                                <div className="flex items-center">
+                                                                    <StopIcon className="w-3 h-3 mr-1 text-gray-400" />
+                                                                    <span>
+                                                                        {assignment.routeLeg.locations.length} stops
+                                                                    </span>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
@@ -503,101 +556,175 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
 
                                         {/* Expanded Row */}
                                         {isExpanded && (
-                                            <tr className="bg-gray-50 border-t border-gray-100">
+                                            <tr className="bg-gray-50 border-t border-gray-100  ">
                                                 <td colSpan={6} className="px-6 py-4">
                                                     <div className="grid grid-cols-3 gap-6">
-                                                        {/* Pickup & Delivery Details */}
+                                                        {/* All Locations */}
                                                         <div className="col-span-2">
                                                             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                                                                Stops
+                                                                Stops ({assignment.routeLeg.locations.length})
                                                             </h4>
                                                             <div className="relative pl-6 pb-1">
-                                                                <div className="absolute left-[9px] top-[24px] bottom-[24px] w-0.5 bg-gray-200"></div>
-
-                                                                {/* Pickup */}
-                                                                {pickupLocation && (
-                                                                    <div className="relative mb-5">
-                                                                        <div className="absolute left-[-24px] top-1">
-                                                                            <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center">
-                                                                                <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div>
-                                                                            <div className="flex items-center">
-                                                                                <h5 className="font-semibold text-sm text-gray-900">
-                                                                                    Pickup
-                                                                                </h5>
-                                                                                <span className="ml-2 text-xs text-gray-500">
-                                                                                    {formatDate(
-                                                                                        pickupLocation.date.toString(),
-                                                                                    )}{' '}
-                                                                                    at {formatTime(pickupLocation.time)}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-sm text-gray-700 font-medium mt-1">
-                                                                                {pickupLocation.name}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                                                {pickupLocation.street},{' '}
-                                                                                {pickupLocation.city},{' '}
-                                                                                {pickupLocation.state}{' '}
-                                                                                {pickupLocation.zip}
-                                                                            </p>
-                                                                            {pickupLocation.pickUpNumbers && (
-                                                                                <p className="text-xs text-gray-500 mt-1.5">
-                                                                                    <span className="font-medium">
-                                                                                        Pickup #:
-                                                                                    </span>{' '}
-                                                                                    {pickupLocation.pickUpNumbers}
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
+                                                                {assignment.routeLeg.locations.length > 1 && (
+                                                                    <div className="absolute left-[9px] top-[24px] bottom-[24px] w-0.5 bg-gray-200"></div>
                                                                 )}
 
-                                                                {/* Delivery */}
-                                                                {deliveryLocation && (
-                                                                    <div className="relative">
-                                                                        <div className="absolute left-[-24px] top-1">
-                                                                            <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center">
-                                                                                <div className="h-2.5 w-2.5 rounded-full bg-red-500"></div>
+                                                                {assignment.routeLeg.locations.map(
+                                                                    (locationItem, index) => {
+                                                                        const isFirst = index === 0;
+                                                                        const isLast =
+                                                                            index ===
+                                                                            assignment.routeLeg.locations.length - 1;
+                                                                        const isLoadStop =
+                                                                            locationItem.loadStop !== null;
+                                                                        const isCustomLocation =
+                                                                            locationItem.location !== null;
+
+                                                                        // Determine location data based on type
+                                                                        const locationData = isLoadStop
+                                                                            ? locationItem.loadStop
+                                                                            : locationItem.location;
+
+                                                                        // Determine stop type and styling
+                                                                        let stopTypeLabel = '';
+                                                                        let iconColor = '';
+
+                                                                        if (isLoadStop) {
+                                                                            if (
+                                                                                locationItem.loadStop?.type ===
+                                                                                'SHIPPER'
+                                                                            ) {
+                                                                                stopTypeLabel = 'Pickup';
+                                                                                iconColor = 'bg-green-500';
+                                                                            } else if (
+                                                                                locationItem.loadStop?.type ===
+                                                                                'RECEIVER'
+                                                                            ) {
+                                                                                stopTypeLabel = 'Delivery';
+                                                                                iconColor = 'bg-red-500';
+                                                                            } else if (
+                                                                                locationItem.loadStop?.type === 'STOP'
+                                                                            ) {
+                                                                                stopTypeLabel = 'Stop';
+                                                                                iconColor = 'bg-amber-500';
+                                                                            }
+                                                                        } else if (isCustomLocation) {
+                                                                            stopTypeLabel = 'Custom Location';
+                                                                            iconColor = 'bg-purple-500';
+                                                                        }
+
+                                                                        return (
+                                                                            <div
+                                                                                key={locationItem.id}
+                                                                                className={`relative ${
+                                                                                    !isLast ? 'mb-5' : ''
+                                                                                }`}
+                                                                            >
+                                                                                <div className="absolute left-[-24px] top-1">
+                                                                                    <div
+                                                                                        className={`h-5 w-5 rounded-full ${
+                                                                                            isFirst
+                                                                                                ? 'bg-green-100'
+                                                                                                : isLast
+                                                                                                ? 'bg-red-100'
+                                                                                                : 'bg-gray-100'
+                                                                                        } flex items-center justify-center`}
+                                                                                    >
+                                                                                        <div
+                                                                                            className={`h-2.5 w-2.5 rounded-full ${iconColor}`}
+                                                                                        ></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <div className="flex items-center">
+                                                                                        <h5 className="font-semibold text-sm text-gray-900">
+                                                                                            {stopTypeLabel}
+                                                                                        </h5>
+                                                                                        {'date' in locationData && (
+                                                                                            <span className="ml-2 text-xs text-gray-500">
+                                                                                                {formatDate(
+                                                                                                    locationData.date.toString(),
+                                                                                                )}{' '}
+                                                                                                at{' '}
+                                                                                                {formatTime(
+                                                                                                    locationData.time,
+                                                                                                )}
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {locationData?.latitude &&
+                                                                                            locationData?.longitude && (
+                                                                                                <a
+                                                                                                    href={createGoogleMapsUrl(
+                                                                                                        Number(
+                                                                                                            locationData.latitude,
+                                                                                                        ),
+                                                                                                        Number(
+                                                                                                            locationData.longitude,
+                                                                                                        ),
+                                                                                                        assignment.load
+                                                                                                            .loadNum,
+                                                                                                    )}
+                                                                                                    target="_blank"
+                                                                                                    rel="noopener noreferrer"
+                                                                                                    className="ml-auto flex items-center text-gray-400 hover:text-blue-800 text-xs"
+                                                                                                    onClick={(e) =>
+                                                                                                        e.stopPropagation()
+                                                                                                    }
+                                                                                                >
+                                                                                                    <MapIcon className="w-3.5 h-3.5 mr-1" />
+                                                                                                    Map
+                                                                                                    <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                </a>
+                                                                                            )}
+                                                                                    </div>
+                                                                                    <p className="text-sm text-gray-700 font-medium mt-1">
+                                                                                        {locationData?.name}
+                                                                                    </p>
+                                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                                        {locationData?.street},{' '}
+                                                                                        {locationData?.city},{' '}
+                                                                                        {locationData?.state}{' '}
+                                                                                        {locationData?.zip}
+                                                                                    </p>
+                                                                                    {isLoadStop &&
+                                                                                        locationItem.loadStop
+                                                                                            ?.pickUpNumbers && (
+                                                                                            <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                <span className="font-medium">
+                                                                                                    {locationItem
+                                                                                                        .loadStop
+                                                                                                        .type ===
+                                                                                                    'RECEIVER'
+                                                                                                        ? 'Confirmation #:'
+                                                                                                        : 'Pickup #:'}
+                                                                                                </span>{' '}
+                                                                                                {
+                                                                                                    locationItem
+                                                                                                        .loadStop
+                                                                                                        .pickUpNumbers
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                    {isLoadStop &&
+                                                                                        locationItem.loadStop
+                                                                                            ?.referenceNumbers && (
+                                                                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                                                                <span className="font-medium">
+                                                                                                    Reference #:
+                                                                                                </span>{' '}
+                                                                                                {
+                                                                                                    locationItem
+                                                                                                        .loadStop
+                                                                                                        .referenceNumbers
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        <div>
-                                                                            <div className="flex items-center">
-                                                                                <h5 className="font-semibold text-sm text-gray-900">
-                                                                                    Delivery
-                                                                                </h5>
-                                                                                <span className="ml-2 text-xs text-gray-500">
-                                                                                    {formatDate(
-                                                                                        deliveryLocation.date.toString(),
-                                                                                    )}{' '}
-                                                                                    at{' '}
-                                                                                    {formatTime(deliveryLocation.time)}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-sm text-gray-700 font-medium mt-1">
-                                                                                {deliveryLocation.name}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                                                {deliveryLocation.street},{' '}
-                                                                                {deliveryLocation.city},{' '}
-                                                                                {deliveryLocation.state}{' '}
-                                                                                {deliveryLocation.zip}
-                                                                            </p>
-                                                                            {deliveryLocation.pickUpNumbers && (
-                                                                                <p className="text-xs text-gray-500 mt-1.5">
-                                                                                    <span className="font-medium">
-                                                                                        Confirmation #:
-                                                                                    </span>{' '}
-                                                                                    {deliveryLocation.pickUpNumbers}
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
+                                                                        );
+                                                                    },
                                                                 )}
                                                             </div>
-
                                                             {/* Location Updates */}
                                                             {(hasStartLocation || hasEndLocation) && (
                                                                 <div className="mt-5">
