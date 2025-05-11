@@ -107,10 +107,8 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ carrier, invoice, custom
                             borderBottom: '1px solid #D1D1D1',
                         }}
                     >
-                        <Text style={{ fontSize: 11, marginBottom: 4, fontFamily: 'Helvetica-Bold' }}>
-                            Load/Order #
-                        </Text>
-                        <Text style={{ fontSize: 11, marginBottom: 2 }}>{load.refNum}</Text>
+                        <Text style={{ fontSize: 11, marginBottom: 4, fontFamily: 'Helvetica-Bold' }}>Load #</Text>
+                        <Text style={{ fontSize: 11, marginBottom: 2 }}>{load.loadNum}</Text>
                     </View>
                     <View
                         style={{
