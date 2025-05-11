@@ -4,12 +4,14 @@ import { DashboardStats } from '../../interfaces/stats';
 
 export const getUpcomingLoads = async (todayDataOnly: boolean): Promise<ExpandedLoad[]> => {
     const response = await fetch(`${apiUrl}/loads/upcoming?todayDataOnly=${todayDataOnly}`, { cache: 'no-cache' });
-    const { data, errors }: JSONResponse<ExpandedLoad[]> = await response.json();
+
+    const { data, errors }: { data: { loads: ExpandedLoad[] }; errors?: { message: string }[] } = await response.json();
 
     if (errors) {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
-    return data;
+
+    return data.loads;
 };
 
 export const getDashboardStats = async (statsTimeFrame: string): Promise<DashboardStats> => {
