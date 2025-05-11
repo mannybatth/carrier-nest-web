@@ -108,14 +108,14 @@ export const GET = auth(async (req: NextAuthRequest) => {
 
         loads.sort((a, b) => getStatusPriority(a.status) - getStatusPriority(b.status));
 
-        /*  const safeJson = (data: any) =>
+        const safeJson = (data: any) =>
             JSON.stringify(data, (_, val) => (typeof val === 'bigint' ? val.toString() : val));
 
-        return new Response(safeJson({ code: 200, data: loads }), {
+        return new Response(safeJson({ code: 200, data: { loads } }), {
             headers: { 'Content-Type': 'application/json' },
-        }); */
+        });
 
-        return NextResponse.json({ code: 200, data: { loads } });
+        //return NextResponse.json({ code: 200, data: { loads } });
     } catch (error) {
         console.error('[LOAD FETCH ERROR]:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
