@@ -1,27 +1,129 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import Link from 'next/link';
 import { Tab } from '@headlessui/react';
-import { MapPinIcon, TruckIcon, TableCellsIcon, ViewColumnsIcon, MapIcon } from '@heroicons/react/24/outline';
+import {
+    MapPinIcon,
+    TruckIcon,
+    TableCellsIcon,
+    MapIcon,
+    PhoneIcon,
+    ClockIcon,
+    CurrencyDollarIcon,
+    UserIcon,
+    InformationCircleIcon,
+    ArrowTopRightOnSquareIcon,
+    CalendarIcon,
+    EllipsisHorizontalIcon,
+    CheckCircleIcon,
+    ClockIcon as ClockIconOutline,
+    CircleStackIcon,
+    PlayCircleIcon,
+    StopIcon,
+} from '@heroicons/react/24/outline';
+import { Menu, Transition } from '@headlessui/react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ExpandedDriverAssignment, ExpandedLoad } from 'interfaces/models';
+import type { ExpandedDriverAssignment, ExpandedLoad } from 'interfaces/models';
 import LoadStatusBadge from './LoadStatusBadge';
 import { formatDate } from 'lib/helpers/format';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import SwitchWithLabel from 'components/switchWithLabel';
 import { getAssignmentById } from 'lib/rest/assignment';
 import AssignmentPopup from 'components/assignment/AssignmentPopup';
+import { updateRouteLegStatus } from 'lib/rest/routeLeg';
+import { notify } from 'components/Notification';
+import { Route } from 'next';
+import { RouteLegStatus } from '@prisma/client';
+import Spinner from 'components/Spinner';
 
 interface LoadViewToggleProps {
     loadsList: ExpandedLoad[];
     todayDataOnly: () => void;
+    updateLoadStatus: (updatedLoad: ExpandedLoad) => void;
 }
 
-const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDataOnly }) => {
+// Create Google Maps URL from coordinates
+const createGoogleMapsUrl = (latitude: number, longitude: number, label?: string) => {
+    const baseUrl = 'https://www.google.com/maps';
+
+    if (label) {
+        // Include a label/pin text if provided
+        return `${baseUrl}?q=${latitude},${longitude}&z=15&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(
+            label,
+        )}`;
+    } else {
+        return `${baseUrl}?q=${latitude},${longitude}&z=15`;
+    }
+};
+
+// Add a function to create Google Maps directions URL with waypoints
+// Add this after the existing createGoogleMapsUrl function
+const createGoogleMapsDirectionsUrl = (locations) => {
+    if (!locations || locations.length < 2) return '';
+
+    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+
+    // Get first location as origin
+    const firstLocation = locations[0];
+    const origin = firstLocation.loadStop
+        ? `${firstLocation.loadStop.latitude},${firstLocation.loadStop.longitude}`
+        : firstLocation.location
+        ? `${firstLocation.location.latitude},${firstLocation.location.longitude}`
+        : '';
+
+    // Get last location as destination
+    const lastLocation = locations[locations.length - 1];
+    const destination = lastLocation.loadStop
+        ? `${lastLocation.loadStop.latitude},${lastLocation.loadStop.longitude}`
+        : lastLocation.location
+        ? `${lastLocation.location.latitude},${lastLocation.location.longitude}`
+        : '';
+
+    // Get middle locations as waypoints
+    const waypoints = locations
+        .slice(1, locations.length - 1)
+        .map((loc) => {
+            return loc.loadStop
+                ? `${loc.loadStop.latitude},${loc.loadStop.longitude}`
+                : loc.location
+                ? `${loc.location.latitude},${loc.location.longitude}`
+                : '';
+        })
+        .filter((wp) => wp !== '')
+        .join('|');
+
+    return `${baseUrl}&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}`;
+};
+
+const formatTime = (timeString: string) => {
+    // Convert 24-hour time format to 12-hour format
+    if (!timeString) return '';
+
+    // Handle time ranges like "07:00-14:00"
+    if (timeString.includes('-')) {
+        const [start, end] = timeString.split('-');
+        return `${formatTime(start)} - ${formatTime(end)}`;
+    }
+
+    const [hours, minutes] = timeString.split(':');
+    const hour = Number.parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+};
+
+const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDataOnly, updateLoadStatus }) => {
     const [loadingAssignment, setLoadingAssignment] = useState(false);
     const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
     const [modalAssignment, setModalAssignment] = useState<ExpandedDriverAssignment | null>(null);
     const [assignmentId, setAssignmentId] = useState<string | null>(null);
+    const [expandedLoadId, setExpandedLoadId] = useState<string | null>(null);
+    const [changeLegStatusLoading, setChangeLegStatusLoading] = useState(false);
+    const [updatedStatuses, setUpdatedStatuses] = useState<Record<string, string>>({});
+
+    const [routeLegIdUpdating, setRouteLegIdUpdating] = useState<string | null>(null);
 
     // Get assignment by assignment ID
     const getAssignment = async (assId: string, driverId: string) => {
@@ -363,6 +465,246 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
         localStorage.setItem('selectedLoadView', viewModes[index]);
     };
 
+    // Group assignments by routeLegId
+    const getRouteLegsForLoad = (load) => {
+        if (!load.driverAssignments || load.driverAssignments.length === 0) return [];
+
+        // Group assignments by routeLegId
+        const routeLegsMap = new Map();
+
+        load.driverAssignments.forEach((assignment) => {
+            const routeLegId = assignment.routeLegId;
+
+            if (!routeLegsMap.has(routeLegId)) {
+                routeLegsMap.set(routeLegId, {
+                    routeLeg: assignment.routeLeg,
+                    assignments: [],
+                });
+            }
+
+            routeLegsMap.get(routeLegId).assignments.push(assignment);
+        });
+
+        return Array.from(routeLegsMap.values());
+    };
+
+    const toggleExpandRow = (loadId: string) => {
+        setExpandedLoadId(expandedLoadId === loadId ? null : loadId);
+    };
+
+    // Helper function to get the current status (either updated or original)
+    const getCurrentStatus = (routeLeg) => {
+        return updatedStatuses[routeLeg.id] || routeLeg.status;
+    };
+
+    const changeLegStatusClicked = async (status: string, routeLegId: string) => {
+        setChangeLegStatusLoading(true);
+        setRouteLegIdUpdating(routeLegId);
+        try {
+            // change status to routelegstatus type
+            const routeLegStatus = status as RouteLegStatus;
+
+            const { loadStatus, routeLeg: newRouteLeg } = await updateRouteLegStatus(routeLegId, routeLegStatus);
+
+            // Update local state immediately for UI feedback
+            setUpdatedStatuses((prev) => ({
+                ...prev,
+                [routeLegId]: status,
+            }));
+
+            // Update the load status in the load object
+            const load = loadsList.find((load) =>
+                load.driverAssignments.some((assignment: any) => assignment.routeLeg?.id === routeLegId),
+            );
+            if (load) {
+                load.status = loadStatus;
+            }
+
+            // Update the route leg status in the load object
+            updateLoadStatus(load);
+
+            notify({ title: 'Load Assignment Status', message: 'Load assignment successfully updated' });
+        } catch (error) {
+            console.error('Error updating route leg status:', error);
+            // Revert the status change in case of error
+            setUpdatedStatuses((prev) => {
+                const newStatuses = { ...prev };
+                delete newStatuses[routeLegId];
+                return newStatuses;
+            });
+        } finally {
+            setChangeLegStatusLoading(false);
+            setRouteLegIdUpdating(null);
+        }
+    };
+
+    // Loading skeleton components
+    const LoadingLoadViewTableSkeleton = () => {
+        // Create an array of 8 items to map over
+        const skeletonRows = Array(6).fill(null);
+
+        return (
+            <div className="px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
+                <div className="inline-block min-w-full align-middle">
+                    <table className="min-w-full divide-y divide-gray-200 border-collapse">
+                        <thead>
+                            <tr className="bg-gray-100 text-gray-600">
+                                <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase">
+                                    Load
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold uppercase">
+                                    Status
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold uppercase">
+                                    Pickup
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold uppercase">
+                                    Delivery
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold uppercase">
+                                    Distance
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold uppercase">
+                                    Driver
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                            {skeletonRows.map((_, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                                        <div className="flex flex-col">
+                                            <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                            <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                                        </div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div className="flex items-start space-x-2">
+                                            <div className="flex-shrink-0 mt-0.5">
+                                                <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                                                    <TruckIcon
+                                                        className="w-3 h-3 text-green-800 opacity-50"
+                                                        aria-hidden="true"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-24 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div className="flex items-start space-x-2">
+                                            <div className="flex-shrink-0 mt-0.5">
+                                                <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
+                                                    <MapPinIcon
+                                                        className="w-3 h-3 text-red-800 opacity-50"
+                                                        aria-hidden="true"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-24 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div className="h-4 w-12 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    const LoadingLoadMapViewSkeleton = () => {
+        // Number of skeleton cards to display
+        const skeletonCount = 5;
+
+        return (
+            <div className="px-0 pb-0 relative">
+                {/* Map loading skeleton */}
+                <div className="w-full h-[50vh] md:h-[80vh] rounded-lg border border-gray-200 overflow-hidden relative z-10 bg-gray-100">
+                    {/* Map placeholder with shimmer effect */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <MapIcon className="w-16 h-16 text-gray-300" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                </div>
+
+                {/* Loads list skeleton overlay */}
+                <div className="relative md:absolute bottom-0 top-0 left-0 z-20 px-0 pb-0 overflow-x-auto md:overflow-y-auto hide-scrollbar">
+                    <div className="relative">
+                        {/* Scroll container */}
+                        <div className="flex flex-row md:flex-col overflow-y-auto hide-scrollbar px-2 my-4">
+                            {Array.from({ length: skeletonCount }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="snap-start flex-shrink-0 w-72 m-2 bg-white rounded-lg border border-gray-200 shadow-sm overflow-visible"
+                                >
+                                    <div className="p-3 pb-1">
+                                        <div className="relative flex justify-between items-start mb-2">
+                                            <div className="w-full">
+                                                <div className="h-3 w-16 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                                                <div className="h-4 w-36 bg-gray-300 rounded animate-pulse"></div>
+                                            </div>
+                                            <div className="absolute -top-6 right-0">
+                                                <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 mb-1.5">
+                                            <div className="flex-shrink-0">
+                                                <div className="flex items-center justify-center w-5 h-5 bg-green-100 rounded-full">
+                                                    <TruckIcon className="w-3 h-3 text-green-300" aria-hidden="true" />
+                                                </div>
+                                            </div>
+                                            <div className="h-3 w-40 bg-gray-200 rounded animate-pulse"></div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 mb-2">
+                                            <div className="flex-shrink-0">
+                                                <div className="flex items-center justify-center w-5 h-5 bg-red-100 rounded-full">
+                                                    <MapPinIcon className="w-3 h-3 text-red-300" aria-hidden="true" />
+                                                </div>
+                                            </div>
+                                            <div className="h-3 w-40 bg-gray-200 rounded animate-pulse"></div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-xs">
+                                            <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                            <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 pt-1">
+                                        <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col w-full mx-auto mt-6 mb-8">
             <AssignmentPopup
@@ -371,7 +713,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                 assignment={modalAssignment}
                 loading={loadingAssignment}
             />
-            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 px-0   ">
+            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 px-0">
                 <div className="flex flex-col flex-1">
                     <h3 className="text-xl font-semibold text-[#1D1D1F]">Upcoming Load Runs</h3>
                     {showTodayOnly && (
@@ -386,7 +728,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                     )}
                 </div>
 
-                <div className="flex flex-row gap-3  ">
+                <div className="flex flex-row gap-3">
                     <SwitchWithLabel
                         checked={showTodayOnly}
                         label="Show Today's Runs Only"
@@ -395,19 +737,6 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
 
                     <Tab.Group selectedIndex={selectedIndex} onChange={changeViewMode}>
                         <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-lg">
-                            {/* <Tab
-                            className={({ selected }) =>
-                                `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
-                ${
-                    selected
-                        ? 'bg-white shadow text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/[0.12]'
-                }`
-                            }
-                        >
-                            <ViewColumnsIcon className="h-4 w-4" />
-                            <span className="hidden sm:inline">Cards</span>
-                        </Tab> */}
                             <Tab
                                 className={({ selected }) =>
                                     `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
@@ -439,176 +768,11 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                 </div>
             </div>
 
-            {/*  {viewMode === 'card' && (
-                <div className="flex pb-10 overflow-x-auto">
-                    <ul role="list" className="flex px-5 space-x-6 md:px-0 flex-nowrap">
-                        {loadsList.map((load, index) => (
-                            <li key={index} className="overflow-hidden border border-gray-200 rounded-xl w-80">
-                                <Link href={`/loads/${load.id}`}>
-                                    {load && load.routeEncoded && (
-                                        <Image
-                                            src={`https://api.mapbox.com/styles/v1/mapbox/light-v10/static/path-3+3b82f6-0.7(${encodeURIComponent(
-                                                load.routeEncoded,
-                                            )})/auto/900x300?padding=50,50,50,50&access_token=${
-                                                process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-                                                'pk.eyJ1IjoiY2Fycmllcm5lc3RhcHAiLCJhIjoiY2xrM2prOWZvMDhyczNncG55a2I1aDhhOSJ9._mlA6WAuqHcbS-U_f5KK5w'
-                                            }`}
-                                            width={900}
-                                            height={300}
-                                            alt="Load Route"
-                                            loading="lazy"
-                                            className="w-full h-auto mb-1"
-                                        ></Image>
-                                    )}
-                                    {!(load && load.routeEncoded) && (
-                                        <div className="flex items-center p-6 border-b gap-x-4 border-gray-900/5 bg-gray-50"></div>
-                                    )}
-                                    <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
-                                        <div className="flex justify-between py-2 gap-x-4">
-                                            <dt className="text-gray-500">
-                                                <div className="text-xs">{load.refNum}</div>
-                                                <div className="font-medium text-sm text-gray-900 uppercase">
-                                                    {load.customer.name}
-                                                </div>
-                                            </dt>
-                                            <dd className="text-gray-700">
-                                                <LoadStatusBadge load={load} />
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between py-3 gap-x-4">
-                                            <ul role="list" className="flex-1">
-                                                <li>
-                                                    <div className="relative z-auto pb-3">
-                                                        <span
-                                                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                            aria-hidden="true"
-                                                        />
-                                                        <div className="relative flex items-center space-x-3">
-                                                            <div className="relative px-1">
-                                                                <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full ring-8 ring-white">
-                                                                    <TruckIcon
-                                                                        className="w-5 h-5 text-green-800"
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="text-xs text-gray-500">
-                                                                    <span className="text-sm font-medium text-gray-900">
-                                                                        {formatDate(load.shipper.date.toString())}
-                                                                    </span>{' '}
-                                                                    @ {load.shipper.time}
-                                                                    <div>{load.shipper.name}</div>
-                                                                    <div>
-                                                                        {load.shipper.city}, {load.shipper.state}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                                {load.stops.length > 0 && (
-                                                    <li>
-                                                        <div className="relative pb-3">
-                                                            <span
-                                                                className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                                                                aria-hidden="true"
-                                                            />
-                                                            <div className="relative flex items-center space-x-3">
-                                                                <div className="relative px-1">
-                                                                    <div className="flex items-center justify-center w-8 h-8 ">
-                                                                        <div className="w-4 h-4 bg-gray-100 rounded-full ring-8 ring-white"></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-xs text-gray-500">
-                                                                        <div>
-                                                                            {load.stops.length} stop
-                                                                            {load.stops.length > 1 && 's'}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                )}
-                                                <li>
-                                                    <div className="relative pb-2">
-                                                        <div className="relative flex items-center space-x-3">
-                                                            <div className="relative px-1">
-                                                                <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full ring-8 ring-white">
-                                                                    <MapPinIcon
-                                                                        className="w-5 h-5 text-red-800"
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="text-xs text-gray-500">
-                                                                    <span className="text-sm font-medium text-gray-900">
-                                                                        {formatDate(load.receiver.date.toString())}
-                                                                    </span>{' '}
-                                                                    @ {load.receiver.time}
-                                                                    <div>{load.receiver.name}</div>
-                                                                    <div>
-                                                                        {load.receiver.city}, {load.receiver.state}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </dl>
-                                </Link>
-                                <dl className="px-3 text-sm leading-6 divide-y divide-gray-100">
-                                    <div></div>
-                                    <div className="flex justify-between py-3">
-                                        <dt className="">
-                                            <div className="text-xs text-gray-500">Driver details</div>
-                                            <div>
-                                                {load.driverAssignments?.length > 0 ? (
-                                                    Array.from(
-                                                        new Map(
-                                                            load.driverAssignments.map((assignment) => [
-                                                                assignment.driver.id,
-                                                                assignment,
-                                                            ]),
-                                                        ).values(),
-                                                    ).map((assignment, index, uniqueAssignments) => (
-                                                        <span key={`${assignment.driver.id}-${index}`}>
-                                                            <Link
-                                                                href={`/drivers/${assignment.driver.id}`}
-                                                                className="font-medium"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                }}
-                                                            >
-                                                                {assignment.driver?.name}
-                                                            </Link>
-                                                            {index < uniqueAssignments.length - 1 ? ', ' : ''}
-                                                        </span>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-gray-400">No driver assigned</div>
-                                                )}
-                                            </div>
-                                        </dt>
-                                        <dd className=""></dd>
-                                    </div>
-                                </dl>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )} */}
-
             {viewMode === 'table' &&
                 (loadsList?.length === 0 ? (
                     <LoadingLoadViewTableSkeleton />
                 ) : (
-                    <div className=" mx-0 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
+                    <div className="mx-0 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
                         <div className="inline-block min-w-full align-middle">
                             <table className="min-w-full divide-y divide-gray-200 border-collapse">
                                 <thead>
@@ -621,32 +785,32 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold  uppercase"
+                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
                                         >
                                             Status
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold   uppercase "
+                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
                                         >
                                             Pickup
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold   uppercase"
+                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
                                         >
                                             Delivery
                                         </th>
 
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold     uppercase"
+                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
                                         >
                                             Distance
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold   uppercase"
+                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
                                         >
                                             Driver
                                         </th>
@@ -670,132 +834,974 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                             return date < now;
                                         });
 
-                                        return (
-                                            <tr
-                                                key={index}
-                                                className={`hover:bg-gray-50 cursor-pointer ${
-                                                    load.driverAssignments?.length === 0 && !allDatesInPast
-                                                        ? 'bg-red-50'
-                                                        : ''
-                                                } ${allDatesInPast ? 'bg-red-100 animate-none' : ''}`}
-                                                onClick={() => (window.location.href = `/loads/${load.id}`)}
-                                            >
-                                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                                                    <div className="flex flex-col">
-                                                        <div className="text-xs text-gray-500">
-                                                            Order# {load.refNum}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500">
-                                                            Load# {load.loadNum}
-                                                        </div>
-                                                        <div className="font-base text-gray-900 font-semibold">
-                                                            {load.customer.name.toUpperCase()}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                    <LoadStatusBadge load={load} />
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                    <div className="flex items-start space-x-2">
-                                                        <div className="flex-shrink-0 mt-0.5">
-                                                            <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
-                                                                <TruckIcon
-                                                                    className="w-3 h-3 text-green-800"
-                                                                    aria-hidden="true"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-medium text-gray-900">
-                                                                {formatDate(load.shipper.date.toString())}
-                                                            </div>
-                                                            <div className="text-gray-500">{load.shipper.time}</div>
-                                                            <div className="text-gray-500 truncate">
-                                                                {load.shipper.name.toUpperCase()}
-                                                            </div>
-                                                            <div className="text-gray-500 capitalize">
-                                                                {load.shipper.city.toLowerCase()},{' '}
-                                                                {load.shipper.state.toUpperCase()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                    <div className="flex items-start space-x-2">
-                                                        <div className="flex-shrink-0 mt-0.5">
-                                                            <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
-                                                                <MapPinIcon
-                                                                    className="w-3 h-3 text-red-800"
-                                                                    aria-hidden="true"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-medium text-gray-900">
-                                                                {formatDate(load.receiver.date.toString())}
-                                                            </div>
-                                                            <div className="text-gray-500">{load.receiver.time}</div>
-                                                            <div className="text-gray-500 truncate">
-                                                                {load.receiver.name.toUpperCase()}
-                                                            </div>
-                                                            <div className="text-gray-500 capitalize">
-                                                                {load.receiver.city.toLowerCase()},{' '}
-                                                                {load.receiver.state.toUpperCase()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                                        // Get route legs for this load
+                                        const routeLegs = getRouteLegsForLoad(load);
+                                        const isExpanded = expandedLoadId === load.id;
 
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    {load.routeDistanceMiles
-                                                        ? `${
-                                                              isNaN(Number(load.routeDistanceMiles))
-                                                                  ? '0'
-                                                                  : Number(load.routeDistanceMiles).toFixed(0)
-                                                          } mi`
-                                                        : 'N/A'}
-                                                    {load.routeDurationHours && (
-                                                        <div className="text-xs text-gray-400">
-                                                            {Math.floor(Number(load.routeDurationHours))}h{' '}
-                                                            {Math.round((Number(load.routeDurationHours) % 1) * 60)}m
+                                        return (
+                                            <React.Fragment key={index}>
+                                                <tr
+                                                    className={`hover:bg-gray-50 cursor-pointer ${
+                                                        load.driverAssignments?.length === 0 && !allDatesInPast
+                                                            ? 'bg-red-50'
+                                                            : ''
+                                                    } ${allDatesInPast ? 'bg-red-100 animate-none' : ''} ${
+                                                        isExpanded ? 'bg-gray-50' : ''
+                                                    }`}
+                                                    onClick={() => toggleExpandRow(load.id)}
+                                                >
+                                                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                                                        <div className="flex flex-col">
+                                                            <div className="text-xs text-gray-500">
+                                                                Order# {load.refNum}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                Load# {load.loadNum}
+                                                            </div>
+                                                            <div className="font-base text-gray-900 font-semibold">
+                                                                {load.customer.name.toUpperCase()}
+                                                            </div>
                                                         </div>
-                                                    )}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                    {load.driverAssignments?.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {Array.from(
-                                                                new Map(
-                                                                    load.driverAssignments.map((assignment) => [
-                                                                        assignment.driver.id,
-                                                                        assignment,
-                                                                    ]),
-                                                                ).values(),
-                                                            ).map((assignment, index, uniqueAssignments) => (
-                                                                <Link
-                                                                    key={`${assignment.driver.id}-${index}`}
-                                                                    href={`/drivers/${assignment.driver.id}`}
-                                                                    className="font-medium cursor-pointer hover:underline"
-                                                                    onClick={(e) => {
-                                                                        getAssignment(
-                                                                            assignment.id,
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                        <LoadStatusBadge load={load} />
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                        <div className="flex items-start space-x-2">
+                                                            <div className="flex-shrink-0 mt-0.5">
+                                                                <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                                                                    <TruckIcon
+                                                                        className="w-3 h-3 text-green-800"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-gray-900">
+                                                                    {formatDate(load.shipper.date.toString())}
+                                                                </div>
+                                                                <div className="text-gray-500">{load.shipper.time}</div>
+                                                                <div className="text-gray-500 truncate">
+                                                                    {load.shipper.name.toUpperCase()}
+                                                                </div>
+                                                                <div className="text-gray-500 capitalize">
+                                                                    {load.shipper.city.toLowerCase()},{' '}
+                                                                    {load.shipper.state.toUpperCase()}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                        <div className="flex items-start space-x-2">
+                                                            <div className="flex-shrink-0 mt-0.5">
+                                                                <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
+                                                                    <MapPinIcon
+                                                                        className="w-3 h-3 text-red-800"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-gray-900">
+                                                                    {formatDate(load.receiver.date.toString())}
+                                                                </div>
+                                                                <div className="text-gray-500">
+                                                                    {load.receiver.time}
+                                                                </div>
+                                                                <div className="text-gray-500 truncate">
+                                                                    {load.receiver.name.toUpperCase()}
+                                                                </div>
+                                                                <div className="text-gray-500 capitalize">
+                                                                    {load.receiver.city.toLowerCase()},{' '}
+                                                                    {load.receiver.state.toUpperCase()}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                        {load.routeDistanceMiles
+                                                            ? `${
+                                                                  isNaN(Number(load.routeDistanceMiles))
+                                                                      ? '0'
+                                                                      : Number(load.routeDistanceMiles).toFixed(0)
+                                                              } mi`
+                                                            : 'N/A'}
+                                                        {load.routeDurationHours && (
+                                                            <div className="text-xs text-gray-400">
+                                                                {Math.floor(Number(load.routeDurationHours))}h{' '}
+                                                                {Math.round((Number(load.routeDurationHours) % 1) * 60)}
+                                                                m
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                        {load.driverAssignments?.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {Array.from(
+                                                                    new Map(
+                                                                        load.driverAssignments.map((assignment) => [
                                                                             assignment.driver.id,
-                                                                        );
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                    }}
-                                                                >
-                                                                    {assignment.driver?.name}
-                                                                    {index < uniqueAssignments.length - 1 ? ', ' : ''}
-                                                                </Link>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400">No driver assigned</span>
-                                                    )}
-                                                </td>
-                                            </tr>
+                                                                            assignment,
+                                                                        ]),
+                                                                    ).values(),
+                                                                ).map((assignment, index, uniqueAssignments) => (
+                                                                    <Link
+                                                                        key={`${assignment.driver.id}-${index}`}
+                                                                        href={`/drivers/${assignment.driver.id}`}
+                                                                        className="font-medium cursor-pointer hover:underline"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                        }}
+                                                                    >
+                                                                        {assignment.driver?.name}
+                                                                        {index < uniqueAssignments.length - 1
+                                                                            ? ', '
+                                                                            : ''}
+                                                                    </Link>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400">No driver assigned</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+
+                                                {/* Expanded Row with Driver Assignment Details */}
+                                                {isExpanded && routeLegs.length > 0 && (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={6}
+                                                            className="p-0 bg-blue-50 border-t border-gray-100"
+                                                        >
+                                                            <div className="p-4">
+                                                                <Tab.Group>
+                                                                    <Tab.List className="flex space-x-1 rounded-xl bg-blue-100 p-1 mb-4">
+                                                                        {routeLegs.map((routeLegData, idx) => (
+                                                                            <Tab
+                                                                                key={idx}
+                                                                                className={({ selected }) =>
+                                                                                    `w-full rounded-lg py-2 text-sm font-medium leading-5
+                                          ${
+                                              selected
+                                                  ? 'bg-white shadow text-blue-700'
+                                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                                          }`
+                                                                                }
+                                                                            >
+                                                                                Route {idx + 1}
+                                                                                {routeLegData.assignments.length > 1 &&
+                                                                                    ` (${routeLegData.assignments.length} drivers)`}
+                                                                            </Tab>
+                                                                        ))}
+                                                                    </Tab.List>
+                                                                    <Tab.Panels>
+                                                                        {routeLegs.map((routeLegData, idx) => {
+                                                                            const currentStatus = getCurrentStatus(
+                                                                                routeLegData.routeLeg,
+                                                                            );
+
+                                                                            return (
+                                                                                <Tab.Panel
+                                                                                    key={idx}
+                                                                                    className="rounded-xl bg-white p-4 shadow-sm border border-gray-100"
+                                                                                >
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                                                        {/* Route Details */}
+                                                                                        <div className="md:col-span-2">
+                                                                                            {/* Assignment Status - Moved to the top */}
+                                                                                            <div className="mb-4">
+                                                                                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                                                                    Assignment Status
+                                                                                                </h4>
+                                                                                                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                                                                                    <div className="flex items-center">
+                                                                                                        <div className="flex items-center">
+                                                                                                            {currentStatus ===
+                                                                                                            'COMPLETED' ? (
+                                                                                                                <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
+                                                                                                            ) : currentStatus ===
+                                                                                                              'IN_PROGRESS' ? (
+                                                                                                                <ClockIconOutline className="h-4 w-4 text-amber-500 mr-2" />
+                                                                                                            ) : (
+                                                                                                                <StopIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                            )}
+                                                                                                            <span className="text-sm font-medium text-gray-700">
+                                                                                                                {currentStatus ===
+                                                                                                                'COMPLETED'
+                                                                                                                    ? 'Completed'
+                                                                                                                    : currentStatus ===
+                                                                                                                      'IN_PROGRESS'
+                                                                                                                    ? 'In Progress'
+                                                                                                                    : 'Assigned'}
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                        {routeLegIdUpdating ===
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .id && (
+                                                                                                            <Spinner className="px-4 text-blue-500" />
+                                                                                                        )}
+                                                                                                    </div>
+
+                                                                                                    <div className="relative items-center">
+                                                                                                        <Menu>
+                                                                                                            <Menu.Button
+                                                                                                                className="inline-flex items-center justify-center w-8 h-8 text-gray-400 bg-white rounded-full hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                                                                                                onClick={(
+                                                                                                                    e,
+                                                                                                                ) =>
+                                                                                                                    e.stopPropagation()
+                                                                                                                }
+                                                                                                            >
+                                                                                                                <span className="sr-only">
+                                                                                                                    Open
+                                                                                                                    options
+                                                                                                                </span>
+                                                                                                                <EllipsisHorizontalIcon
+                                                                                                                    className="w-5 h-5"
+                                                                                                                    aria-hidden="true"
+                                                                                                                />
+                                                                                                            </Menu.Button>
+                                                                                                            <Transition
+                                                                                                                as={
+                                                                                                                    Fragment
+                                                                                                                }
+                                                                                                                enter="transition ease-out duration-100"
+                                                                                                                enterFrom="transform opacity-0 scale-95"
+                                                                                                                enterTo="transform opacity-100 scale-100"
+                                                                                                                leave="transition ease-in duration-75"
+                                                                                                                leaveFrom="transform opacity-100 scale-100"
+                                                                                                                leaveTo="transform opacity-0 scale-95"
+                                                                                                            >
+                                                                                                                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                                                                    <div className="py-1">
+                                                                                                                        {currentStatus !==
+                                                                                                                            'ASSIGNED' && (
+                                                                                                                            <Menu.Item>
+                                                                                                                                {({
+                                                                                                                                    active,
+                                                                                                                                }) => (
+                                                                                                                                    <button
+                                                                                                                                        onClick={(
+                                                                                                                                            e,
+                                                                                                                                        ) => {
+                                                                                                                                            e.stopPropagation();
+                                                                                                                                            changeLegStatusClicked(
+                                                                                                                                                'ASSIGNED',
+                                                                                                                                                routeLegData
+                                                                                                                                                    .routeLeg
+                                                                                                                                                    .id,
+                                                                                                                                            );
+                                                                                                                                        }}
+                                                                                                                                        disabled={
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                        }
+                                                                                                                                        className={`${
+                                                                                                                                            active
+                                                                                                                                                ? 'bg-gray-50 text-gray-900'
+                                                                                                                                                : 'text-gray-700'
+                                                                                                                                        } flex w-full px-4 py-2 text-sm ${
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                                ? 'opacity-50 cursor-not-allowed'
+                                                                                                                                                : ''
+                                                                                                                                        }`}
+                                                                                                                                    >
+                                                                                                                                        Mark
+                                                                                                                                        as
+                                                                                                                                        Assigned
+                                                                                                                                    </button>
+                                                                                                                                )}
+                                                                                                                            </Menu.Item>
+                                                                                                                        )}
+
+                                                                                                                        {currentStatus !==
+                                                                                                                            'IN_PROGRESS' && (
+                                                                                                                            <Menu.Item>
+                                                                                                                                {({
+                                                                                                                                    active,
+                                                                                                                                }) => (
+                                                                                                                                    <button
+                                                                                                                                        onClick={(
+                                                                                                                                            e,
+                                                                                                                                        ) => {
+                                                                                                                                            e.stopPropagation();
+                                                                                                                                            changeLegStatusClicked(
+                                                                                                                                                'IN_PROGRESS',
+                                                                                                                                                routeLegData
+                                                                                                                                                    .routeLeg
+                                                                                                                                                    .id,
+                                                                                                                                            );
+                                                                                                                                        }}
+                                                                                                                                        disabled={
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                        }
+                                                                                                                                        className={`${
+                                                                                                                                            active
+                                                                                                                                                ? 'bg-gray-50 text-gray-900'
+                                                                                                                                                : 'text-gray-700'
+                                                                                                                                        } flex w-full px-4 py-2 text-sm ${
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                                ? 'opacity-50 cursor-not-allowed'
+                                                                                                                                                : ''
+                                                                                                                                        }`}
+                                                                                                                                    >
+                                                                                                                                        Mark
+                                                                                                                                        as
+                                                                                                                                        In
+                                                                                                                                        Progress
+                                                                                                                                    </button>
+                                                                                                                                )}
+                                                                                                                            </Menu.Item>
+                                                                                                                        )}
+
+                                                                                                                        {currentStatus !==
+                                                                                                                            'COMPLETED' && (
+                                                                                                                            <Menu.Item>
+                                                                                                                                {({
+                                                                                                                                    active,
+                                                                                                                                }) => (
+                                                                                                                                    <button
+                                                                                                                                        onClick={(
+                                                                                                                                            e,
+                                                                                                                                        ) => {
+                                                                                                                                            e.stopPropagation();
+                                                                                                                                            changeLegStatusClicked(
+                                                                                                                                                'COMPLETED',
+                                                                                                                                                routeLegData
+                                                                                                                                                    .routeLeg
+                                                                                                                                                    .id,
+                                                                                                                                            );
+                                                                                                                                        }}
+                                                                                                                                        disabled={
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                        }
+                                                                                                                                        className={`${
+                                                                                                                                            active
+                                                                                                                                                ? 'bg-gray-50 text-gray-900'
+                                                                                                                                                : 'text-gray-700'
+                                                                                                                                        } flex w-full px-4 py-2 text-sm ${
+                                                                                                                                            changeLegStatusLoading
+                                                                                                                                                ? 'opacity-50 cursor-not-allowed'
+                                                                                                                                                : ''
+                                                                                                                                        }`}
+                                                                                                                                    >
+                                                                                                                                        Mark
+                                                                                                                                        as
+                                                                                                                                        Completed
+                                                                                                                                    </button>
+                                                                                                                                )}
+                                                                                                                            </Menu.Item>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                </Menu.Items>
+                                                                                                            </Transition>
+                                                                                                        </Menu>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="flex justify-between items-center mb-3">
+                                                                                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                                                    Route Details
+                                                                                                </h4>
+                                                                                                {routeLegData.routeLeg
+                                                                                                    .locations &&
+                                                                                                    routeLegData
+                                                                                                        .routeLeg
+                                                                                                        .locations
+                                                                                                        .length >=
+                                                                                                        2 && (
+                                                                                                        <a
+                                                                                                            href={createGoogleMapsDirectionsUrl(
+                                                                                                                routeLegData
+                                                                                                                    .routeLeg
+                                                                                                                    .locations,
+                                                                                                            )}
+                                                                                                            target="_blank"
+                                                                                                            rel="noopener noreferrer"
+                                                                                                            className="flex items-center text-blue-600 hover:text-blue-800 text-xs bg-blue-50 px-2 py-1 rounded-md"
+                                                                                                            onClick={(
+                                                                                                                e,
+                                                                                                            ) =>
+                                                                                                                e.stopPropagation()
+                                                                                                            }
+                                                                                                        >
+                                                                                                            <MapIcon className="w-3.5 h-3.5 mr-1" />
+                                                                                                            Get
+                                                                                                            Directions
+                                                                                                            <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                        </a>
+                                                                                                    )}
+                                                                                            </div>
+                                                                                            <div className="flex items-center mb-2">
+                                                                                                <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                <span className="text-sm font-medium text-gray-700">
+                                                                                                    {formatDate(
+                                                                                                        routeLegData
+                                                                                                            .routeLeg
+                                                                                                            .scheduledDate,
+                                                                                                    )}{' '}
+                                                                                                    at{' '}
+                                                                                                    {formatTime(
+                                                                                                        routeLegData
+                                                                                                            .routeLeg
+                                                                                                            .scheduledTime,
+                                                                                                    )}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="flex items-center mb-2">
+                                                                                                <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                <span className="text-sm text-gray-700">
+                                                                                                    {Math.round(
+                                                                                                        Number(
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .durationHours,
+                                                                                                        ),
+                                                                                                    )}{' '}
+                                                                                                    hours (
+                                                                                                    {Math.round(
+                                                                                                        Number(
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .distanceMiles,
+                                                                                                        ),
+                                                                                                    )}{' '}
+                                                                                                    miles)
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            {routeLegData.routeLeg
+                                                                                                .driverInstructions && (
+                                                                                                <div className="flex items-start mb-4">
+                                                                                                    <InformationCircleIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+                                                                                                    <span className="text-sm text-gray-700">
+                                                                                                        {
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .driverInstructions
+                                                                                                        }
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            )}
+
+                                                                                            {/* Locations */}
+                                                                                            {routeLegData.routeLeg
+                                                                                                .locations &&
+                                                                                                routeLegData.routeLeg
+                                                                                                    .locations.length >
+                                                                                                    0 && (
+                                                                                                    <div className="mb-4">
+                                                                                                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                                                                            Stops (
+                                                                                                            {
+                                                                                                                routeLegData
+                                                                                                                    .routeLeg
+                                                                                                                    .locations
+                                                                                                                    .length
+                                                                                                            }
+                                                                                                            )
+                                                                                                        </h4>
+                                                                                                        <div className="relative pl-6 pb-1">
+                                                                                                            {routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .locations
+                                                                                                                .length >
+                                                                                                                1 && (
+                                                                                                                <div className="absolute left-[9px] top-[24px] bottom-[24px] w-0.5 bg-gray-200"></div>
+                                                                                                            )}
+
+                                                                                                            {routeLegData.routeLeg.locations.map(
+                                                                                                                (
+                                                                                                                    locationItem,
+                                                                                                                    index,
+                                                                                                                ) => {
+                                                                                                                    const isFirst =
+                                                                                                                        index ===
+                                                                                                                        0;
+                                                                                                                    const isLast =
+                                                                                                                        index ===
+                                                                                                                        routeLegData
+                                                                                                                            .routeLeg
+                                                                                                                            .locations
+                                                                                                                            .length -
+                                                                                                                            1;
+                                                                                                                    const isLoadStop =
+                                                                                                                        locationItem.loadStop !==
+                                                                                                                        null;
+                                                                                                                    const isCustomLocation =
+                                                                                                                        locationItem.location !==
+                                                                                                                        null;
+
+                                                                                                                    // Get location data based on type
+                                                                                                                    const locationData =
+                                                                                                                        isLoadStop
+                                                                                                                            ? locationItem.loadStop
+                                                                                                                            : locationItem.location;
+
+                                                                                                                    if (
+                                                                                                                        !locationData
+                                                                                                                    )
+                                                                                                                        return null;
+
+                                                                                                                    // Determine stop type and styling
+                                                                                                                    let stopTypeLabel =
+                                                                                                                        '';
+                                                                                                                    let iconColor =
+                                                                                                                        '';
+
+                                                                                                                    if (
+                                                                                                                        isLoadStop
+                                                                                                                    ) {
+                                                                                                                        if (
+                                                                                                                            locationItem
+                                                                                                                                .loadStop
+                                                                                                                                .type ===
+                                                                                                                            'SHIPPER'
+                                                                                                                        ) {
+                                                                                                                            stopTypeLabel =
+                                                                                                                                'Pickup';
+                                                                                                                            iconColor =
+                                                                                                                                'bg-green-500';
+                                                                                                                        } else if (
+                                                                                                                            locationItem
+                                                                                                                                .loadStop
+                                                                                                                                .type ===
+                                                                                                                            'RECEIVER'
+                                                                                                                        ) {
+                                                                                                                            stopTypeLabel =
+                                                                                                                                'Delivery';
+                                                                                                                            iconColor =
+                                                                                                                                'bg-red-500';
+                                                                                                                        } else if (
+                                                                                                                            locationItem
+                                                                                                                                .loadStop
+                                                                                                                                .type ===
+                                                                                                                            'STOP'
+                                                                                                                        ) {
+                                                                                                                            stopTypeLabel =
+                                                                                                                                'Stop';
+                                                                                                                            iconColor =
+                                                                                                                                'bg-amber-500';
+                                                                                                                        }
+                                                                                                                    } else if (
+                                                                                                                        isCustomLocation
+                                                                                                                    ) {
+                                                                                                                        stopTypeLabel =
+                                                                                                                            'Custom Location';
+                                                                                                                        iconColor =
+                                                                                                                            'bg-purple-500';
+                                                                                                                    }
+
+                                                                                                                    return (
+                                                                                                                        <div
+                                                                                                                            key={
+                                                                                                                                locationItem.id
+                                                                                                                            }
+                                                                                                                            className={`relative ${
+                                                                                                                                !isLast
+                                                                                                                                    ? 'mb-5'
+                                                                                                                                    : ''
+                                                                                                                            }`}
+                                                                                                                        >
+                                                                                                                            <div className="absolute left-[-24px] top-1">
+                                                                                                                                <div
+                                                                                                                                    className={`h-5 w-5 rounded-full ${
+                                                                                                                                        isFirst
+                                                                                                                                            ? 'bg-green-100'
+                                                                                                                                            : isLast
+                                                                                                                                            ? 'bg-red-100'
+                                                                                                                                            : 'bg-gray-100'
+                                                                                                                                    } flex items-center justify-center`}
+                                                                                                                                >
+                                                                                                                                    <div
+                                                                                                                                        className={`h-2.5 w-2.5 rounded-full ${iconColor}`}
+                                                                                                                                    ></div>
+                                                                                                                                </div>
+                                                                                                                            </div>
+                                                                                                                            <div>
+                                                                                                                                <div className="flex items-center">
+                                                                                                                                    <h5 className="font-semibold text-sm text-gray-900">
+                                                                                                                                        {
+                                                                                                                                            stopTypeLabel
+                                                                                                                                        }
+                                                                                                                                    </h5>
+                                                                                                                                    {locationData.date && (
+                                                                                                                                        <span className="ml-2 text-xs text-gray-500">
+                                                                                                                                            {formatDate(
+                                                                                                                                                locationData.date.toString(),
+                                                                                                                                            )}{' '}
+                                                                                                                                            at{' '}
+                                                                                                                                            {formatTime(
+                                                                                                                                                locationData.time,
+                                                                                                                                            )}
+                                                                                                                                        </span>
+                                                                                                                                    )}
+                                                                                                                                    {locationData.latitude &&
+                                                                                                                                        locationData.longitude && (
+                                                                                                                                            <a
+                                                                                                                                                href={createGoogleMapsUrl(
+                                                                                                                                                    Number(
+                                                                                                                                                        locationData.latitude,
+                                                                                                                                                    ),
+                                                                                                                                                    Number(
+                                                                                                                                                        locationData.longitude,
+                                                                                                                                                    ),
+                                                                                                                                                    load.loadNum,
+                                                                                                                                                )}
+                                                                                                                                                target="_blank"
+                                                                                                                                                rel="noopener noreferrer"
+                                                                                                                                                className="ml-auto flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                                                                                                                                                onClick={(
+                                                                                                                                                    e,
+                                                                                                                                                ) =>
+                                                                                                                                                    e.stopPropagation()
+                                                                                                                                                }
+                                                                                                                                            >
+                                                                                                                                                <MapIcon className="w-3.5 h-3.5 mr-1" />
+                                                                                                                                                Map
+                                                                                                                                                <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                                                            </a>
+                                                                                                                                        )}
+                                                                                                                                </div>
+                                                                                                                                <p className="text-sm text-gray-700 font-medium mt-1">
+                                                                                                                                    {
+                                                                                                                                        locationData.name
+                                                                                                                                    }
+                                                                                                                                </p>
+                                                                                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                                                                                    {
+                                                                                                                                        locationData.street
+                                                                                                                                    }
+
+                                                                                                                                    ,{' '}
+                                                                                                                                    {
+                                                                                                                                        locationData.city
+                                                                                                                                    }
+
+                                                                                                                                    ,{' '}
+                                                                                                                                    {
+                                                                                                                                        locationData.state
+                                                                                                                                    }{' '}
+                                                                                                                                    {
+                                                                                                                                        locationData.zip
+                                                                                                                                    }
+                                                                                                                                </p>
+                                                                                                                                {isLoadStop &&
+                                                                                                                                    locationItem
+                                                                                                                                        .loadStop
+                                                                                                                                        .pickUpNumbers && (
+                                                                                                                                        <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                                                            <span className="font-medium">
+                                                                                                                                                {locationItem
+                                                                                                                                                    .loadStop
+                                                                                                                                                    .type ===
+                                                                                                                                                'RECEIVER'
+                                                                                                                                                    ? 'Confirmation #:'
+                                                                                                                                                    : 'Pickup #:'}
+                                                                                                                                            </span>{' '}
+                                                                                                                                            {
+                                                                                                                                                locationItem
+                                                                                                                                                    .loadStop
+                                                                                                                                                    .pickUpNumbers
+                                                                                                                                            }
+                                                                                                                                        </p>
+                                                                                                                                    )}
+                                                                                                                                {isLoadStop &&
+                                                                                                                                    locationItem
+                                                                                                                                        .loadStop
+                                                                                                                                        .referenceNumbers && (
+                                                                                                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                                                                                                            <span className="font-medium">
+                                                                                                                                                Reference
+                                                                                                                                                #:
+                                                                                                                                            </span>{' '}
+                                                                                                                                            {
+                                                                                                                                                locationItem
+                                                                                                                                                    .loadStop
+                                                                                                                                                    .referenceNumbers
+                                                                                                                                            }
+                                                                                                                                        </p>
+                                                                                                                                    )}
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                    );
+                                                                                                                },
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                )}
+
+                                                                                            {/* Location Updates */}
+                                                                                            {(routeLegData.routeLeg
+                                                                                                .startLatitude ||
+                                                                                                routeLegData.routeLeg
+                                                                                                    .endLatitude) && (
+                                                                                                <div className="mt-4">
+                                                                                                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                                                                                                        Location Updates
+                                                                                                    </h4>
+                                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                                                        {routeLegData
+                                                                                                            .routeLeg
+                                                                                                            .startLatitude &&
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .startLongitude && (
+                                                                                                                <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
+                                                                                                                    <div className="flex items-center justify-between">
+                                                                                                                        <h5 className="text-xs font-semibold text-gray-700">
+                                                                                                                            <div className="flex items-center">
+                                                                                                                                <div className="h-3 w-3 rounded-full bg-amber-500 mr-1.5"></div>
+                                                                                                                                Started
+                                                                                                                            </div>
+                                                                                                                        </h5>
+                                                                                                                        <a
+                                                                                                                            href={createGoogleMapsUrl(
+                                                                                                                                Number(
+                                                                                                                                    routeLegData
+                                                                                                                                        .routeLeg
+                                                                                                                                        .startLatitude,
+                                                                                                                                ),
+                                                                                                                                Number(
+                                                                                                                                    routeLegData
+                                                                                                                                        .routeLeg
+                                                                                                                                        .startLongitude,
+                                                                                                                                ),
+                                                                                                                                load.loadNum,
+                                                                                                                            )}
+                                                                                                                            target="_blank"
+                                                                                                                            rel="noopener noreferrer"
+                                                                                                                            className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                                                                                                                            onClick={(
+                                                                                                                                e,
+                                                                                                                            ) =>
+                                                                                                                                e.stopPropagation()
+                                                                                                                            }
+                                                                                                                        >
+                                                                                                                            <MapIcon className="w-3.5 h-3.5 mr-1" />
+                                                                                                                            Map
+                                                                                                                            <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                                        </a>
+                                                                                                                    </div>
+                                                                                                                    {routeLegData
+                                                                                                                        .routeLeg
+                                                                                                                        .startedAt && (
+                                                                                                                        <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                                            {formatDate(
+                                                                                                                                routeLegData
+                                                                                                                                    .routeLeg
+                                                                                                                                    .startedAt,
+                                                                                                                            )}{' '}
+                                                                                                                            at{' '}
+                                                                                                                            {new Date(
+                                                                                                                                routeLegData.routeLeg.startedAt,
+                                                                                                                            ).toLocaleTimeString(
+                                                                                                                                [],
+                                                                                                                                {
+                                                                                                                                    hour: '2-digit',
+                                                                                                                                    minute: '2-digit',
+                                                                                                                                },
+                                                                                                                            )}
+                                                                                                                        </p>
+                                                                                                                    )}
+                                                                                                                    <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                                        Location
+                                                                                                                        updated
+                                                                                                                        when
+                                                                                                                        assignment
+                                                                                                                        was
+                                                                                                                        marked
+                                                                                                                        as
+                                                                                                                        in
+                                                                                                                        progress
+                                                                                                                    </p>
+                                                                                                                </div>
+                                                                                                            )}
+
+                                                                                                        {routeLegData
+                                                                                                            .routeLeg
+                                                                                                            .endLatitude &&
+                                                                                                            routeLegData
+                                                                                                                .routeLeg
+                                                                                                                .endLongitude && (
+                                                                                                                <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                                                                                                                    <div className="flex items-center justify-between">
+                                                                                                                        <h5 className="text-xs font-semibold text-gray-700">
+                                                                                                                            <div className="flex items-center">
+                                                                                                                                <div className="h-3 w-3 rounded-full bg-green-500 mr-1.5"></div>
+                                                                                                                                Completed
+                                                                                                                            </div>
+                                                                                                                        </h5>
+                                                                                                                        <a
+                                                                                                                            href={createGoogleMapsUrl(
+                                                                                                                                Number(
+                                                                                                                                    routeLegData
+                                                                                                                                        .routeLeg
+                                                                                                                                        .endLatitude,
+                                                                                                                                ),
+                                                                                                                                Number(
+                                                                                                                                    routeLegData
+                                                                                                                                        .routeLeg
+                                                                                                                                        .endLongitude,
+                                                                                                                                ),
+                                                                                                                                load.loadNum,
+                                                                                                                            )}
+                                                                                                                            target="_blank"
+                                                                                                                            rel="noopener noreferrer"
+                                                                                                                            className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                                                                                                                            onClick={(
+                                                                                                                                e,
+                                                                                                                            ) =>
+                                                                                                                                e.stopPropagation()
+                                                                                                                            }
+                                                                                                                        >
+                                                                                                                            <MapIcon className="w-3.5 h-3.5 mr-1" />
+                                                                                                                            Map
+                                                                                                                            <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                                        </a>
+                                                                                                                    </div>
+                                                                                                                    {routeLegData
+                                                                                                                        .routeLeg
+                                                                                                                        .endedAt && (
+                                                                                                                        <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                                            {formatDate(
+                                                                                                                                routeLegData
+                                                                                                                                    .routeLeg
+                                                                                                                                    .endedAt,
+                                                                                                                            )}{' '}
+                                                                                                                            at{' '}
+                                                                                                                            {new Date(
+                                                                                                                                routeLegData.routeLeg.endedAt,
+                                                                                                                            ).toLocaleTimeString(
+                                                                                                                                [],
+                                                                                                                                {
+                                                                                                                                    hour: '2-digit',
+                                                                                                                                    minute: '2-digit',
+                                                                                                                                },
+                                                                                                                            )}
+                                                                                                                        </p>
+                                                                                                                    )}
+                                                                                                                    <p className="text-xs text-gray-500 mt-1.5">
+                                                                                                                        Location
+                                                                                                                        updated
+                                                                                                                        when
+                                                                                                                        assignment
+                                                                                                                        was
+                                                                                                                        marked
+                                                                                                                        as
+                                                                                                                        completed
+                                                                                                                    </p>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        {/* Driver Assignments */}
+                                                                                        <div>
+                                                                                            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                                                                Assigned Drivers (
+                                                                                                {
+                                                                                                    routeLegData
+                                                                                                        .assignments
+                                                                                                        .length
+                                                                                                }
+                                                                                                )
+                                                                                            </h4>
+                                                                                            <div className="space-y-3">
+                                                                                                {routeLegData.assignments.map(
+                                                                                                    (
+                                                                                                        assignment,
+                                                                                                        assignmentIdx,
+                                                                                                    ) => (
+                                                                                                        <div
+                                                                                                            key={
+                                                                                                                assignmentIdx
+                                                                                                            }
+                                                                                                            className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm"
+                                                                                                        >
+                                                                                                            <div className="flex items-center mb-2">
+                                                                                                                <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                                <Link
+                                                                                                                    href={`/drivers/${assignment.driver.id}`}
+                                                                                                                    className="text-sm font-medium text-blue-600 hover:underline"
+                                                                                                                    onClick={(
+                                                                                                                        e,
+                                                                                                                    ) => {
+                                                                                                                        e.stopPropagation();
+                                                                                                                    }}
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        assignment
+                                                                                                                            .driver
+                                                                                                                            .name
+                                                                                                                    }
+                                                                                                                </Link>
+                                                                                                            </div>
+                                                                                                            <div className="flex items-center mb-2">
+                                                                                                                <PhoneIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                                <a
+                                                                                                                    href={`tel:${assignment.driver.phone}`}
+                                                                                                                    className="text-sm text-gray-700 hover:underline"
+                                                                                                                    onClick={(
+                                                                                                                        e,
+                                                                                                                    ) =>
+                                                                                                                        e.stopPropagation()
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        assignment
+                                                                                                                            .driver
+                                                                                                                            .phone
+                                                                                                                    }
+                                                                                                                </a>
+                                                                                                            </div>
+                                                                                                            <div className="flex items-center">
+                                                                                                                <CurrencyDollarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                                                                                                <span className="text-sm text-gray-700">
+                                                                                                                    {assignment.chargeType ===
+                                                                                                                    'PER_HOUR'
+                                                                                                                        ? `$${assignment.chargeValue}/hr`
+                                                                                                                        : assignment.chargeType ===
+                                                                                                                          'PER_MILE'
+                                                                                                                        ? `$${assignment.chargeValue}/mi`
+                                                                                                                        : `$${assignment.chargeValue} (fixed)`}
+                                                                                                                </span>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    ),
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <div className="flex flex-1 flex-row gap-2 items-end justify-end my-4">
+                                                                                                <Link
+                                                                                                    href={`/loads/${load.id}`}
+                                                                                                    target="_blank"
+                                                                                                    className="text-sm px-4 py-1.5 bg-blue-600 w-fit text-white rounded-lg  hover:bg-blue-700 transition text-center"
+                                                                                                >
+                                                                                                    View Load
+                                                                                                </Link>
+                                                                                                <Link
+                                                                                                    href={`/loads/${load.id}?routeLegId=${routeLegData.routeLeg?.id}`}
+                                                                                                    target="_blank"
+                                                                                                    className="text-sm px-4 py-1.5 bg-blue-600 w-fit text-white rounded-lg shadow-md hover:bg-blue-700 transition text-center"
+                                                                                                >
+                                                                                                    Edit Assignment
+                                                                                                </Link>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </Tab.Panel>
+                                                                            );
+                                                                        })}
+                                                                    </Tab.Panels>
+                                                                </Tab.Group>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         );
                                     })}
                                 </tbody>
@@ -818,22 +1824,10 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                         {/* Compact load cards overlay */}
                         <div className="relative md:absolute bottom-0 top-0 left-0 z-20 px-0 pb-0 overflow-x-auto md:overflow-y-auto hide-scrollbar">
                             <div className="relative  ">
-                                {/* Prev button */}
-                                {/*  <button
-                                onClick={() => scrollBy(-300)}
-                                className="absolute top-2  z-30 p-1 bg-white rounded-full shadow-lg font-bold hover:bg-gray-100 transform -translate-y-1/2"
-                            >
-                                <ChevronUpIcon className="w-5 h-5 text-gray-600" />
-                            </button> */}
-
-                                {/* Scroll container */}
                                 <div
                                     ref={carouselRef}
-                                    className="             flex flex-row md:flex-col md:overflow-y-auto md:overflow-x-hidden
-                  overflow-x-auto   hide-scrollbar
-                  px-0 md:px-2
-                  my-4
-                "
+                                    className="flex flex-row md:flex-col md:overflow-y-auto md:overflow-x-hidden
+                                      overflow-x-auto hide-scrollbar px-0 md:px-2 my-4"
                                 >
                                     {loadsList?.map((load, i) => {
                                         const allDates = [
@@ -855,21 +1849,27 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                             <div
                                                 key={load.id}
                                                 className={`
-                      snap-start
-                      flex-shrink-0
-                      w-72 m-2
-                       ${
-                           load.driverAssignments.length === 0 && !allDatesInPast
-                               ? 'bg-red-50 hover:bg-red-100'
-                               : ' bg-white hover:bg-slate-50'
-                       } ${allDatesInPast ? '!bg-red-100 !hover:bg-red-200' : ' '} rounded-lg
-                      border
-                      ${selectedLoadId === load.id ? 'border-blue-800 ring-2 ring-blue-700' : 'border-gray-200'}
-                      shadow-sm hover:shadow-xl
-                      transition-shadow
-                      cursor-pointer
-                      overflow-visible
-                    `}
+                                                  snap-start
+                                                  flex-shrink-0
+                                                  w-72 m-2
+                                                   ${
+                                                       load.driverAssignments.length === 0 && !allDatesInPast
+                                                           ? 'bg-red-50 hover:bg-red-100'
+                                                           : ' bg-white hover:bg-slate-50'
+                                                   } ${
+                                                    allDatesInPast ? '!bg-red-100 !hover:bg-red-200' : ' '
+                                                } rounded-lg
+                                                  border
+                                                  ${
+                                                      selectedLoadId === load.id
+                                                          ? 'border-blue-800 ring-2 ring-blue-700'
+                                                          : 'border-gray-200'
+                                                  }
+                                                  shadow-sm hover:shadow-xl
+                                                  transition-shadow
+                                                  cursor-pointer
+                                                  overflow-visible
+                                                `}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     const newId = load.id === selectedLoadId ? null : load.id;
@@ -1065,14 +2065,6 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                         );
                                     })}
                                 </div>
-
-                                {/* Next button */}
-                                {/* <button
-                                onClick={() => scrollBy(300)}
-                                className="absolute bottom-6 z-30 p-1 bg-white rounded-full shadow hover:bg-gray-100 transform -translate-y-1/2"
-                            >
-                                <ChevronDownIcon className="w-5 h-5 text-gray-600" />
-                            </button> */}
                             </div>
                         </div>
                     </div>
@@ -1080,6 +2072,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
         </div>
     );
 };
+
 export default LoadViewToggle;
 
 const LoadingLoadViewTableSkeleton = () => {

@@ -4,9 +4,10 @@ import { loadStatus, UILoadStatus } from '../../lib/load/load-utils';
 
 type Props = {
     load: Partial<Load>;
+    bigBadge?: boolean;
 };
 
-const LoadStatusBadge: React.FC<Props> = ({ load }) => {
+const LoadStatusBadge: React.FC<Props> = ({ load, bigBadge = false }) => {
     const [status, setStatus] = React.useState('');
     const [bgColor, setBgColor] = React.useState('bg-green-100');
     const [textColor, setTextColor] = React.useState('text-green-800');
@@ -66,7 +67,9 @@ const LoadStatusBadge: React.FC<Props> = ({ load }) => {
         <span
             data-tooltip-id="tooltip"
             data-tooltip-content={tooltipText}
-            className={`inline-flex px-2 text-xs font-semibold leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
+            className={`inline-flex w-fit ${
+                bigBadge ? 'px-4 text-sm p-1 font-bold' : 'text-xs px-1.5 font-semibold'
+            }  leading-5 ${textColor} uppercase ${bgColor} rounded-full whitespace-nowrap`}
         >
             {status}
         </span>

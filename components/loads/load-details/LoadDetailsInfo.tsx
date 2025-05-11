@@ -1,131 +1,139 @@
-import React from 'react';
+import type React from 'react';
 import Link from 'next/link';
-import { formatValue } from 'react-currency-input-field';
+import { useLoadContext } from 'components/context/LoadContext';
 import LoadStatusBadge from '../LoadStatusBadge';
 import { DownloadInvoicePDFButton } from 'components/invoices/invoicePdf';
-import { useLoadContext } from 'components/context/LoadContext';
 
-type LoadDetailsInfoProps = {
-    //
-};
+const LoadDetailsInfo: React.FC = () => {
+    const [load] = useLoadContext();
 
-const LoadDetailsInfo: React.FC<LoadDetailsInfoProps> = () => {
-    const [load, setLoad] = useLoadContext();
+    // Format currency
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(value);
+    };
+
     return (
-        <div>
-            <dl className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Order #</dt>
-                    <dd className="text-right text-gray-900">{load.refNum}</dd>
+        <div className="px-4 sm:px-6 mt-2  bg-gray-50  mb-6 rounded-xl   overflow-hidden border border-gray-100">
+            {/* Header with key information */}
+            <div className="p-0 py-4 pb-2 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">Order# {load.refNum}</h2>
+                        <p className="mt-1 text-sm text-gray-500">Load# {load.loadNum}</p>
+                    </div>
+                    <LoadStatusBadge load={load} bigBadge />
                 </div>
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Status</dt>
-                    <dd className="text-right text-gray-900">
-                        <LoadStatusBadge load={load} />
-                    </dd>
-                </div>
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Customer</dt>
-                    <dd className="text-right text-gray-900">
-                        {load.customer && (
-                            <Link
-                                className="font-medium text-blue-500 hover:underline"
-                                href={`/customers/${load.customer.id}`}
-                            >
-                                {load.customer?.name}
-                            </Link>
-                        )}
-                    </dd>
-                </div>
+            </div>
 
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Rate</dt>
-                    <dd className="text-right text-gray-900">
-                        {formatValue({
-                            value: load.rate.toString(),
-                            groupSeparator: ',',
-                            decimalSeparator: '.',
-                            prefix: '$',
-                            decimalScale: 2,
-                        })}
-                    </dd>
-                </div>
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Load #</dt>
-                    <dd className="text-right text-gray-900">{load.loadNum}</dd>
-                </div>
-
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Drivers</dt>
-                    <dd className="text-right text-gray-900">
-                        {load.driverAssignments &&
-                            (load.driverAssignments?.length > 0 ? (
-                                Array.from(
-                                    new Map(
-                                        load.driverAssignments.map((assignment) => [assignment.driver.id, assignment]),
-                                    ).values(),
-                                ).map((assignment, index, uniqueAssignments) => (
-                                    <span key={`${assignment.driver.id}-${index}`}>
-                                        <Link
-                                            href={`/drivers/${assignment.driver.id}`}
-                                            className="font-medium text-blue-500 hover:underline"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                            }}
-                                        >
-                                            {assignment.driver?.name}
-                                        </Link>
-                                        {index < uniqueAssignments.length - 1 ? ', ' : ''}
-                                    </span>
-                                ))
-                            ) : (
-                                <div className="text-gray-400">No driver assigned</div>
-                            ))}
-                    </dd>
-                </div>
-                <div className="flex justify-between py-3 space-x-2 text-sm font-medium border-b border-gray-200">
-                    <dt className="text-gray-500">Created At</dt>
-                    <dd className="text-right text-gray-900">
-                        {new Date(load.createdAt).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                            hour: 'numeric',
-                            minute: 'numeric',
-                            second: 'numeric',
-                            hour12: true,
-                        })}
-                    </dd>
-                </div>
-                <div className="border-b border-gray-200">
-                    <div className="flex justify-between py-3 space-x-2 text-sm font-medium">
-                        <dt className="text-gray-500">Invoice</dt>
-                        <dd className="text-right text-gray-900">
-                            {load.invoice ? (
+            {/* Content */}
+            <div className="py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left column */}
+                    <div className="space-y-4">
+                        {/* Customer */}
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-0">Customer</h3>
+                            {load.customer ? (
                                 <Link
-                                    className="font-medium text-blue-500 hover:underline"
-                                    href={`/invoices/${load.invoice.id}`}
-                                    passHref
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    href={`/customers/${load.customer.id}`}
                                 >
-                                    # {load.invoice?.invoiceNum}
+                                    {load.customer.name}
                                 </Link>
                             ) : (
-                                <Link href={`/invoices/create-invoice/${load.id}`}>Create Invoice</Link>
+                                <p className="text-base text-gray-700">No customer assigned</p>
                             )}
-                        </dd>
-                    </div>
-                    {load.invoice && (
-                        <div className="mb-2 border border-gray-200 divide-y divide-gray-200 rounded-md">
-                            <DownloadInvoicePDFButton
-                                invoice={load.invoice}
-                                customer={load.customer}
-                                load={load}
-                                fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
-                            />
                         </div>
-                    )}
+                        {/* Drivers */}
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-0">Drivers</h3>
+                            {load.driverAssignments && load.driverAssignments.length > 0 ? (
+                                <div className="space-y-2">
+                                    {Array.from(
+                                        new Map(
+                                            load.driverAssignments.map((assignment) => [
+                                                assignment.driver.id,
+                                                assignment,
+                                            ]),
+                                        ).values(),
+                                    ).map((assignment, index) => (
+                                        <div key={`${assignment.driver.id}-${index}`}>
+                                            <Link
+                                                href={`/drivers/${assignment.driver.id}`}
+                                                className="text-base font-medium text-blue-600 hover:text-blue-800"
+                                            >
+                                                {assignment.driver.name}
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-base text-gray-700">No driver assigned</p>
+                            )}
+                        </div>
+
+                        {/* Created At */}
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-0">Created</h3>
+                            <p className="text-base text-gray-900">
+                                {new Date(load.createdAt).toLocaleString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: 'numeric',
+                                    hour12: true,
+                                })}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right column */}
+                    <div className="space-y-4">
+                        {/* Rate */}
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-0">Rate</h3>
+                            <p className="text-lg font-bold text-green-600">{formatCurrency(Number(load.rate))}</p>
+                        </div>
+
+                        {/* Invoice */}
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-0">Invoice</h3>
+                            {load.invoice ? (
+                                <div className="space-y-3">
+                                    <Link
+                                        className="text-base font-medium text-blue-600 hover:text-blue-800"
+                                        href={`/invoices/${load.invoice.id}`}
+                                    >
+                                        #{load.invoice.invoiceNum}
+                                    </Link>
+                                    <div className="mt-2 border bg-gray-100  border-white rounded-md">
+                                        <DownloadInvoicePDFButton
+                                            invoice={load.invoice}
+                                            customer={load.customer}
+                                            load={load}
+                                            fileName={`invoice-${load.invoice.invoiceNum}.pdf`}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-base text-gray-700">No invoice</p>
+                                    <Link
+                                        href={`/invoices/create-invoice/${load.id}`}
+                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        Create Invoice
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </dl>
+            </div>
         </div>
     );
 };

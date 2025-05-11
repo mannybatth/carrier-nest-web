@@ -490,7 +490,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     ></LoadDetailsToolbar>
 
                     {load ? (
-                        <div className="grid grid-cols-1 gap-2 px-5 sm:gap-8 md:gap-2 lg:gap-6 sm:px-6 md:px-8">
+                        <div className="grid grid-cols-1 gap-4 px-5 sm:gap-6  lg:gap-6 sm:px-6 md:px-8">
                             <div>
                                 <LoadDetailsInfo />
                                 <LoadDetailsDocuments
