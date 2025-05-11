@@ -1,275 +1,230 @@
-import { ArrowTopRightOnSquareIcon, MapPinIcon, StopIcon, TruckIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
-import Image from 'next/image';
+'use client';
+
 import React from 'react';
+import Image from 'next/image';
+import { Disclosure, Transition } from '@headlessui/react';
 import { Prisma } from '@prisma/client';
 import { useLoadContext } from 'components/context/LoadContext';
-import { Disclosure } from '@headlessui/react';
 import { hoursToReadable } from 'lib/helpers/time';
+import {
+    ArrowTopRightOnSquareIcon,
+    MapPinIcon,
+    TruckIcon,
+    ChevronDownIcon,
+    CalendarIcon,
+    ClockIcon,
+    ArrowLongRightIcon,
+} from '@heroicons/react/24/outline';
 
 type LoadRouteSectionProps = {
     openRouteInGoogleMaps: () => void;
 };
 
 const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMaps }) => {
-    const [load, setLoad] = useLoadContext();
-    return (
-        <div>
-            <div className="mt-4 space-y-3">
-                <div className="flex flex-row justify-between gap-2">
-                    <div className="flex flex-col">
-                        <h3 className="text-base font-semibold leading-6 text-gray-900">Entire Load Route</h3>
-                        <p className="text-xs text-slate-500">
-                            This section provides an overview of the entire load route
-                        </p>
-                    </div>
+    const [load] = useLoadContext();
 
-                    <button
-                        type="button"
-                        className="flex items-center h-8 px-3 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm whitespace-nowrap hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        onClick={openRouteInGoogleMaps}
-                    >
-                        Get Directions
-                        <ArrowTopRightOnSquareIcon className="flex-shrink-0 w-4 h-4 ml-2 -mr-1" />
-                    </button>
-                </div>
-                <div className="flex flex-col border rounded-lg border-slate-200">
-                    <div className="flex flex-row justify-between w-full p-2 rounded-tl-lg rounded-tr-lg bg-slate-100">
-                        <p className="text-sm text-slate-900">
-                            Route Distance: {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(2)} miles{' '}
-                        </p>
-                        <p className="text-sm text-slate-900">
-                            Travel Time: {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())}
-                        </p>
-                    </div>
-                    <span className="absolute mt-11  ml-2 text-xs bg-slate-400/80 font-semibold text-slate-200 px-1 py-0.5 rounded-md">
-                        ${Number(Number(load.rate) / Number(load.routeDistanceMiles)).toFixed(2)}/mile
-                    </span>
-                    {load && load.routeEncoded && (
+    // Calculate rate per mile
+    const ratePerMile = Number(Number(load.rate) / Number(load.routeDistanceMiles)).toFixed(2);
+
+    // Combine all locations in sequence
+    const allLocations = [
+        { ...load.shipper, type: 'origin' },
+        ...load.stops.map((stop) => ({ ...stop, type: 'stop' })),
+        { ...load.receiver, type: 'destination' },
+    ];
+
+    return (
+        <div className="bg-white rounded-xl  overflow-hidden border border-gray-100">
+            {/* Header with map */}
+            <div className="relative min-h-28 md:min-h-36">
+                {load && load.routeEncoded && (
+                    <div className="relative">
                         <Image
-                            src={`https://api.mapbox.com/styles/v1/mapbox/light-v9/static/path-4+4169E1-0.99(${encodeURIComponent(
+                            src={`https://api.mapbox.com/styles/v1/mapbox/light-v9/static/path-4+007AFF-0.99(${encodeURIComponent(
                                 load.routeEncoded,
-                            )})/auto/1275x250?padding=25,25,25,25&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                            )})/auto/1275x180?padding=25,25,25,25&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
                             width={1200}
-                            height={250}
-                            alt="Load Route"
+                            height={180}
+                            alt="Route Map"
                             loading="lazy"
                             className="w-full h-auto"
-                        ></Image>
-                    )}
-                    <ul
-                        role="list"
-                        className={`grid gap-4 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-${
-                            load.stops.length + 2
-                        } auto-cols-fr`}
-                    >
-                        <li
-                            className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
-                            data-tooltip-id="tooltip"
-                            data-tooltip-content="The origin of the load"
-                            data-tooltip-delay-show={500}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent" />
+                    </div>
+                )}
+
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <h2 className="text-xl font-medium text-gray-900">Route</h2>
+                            <p className="text-sm text-gray-500">
+                                {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(0)} miles ·{' '}
+                                {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())} · $
+                                {ratePerMile}/mile
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={openRouteInGoogleMaps}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
-                            <div className="relative z-auto flex flex-col p-2">
-                                <div className="flex items-center gap-2 pb-2">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-green-200 border-2 border-white rounded-md shrink-0">
-                                        <TruckIcon className="w-4 h-4 text-green-900" aria-hidden="true" />
-                                    </div>
-                                    <div className="text-base font-semibold capitalize text-slate-900">
-                                        {load.shipper?.name?.toLowerCase()}
-                                    </div>
-                                </div>
-                                <div className="pb-1 text-xs text-gray-500">
-                                    {new Intl.DateTimeFormat('en-US', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: '2-digit',
-                                    }).format(new Date(load.shipper.date))}
-                                    {load.shipper.time && ` @ ${load.shipper.time}`}
-                                </div>
-                                <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
-                                    {load.shipper.street.toLowerCase()}, {load.shipper.city.toLowerCase()},{' '}
-                                    {load.shipper.state.toUpperCase()} {load.shipper.zip}
-                                </div>
-                                {load.shipper.poNumbers ||
-                                load.shipper.pickUpNumbers ||
-                                load.shipper.referenceNumbers ? (
-                                    <Disclosure>
-                                        {({ open }) => (
-                                            <>
-                                                <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
-                                                    {open ? 'Hide Details' : 'Show Details'}
-                                                    <ChevronUpIcon
-                                                        className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 ml-1`}
-                                                    />
-                                                </Disclosure.Button>
-                                                <Disclosure.Panel className="mt-1 text-sm">
-                                                    <div className="grid grid-cols-1 gap-1">
-                                                        {load.shipper.poNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">PO #&rsquo;s:</div>
-                                                                <div>{load.shipper.poNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                        {load.shipper.pickUpNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">Pick Up #&rsquo;s:</div>
-                                                                <div>{load.shipper.pickUpNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                        {load.shipper.referenceNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">Ref #&rsquo;s:</div>
-                                                                <div>{load.shipper.referenceNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </Disclosure.Panel>
-                                            </>
-                                        )}
-                                    </Disclosure>
-                                ) : null}
-                            </div>
-                        </li>
-                        {load.stops.map((stop, index) => (
-                            <li
-                                className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
-                                key={index}
-                                data-tooltip-id="tooltip"
-                                data-tooltip-content="This is a stop along the route"
-                                data-tooltip-delay-show={500}
-                            >
-                                <div className="relative z-auto flex flex-col p-2">
-                                    <div className="flex items-center gap-2 pb-2">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gray-200 border-2 border-white rounded-md shrink-0">
-                                            <StopIcon className="w-4 h-4 text-gray-900" aria-hidden="true" />
-                                        </div>
-                                        <div className="text-base font-semibold capitalize text-slate-900">
-                                            {stop.name?.toLowerCase()}
-                                        </div>
-                                    </div>
-                                    <div className="pb-1 text-xs text-gray-500">
-                                        {new Intl.DateTimeFormat('en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: '2-digit',
-                                        }).format(new Date(stop.date))}
-                                        {stop.time && ` @ ${stop.time}`}
-                                    </div>
-                                    <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
-                                        {stop.street.toLowerCase()}, {stop.city.toLowerCase()},{' '}
-                                        {stop.state.toUpperCase()} {stop.zip}
-                                    </div>
-                                    {stop.poNumbers || stop.pickUpNumbers || stop.referenceNumbers ? (
-                                        <Disclosure>
-                                            {({ open }) => (
-                                                <>
-                                                    <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
-                                                        {open ? 'Hide Details' : 'Show Details'}
-                                                        <ChevronUpIcon
-                                                            className={`${
-                                                                open ? 'rotate-180 transform' : ''
-                                                            } h-3 w-3 ml-1`}
-                                                        />
-                                                    </Disclosure.Button>
-                                                    <Disclosure.Panel className="mt-1 text-sm">
-                                                        <div className="grid grid-cols-1 gap-1">
-                                                            {stop.poNumbers && (
-                                                                <div>
-                                                                    <div className="font-semibold">PO #&rsquo;s:</div>
-                                                                    <div>{stop.poNumbers}</div>
-                                                                </div>
-                                                            )}
-                                                            {stop.pickUpNumbers && (
-                                                                <div>
-                                                                    <div className="font-semibold">
-                                                                        Pick Up #&rsquo;s:
-                                                                    </div>
-                                                                    <div>{stop.pickUpNumbers}</div>
-                                                                </div>
-                                                            )}
-                                                            {stop.referenceNumbers && (
-                                                                <div>
-                                                                    <div className="font-semibold">Ref #&rsquo;s:</div>
-                                                                    <div>{stop.referenceNumbers}</div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </Disclosure.Panel>
-                                                </>
-                                            )}
-                                        </Disclosure>
-                                    ) : null}
-                                </div>
-                            </li>
-                        ))}
-                        <li
-                            className="flex-grow border rounded-lg bg-neutral-50 border-slate-100"
-                            data-tooltip-id="tooltip"
-                            data-tooltip-content="The drop off location"
-                            data-tooltip-delay-show={500}
-                        >
-                            <div className="relative z-auto flex flex-col p-2">
-                                <div className="flex items-center gap-2 pb-2">
-                                    <div className="flex items-center justify-center w-8 h-8 bg-red-200 border-2 border-white rounded-md shrink-0">
-                                        <MapPinIcon className="w-4 h-4 text-red-900" aria-hidden="true" />
-                                    </div>
-                                    <div className="text-base font-semibold capitalize text-slate-900">
-                                        {load.receiver?.name?.toLowerCase()}
-                                    </div>
-                                </div>
-                                <div className="pb-1 text-xs text-gray-500">
-                                    {new Intl.DateTimeFormat('en-US', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: '2-digit',
-                                    }).format(new Date(load.receiver.date))}
-                                    {load.receiver.time && ` @ ${load.receiver.time}`}
-                                </div>
-                                <div className="pb-1 text-sm leading-4 text-gray-500 capitalize">
-                                    {load.receiver.street.toLowerCase()}, {load.receiver.city.toLowerCase()},{' '}
-                                    {load.receiver.state.toUpperCase()} {load.receiver.zip}
-                                </div>
-                                {load.receiver.poNumbers ||
-                                load.receiver.pickUpNumbers ||
-                                load.receiver.referenceNumbers ? (
-                                    <Disclosure>
-                                        {({ open }) => (
-                                            <>
-                                                <Disclosure.Button className="flex items-center mt-1 text-xs text-left">
-                                                    {open ? 'Hide Details' : 'Show Details'}
-                                                    <ChevronUpIcon
-                                                        className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 ml-1`}
-                                                    />
-                                                </Disclosure.Button>
-                                                <Disclosure.Panel className="mt-1 text-sm">
-                                                    <div className="grid grid-cols-1 gap-1">
-                                                        {load.receiver.poNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">PO #&rsquo;s:</div>
-                                                                <div>{load.receiver.poNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                        {load.receiver.pickUpNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">Delivery #&rsquo;s:</div>
-                                                                <div>{load.receiver.pickUpNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                        {load.receiver.referenceNumbers && (
-                                                            <div>
-                                                                <div className="font-semibold">Ref #&rsquo;s:</div>
-                                                                <div>{load.receiver.referenceNumbers}</div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </Disclosure.Panel>
-                                            </>
-                                        )}
-                                    </Disclosure>
-                                ) : null}
-                            </div>
-                        </li>
-                    </ul>
+                            Directions
+                            <ArrowTopRightOnSquareIcon className="ml-1.5 h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
+            </div>
+
+            {/* Locations sequence */}
+            <div className="px-6 py-4">
+                <div className="space-y-4">
+                    {allLocations.map((location, index) => (
+                        <React.Fragment key={index}>
+                            <LocationItem
+                                location={location}
+                                index={index}
+                                isLast={index === allLocations.length - 1}
+                            />
+
+                            {/* Connector line between locations */}
+                            {index < allLocations.length - 1 && (
+                                <div className="pl-3.5 ml-3.5">
+                                    <ArrowLongRightIcon className="h-5 w-5 text-gray-300 rotate-90" />
+                                </div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+type LocationItemProps = {
+    location: any;
+    index: number;
+    isLast: boolean;
+};
+
+const LocationItem: React.FC<LocationItemProps> = ({ location, index, isLast }) => {
+    // Format date
+    const formattedDate = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    }).format(new Date(location.date));
+
+    // Determine icon and colors based on location type
+    const getLocationStyles = () => {
+        switch (location.type) {
+            case 'origin':
+                return {
+                    icon: <TruckIcon className="h-5 w-5 text-white" />,
+                    bgColor: 'bg-green-500',
+                    label: 'Pickup',
+                };
+            case 'destination':
+                return {
+                    icon: <MapPinIcon className="h-5 w-5 text-white" />,
+                    bgColor: 'bg-red-500',
+                    label: 'Delivery',
+                };
+            default:
+                return {
+                    icon: <MapPinIcon className="h-5 w-5 text-white" />,
+                    bgColor: 'bg-blue-500',
+                    label: `Stop ${index}`,
+                };
+        }
+    };
+
+    const { icon, bgColor, label } = getLocationStyles();
+
+    return (
+        <div className="flex">
+            {/* Icon */}
+            <div className="flex-shrink-0 mr-4">
+                <div className={`h-8 w-8 rounded-full ${bgColor} flex items-center justify-center`}>{icon}</div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+                <Disclosure>
+                    {({ open }) => (
+                        <>
+                            <div className="flex flex-col">
+                                <div className="flex-col-reverse sm:flex sm:flex-row justify-between items-start">
+                                    <div>
+                                        <span className="text-xs font-medium text-gray-500">{label}</span>
+                                        <h3 className="text-base font-semibold text-gray-900">{location.name}</h3>
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-500 mt-1 whitespace-nowrap">
+                                        <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                                        {formattedDate}
+                                        {location.time && (
+                                            <span className="ml-2 flex items-center whitespace-nowrap">
+                                                <ClockIcon className="mr-1 h-3.5 w-3.5" />
+                                                {location.time}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {location.street}, {location.city}, {location.state} {location.zip}
+                                </p>
+
+                                {(location.poNumbers || location.pickUpNumbers || location.referenceNumbers) && (
+                                    <Disclosure.Button className="mt-2 flex items-center text-xs font-medium text-blue-600 hover:text-blue-800">
+                                        {open ? 'Hide details' : 'Show details'}
+                                        <ChevronDownIcon
+                                            className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 ml-1`}
+                                        />
+                                    </Disclosure.Button>
+                                )}
+                            </div>
+
+                            <Transition
+                                show={open}
+                                enter="transition duration-100 ease-out"
+                                enterFrom="transform scale-95 opacity-0"
+                                enterTo="transform scale-100 opacity-100"
+                                leave="transition duration-75 ease-out"
+                                leaveFrom="transform scale-100 opacity-100"
+                                leaveTo="transform scale-95 opacity-0"
+                            >
+                                <Disclosure.Panel className="mt-2">
+                                    <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
+                                        {location.poNumbers && (
+                                            <div>
+                                                <span className="text-xs font-medium text-gray-500">PO Numbers</span>
+                                                <p className="text-gray-900">{location.poNumbers}</p>
+                                            </div>
+                                        )}
+                                        {location.pickUpNumbers && (
+                                            <div>
+                                                <span className="text-xs font-medium text-gray-500">
+                                                    {location.type === 'destination'
+                                                        ? 'Delivery Numbers'
+                                                        : 'Pick Up Numbers'}
+                                                </span>
+                                                <p className="text-gray-900">{location.pickUpNumbers}</p>
+                                            </div>
+                                        )}
+                                        {location.referenceNumbers && (
+                                            <div>
+                                                <span className="text-xs font-medium text-gray-500">
+                                                    Reference Numbers
+                                                </span>
+                                                <p className="text-gray-900">{location.referenceNumbers}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Disclosure.Panel>
+                            </Transition>
+                        </>
+                    )}
+                </Disclosure>
             </div>
         </div>
     );
