@@ -29,6 +29,7 @@ const Dashboard: PageWithAuth = () => {
         setLoadsLoading(true);
         setLoadsList([]);
         const loads = await getUpcomingLoads(todayDataOnly ?? todayData);
+
         setLoadsList(loads);
         setLoadsLoading(false);
     };
@@ -38,6 +39,29 @@ const Dashboard: PageWithAuth = () => {
         localStorage.setItem('todayDataOnly', (!todayData).toString());
         setTodayData(!todayData);
         reloadLoads(!todayData);
+    };
+
+    // update loadsList with new expanded load passed in
+    const updateLoadStatus = (updatedLoad: ExpandedLoad) => {
+        // sort loadslist by pickup date and priotize status as following booked, inProgress, delivered
+        // set loadsList to be sorted by pickup date
+        // remove the load from the list and add it to the end
+        setLoadsList((prevLoads) => {
+            const filteredLoads = prevLoads.filter((load) => load.id !== updatedLoad.id);
+            const sortedLoads = [...filteredLoads, updatedLoad].sort((a, b) => {
+                if (a.shipper.date < b.shipper.date) return -1;
+                if (a.shipper.date > b.shipper.date) return 1;
+                return 0;
+            });
+            // sort by status next
+            sortedLoads.sort((a, b) => {
+                const statusOrder = ['BOOKED', 'IN_PROGRESS', 'DELIVERED'];
+                const aStatusIndex = statusOrder.indexOf(a.status);
+                const bStatusIndex = statusOrder.indexOf(b.status);
+                return aStatusIndex - bStatusIndex;
+            });
+            return sortedLoads;
+        });
     };
 
     return (
@@ -92,6 +116,7 @@ const Dashboard: PageWithAuth = () => {
                             <LoadViewToggle
                                 todayDataOnly={handleTodaysDataOnlyToggled}
                                 loadsList={loadsLoading ? [] : loadsList}
+                                updateLoadStatus={updateLoadStatus}
                             />
                         )}
                     </>
