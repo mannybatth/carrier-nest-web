@@ -17,6 +17,7 @@ const Dashboard: PageWithAuth = () => {
 
     const [loadsLoading, setLoadsLoading] = React.useState(true);
     const [loadsList, setLoadsList] = React.useState<ExpandedLoad[]>([]);
+    const [todayData, setTodayData] = React.useState<boolean>(localStorage.getItem('todayDataOnly') === 'true');
 
     // Get loads on page load
     React.useEffect(() => {
@@ -30,9 +31,16 @@ const Dashboard: PageWithAuth = () => {
 
         setLoadsList(loads);
         setLoadsLoading(false);
+
+        if (loads.length === 0 && (todayDataOnly || todayData)) {
+            // if no loads are found, set loadsLoading to false after 2 seconds
+
+            localStorage.setItem('todayDataOnly', 'false');
+
+            setTodayData(!todayData);
+        }
     };
 
-    const [todayData, setTodayData] = React.useState<boolean>(localStorage.getItem('todayDataOnly') === 'true');
     const handleTodaysDataOnlyToggled = () => {
         localStorage.setItem('todayDataOnly', (!todayData).toString());
         setTodayData(!todayData);
