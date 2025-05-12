@@ -145,16 +145,16 @@ const AssignmentPopup: React.FC<AssignmentPopupProps> = ({ isOpen, onClose, assi
                                             <Link
                                                 href={`/loads/${assignment.load.id}`}
                                                 target="_blank"
-                                                className="text-sm px-4 py-1.5 bg-gray-300 w-fit text-gray-800 rounded-lg  hover:bg-gray-400 transition text-center"
+                                                className="text-sm px-4 py-1.5 bg-white w-fit text-blue-600 rounded-lg  hover:bg-gray-100 border border-gray-100 transition text-center"
                                             >
                                                 View Load
                                             </Link>
                                             <Link
                                                 href={`/loads/${assignment.load.id}?routeLegId=${routeLeg?.id}`}
                                                 target="_blank"
-                                                className="text-sm px-4 py-1.5 bg-gray-700 w-fit text-white rounded-lg shadow hover:bg-gray-500 transition text-center"
+                                                className="text-sm px-4 py-1.5 bg-blue-600 w-fit text-white rounded-lg shadow hover:bg-blue-700 transition text-center"
                                             >
-                                                Edit
+                                                Edit Assignment
                                             </Link>
                                         </div>
                                     </div>
