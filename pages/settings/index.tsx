@@ -1,61 +1,89 @@
-import React, { useEffect } from 'react';
-import { Tab } from '@headlessui/react';
-import { Carrier } from '@prisma/client';
-import classNames from 'classnames';
-import Link from 'next/link';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import type { Carrier } from '@prisma/client';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import Layout from '../../components/layout/Layout';
-import { PageWithAuth } from '../../interfaces/auth';
-import { isCarrierCodeUnique, updateCarrier } from '../../lib/rest/carrier';
+import type { PageWithAuth } from '../../interfaces/auth';
+import { updateCarrier } from '../../lib/rest/carrier';
 import SettingsPageSkeleton from '../../components/skeletons/SettingsPageSkeleton';
 import { notify } from '../../components/Notification';
 import { useUserContext } from '../../components/context/UserContext';
-import { ExpandedCarrier } from 'interfaces/models';
+import type { ExpandedCarrier } from 'interfaces/models';
+import { InformationCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
 const SettingsPage: PageWithAuth = () => {
     const { setCarriers, defaultCarrier, setDefaultCarrier } = useUserContext();
-    const { register, handleSubmit, setValue, formState } = useForm<Carrier>();
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        formState: { errors, isDirty },
+    } = useForm<Carrier>();
     const router = useRouter();
+    const [saving, setSaving] = useState(false);
 
-    const navigation = [
-        { name: 'Edit Carrier', href: '/settings?page=carrier' },
-        // { name: 'Switch Carrier', href: '/settings?page=switchcarrier' },
-        // { name: 'Delete Account', href: '/settings?page=deleteaccount' },
+    // Group fields by category for better organization
+    const fieldGroups = [
+        {
+            id: 'company',
+            title: 'Company',
+            description: 'Update your company information and contact details',
+            fields: [
+                { id: 'name' as keyof Carrier, label: 'Company Name', required: true, type: 'input' },
+                { id: 'email' as keyof Carrier, label: 'Contact Email', required: true, type: 'input' },
+                { id: 'phone' as keyof Carrier, label: 'Phone Number', required: true, type: 'input' },
+            ],
+        },
+        {
+            id: 'regulatory',
+            title: 'Regulatory',
+            description: 'Manage your regulatory information and carrier code',
+            fields: [
+                { id: 'mcNum' as keyof Carrier, label: 'MC Number', required: false, type: 'input' },
+                { id: 'dotNum' as keyof Carrier, label: 'DOT Number', required: false, type: 'input' },
+                {
+                    id: 'carrierCode' as keyof Carrier,
+                    label: 'Carrier Code',
+                    required: true,
+                    type: 'input',
+                    disabled: true,
+                    hint: 'This code is used by drivers to sign in to the driver app. It cannot be changed.',
+                    icon: <LockClosedIcon className="w-4 h-4 text-gray-400" />,
+                },
+            ],
+        },
+        {
+            id: 'address',
+            title: 'Address',
+            description: "Update your company's physical address",
+            fields: [
+                { id: 'street' as keyof Carrier, label: 'Street Address', required: true, type: 'input' },
+                { id: 'city' as keyof Carrier, label: 'City', required: true, type: 'input' },
+                { id: 'state' as keyof Carrier, label: 'State', required: true, type: 'input' },
+                { id: 'zip' as keyof Carrier, label: 'Zip Code', required: true, type: 'input' },
+                { id: 'country' as keyof Carrier, label: 'Country', required: true, type: 'select' },
+            ],
+        },
     ];
 
-    const fields: Array<{ id: keyof Carrier; label: string; required: boolean; type: string }> = [
-        { id: 'name', label: 'Company Name', required: true, type: 'input' },
-        { id: 'email', label: 'Contact Email', required: true, type: 'input' },
-        { id: 'phone', label: 'Phone Number', required: true, type: 'input' },
-        { id: 'mcNum', label: 'MC Number', required: false, type: 'input' },
-        { id: 'dotNum', label: 'DOT Number', required: false, type: 'input' },
-        { id: 'street', label: 'Street Address', required: true, type: 'input' },
-        { id: 'city', label: 'City', required: true, type: 'input' },
-        { id: 'state', label: 'State', required: true, type: 'input' },
-        { id: 'zip', label: 'Zip Code', required: true, type: 'input' },
-        { id: 'country', label: 'Country', required: true, type: 'select' },
-        { id: 'carrierCode', label: 'Carrier Code', required: true, type: 'input' },
-    ];
-
-    const countryOptions = ['United States', 'Canada', 'Mexico']; // Add or fetch your country list here
-
-    const queryToIndex = (queryPage: string) => {
-        const index = navigation.findIndex((tab) => tab.name.toLowerCase().replace(' ', '') === queryPage);
-        return index === -1 ? 0 : index;
-    };
-
-    const tabIndex = queryToIndex(router.query.page as string);
+    const countryOptions = ['United States', 'Canada', 'Mexico'];
 
     useEffect(() => {
-        applyCarrierToForm(defaultCarrier);
+        if (defaultCarrier) {
+            applyCarrierToForm(defaultCarrier);
+        }
     }, [defaultCarrier]);
 
     const applyCarrierToForm = (carrier: ExpandedCarrier) => {
         if (carrier) {
-            fields.forEach((field) => {
+            // Flatten all fields from all groups
+            const allFields = fieldGroups.flatMap((group) => group.fields);
+
+            allFields.forEach((field) => {
                 const value = carrier[field.id];
-                if (value) {
+                if (value !== undefined) {
                     setValue(field.id, value);
                 }
             });
@@ -64,20 +92,20 @@ const SettingsPage: PageWithAuth = () => {
 
     const onSubmit = async (data: Carrier) => {
         try {
-            const didCarrierCodeChange = data.carrierCode !== defaultCarrier?.carrierCode;
+            setSaving(true);
 
-            if (didCarrierCodeChange) {
-                const isUnique = await isCarrierCodeUnique(data.carrierCode);
-
-                if (!isUnique) {
-                    notify({ title: 'Carrier code is not unique', type: 'error' });
-                    return;
-                }
+            // Ensure we're using the original carrier code
+            if (defaultCarrier) {
+                data.carrierCode = defaultCarrier.carrierCode;
             }
 
             const newCarrier = await updateCarrier(defaultCarrier?.id, data);
 
-            notify({ title: 'Carrier updated', message: 'Carrier updated successfully' });
+            notify({
+                title: 'Changes Saved',
+                message: 'Your settings have been updated successfully',
+                type: 'success',
+            });
 
             setCarriers((prevCarriers) => {
                 const index = prevCarriers.findIndex((carrier) => carrier.id === newCarrier.id);
@@ -87,8 +115,10 @@ const SettingsPage: PageWithAuth = () => {
             });
 
             setDefaultCarrier(newCarrier);
+            setSaving(false);
         } catch (error) {
             notify({ title: error.message, type: 'error' });
+            setSaving(false);
         }
     };
 
@@ -96,120 +126,236 @@ const SettingsPage: PageWithAuth = () => {
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
-                    <h1 className="flex-1 text-xl font-semibold text-gray-900">Settings</h1>
+                    <h1 className="flex-1 text-xl font-medium text-gray-900">Settings</h1>
                 </div>
             }
         >
-            <div className="max-w-4xl py-2 mx-auto">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <div className="flex">
-                        <h1 className="flex-1 text-2xl font-semibold text-gray-900">Settings</h1>
-                    </div>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
+            <div className="max-w-3xl py-6 mx-auto">
+                {defaultCarrier ? (
+                    <div className="px-4 sm:px-6 md:px-8">
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-medium text-gray-900">Settings</h1>
+                            <p className="mt-2 text-lg text-gray-500">Manage your carrier information</p>
+                        </div>
 
-                <div className="mx-auto max-w-7xl lg:flex lg:gap-x-16 lg:px-8">
-                    {defaultCarrier ? (
-                        <Tab.Group vertical key={router.query.page as string} defaultIndex={tabIndex}>
-                            <aside className="flex py-4 overflow-x-auto border-b border-gray-900/5 lg:block lg:w-64 lg:flex-none lg:border-0">
-                                <Tab.List className="flex-none px-4 sm:px-6 lg:px-1">
-                                    <ul role="list" className="flex gap-x-3 gap-y-1 whitespace-nowrap lg:flex-col">
-                                        {navigation.map((item, index) => (
-                                            <Link href={item.href} key={item.name}>
-                                                <Tab
-                                                    key={item.name}
-                                                    className={({ selected }) =>
-                                                        classNames(
-                                                            selected
-                                                                ? 'bg-gray-50 text-indigo-600'
-                                                                : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-                                                            'flex w-full gap-x-3 rounded-md py-2 pl-2 pr-3 text-sm leading-6 font-semibold',
-                                                        )
-                                                    }
-                                                >
-                                                    {item.name}
-                                                </Tab>
-                                            </Link>
-                                        ))}
-                                    </ul>
-                                </Tab.List>
-                            </aside>
-                            <main className="px-4 py-4 sm:px-6 lg:flex-auto lg:px-0">
-                                <div className="max-w-2xl mx-auto space-y-16 sm:space-y-20 lg:mx-0 lg:max-w-none">
-                                    <Tab.Panels>
-                                        <Tab.Panel>
-                                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                                                {fields.map(({ id, label, required, type }) => (
-                                                    <div key={id}>
+                        <form onSubmit={handleSubmit(onSubmit)}>
+                            <div className="space-y-10">
+                                {fieldGroups.map((group) => (
+                                    <div
+                                        key={group.id}
+                                        className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
+                                        id={group.id}
+                                    >
+                                        <div className="px-8 py-6 border-b border-gray-100">
+                                            <h2 className="text-xl font-medium text-gray-900">{group.title}</h2>
+                                            <p className="mt-1 text-sm text-gray-500">{group.description}</p>
+                                        </div>
+
+                                        <div className="px-8 py-6">
+                                            <div className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-2">
+                                                {group.fields.map((field) => (
+                                                    <div
+                                                        key={field.id}
+                                                        className={field.id === 'street' ? 'sm:col-span-2' : ''}
+                                                    >
                                                         <label
-                                                            htmlFor={id}
-                                                            className="block text-sm font-medium text-gray-700"
+                                                            htmlFor={field.id}
+                                                            className="block text-sm font-medium text-gray-700 mb-1"
                                                         >
-                                                            {label}
-                                                            {required && <span>*</span>}
-                                                            {id === 'carrierCode' && (
-                                                                <span className="ml-2 text-sm text-right text-gray-500">
-                                                                    (Used by the driver to login)
-                                                                </span>
+                                                            {field.label}
+                                                            {field.required && (
+                                                                <span className="text-red-400 ml-0.5">*</span>
                                                             )}
                                                         </label>
-                                                        {type === 'input' ? (
-                                                            <input
-                                                                type="text"
-                                                                id={id}
-                                                                {...register(id, {
-                                                                    required: required ? label + ' is required' : false,
-                                                                })}
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            />
-                                                        ) : type === 'select' ? (
-                                                            <select
-                                                                className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                                id={id}
-                                                                {...register(id, {
-                                                                    required: required ? label + ' is required' : false,
-                                                                })}
-                                                            >
-                                                                {countryOptions.map((country) => (
-                                                                    <option key={country} value={country}>
-                                                                        {country}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        ) : null}
-                                                        {formState.errors[id] && (
-                                                            <p className="mt-2 text-sm text-red-600">
-                                                                {formState.errors[id].message}
+
+                                                        <div className="relative">
+                                                            {field.type === 'input' ? (
+                                                                <>
+                                                                    <div className="relative">
+                                                                        {field.icon && (
+                                                                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                                                {field.icon}
+                                                                            </div>
+                                                                        )}
+                                                                        <input
+                                                                            type="text"
+                                                                            id={field.id}
+                                                                            disabled={field.disabled}
+                                                                            {...register(field.id, {
+                                                                                required: field.required
+                                                                                    ? `${field.label} is required`
+                                                                                    : false,
+                                                                            })}
+                                                                            className={`
+                                        block w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-gray-900
+                                        shadow-sm ring-1 ring-inset ring-gray-200
+                                        placeholder:text-gray-400
+                                        focus:ring-2 focus:ring-inset focus:ring-gray-900
+                                        transition-all duration-200
+                                        ${field.icon ? 'pl-10' : ''}
+                                        ${errors[field.id] ? 'ring-red-300 focus:ring-red-500' : ''}
+                                        ${
+                                            field.disabled
+                                                ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-75'
+                                                : ''
+                                        }
+                                      `}
+                                                                        />
+                                                                    </div>
+                                                                </>
+                                                            ) : field.type === 'select' ? (
+                                                                <select
+                                                                    id={field.id}
+                                                                    disabled={field.disabled}
+                                                                    {...register(field.id, {
+                                                                        required: field.required
+                                                                            ? `${field.label} is required`
+                                                                            : false,
+                                                                    })}
+                                                                    className={`
+                                    block w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-gray-900
+                                    shadow-sm ring-1 ring-inset ring-gray-200
+                                    focus:ring-2 focus:ring-inset focus:ring-gray-900
+                                    transition-all duration-200
+                                    ${errors[field.id] ? 'ring-red-300 focus:ring-red-500' : ''}
+                                    ${field.disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-75' : ''}
+                                  `}
+                                                                >
+                                                                    {countryOptions.map((option) => (
+                                                                        <option key={option} value={option}>
+                                                                            {option}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : null}
+                                                        </div>
+
+                                                        {field.hint && (
+                                                            <div className="mt-2 flex items-start">
+                                                                {field.id === 'carrierCode' && (
+                                                                    <div className="flex-shrink-0 mt-0.5">
+                                                                        <InformationCircleIcon className="h-4 w-4 text-blue-500" />
+                                                                    </div>
+                                                                )}
+                                                                <p
+                                                                    className={`text-sm ${
+                                                                        field.id === 'carrierCode'
+                                                                            ? 'text-blue-700 ml-2'
+                                                                            : 'text-gray-500'
+                                                                    }`}
+                                                                >
+                                                                    {field.hint}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {field.id === 'carrierCode' && (
+                                                            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                                                                <div className="flex">
+                                                                    <div className="flex-shrink-0">
+                                                                        <InformationCircleIcon className="h-5 w-5 text-blue-400" />
+                                                                    </div>
+                                                                    <div className="ml-3">
+                                                                        <h3 className="text-sm font-medium text-blue-800">
+                                                                            Driver Sign-In Information
+                                                                        </h3>
+                                                                        <div className="mt-1 text-sm text-blue-700">
+                                                                            <p>
+                                                                                This carrier code is required for
+                                                                                drivers to sign in to the driver app.
+                                                                                Please share this code with your
+                                                                                drivers.
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {errors[field.id] && (
+                                                            <p className="mt-1.5 text-sm text-red-500">
+                                                                {errors[field.id].message}
                                                             </p>
                                                         )}
                                                     </div>
                                                 ))}
-                                                <div className="flex w-full px-0 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                                                    <button
-                                                        type="submit"
-                                                        className="flex justify-center w-full px-10 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                    >
-                                                        Save
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </Tab.Panel>
-                                        {/* <Tab.Panel>
-                                            <h2 className="text-xl font-semibold">Switch Carrier</h2> */}
-                                        {/* List of carriers and switch button */}
-                                        {/* </Tab.Panel> */}
-                                        {/* <Tab.Panel>
-                                            <h2 className="text-xl font-semibold">Delete Account</h2> */}
-                                        {/* Delete confirmation dialog */}
-                                        {/* </Tab.Panel> */}
-                                    </Tab.Panels>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="sticky bottom-0 mt-8 py-4 bg-white/80 backdrop-blur-md border-t border-gray-100">
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={!isDirty || saving}
+                                        className={`
+                      inline-flex items-center justify-center ml-3 px-5 py-2.5 text-sm font-medium text-white
+                      rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+                      ${
+                          isDirty && !saving
+                              ? 'bg-gray-900 hover:bg-gray-800 focus:ring-gray-900'
+                              : 'bg-gray-400 cursor-not-allowed'
+                      }
+                    `}
+                                    >
+                                        {saving ? (
+                                            <>
+                                                <svg className="w-4 h-4 mr-2 animate-spin" viewBox="0 0 24 24">
+                                                    <circle
+                                                        className="opacity-25"
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="10"
+                                                        stroke="currentColor"
+                                                        strokeWidth="4"
+                                                        fill="none"
+                                                    />
+                                                    <path
+                                                        className="opacity-75"
+                                                        fill="currentColor"
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                    />
+                                                </svg>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            'Save Changes'
+                                        )}
+                                    </button>
                                 </div>
-                            </main>
-                        </Tab.Group>
-                    ) : (
-                        <SettingsPageSkeleton></SettingsPageSkeleton>
-                    )}
-                </div>
+                            </div>
+                        </form>
+
+                        <div className="mt-10 mb-16">
+                            <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                                <div className="px-8 py-6 border-b border-gray-100">
+                                    <h2 className="text-xl font-medium text-red-500">Danger Zone</h2>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Permanent actions that cannot be undone
+                                    </p>
+                                </div>
+                                <div className="px-8 py-6">
+                                    <button
+                                        type="button"
+                                        className="px-5 py-2.5 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200"
+                                    >
+                                        Delete Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <SettingsPageSkeleton />
+                )}
             </div>
         </Layout>
     );
