@@ -852,8 +852,16 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                 >
                                                     <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
                                                         <div className="flex flex-col">
-                                                            <div className="text-xs text-gray-500">
-                                                                Order# {load.refNum}
+                                                            <div className="text-sm text-gray-500">
+                                                                <Link
+                                                                    href={`/loads/${load.id}`}
+                                                                    className="font-semibold cursor-pointer hover:underline"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                    }}
+                                                                >
+                                                                    Order# {load.refNum}
+                                                                </Link>
                                                             </div>
                                                             <div className="text-xs text-gray-500">
                                                                 Load# {load.loadNum}
@@ -989,9 +997,12 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                           }`
                                                                                 }
                                                                             >
-                                                                                Route {idx + 1}
-                                                                                {routeLegData.assignments.length > 1 &&
-                                                                                    ` (${routeLegData.assignments.length} drivers)`}
+                                                                                Assignment {idx + 1}
+                                                                                <span className="text-gray-400 text-xs">
+                                                                                    {routeLegData.assignments.length >
+                                                                                        1 &&
+                                                                                        ` (${routeLegData.assignments.length} drivers)`}
+                                                                                </span>
                                                                             </Tab>
                                                                         ))}
                                                                     </Tab.List>
@@ -1292,7 +1303,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                     .locations.length >
                                                                                                     0 && (
                                                                                                     <div className="mb-4">
-                                                                                                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                                                                        <h4 className="text-xs font-medium mt-4 text-gray-500 uppercase tracking-wider mb-3">
                                                                                                             Stops (
                                                                                                             {
                                                                                                                 routeLegData
@@ -1451,7 +1462,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                                                                 )}
                                                                                                                                                 target="_blank"
                                                                                                                                                 rel="noopener noreferrer"
-                                                                                                                                                className="ml-auto flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                                                                                                                                                className="ml-auto flex items-center text-gray-400 hover:text-blue-600 text-xs"
                                                                                                                                                 onClick={(
                                                                                                                                                     e,
                                                                                                                                                 ) =>
@@ -1956,7 +1967,17 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                 <div className="p-3 pb-1">
                                                     <div className="relative flex justify-between items-start mb-2">
                                                         <div>
-                                                            <div className="text-xs text-gray-500">{load.refNum}</div>
+                                                            <div className="text-xs text-gray-500">
+                                                                <Link
+                                                                    href={`/loads/${load.id}`}
+                                                                    className="font-medium cursor-pointer hover:underline"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                    }}
+                                                                >
+                                                                    Order# {load.refNum}
+                                                                </Link>
+                                                            </div>
                                                             <div className="font-semibold text-sm text-gray-900 truncate uppercase">
                                                                 {load.customer.name}
                                                             </div>
