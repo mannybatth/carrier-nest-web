@@ -8,6 +8,7 @@ import {
     WrenchIcon,
     CreditCardIcon,
     BanknotesIcon,
+    FunnelIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -20,6 +21,7 @@ const navigation = [
     { name: 'Invoices', href: '/invoices', icon: CurrencyDollarIcon },
     { name: 'Driver Pay', href: '/driverinvoices?show=all', icon: BanknotesIcon },
     { name: 'Drivers', href: '/drivers', icon: IdentificationIcon },
+    { name: 'IFTA', href: '/ifta', icon: FunnelIcon },
     { name: 'Customers', href: '/customers', icon: UserGroupIcon },
     { name: 'Stop Locations', href: '/locations', icon: MapPinIcon },
     { name: 'Equipments', href: '/equipments', icon: WrenchIcon },
@@ -70,7 +72,14 @@ const Navigation: React.FC = () => {
                                 )}
                                 aria-hidden="true"
                             />
-                            {item.name}
+                            {item.name.includes('IFTA') ? (
+                                <>
+                                    {item.name}
+                                    <span className="text-blue-600"> (coming soon)</span>
+                                </>
+                            ) : (
+                                <span className="text-sm font-medium">{item.name}</span>
+                            )}
                         </>
                     </Link>
                 ))}
