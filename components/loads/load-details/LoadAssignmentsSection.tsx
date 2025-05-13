@@ -350,7 +350,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                 <div>
                                                     <p className="text-xs font-medium text-gray-500">Distance</p>
                                                     <p className="text-sm font-medium text-gray-900">
-                                                        {legDistance.toFixed(2)} miles
+                                                        {Number(legDistance)?.toFixed(2)} miles
                                                     </p>
                                                 </div>
                                             </div>
@@ -360,7 +360,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                 <div>
                                                     <p className="text-xs font-medium text-gray-500">Duration</p>
                                                     <p className="text-sm font-medium text-gray-900">
-                                                        {legDuration.toFixed(2)} hours
+                                                        {Number(legDuration)?.toFixed(2)} hours
                                                     </p>
                                                 </div>
                                             </div>
