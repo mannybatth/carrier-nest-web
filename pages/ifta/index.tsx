@@ -61,7 +61,7 @@ const IFTAPage: PageWithAuth = () => {
                         <div className="px-6 py-6 sm:px-8 sm:py-8">
                             <div className="text-center mb-6">
                                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                    We're building something better
+                                    We&apos;re building something better
                                 </h3>
                                 <p className="text-gray-600 max-w-lg mx-auto">
                                     Our enhanced IFTA reporting system with per-truck and per-driver reporting
@@ -190,7 +190,7 @@ const IFTAPage: PageWithAuth = () => {
                                 ) : (
                                     <div className="flex items-center justify-center text-green-600 bg-green-50 rounded-md py-3 px-4">
                                         <CheckIcon className="h-5 w-5 mr-2" />
-                                        <span>Thank you! We'll notify you when the feature is available.</span>
+                                        <span>Thank you! We&apos;ll notify you when the feature is available.</span>
                                     </div>
                                 )}
                             </div>
@@ -392,14 +392,14 @@ function ReportGenerator() {
 
         // Simulate report generation process
         setTimeout(() => {
-            const updatedReport: Report = { ...newReport, status: 'processing' as 'processing' };
+            const updatedReport: Report = { ...newReport, status: 'processing' };
             setCurrentReport(updatedReport);
 
             // Simulate completion after some time
             setTimeout(() => {
                 const completedReport: Report = {
                     ...updatedReport,
-                    status: 'completed' as 'completed',
+                    status: 'completed',
                     completedAt: new Date(),
                     downloadUrl: '#',
                 };
