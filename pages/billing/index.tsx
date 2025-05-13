@@ -1,3 +1,5 @@
+'use client';
+
 import { SubscriptionPlan } from '@prisma/client';
 import { useUserContext } from 'components/context/UserContext';
 import { notify } from 'components/Notification';
@@ -7,11 +9,12 @@ import {
     getStripeSubscription,
     getStripeInvoices,
 } from 'lib/rest/stripe';
-import React, { useEffect, useState } from 'react';
-import Stripe from 'stripe';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type Stripe from 'stripe';
 import Layout from '../../components/layout/Layout';
 import SimpleDialog from 'components/dialogs/SimpleDialog';
-import { ArrowDownCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowDownCircleIcon, CheckIcon } from '@heroicons/react/24/outline';
 import BillingPageSkeleton from 'components/skeletons/BillingPageSkeleton';
 import {
     BASIC_PLAN_AI_RATECON_IMPORTS,
@@ -100,7 +103,7 @@ const BillingPage = () => {
             setNumDrivers(null);
             return;
         }
-        const numValue = parseInt(value);
+        const numValue = Number.parseInt(value);
         // Only update if it's a valid number
         if (!isNaN(numValue)) {
             setNumDrivers(numValue);
@@ -183,7 +186,7 @@ const BillingPage = () => {
                             iconColor="text-gray-600"
                         />
                         <div className="px-5 sm:px-6 md:px-8">
-                            <div className="max-w-3xl pb-6">
+                            <div className="max-w-4xl pb-6">
                                 {/* Subscription Details */}
                                 {!isLoading && subscriptionDetails && currentPlan === SubscriptionPlan.PRO && (
                                     <div className="mb-8 overflow-hidden bg-white border border-gray-200 rounded-lg">
@@ -241,218 +244,444 @@ const BillingPage = () => {
                                     </div>
                                 )}
 
-                                {/* Pricing Plans */}
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <div
-                                        className={`relative p-6 border-2 ${
-                                            currentPlan === SubscriptionPlan.BASIC
-                                                ? 'border-green-700'
-                                                : 'border-gray-200'
-                                        } rounded-lg`}
-                                    >
-                                        {currentPlan === SubscriptionPlan.BASIC && (
-                                            <div
-                                                className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
-                                                data-tooltip-id="tooltip"
-                                                data-tooltip-content="Currently on the Basic plan"
-                                            >
-                                                <svg
-                                                    className="w-3 h-3"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth={3}
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M5 13l4 4L19 7"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        )}
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h2 className="text-xl font-semibold">Basic Plan</h2>
-                                                <div className="mt-1">
-                                                    <p className="text-gray-600">
-                                                        Total loads: {BASIC_PLAN_TOTAL_LOADS}
-                                                    </p>
-                                                    <p className="text-gray-600">
-                                                        AI ratecon imports per month: {BASIC_PLAN_AI_RATECON_IMPORTS}
-                                                    </p>
-                                                    <p className="text-gray-600">
-                                                        Max storage: {BASIC_PLAN_MAX_STORAGE_MB}MB
-                                                    </p>
-                                                    <p className="text-gray-600">
-                                                        {BASIC_PLAN_MAX_DRIVERS === 1
-                                                            ? 'Only one driver'
-                                                            : `Up to ${BASIC_PLAN_MAX_DRIVERS} drivers`}
-                                                    </p>
+                                {/* Pricing Plans - New Side-by-Side Comparison */}
+                                <div className="mb-8">
+                                    <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
+                                        {/* Table Header */}
+                                        <div className="grid grid-cols-3 border-b border-gray-200">
+                                            <div className="px-6 py-4 text-sm font-medium text-gray-500">Features</div>
+                                            <div className="px-6 py-4 border-l border-gray-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-gray-900">Basic Plan</h3>
+                                                        <p className="text-base font-medium text-gray-500">Free</p>
+                                                    </div>
+                                                    {currentPlan === SubscriptionPlan.BASIC && (
+                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                                                            <CheckIcon className="w-4 h-4 text-green-600" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-baseline">
-                                                <span className="text-3xl font-bold">$0</span>
-                                                <span className="ml-1 text-gray-600">per month</span>
+                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="flex items-center">
+                                                            <h3 className="text-lg font-bold text-gray-900">
+                                                                Pro Plan
+                                                            </h3>
+                                                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                Recommended
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-base font-medium text-gray-500">
+                                                            ${PRO_PLAN_COST_PER_DRIVER}/month per driver
+                                                        </p>
+                                                    </div>
+                                                    {currentPlan === SubscriptionPlan.PRO && (
+                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                                                            <CheckIcon className="w-4 h-4 text-green-600" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <button
-                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
-                                                    currentPlan === SubscriptionPlan.BASIC || isSubscriptionCanceling
-                                                        ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                        : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-                                                }`}
-                                                onClick={() => {
-                                                    setShowDowngradeDialog(true);
-                                                }}
-                                                disabled={
-                                                    currentPlan === SubscriptionPlan.BASIC || isSubscriptionCanceling
-                                                }
-                                            >
-                                                {currentPlan === SubscriptionPlan.BASIC
-                                                    ? 'Current plan'
-                                                    : isSubscriptionCanceling
-                                                    ? 'Downgrade scheduled'
-                                                    : 'Switch to Basic'}
-                                            </button>
+                                        </div>
+
+                                        {/* Driver Count Input (always visible for Pro) */}
+                                        <div className="grid grid-cols-3 border-b border-gray-200">
+                                            <div className="px-6 py-4 text-sm font-medium text-gray-500">
+                                                Number of drivers
+                                            </div>
+                                            <div className="px-6 py-4 border-l border-gray-200">
+                                                <div className="text-sm text-gray-700">{BASIC_PLAN_MAX_DRIVERS}</div>
+                                            </div>
+                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="number"
+                                                        id="numDrivers"
+                                                        value={numDrivers ?? ''}
+                                                        onChange={handleNumDriversChange}
+                                                        min="1"
+                                                        className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                        disabled={
+                                                            currentPlan === SubscriptionPlan.PRO &&
+                                                            !isSubscriptionCanceling
+                                                        }
+                                                    />
+                                                </div>
+                                                {numDrivers && numDrivers > 0 && (
+                                                    <div className="mt-2 text-sm font-medium text-blue-700">
+                                                        Total: ${(PRO_PLAN_COST_PER_DRIVER * numDrivers).toFixed(2)}
+                                                        /month
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Feature Rows */}
+                                        <div className="divide-y divide-gray-200">
+                                            {/* Load Imports */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    Load Imports
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm text-gray-700">
+                                                            {BASIC_PLAN_TOTAL_LOADS} loads
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            Unlimited
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* AI RateCon PDF Imports */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    AI RateCon PDF Imports
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm text-gray-700">
+                                                            {BASIC_PLAN_AI_RATECON_IMPORTS} loads
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            {numDrivers
+                                                                ? PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers
+                                                                : PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER}
+                                                            /month
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Storage Capacity */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    Storage Capacity
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm text-gray-700">
+                                                            {BASIC_PLAN_MAX_STORAGE_MB}MB
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            {numDrivers
+                                                                ? PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers
+                                                                : PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER}
+                                                            GB
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Driver mobile app */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    Driver mobile app
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-red-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M6 18L18 6M6 6l12 12"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm text-gray-700">Not included</span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            Included
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Priority Support */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    Priority Support
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-red-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M6 18L18 6M6 6l12 12"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm text-gray-700">Not included</span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            Included
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="grid grid-cols-3 border-t border-gray-200">
+                                            <div className="px-6 py-4 text-sm font-medium text-gray-900"></div>
+                                            <div className="px-6 py-4 border-l border-gray-200">
+                                                <button
+                                                    className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
+                                                        currentPlan === SubscriptionPlan.BASIC ||
+                                                        isSubscriptionCanceling
+                                                            ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
+                                                            : 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
+                                                    }`}
+                                                    onClick={() => {
+                                                        setShowDowngradeDialog(true);
+                                                    }}
+                                                    disabled={
+                                                        currentPlan === SubscriptionPlan.BASIC ||
+                                                        isSubscriptionCanceling
+                                                    }
+                                                >
+                                                    {currentPlan === SubscriptionPlan.BASIC
+                                                        ? 'Current plan'
+                                                        : isSubscriptionCanceling
+                                                        ? 'Downgrade scheduled'
+                                                        : 'Switch to Basic'}
+                                                </button>
+                                            </div>
+                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                <button
+                                                    className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:opacity-70 disabled:pointer-events-none ${
+                                                        currentPlan === SubscriptionPlan.PRO
+                                                            ? isSubscriptionCanceling
+                                                                ? 'bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
+                                                                : 'bg-blue-600 hover:bg-gray-200 text-white border border-gray-200'
+                                                            : 'bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
+                                                    }`}
+                                                    onClick={() =>
+                                                        isSubscriptionCanceling
+                                                            ? handleBillingPortal()
+                                                            : handlePlanChange(SubscriptionPlan.PRO)
+                                                    }
+                                                    disabled={
+                                                        (currentPlan === SubscriptionPlan.PRO &&
+                                                            !isSubscriptionCanceling) ||
+                                                        !numDrivers ||
+                                                        numDrivers < 1
+                                                    }
+                                                >
+                                                    {currentPlan === SubscriptionPlan.PRO
+                                                        ? isSubscriptionCanceling
+                                                            ? 'Resume Plan'
+                                                            : 'Current plan'
+                                                        : 'Switch to Pro'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div
-                                        className={`relative p-6 border-2 ${
-                                            currentPlan === SubscriptionPlan.PRO
-                                                ? 'border-green-700'
-                                                : 'border-gray-200'
-                                        } rounded-lg`}
-                                    >
-                                        {currentPlan === SubscriptionPlan.PRO && (
-                                            <div
-                                                className="absolute flex items-center justify-center w-5 h-5 text-white bg-green-600 rounded-full top-6 right-6"
-                                                data-tooltip-id="tooltip"
-                                                data-tooltip-content="Currently on the Pro plan"
-                                            >
-                                                <svg
-                                                    className="w-3 h-3"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth={3}
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M5 13l4 4L19 7"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        )}
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h2 className="text-xl font-semibold">Pro Plan</h2>
-                                                <div className="mt-1">
-                                                    <p className="text-gray-600">Unlimited loads</p>
-                                                    <p className="text-gray-600">
-                                                        AI ratecon imports per month:{' '}
-                                                        {PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers}
-                                                    </p>
-                                                    <p className="text-gray-600">
-                                                        Max Storage: {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers}GB
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <label htmlFor="numDrivers" className="text-gray-600">
-                                                    Number of drivers:
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    id="numDrivers"
-                                                    value={numDrivers}
-                                                    onChange={handleNumDriversChange}
-                                                    min="1"
-                                                    className="w-16 px-2 py-1 border border-gray-300 rounded-md"
-                                                    disabled={currentPlan === SubscriptionPlan.PRO}
-                                                />
-                                            </div>
-                                            <div className="flex items-baseline">
-                                                <span className="text-3xl font-bold">
-                                                    ${PRO_PLAN_COST_PER_DRIVER * numDrivers}
-                                                </span>
-                                                <span className="ml-1 text-gray-600">per month</span>
-                                            </div>
-                                            <button
-                                                className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:opacity-50 disabled:pointer-events-none ${
-                                                    currentPlan === SubscriptionPlan.PRO
-                                                        ? isSubscriptionCanceling
-                                                            ? 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-                                                            : 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                        : 'bg-black hover:bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-                                                }`}
-                                                onClick={() =>
-                                                    isSubscriptionCanceling
-                                                        ? handleBillingPortal()
-                                                        : handlePlanChange(SubscriptionPlan.PRO)
-                                                }
-                                                disabled={
-                                                    (currentPlan === SubscriptionPlan.PRO &&
-                                                        !isSubscriptionCanceling) ||
-                                                    !numDrivers ||
-                                                    numDrivers < 1
-                                                }
-                                            >
-                                                {currentPlan === SubscriptionPlan.PRO
-                                                    ? isSubscriptionCanceling
-                                                        ? 'Resume Plan'
-                                                        : 'Current plan'
-                                                    : 'Switch to Pro'}
-                                            </button>
-                                        </div>
+                                    {/* Pro Plan Recommendation */}
+                                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <h3 className="text-lg font-medium text-blue-900">Why choose Pro?</h3>
+                                        <p className="mt-2 text-sm text-gray-700">
+                                            Upgrade to Pro for unlimited loads, driver mobile app access, and priority
+                                            support to maximize your efficiency. The Pro plan pays for itself by saving
+                                            you time and helping you manage more loads with less effort.
+                                        </p>
                                     </div>
                                 </div>
-                            </div>
-                            {stripeCustomerId && (
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-semibold">Billing history</h2>
-                                    <div className="space-y-2">
-                                        {invoices.length > 0 ? (
-                                            <div className="min-w-full">
-                                                <div className="text-xs font-medium text-gray-500 uppercase">
-                                                    <div className="grid grid-cols-3 gap-4 py-2">
-                                                        <div className="w-48">Date</div>
-                                                        <div className="w-32">Amount</div>
-                                                        <div>Status</div>
+
+                                {stripeCustomerId && (
+                                    <div className="space-y-4">
+                                        <h2 className="text-xl font-semibold">Billing history</h2>
+                                        <div className="space-y-2">
+                                            {invoices.length > 0 ? (
+                                                <div className="min-w-full overflow-hidden bg-white border border-gray-200 rounded-lg">
+                                                    <div className="text-xs font-medium text-gray-500 uppercase bg-gray-50">
+                                                        <div className="grid grid-cols-3 gap-4 px-6 py-3">
+                                                            <div>Date</div>
+                                                            <div>Amount</div>
+                                                            <div>Status</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="divide-y divide-gray-200">
+                                                        {invoices.map((invoice) => (
+                                                            <div
+                                                                key={invoice.id}
+                                                                className="grid grid-cols-3 gap-4 px-6 py-4"
+                                                            >
+                                                                <div className="text-sm text-gray-600">
+                                                                    {formatDate(invoice.created)}
+                                                                </div>
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    ${(invoice.total / 100).toFixed(2)} USD
+                                                                </div>
+                                                                <div>
+                                                                    <span
+                                                                        className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
+                                                                            invoice.status,
+                                                                        )}`}
+                                                                    >
+                                                                        {invoice.status}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    {invoices.map((invoice) => (
-                                                        <div
-                                                            key={invoice.id}
-                                                            className="grid grid-cols-3 gap-4 py-3 border-b border-gray-100 last:border-0"
-                                                        >
-                                                            <div className="w-48 text-gray-600">
-                                                                {formatDate(invoice.created)}
-                                                            </div>
-                                                            <div className="w-32 text-gray-900">
-                                                                ${(invoice.total / 100).toFixed(2)} USD
-                                                            </div>
-                                                            <div>
-                                                                <span
-                                                                    className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
-                                                                        invoice.status,
-                                                                    )}`}
-                                                                >
-                                                                    {invoice.status}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-500">No billing history available</p>
-                                        )}
+                                            ) : (
+                                                <p className="text-gray-500">No billing history available</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </>
                 )}

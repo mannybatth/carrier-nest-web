@@ -1,25 +1,35 @@
+'use client';
+
 import { RadioGroup } from '@headlessui/react';
-import { CheckCircleIcon } from '@heroicons/react/20/solid';
-import { Carrier, SubscriptionPlan } from '@prisma/client';
-import { PageWithAuth } from 'interfaces/auth';
 import {
-    PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER,
-    PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
-    BASIC_PLAN_TOTAL_LOADS,
-    BASIC_PLAN_AI_RATECON_IMPORTS,
-    BASIC_PLAN_MAX_STORAGE_MB,
-    BASIC_PLAN_MAX_DRIVERS,
-    PRO_PLAN_COST_PER_DRIVER,
-} from 'lib/constants';
+    ArrowRightIcon,
+    ArrowLeftIcon,
+    CheckIcon,
+    ExclamationTriangleIcon,
+    BuildingOfficeIcon,
+    TruckIcon,
+    CreditCardIcon,
+} from '@heroicons/react/24/outline';
+import { type Carrier, SubscriptionPlan } from '@prisma/client';
+import type { PageWithAuth } from 'interfaces/auth';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import React, { useState, useRef, useEffect } from 'react';
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { notify } from '../../components/Notification';
 import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
 import { createCheckoutSession } from '../../lib/rest/stripe';
-import { truncate } from 'fs';
 import { tenDigitPhone } from 'lib/helpers/regExpressions';
+import {
+    PRO_PLAN_COST_PER_DRIVER,
+    BASIC_PLAN_MAX_DRIVERS,
+    BASIC_PLAN_TOTAL_LOADS,
+    BASIC_PLAN_AI_RATECON_IMPORTS,
+    PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER,
+    BASIC_PLAN_MAX_STORAGE_MB,
+    PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
+} from 'lib/constants';
 
 type CarrierOperation = {
     carrierOperationDesc: string;
@@ -49,6 +59,7 @@ type StepProps = {
         number: number;
         title: string;
         description: string;
+        icon: React.ReactNode;
     };
     isActive: boolean;
     isCompleted: boolean;
@@ -56,15 +67,7 @@ type StepProps = {
 };
 
 const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
-    <li
-        className={`relative flex-1 transition-all ${
-            step.number < 3
-                ? `after:content-[''] after:w-0.5 after:h-full after:inline-block after:absolute after:-bottom-11 after:left-5 ${
-                      isCompleted ? 'after:bg-blue-600' : 'after:bg-gray-200'
-                  }`
-                : ''
-        }`}
-    >
+    <li className="relative">
         <div className={`flex items-start w-full`}>
             <span
                 className={`w-10 h-10 flex shrink-0 items-center justify-center rounded-full mr-3 text-sm relative z-10
@@ -76,7 +79,7 @@ const Step = ({ step, isActive, isCompleted, children }: StepProps) => (
                             : 'bg-gray-50 border-2 border-gray-200 text-gray-400'
                     }`}
             >
-                {step.number}
+                {isCompleted ? <CheckIcon className="w-5 h-5" /> : step.icon}
             </span>
             <div className={`block w-full ${(!isCompleted && !isActive && 'opacity-50') || ''}`}>
                 <h4
@@ -117,7 +120,7 @@ const CarrierSetup: PageWithAuth = () => {
         { id: 'carrierCode', label: 'Carrier Code', required: true, type: 'input' },
     ];
 
-    const [activeStep, setActiveStep] = React.useState(0);
+    const [activeStep, setActiveStep] = useState(0);
     const mcNumberInputRef = useRef<HTMLInputElement>(null);
     const companyNameInputRef = useRef<HTMLInputElement>(null);
     const [fetchError, setFetchError] = useState<boolean>(false);
@@ -198,7 +201,14 @@ const CarrierSetup: PageWithAuth = () => {
             setIsSubmitButtonDisabled(true);
             setTimeout(() => setIsSubmitButtonDisabled(false), 1000);
         }
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+
+        // Add smooth scrolling illusion
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Small delay for visual effect
+        setTimeout(() => {
+            setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        }, 300);
     };
 
     const handleBack = () => {
@@ -206,7 +216,14 @@ const CarrierSetup: PageWithAuth = () => {
         if (activeStep === 1) {
             formHook.reset();
         }
-        setActiveStep((prevActiveStep) => prevActiveStep - 1);
+
+        // Add smooth scrolling illusion
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Small delay for visual effect
+        setTimeout(() => {
+            setActiveStep((prevActiveStep) => prevActiveStep - 1);
+        }, 300);
     };
 
     const getFMCSAData = async (mcNumber: string) => {
@@ -269,514 +286,42 @@ const CarrierSetup: PageWithAuth = () => {
         }
     };
 
-    const DisplayCard = (result: CarrierObj) => (
-        <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200">
-            <div className="p-3">
-                <div className="pb-2">
-                    <p className="text-sm font-light text-gray-500 uppercase">Carrier Name:</p>
-                    <p className="text-base font-bold uppercase text-slate-600">{result.legalName}</p>
-                </div>
-                <div className="pb-2">
-                    <p className="text-sm font-light text-gray-500 uppercase">DOT Number:</p>
-                    <p className="text-base font-bold uppercase text-slate-600">{result.dotNumber.toString()}</p>
-                </div>
-                <div>
-                    <p className="text-sm font-light text-gray-500 uppercase">Address:</p>
-                    <p className="text-base font-bold uppercase text-slate-600">
-                        {`${result.phyStreet}, ${result.phyCity}, ${result.phyState} ${result.phyZipcode}`}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-
-    const DisplayCardSkeleton = () => (
-        <div className="max-w-40vw w-80% mx-auto my-2 p-0 rounded-8px bg-white text-gray-600 border-2 border-gray-200 animate-pulse">
-            <div className="p-3">
-                <div className="pb-2">
-                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
-                    <div className="w-48 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
-                </div>
-                <div className="pb-2">
-                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
-                    <div className="w-32 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
-                </div>
-                <div>
-                    <div className="w-24 h-4 p-0 m-0 mb-1 text-sm font-light text-gray-500 uppercase bg-gray-200 rounded"></div>
-                    <div className="w-64 h-6 text-base font-bold uppercase bg-gray-200 rounded text-slate-600"></div>
-                </div>
-            </div>
-        </div>
-    );
-
-    const CompanyLookup = () => (
-        <>
-            <div className="relative flex">
-                <input
-                    ref={mcNumberInputRef}
-                    className="block w-full mt-1 border-gray-300 shadow-sm rounded-l-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    type="text"
-                    placeholder="Enter MC Number"
-                    onKeyDown={handleSubmit}
-                />
-                <button
-                    onClick={() => getFMCSAData(mcNumberInputRef.current?.value || '')}
-                    className="inline-flex items-center px-4 py-2 mt-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                    Search
-                </button>
-            </div>
-            {fetchError ? (
-                <div className="p-4 mt-4 border border-yellow-200 rounded-md bg-yellow-50">
-                    <div className="flex">
-                        <div className="flex-shrink-0">
-                            <svg className="w-5 h-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                        </div>
-                        <div className="ml-3">
-                            <h3 className="text-sm font-medium text-yellow-800">Unable to fetch carrier data</h3>
-                            <p className="mt-2 text-sm text-yellow-700">
-                                We couldn&apos;t retrieve your carrier information. You can proceed to the next step and
-                                enter your information manually.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            ) : companyData ? (
-                DisplayCard(companyData)
-            ) : (
-                DisplayCardSkeleton()
-            )}
-            <div className="gap-2 flex flex-col md:flex-row">
-                <button
-                    className="py-2.5 px-12 mt-4 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                    onClick={handleNext}
-                    disabled={!companyData && !fetchError}
-                    autoFocus
-                >
-                    Continue
-                </button>
-                <button
-                    className="py-2.5 px-12 mt-4 text-xs font-normal text-blue-600 border border-slate-200 rounded-lg  hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                    onClick={handleNext}
-                    disabled={companyData ? true : false}
-                >
-                    Enter Company Info Manually
-                </button>
-            </div>
-        </>
-    );
-
-    const CompanyDetails = () => (
-        <>
-            <div>
-                <div className="px-8 py-10 m-0 bg-white border-2 border-gray-200">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-gray-900">Set Up Your Carrier Account</h1>
-                        <p className="px-2 py-1 m-auto mt-2 text-base text-red-500 bg-yellow-100 rounded-lg w-fit">
-                            Please review the information below and fill in all required(*) details
-                        </p>
-                    </div>
-                    <form onSubmit={formHook.handleSubmit(onSubmit)} className="space-y-8">
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-900">Company Information</h2>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {fields
-                                    .filter((f) => ['name', 'email', 'phone'].includes(f.id))
-                                    .map((field) => (
-                                        <div key={field.id}>
-                                            <label
-                                                htmlFor={field.id}
-                                                className="block text-sm font-medium text-gray-700"
-                                            >
-                                                {field.label}{' '}
-                                                {field.required && <span className="text-red-500">*</span>}
-                                            </label>
-                                            <input
-                                                ref={field.id === 'name' ? companyNameInputRef : null}
-                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm placeholder:text-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                id={field.id}
-                                                type="text"
-                                                placeholder={field.id === 'phone' ? '2134561111' : ''}
-                                                {...formHook.register(field.id, {
-                                                    required: field.required ? `${field.label} is required` : false,
-                                                    pattern: field.id === 'phone' && {
-                                                        value: tenDigitPhone,
-                                                        message:
-                                                            'Invalid phone number entered, valid format 2134561111',
-                                                    },
-
-                                                    onBlur:
-                                                        field.id === 'name'
-                                                            ? async (e) => {
-                                                                  if (e.target.value.trim() !== '') {
-                                                                      handleCarrierCode(e.target.value);
-                                                                  }
-                                                              }
-                                                            : field.id === 'phone'
-                                                            ? (e) => formHook.trigger('phone')
-                                                            : undefined,
-                                                })}
-                                            />
-                                            {formHook.formState.errors[field.id] && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {formHook.formState.errors[field.id].message}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-900">Registration Info</h2>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {fields
-                                    .filter((f) => ['mcNum', 'dotNum', 'carrierCode'].includes(f.id))
-                                    .map((field) => (
-                                        <div key={field.id}>
-                                            <label
-                                                htmlFor={field.id}
-                                                className="block text-sm font-medium text-gray-700"
-                                            >
-                                                {field.label}{' '}
-                                                {field.required && <span className="text-red-500">*</span>}
-                                                {field.id === 'carrierCode' && (
-                                                    <span className="ml-2 text-sm font-normal text-yellow-600">
-                                                        (Driver phone app login code)
-                                                    </span>
-                                                )}
-                                            </label>
-                                            <input
-                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm disabled:bg-gray-100 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                id={field.id}
-                                                disabled={
-                                                    field.id === 'carrierCode' &&
-                                                    formHook.getValues('carrierCode') !== ''
-                                                }
-                                                type="text"
-                                                {...formHook.register(field.id, {
-                                                    required: field.required ? `${field.label} is required` : false,
-                                                })}
-                                            />
-                                            {formHook.formState.errors[field.id] && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {formHook.formState.errors[field.id].message}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-900">Address</h2>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {fields
-                                    .filter((f) => ['street', 'city', 'state', 'zip', 'country'].includes(f.id))
-                                    .map((field) => (
-                                        <div key={field.id} className={field.id === 'street' ? 'md:col-span-2' : ''}>
-                                            <label
-                                                htmlFor={field.id}
-                                                className="block text-sm font-medium text-gray-700"
-                                            >
-                                                {field.label}{' '}
-                                                {field.required && <span className="text-red-500">*</span>}
-                                            </label>
-                                            {field.type === 'select' ? (
-                                                <select
-                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                    id={field.id}
-                                                    {...formHook.register(field.id)}
-                                                >
-                                                    {countryOptions.map((country) => (
-                                                        <option key={country} value={country}>
-                                                            {country}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <input
-                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                    id={field.id}
-                                                    type="text"
-                                                    {...formHook.register(field.id, {
-                                                        required: field.required ? `${field.label} is required` : false,
-                                                    })}
-                                                />
-                                            )}
-                                            {formHook.formState.errors[field.id] && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {formHook.formState.errors[field.id].message}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div className="flex gap-4 mt-4">
-                <button
-                    className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    onClick={formHook.handleSubmit(handleNext)}
-                >
-                    Continue
-                </button>
-                <button
-                    className="py-2.5 px-6 text-sm font-medium text-white bg-gray-500 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                    onClick={handleBack}
-                >
-                    Back
-                </button>
-            </div>
-        </>
-    );
-
-    const NumericInput = React.memo(
-        ({ value, onChange }: { value: number | null; onChange: (value: number | null) => void }) => {
-            const numOfDriversInputRef = useRef<HTMLInputElement>(null);
-            const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                const val = e.target.value;
-                if (val === '') {
-                    onChange(null);
-                } else {
-                    const num = parseInt(val);
-                    if (!isNaN(num)) {
-                        onChange(num);
-                    }
-                }
-            };
-
-            useEffect(() => {
-                // Key text field focused on change
-                const timer = setTimeout(() => {
-                    if (plan === SubscriptionPlan.PRO) {
-                        numOfDriversInputRef.current?.focus();
-                    }
-                }, 0);
-                return () => clearTimeout(timer);
-            }, []);
-
-            return (
-                <div className="flex items-center space-x-2" onMouseDown={(e) => e.stopPropagation()}>
-                    <label htmlFor="numDrivers" className="text-gray-600">
-                        Number of drivers:
-                    </label>
-                    <input
-                        ref={numOfDriversInputRef}
-                        type="number"
-                        id="numDrivers"
-                        value={value ?? ''}
-                        onChange={handleChange}
-                        className="w-16 px-2 py-1 border border-gray-300 rounded-md"
-                        min="1"
-                        data-autofocus
-                    />
-                </div>
-            );
-        },
-    );
-
-    NumericInput.displayName = 'NumericInput';
-
     const handleNumDriversChange = (value: number | null) => {
         setNumDrivers(value);
     };
 
     const isValidProPlanDrivers = (plan: SubscriptionPlan, numDrivers: number | null): boolean => {
         if (plan !== SubscriptionPlan.PRO) return true;
-        return numDrivers !== null && !isNaN(numDrivers) && numDrivers >= 1;
+        return numDrivers !== null && !isNaN(Number(numDrivers)) && numDrivers >= 1;
     };
-
-    const PlanSelection = () => (
-        <>
-            <div>
-                <div className="px-8 py-10 m-0 bg-white border-2 border-gray-200">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-gray-900">Select the Plan that Best Suits Your Needs</h1>
-                        <p className="mt-2 text-gray-500 text-light">
-                            You can upgrade or downgrade your plan at any time. If you are new to Carrier Nest, we
-                            recommend starting with the Basic Plan.
-                        </p>
-                    </div>
-
-                    <div className="space-y-8">
-                        <div className="space-y-6">
-                            <RadioGroup value={plan} onChange={setPlan} className="grid gap-4 mt-4 md:grid-cols-2">
-                                <RadioGroup.Option
-                                    value={SubscriptionPlan.BASIC}
-                                    className={({ checked, active }) =>
-                                        `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
-                                            ${
-                                                checked
-                                                    ? 'bg-blue-50 border-2 border-blue-500'
-                                                    : 'border border-gray-300'
-                                            }
-                                            ${active ? 'ring-2 ring-blue-500' : ''}
-                                            hover:border-blue-500 transition-colors`
-                                    }
-                                >
-                                    {({ checked }) => (
-                                        <>
-                                            <div className="flex flex-1">
-                                                <div className="flex flex-col">
-                                                    <RadioGroup.Label
-                                                        as="span"
-                                                        className="block text-lg font-medium text-gray-900"
-                                                    >
-                                                        Basic Plan
-                                                    </RadioGroup.Label>
-                                                    <RadioGroup.Description
-                                                        as="span"
-                                                        className="mt-2 text-sm text-gray-500"
-                                                    >
-                                                        <div className="mt-1">
-                                                            <p className="text-gray-600">
-                                                                Total loads: {BASIC_PLAN_TOTAL_LOADS}
-                                                            </p>
-                                                            <p className="text-gray-600">
-                                                                AI ratecon imports per month:{' '}
-                                                                {BASIC_PLAN_AI_RATECON_IMPORTS}
-                                                            </p>
-                                                            <p className="text-gray-600">
-                                                                Max storage: {BASIC_PLAN_MAX_STORAGE_MB}MB
-                                                            </p>
-                                                            <p className="text-gray-600">
-                                                                {BASIC_PLAN_MAX_DRIVERS === 1
-                                                                    ? 'Only one driver'
-                                                                    : `Up to ${BASIC_PLAN_MAX_DRIVERS} drivers`}
-                                                            </p>
-                                                        </div>
-                                                    </RadioGroup.Description>
-                                                    <RadioGroup.Description
-                                                        as="span"
-                                                        className="mt-4 text-lg font-medium text-gray-900"
-                                                    >
-                                                        <div className="flex items-baseline">
-                                                            <span className="text-3xl font-bold">$0</span>
-                                                            <span className="ml-1 text-gray-600">per month</span>
-                                                        </div>
-                                                    </RadioGroup.Description>
-                                                </div>
-                                            </div>
-                                            {checked && (
-                                                <CheckCircleIcon className="w-6 h-6 text-blue-600" aria-hidden="true" />
-                                            )}
-                                        </>
-                                    )}
-                                </RadioGroup.Option>
-                                <RadioGroup.Option
-                                    value={SubscriptionPlan.PRO}
-                                    className={({ checked, active }) =>
-                                        `relative flex cursor-pointer rounded-lg p-6 shadow-sm focus:outline-none
-                                            ${
-                                                checked
-                                                    ? 'bg-blue-50 border-2 border-blue-500'
-                                                    : 'border border-gray-300'
-                                            }
-                                            ${active ? 'ring-2 ring-blue-500' : ''}
-                                            hover:border-blue-500 transition-colors`
-                                    }
-                                >
-                                    {({ checked }) => (
-                                        <>
-                                            <div className="flex flex-1">
-                                                <div className="flex flex-col">
-                                                    <RadioGroup.Label
-                                                        as="span"
-                                                        className="block text-lg font-medium text-gray-900"
-                                                    >
-                                                        Pro Plan
-                                                    </RadioGroup.Label>
-                                                    <RadioGroup.Description
-                                                        as="span"
-                                                        className="mt-2 text-sm text-gray-500"
-                                                    >
-                                                        <div className="mt-1">
-                                                            <p className="text-gray-600">Unlimited loads</p>
-                                                            <p className="text-gray-600">
-                                                                AI ratecon imports per month:{' '}
-                                                                {PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers}
-                                                            </p>
-                                                            <p className="text-gray-600">
-                                                                Max Storage:{' '}
-                                                                {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers}GB
-                                                            </p>
-                                                        </div>
-                                                        <NumericInput
-                                                            data-autofocus
-                                                            value={numDrivers}
-                                                            onChange={handleNumDriversChange}
-                                                        />
-                                                    </RadioGroup.Description>
-                                                    <RadioGroup.Description
-                                                        as="span"
-                                                        className="mt-4 text-lg font-medium text-gray-900"
-                                                    >
-                                                        <div className="flex items-baseline">
-                                                            <span className="text-3xl font-bold">
-                                                                ${PRO_PLAN_COST_PER_DRIVER * numDrivers}
-                                                            </span>
-                                                            <span className="ml-1 text-gray-600">per month</span>
-                                                        </div>
-                                                    </RadioGroup.Description>
-                                                </div>
-                                            </div>
-                                            {checked && (
-                                                <CheckCircleIcon className="w-6 h-6 text-blue-600" aria-hidden="true" />
-                                            )}
-                                        </>
-                                    )}
-                                </RadioGroup.Option>
-                            </RadioGroup>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className="flex gap-4 mt-4">
-                <button
-                    type="submit"
-                    disabled={isLoading || isSubmitButtonDisabled || !isValidProPlanDrivers(plan, numDrivers)}
-                    onClick={formHook.handleSubmit(onSubmit)}
-                    className="py-2.5 px-12 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
-                >
-                    {isLoading ? 'Creating...' : 'Create Carrier'}
-                </button>
-                <button
-                    className="py-2.5 px-6 text-sm font-medium text-white bg-gray-500 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                    onClick={handleBack}
-                >
-                    Back
-                </button>
-            </div>
-        </>
-    );
 
     const stepConfig = [
         {
             number: 1,
             title: 'Company Lookup',
-            description: 'Locate your company using the MC number to automatically populate your details',
+            description: 'Locate your company using the MC number',
+            icon: <BuildingOfficeIcon className="w-5 h-5" />,
         },
         {
             number: 2,
-            title: 'Company Account Details',
-            description: 'Verify and complete your company profile information',
+            title: 'Company Details',
+            description: 'Verify and complete your profile',
+            icon: <TruckIcon className="w-5 h-5" />,
         },
         {
             number: 3,
             title: 'Select Plan',
-            description: 'Choose a plan that best suits your needs - start with the Basic plan for free',
+            description: 'Choose your subscription plan',
+            icon: <CreditCardIcon className="w-5 h-5" />,
         },
     ];
 
     if (status === 'loading') {
-        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="w-12 h-12 border-4 border-t-transparent border-blue-600 rounded-full animate-spin"></div>
+            </div>
+        );
     }
 
     if (status !== 'authenticated' || session?.user?.defaultCarrierId) {
@@ -785,13 +330,14 @@ const CarrierSetup: PageWithAuth = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+            {/* Header */}
+            <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
-                        <h1 className="text-2xl font-bold text-gray-900">Carrier Setup</h1>
+                        <h1 className="text-2xl font-bold text-blue-900">Carrier Setup</h1>
                         <button
                             onClick={handleLogout}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className="px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                             Logout
                         </button>
@@ -799,21 +345,1053 @@ const CarrierSetup: PageWithAuth = () => {
                 </div>
             </header>
 
+            {/* Main Content */}
             <main className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div className="max-w-4xl mx-auto">
-                    <ol className="space-y-8">
-                        <Step step={stepConfig[0]} isActive={activeStep === 0} isCompleted={activeStep > 0}>
-                            <CompanyLookup />
-                        </Step>
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+                        {/* Stepper Navigation */}
+                        <div className="md:col-span-3">
+                            <nav aria-label="Progress" className="sticky md:top-24 top-16 z-20 md:block">
+                                <ol className="md:overflow-hidden flex md:flex-col overflow-x-auto p-2 md:p-0 bg-white md:bg-transparent rounded-lg md:rounded-none shadow-sm md:shadow-none">
+                                    {stepConfig.map((step, index) => (
+                                        <li
+                                            key={step.title}
+                                            className={`relative md:pb-10 flex-1 md:flex-auto ${
+                                                index !== stepConfig.length - 1 ? 'md:pb-10' : ''
+                                            }`}
+                                        >
+                                            {index !== stepConfig.length - 1 ? (
+                                                <div
+                                                    className={`absolute left-5 top-5 -ml-px mt-0.5 h-full w-0.5 hidden md:block ${
+                                                        activeStep > index ? 'bg-blue-600' : 'bg-gray-200'
+                                                    }`}
+                                                    aria-hidden="true"
+                                                />
+                                            ) : null}
 
-                        <Step step={stepConfig[1]} isActive={activeStep === 1} isCompleted={activeStep > 1}>
-                            <CompanyDetails />
-                        </Step>
+                                            <div className="group relative flex items-start md:items-start items-center justify-center md:justify-start">
+                                                <span className="flex h-10 items-center">
+                                                    <span
+                                                        className={`relative z-10 flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-full ${
+                                                            activeStep > index
+                                                                ? 'bg-blue-600 text-white'
+                                                                : activeStep === index
+                                                                ? 'border-2 border-blue-600 bg-white'
+                                                                : 'border-2 border-gray-200 bg-white'
+                                                        } transition-colors duration-200`}
+                                                    >
+                                                        {activeStep > index ? (
+                                                            <CheckIcon
+                                                                className="w-5 h-5 text-white"
+                                                                aria-hidden="true"
+                                                            />
+                                                        ) : (
+                                                            <span
+                                                                className={
+                                                                    activeStep === index
+                                                                        ? 'text-blue-600'
+                                                                        : 'text-gray-500'
+                                                                }
+                                                            >
+                                                                {step.icon}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </span>
+                                                <span className="ml-4 hidden md:flex min-w-0 flex-col">
+                                                    <span
+                                                        className={`text-sm font-medium ${
+                                                            activeStep >= index ? 'text-blue-900' : 'text-gray-500'
+                                                        }`}
+                                                    >
+                                                        {step.title}
+                                                    </span>
+                                                    <span className="text-sm text-gray-500">{step.description}</span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </nav>
+                        </div>
 
-                        <Step step={stepConfig[2]} isActive={activeStep === 2} isCompleted={activeStep > 2}>
-                            <PlanSelection />
-                        </Step>
-                    </ol>
+                        {/* Content Area */}
+                        <div className="md:col-span-9">
+                            <div
+                                className="overflow-hidden bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 transition-all duration-500 ease-in-out transform"
+                                style={{
+                                    opacity: 1,
+                                    transform: 'translateY(0)',
+                                }}
+                            >
+                                {/* Step 1: Company Lookup */}
+                                {activeStep === 0 && (
+                                    <div className="p-8 animate-fadeIn">
+                                        <div className="max-w-2xl mx-auto">
+                                            <h2 className="text-2xl font-bold text-blue-900">Find Your Company</h2>
+                                            <p className="mt-2 text-gray-600">
+                                                Enter your MC number to automatically retrieve your company information
+                                            </p>
+
+                                            <div className="mt-8">
+                                                <div className="flex w-full">
+                                                    <input
+                                                        ref={mcNumberInputRef}
+                                                        className="block w-full px-4 py-3 text-lg border-gray-300 rounded-l-lg shadow-sm focus:ring-blue-600 focus:border-blue-600"
+                                                        type="text"
+                                                        placeholder="Enter MC Number"
+                                                        onKeyDown={handleSubmit}
+                                                    />
+                                                    <button
+                                                        onClick={() =>
+                                                            getFMCSAData(mcNumberInputRef.current?.value || '')
+                                                        }
+                                                        className="inline-flex items-center px-4 py-3 text-base font-medium text-white transition-colors bg-blue-600 border border-transparent rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                                                    >
+                                                        Search
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {fetchError ? (
+                                                <div className="p-4 mt-6 border rounded-lg bg-amber-50 border-amber-200">
+                                                    <div className="flex">
+                                                        <ExclamationTriangleIcon className="w-5 h-5 text-amber-400" />
+                                                        <div className="ml-3">
+                                                            <h3 className="text-sm font-medium text-amber-800">
+                                                                Unable to fetch carrier data
+                                                            </h3>
+                                                            <p className="mt-2 text-sm text-amber-700">
+                                                                We couldn&apos;t retrieve your carrier information. You
+                                                                can proceed to the next step and enter your information
+                                                                manually.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : companyData ? (
+                                                <div className="p-6 mt-6 border border-gray-200 rounded-lg bg-gray-50">
+                                                    <h3 className="text-lg font-semibold text-blue-900">
+                                                        Company Information
+                                                    </h3>
+                                                    <div className="mt-4 space-y-4">
+                                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-500">
+                                                                    Carrier Name
+                                                                </p>
+                                                                <p className="mt-1 text-base font-semibold text-gray-900">
+                                                                    {companyData.legalName}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-500">
+                                                                    DOT Number
+                                                                </p>
+                                                                <p className="mt-1 text-base font-semibold text-gray-900">
+                                                                    {companyData.dotNumber}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-500">Address</p>
+                                                            <p className="mt-1 text-base font-semibold text-gray-900">
+                                                                {`${companyData.phyStreet}, ${companyData.phyCity}, ${companyData.phyState} ${companyData.phyZipcode}`}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-6 mt-6 border border-gray-200 rounded-lg animate-pulse bg-gray-50">
+                                                    <div className="h-5 mb-4 bg-gray-200 rounded w-1/4"></div>
+                                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                        <div>
+                                                            <div className="h-4 mb-2 bg-gray-200 rounded w-1/3"></div>
+                                                            <div className="h-5 bg-gray-200 rounded w-2/3"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="h-4 mb-2 bg-gray-200 rounded w-1/3"></div>
+                                                            <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <div className="h-4 mb-2 bg-gray-200 rounded w-1/4"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-full"></div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-col gap-3 mt-8 sm:flex-row">
+                                                <button
+                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                    onClick={handleNext}
+                                                    disabled={!companyData && !fetchError}
+                                                >
+                                                    Continue
+                                                    <ArrowRightIcon className="w-5 h-5 ml-2" />
+                                                </button>
+                                                <button
+                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                    onClick={handleNext}
+                                                    disabled={companyData ? true : false}
+                                                >
+                                                    Enter Manually
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 2: Company Details */}
+                                {activeStep === 1 && (
+                                    <div className="p-8 animate-fadeIn">
+                                        <div className="max-w-3xl mx-auto">
+                                            <div className="text-center">
+                                                <h2 className="text-2xl font-bold text-blue-900">
+                                                    Company Account Details
+                                                </h2>
+                                                <p className="mt-2 text-gray-600">
+                                                    Please review the information below and fill in all required fields
+                                                </p>
+                                            </div>
+
+                                            <form className="mt-8">
+                                                {/* Company Information */}
+                                                <div className="p-6 border border-gray-200 rounded-lg bg-gray-50">
+                                                    <h3 className="text-lg font-semibold text-blue-900">
+                                                        Company Information
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
+                                                        {fields
+                                                            .filter((f) => ['name', 'email', 'phone'].includes(f.id))
+                                                            .map((field) => (
+                                                                <div key={field.id}>
+                                                                    <label
+                                                                        htmlFor={field.id}
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                    >
+                                                                        {field.label}{' '}
+                                                                        {field.required && (
+                                                                            <span className="text-red-500">*</span>
+                                                                        )}
+                                                                    </label>
+                                                                    <input
+                                                                        ref={
+                                                                            field.id === 'name'
+                                                                                ? companyNameInputRef
+                                                                                : null
+                                                                        }
+                                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                                                                        id={field.id}
+                                                                        type="text"
+                                                                        placeholder={
+                                                                            field.id === 'phone' ? '2134561111' : ''
+                                                                        }
+                                                                        {...formHook.register(field.id, {
+                                                                            required: field.required
+                                                                                ? `${field.label} is required`
+                                                                                : false,
+                                                                            pattern: field.id === 'phone' && {
+                                                                                value: tenDigitPhone,
+                                                                                message:
+                                                                                    'Invalid phone number entered, valid format 2134561111',
+                                                                            },
+                                                                            onBlur:
+                                                                                field.id === 'name'
+                                                                                    ? async (e) => {
+                                                                                          if (
+                                                                                              e.target.value.trim() !==
+                                                                                              ''
+                                                                                          ) {
+                                                                                              handleCarrierCode(
+                                                                                                  e.target.value,
+                                                                                              );
+                                                                                          }
+                                                                                      }
+                                                                                    : field.id === 'phone'
+                                                                                    ? (e) => formHook.trigger('phone')
+                                                                                    : undefined,
+                                                                        })}
+                                                                    />
+                                                                    {formHook.formState.errors[field.id] && (
+                                                                        <p className="mt-1 text-sm text-red-600">
+                                                                            {
+                                                                                formHook.formState.errors[field.id]
+                                                                                    ?.message
+                                                                            }
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Registration Info */}
+                                                <div className="p-6 mt-6 border border-gray-200 rounded-lg bg-gray-50">
+                                                    <h3 className="text-lg font-semibold text-blue-900">
+                                                        Registration Info
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
+                                                        {fields
+                                                            .filter((f) =>
+                                                                ['mcNum', 'dotNum', 'carrierCode'].includes(f.id),
+                                                            )
+                                                            .map((field) => (
+                                                                <div key={field.id}>
+                                                                    <label
+                                                                        htmlFor={field.id}
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                    >
+                                                                        {field.label}{' '}
+                                                                        {field.required && (
+                                                                            <span className="text-red-500">*</span>
+                                                                        )}
+                                                                        {field.id === 'carrierCode' && (
+                                                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                                                                (Driver app login code)
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                    <input
+                                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm disabled:bg-gray-100 focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                                                                        id={field.id}
+                                                                        disabled={
+                                                                            field.id === 'carrierCode' &&
+                                                                            formHook.getValues('carrierCode') !== ''
+                                                                        }
+                                                                        type="text"
+                                                                        {...formHook.register(field.id, {
+                                                                            required: field.required
+                                                                                ? `${field.label} is required`
+                                                                                : false,
+                                                                        })}
+                                                                    />
+                                                                    {formHook.formState.errors[field.id] && (
+                                                                        <p className="mt-1 text-sm text-red-600">
+                                                                            {
+                                                                                formHook.formState.errors[field.id]
+                                                                                    ?.message
+                                                                            }
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Address */}
+                                                <div className="p-6 mt-6 border border-gray-200 rounded-lg bg-gray-50">
+                                                    <h3 className="text-lg font-semibold text-blue-900">Address</h3>
+                                                    <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
+                                                        {fields
+                                                            .filter((f) =>
+                                                                ['street', 'city', 'state', 'zip', 'country'].includes(
+                                                                    f.id,
+                                                                ),
+                                                            )
+                                                            .map((field) => (
+                                                                <div
+                                                                    key={field.id}
+                                                                    className={
+                                                                        field.id === 'street' ? 'sm:col-span-2' : ''
+                                                                    }
+                                                                >
+                                                                    <label
+                                                                        htmlFor={field.id}
+                                                                        className="block text-sm font-medium text-gray-700"
+                                                                    >
+                                                                        {field.label}{' '}
+                                                                        {field.required && (
+                                                                            <span className="text-red-500">*</span>
+                                                                        )}
+                                                                    </label>
+                                                                    {field.type === 'select' ? (
+                                                                        <select
+                                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                                                                            id={field.id}
+                                                                            {...formHook.register(field.id)}
+                                                                        >
+                                                                            {countryOptions.map((country) => (
+                                                                                <option key={country} value={country}>
+                                                                                    {country}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    ) : (
+                                                                        <input
+                                                                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                                                                            id={field.id}
+                                                                            type="text"
+                                                                            {...formHook.register(field.id, {
+                                                                                required: field.required
+                                                                                    ? `${field.label} is required`
+                                                                                    : false,
+                                                                            })}
+                                                                        />
+                                                                    )}
+                                                                    {formHook.formState.errors[field.id] && (
+                                                                        <p className="mt-1 text-sm text-red-600">
+                                                                            {
+                                                                                formHook.formState.errors[field.id]
+                                                                                    ?.message
+                                                                            }
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                </div>
+                                            </form>
+
+                                            <div className="flex flex-col gap-3 mt-8 sm:flex-row">
+                                                <button
+                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                    onClick={formHook.handleSubmit(handleNext)}
+                                                >
+                                                    Continue
+                                                    <ArrowRightIcon className="w-5 h-5 ml-2" />
+                                                </button>
+                                                <button
+                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                    onClick={handleBack}
+                                                >
+                                                    <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                                                    Back
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 3: Plan Selection */}
+                                {activeStep === 2 && (
+                                    <div className="p-4 sm:p-8 animate-subtle-fade">
+                                        <div className="max-w-4xl mx-auto">
+                                            <div className="text-center">
+                                                <h2 className="text-2xl font-bold text-blue-900">Select Your Plan</h2>
+                                                <p className="mt-2 text-gray-600">
+                                                    Choose the plan that best suits your needs. You can upgrade or
+                                                    downgrade anytime.
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-8">
+                                                <RadioGroup value={plan} onChange={setPlan} className="space-y-6">
+                                                    {/* Plan Comparison Table */}
+                                                    <div className="overflow-hidden bg-white border border-gray-200 rounded-xl shadow-sm">
+                                                        {/* Scrollable Container */}
+                                                        <div className="overflow-x-auto scrollbar-hide">
+                                                            <table className="min-w-full divide-y divide-gray-200">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="w-2/5 px-6 py-4 text-sm font-medium text-left text-gray-500"
+                                                                        >
+                                                                            Features
+                                                                        </th>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="w-3/10 px-6 py-4 text-sm font-medium text-left text-gray-500 border-l border-gray-200"
+                                                                        >
+                                                                            <RadioGroup.Option
+                                                                                value={SubscriptionPlan.BASIC}
+                                                                                className="cursor-pointer"
+                                                                            >
+                                                                                {({ checked }) => (
+                                                                                    <div className="flex items-center justify-between">
+                                                                                        <div>
+                                                                                            <h3 className="text-lg font-bold text-gray-900">
+                                                                                                Basic Plan
+                                                                                            </h3>
+                                                                                            <p className="text-base font-medium text-gray-500">
+                                                                                                Free
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-blue-600">
+                                                                                            {checked && (
+                                                                                                <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </RadioGroup.Option>
+                                                                        </th>
+                                                                        <th
+                                                                            scope="col"
+                                                                            className="w-3/10 px-6 py-4 text-sm font-medium text-left text-gray-500 border-l border-gray-200 bg-blue-50"
+                                                                        >
+                                                                            <RadioGroup.Option
+                                                                                value={SubscriptionPlan.PRO}
+                                                                                className="cursor-pointer"
+                                                                            >
+                                                                                {({ checked }) => (
+                                                                                    <div className="flex items-center justify-between">
+                                                                                        <div>
+                                                                                            <div className="flex items-center">
+                                                                                                <h3 className="text-lg font-bold text-gray-900">
+                                                                                                    Pro Plan
+                                                                                                </h3>
+                                                                                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                                                    Recommended
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <p className="text-base font-medium text-gray-500">
+                                                                                                $
+                                                                                                {
+                                                                                                    PRO_PLAN_COST_PER_DRIVER
+                                                                                                }
+                                                                                                /month
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-blue-600">
+                                                                                            {checked && (
+                                                                                                <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </RadioGroup.Option>
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                                    {/* Driver Count Input (always visible for Pro) */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-500">
+                                                                            Number of drivers
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-sm text-gray-700 border-l border-gray-200">
+                                                                            {BASIC_PLAN_MAX_DRIVERS}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    id="numDrivers"
+                                                                                    value={numDrivers ?? ''}
+                                                                                    onChange={(e) => {
+                                                                                        const val = e.target.value;
+                                                                                        if (val === '') {
+                                                                                            handleNumDriversChange(
+                                                                                                null,
+                                                                                            );
+                                                                                        } else {
+                                                                                            const num =
+                                                                                                Number.parseInt(val);
+                                                                                            if (!isNaN(num)) {
+                                                                                                handleNumDriversChange(
+                                                                                                    num,
+                                                                                                );
+                                                                                            }
+                                                                                        }
+                                                                                    }}
+                                                                                    className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                                                    min="1"
+                                                                                />
+                                                                            </div>
+                                                                            {numDrivers && numDrivers > 0 && (
+                                                                                <div className="mt-2 text-sm font-medium text-blue-700">
+                                                                                    Total: $
+                                                                                    {(
+                                                                                        PRO_PLAN_COST_PER_DRIVER *
+                                                                                        numDrivers
+                                                                                    ).toFixed(2)}
+                                                                                    /month
+                                                                                </div>
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Load Imports */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Load Imports
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    {BASIC_PLAN_TOTAL_LOADS} loads
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Unlimited
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* AI RateCon PDF Imports */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            AI RateCon PDF Imports
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    {BASIC_PLAN_AI_RATECON_IMPORTS}
+                                                                                    /month
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    {
+                                                                                        PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER
+                                                                                    }
+                                                                                    /month per driver
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Storage Capacity */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Storage Capacity
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    {BASIC_PLAN_MAX_STORAGE_MB}MB
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER}
+                                                                                    GB per driver
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Driver Pay Auto-Calculations */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Driver Pay Auto-Calculations
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    {BASIC_PLAN_TOTAL_LOADS} loads
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Unlimited
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Driver Invoicing */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Driver Invoicing
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    {BASIC_PLAN_TOTAL_LOADS} loads
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Unlimited
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Driver mobile app */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Driver mobile app
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-red-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M6 18L18 6M6 6l12 12"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    Not included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Priority Support */}
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            Priority Support
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-red-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M6 18L18 6M6 6l12 12"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    Not included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                                            IFTA Reporting{' '}
+                                                                            <span className="text-xs text-blue-600 font-normal">
+                                                                                (coming soon)
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-red-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M6 18L18 6M6 6l12 12"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm text-gray-700">
+                                                                                    Not included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                                            <div className="flex items-center">
+                                                                                <svg
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                >
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M5 13l4 4L19 7"
+                                                                                    ></path>
+                                                                                </svg>
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Included
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        {/* Scroll Indicator - Only visible on small screens */}
+                                                        <div className="flex items-center justify-center py-2 text-xs text-gray-500 border-t border-gray-200 md:hidden">
+                                                            <svg
+                                                                className="w-4 h-4 mr-1 animate-pulse"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth="2"
+                                                                    d="M9 5l7 7-7 7"
+                                                                ></path>
+                                                            </svg>
+                                                            Scroll to see more
+                                                        </div>
+                                                    </div>
+                                                </RadioGroup>
+
+                                                {/* Pro Plan Recommendation */}
+                                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                    <h3 className="text-lg font-medium text-blue-900">
+                                                        Why choose Pro?
+                                                    </h3>
+                                                    <p className="mt-2 text-sm text-gray-700">
+                                                        Upgrade to Pro for unlimited loads, driver mobile app access,
+                                                        and priority support to maximize your efficiency. The Pro plan
+                                                        pays for itself by saving you time and helping you manage more
+                                                        loads with less effort.
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex flex-col gap-3 mt-8 sm:flex-row">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={
+                                                            isLoading ||
+                                                            isSubmitButtonDisabled ||
+                                                            !isValidProPlanDrivers(plan, numDrivers)
+                                                        }
+                                                        onClick={formHook.handleSubmit(onSubmit)}
+                                                        className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                    >
+                                                        {isLoading ? (
+                                                            <>
+                                                                <svg
+                                                                    className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    fill="none"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <circle
+                                                                        className="opacity-25"
+                                                                        cx="12"
+                                                                        cy="12"
+                                                                        r="10"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="4"
+                                                                    ></circle>
+                                                                    <path
+                                                                        className="opacity-75"
+                                                                        fill="currentColor"
+                                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                                    ></path>
+                                                                </svg>
+                                                                Creating...
+                                                            </>
+                                                        ) : (
+                                                            'Create Carrier'
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                        onClick={handleBack}
+                                                    >
+                                                        <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                                                        Back
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>

@@ -27,7 +27,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { ExpandedDriverAssignment, ExpandedLoad } from 'interfaces/models';
 import LoadStatusBadge from './LoadStatusBadge';
-import { formatDate } from 'lib/helpers/format';
+import { formatDate, formatPhoneNumber } from 'lib/helpers/format';
 import { format, set } from 'date-fns';
 import SwitchWithLabel from 'components/switchWithLabel';
 import { getAssignmentById } from 'lib/rest/assignment';
@@ -1762,11 +1762,11 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                                         e.stopPropagation()
                                                                                                                     }
                                                                                                                 >
-                                                                                                                    {
+                                                                                                                    {formatPhoneNumber(
                                                                                                                         assignment
                                                                                                                             .driver
-                                                                                                                            .phone
-                                                                                                                    }
+                                                                                                                            .phone,
+                                                                                                                    )}
                                                                                                                 </a>
                                                                                                             </div>
                                                                                                             <div className="flex items-center">

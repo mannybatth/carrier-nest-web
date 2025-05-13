@@ -23,6 +23,7 @@ import {
     ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
+import { formatTimeTo12Hour } from 'lib/helpers/format';
 
 type LoadAssignmentsSectionProps = {
     removingRouteLegWithId: string;
@@ -93,13 +94,20 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
     };
 
     // Calculate driver payment
-    const calculateDriverPayment = (driverAssignment: any, legDistance: number, loadRate: number) => {
+    const calculateDriverPayment = (
+        driverAssignment: any,
+        legDistance: number,
+        loadRate: number,
+        legDuration: number,
+    ) => {
         if (driverAssignment.chargeType === 'FIXED_PAY') {
             return driverAssignment.chargeValue;
         } else if (driverAssignment.chargeType === 'PERCENTAGE') {
             return loadRate * (driverAssignment.chargeValue / 100);
         } else if (driverAssignment.chargeType === 'PER_MILE') {
             return driverAssignment.chargeValue * legDistance;
+        } else if (driverAssignment.chargeType === 'PER_HOUR') {
+            return driverAssignment.chargeValue * legDuration; // Assuming chargeValue is per hour
         }
         return 0;
     };
@@ -173,7 +181,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                 <div className="flex items-center mt-1 text-sm text-gray-500">
                                                     <CalendarIcon className="mr-1 h-4 w-4" />
                                                     {formatDate(leg.scheduledDate as unknown as string)} at{' '}
-                                                    {leg.scheduledTime}
+                                                    {formatTimeTo12Hour(leg.scheduledTime)}
                                                 </div>
                                             </div>
                                         </div>
@@ -342,7 +350,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                 <div>
                                                     <p className="text-xs font-medium text-gray-500">Distance</p>
                                                     <p className="text-sm font-medium text-gray-900">
-                                                        {legDistance.toFixed(2)} miles
+                                                        {Number(legDistance)?.toFixed(2)} miles
                                                     </p>
                                                 </div>
                                             </div>
@@ -352,7 +360,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                 <div>
                                                     <p className="text-xs font-medium text-gray-500">Duration</p>
                                                     <p className="text-sm font-medium text-gray-900">
-                                                        {legDuration.toFixed(2)} hours
+                                                        {Number(legDuration)?.toFixed(2)} hours
                                                     </p>
                                                 </div>
                                             </div>
@@ -375,10 +383,12 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                     const driver = assignment.driver;
                                                     const chargeType = assignment.chargeType;
                                                     const chargeValue = assignment.chargeValue;
+
                                                     const estimatedPayment = calculateDriverPayment(
                                                         assignment,
                                                         Number(legDistance),
                                                         Number(load.rate),
+                                                        Number(legDuration),
                                                     );
 
                                                     // Format charge type for display
@@ -393,6 +403,10 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                         chargeDisplay = `${formatCurrency(
                                                             Number(chargeValue),
                                                         )} per mile`;
+                                                    } else if (chargeType === 'PER_HOUR') {
+                                                        chargeDisplay = `${formatCurrency(
+                                                            Number(chargeValue),
+                                                        )} per hour`;
                                                     }
 
                                                     return (
