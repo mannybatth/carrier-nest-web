@@ -462,8 +462,8 @@ const CarrierSetup: PageWithAuth = () => {
                                                                 Unable to fetch carrier data
                                                             </h3>
                                                             <p className="mt-2 text-sm text-amber-700">
-                                                                We couldn't retrieve your carrier information. You can
-                                                                proceed to the next step and enter your information
+                                                                We couldn&apos;t retrieve your carrier information. You
+                                                                can proceed to the next step and enter your information
                                                                 manually.
                                                             </p>
                                                         </div>
