@@ -775,6 +775,24 @@ const CarrierSetup: PageWithAuth = () => {
                                                 </p>
                                             </div>
 
+                                            <div className="bg-orange-100 p-4 my-4 rounded-xl mb-8 border border-blue-500/30">
+                                                <p className="text-xl font-bold mb-2 text-center">
+                                                    <span className="text-orange-500">SPECIAL OFFER:</span> Use code{' '}
+                                                    <span className="bg-orange-500 px-3 py-1 rounded-md">FB69</span> to
+                                                    upgrade to Pro Plan!
+                                                </p>
+                                                <div className="flex flex-col md:flex-row items-center justify-center gap-2">
+                                                    <p>Get 69% OFF your first month! Limited time offer</p>
+                                                </div>
+                                                <div className="flex flex-col md:flex-row items-center mt-8 justify-center gap-2">
+                                                    <p>expires in</p>
+                                                    <CountdownTimer showLabels />
+                                                </div>
+                                                <div className="mt-3 flex flex-row items-end justify-end">
+                                                    <PromoCodeButton />
+                                                </div>
+                                            </div>
+
                                             <div className="mt-8">
                                                 <RadioGroup value={plan} onChange={setPlan} className="space-y-6">
                                                     {/* Plan Comparison Table */}
@@ -1161,7 +1179,7 @@ const CarrierSetup: PageWithAuth = () => {
                                                                         <td className="px-6 py-4 border-l border-gray-200">
                                                                             <div className="flex items-center">
                                                                                 <svg
-                                                                                    className="w-5 h-5 text-red-500 flex-shrink-0"
+                                                                                    className="w-5 h-5 text-green-500 flex-shrink-0"
                                                                                     fill="none"
                                                                                     stroke="currentColor"
                                                                                     viewBox="0 0 24 24"
@@ -1171,11 +1189,11 @@ const CarrierSetup: PageWithAuth = () => {
                                                                                         strokeLinecap="round"
                                                                                         strokeLinejoin="round"
                                                                                         strokeWidth="2"
-                                                                                        d="M6 18L18 6M6 6l12 12"
+                                                                                        d="M5 13l4 4L19 7"
                                                                                     ></path>
                                                                                 </svg>
-                                                                                <span className="ml-2 text-sm text-gray-700">
-                                                                                    Not included
+                                                                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                                                                    Included
                                                                                 </span>
                                                                             </div>
                                                                         </td>
@@ -1401,3 +1419,140 @@ const CarrierSetup: PageWithAuth = () => {
 CarrierSetup.authenticationEnabled = true;
 
 export default CarrierSetup;
+
+// Countdown Timer Component
+interface CountDownProps {
+    showLabels?: boolean;
+    large?: boolean;
+}
+
+const CountdownTimer: React.FC<CountDownProps> = ({ showLabels = false, large = false }) => {
+    const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+    useEffect(() => {
+        // May 13, 2025 at 10 PM
+        const startDate = new Date(2025, 4, 13, 22, 0, 0);
+
+        const calculateTimeLeft = () => {
+            const now = new Date();
+            const timeDiff = now.getTime() - startDate.getTime();
+
+            // Calculate how many complete 48-hour cycles have passed
+            const cycleMs = 48 * 60 * 60 * 1000;
+            const cycles = Math.floor(timeDiff / cycleMs);
+
+            // Calculate the end time of the current cycle
+            const currentCycleEndTime = new Date(startDate.getTime() + (cycles + 1) * cycleMs);
+
+            // Calculate time remaining in current cycle
+            const timeRemaining = currentCycleEndTime.getTime() - now.getTime();
+
+            // Convert to hours, minutes, seconds
+            const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+
+            return { hours, minutes, seconds };
+        };
+
+        // Initial calculation
+        setTimeLeft(calculateTimeLeft());
+
+        // Update every second
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        // Cleanup
+        return () => clearInterval(timer);
+    }, []);
+
+    const { hours, minutes, seconds } = timeLeft;
+
+    if (showLabels) {
+        return (
+            <div className="flex items-center gap-2">
+                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
+                        {hours.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-xs block">HRS</span>
+                </div>
+                <div className="text-xl">:</div>
+                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
+                        {minutes.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-xs block">MIN</span>
+                </div>
+                <div className="text-xl">:</div>
+                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
+                        {seconds.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-xs block">SEC</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <span className="font-mono font-bold">
+            {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
+            {seconds.toString().padStart(2, '0')}
+        </span>
+    );
+};
+
+// Promo Code Button Component
+interface PromoCodeButtonProps {
+    large?: boolean;
+}
+
+const PromoCodeButton: React.FC<PromoCodeButtonProps> = ({ large = false }) => {
+    const [copied, setCopied] = useState(false);
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText('FB69').then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
+    return (
+        <button
+            onClick={copyToClipboard}
+            className={`
+        ${copied ? 'bg-green-500 text-white' : 'bg-white text-blue-600'}
+        ${large ? 'px-4 py-3 text-lg' : 'px-3 py-1 text-sm'}
+        rounded-md font-bold transition-colors flex items-center gap-1
+      `}
+            aria-label="Copy promo code FB69 to clipboard"
+        >
+            {copied ? (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path
+                            fillRule="evenodd"
+                            d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z"
+                            clipRule="evenodd"
+                        />
+                    </svg>
+                    Copied!
+                </>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path
+                            fillRule="evenodd"
+                            d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 01-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0113.5 1.5H15a3 3 0 012.663 1.618zM12 4.5A1.5 1.5 0 0113.5 3H15a1.5 1.5 0 011.5 1.5H12z"
+                            clipRule="evenodd"
+                        />
+                        <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 019 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0116.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 013 20.625v-12z" />
+                    </svg>
+                    Copy Code
+                </>
+            )}
+        </button>
+    );
+};
