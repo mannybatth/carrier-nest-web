@@ -4,19 +4,19 @@ import Image from 'next/image';
 // Main page component (Server Component)
 export default function Home() {
     return (
-        <div className="min-h-screen bg-slate-900 text-white relative">
+        <div className="min-h-screen w-full bg-slate-900 text-white relative overflow-hidden">
             {/* Special Promotion Banner */}
-            <div className="bg-orange-500 text-white text-center py-3 fixed top-0 w-full z-50">
+            <div className="bg-orange-500 text-white text-center py-3 fixed bottom-0 md:top-0  w-full h-fit z-50">
                 <div className="mx-auto px-4 max-w-[1280px] flex flex-col md:flex-row items-center justify-center gap-2">
-                    <span className="font-bold text-xs md:text-lg">🔥 FACEBOOK SPECIAL: 69% OFF YOUR FIRST MONTH!</span>
+                    {/*  <span className="font-bold text-xs md:text-lg">🔥 FACEBOOK SPECIAL: 69% OFF YOUR FIRST MONTH!</span>
                     <div className="hidden md:flex gap-2">
                         <PromoCodeButton />
                         <CountdownTimer />
-                    </div>
-
+                    </div> */}
+                    <span className="font-bold text-xs md:text-lg">Import your first load with AI magic!</span>
                     <Link href="/auth/signin">
                         <button className="bg-white/90 hover:bg-orange-600 text-orange-600 text-xs px-3 py-1 md:py-2 mx-4 font-semibold rounded-xl shadow-lg shadow-orange-700/70 transform hover:scale-105 transition-all">
-                            START STARTED
+                            GET STARTED
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
@@ -40,7 +40,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1600')] opacity-10 z-0"></div>
                 <div className="mx-auto px-4 relative z-10 max-w-[1280px]">
                     <div className="max-w-4xl mx-auto text-center mb-12">
-                        <div className="inline-block bg-orange-500 text-white px-4 py-2 rounded-full mt-12 mb-6 font-bold">
+                        <div className="inline-block bg-blue-800/60 text-white px-4 py-2 rounded-full mt-12 mb-6 font-bold">
                             TRANSPORTATION MANAGEMENT SYSTEM
                         </div>
                         <div className="flex items-center justify-center my-8 mb-2">
@@ -55,7 +55,7 @@ export default function Home() {
                                 <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
                             </svg>
                             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-                                Try The TMS That <span className="text-orange-500">Actually Works</span> For Free
+                                Try The TMS That <span className="text-orange-500">Actually Works</span>
                             </h1>
                         </div>
                         <div className="flex items-center justify-center  mb-4">
@@ -67,9 +67,13 @@ export default function Home() {
 
                         <p className="text-xl md:text-2xl mb-10 text-gray-200">
                             Get started for free. No credit card required. Import loads, assign drivers, track
-                            deliveries, and send invoices—without touching a single spreadsheet.
+                            deliveries, and send invoices—without touching a single spreadsheet.{' '}
+                            <p className="text-orange-500 font-semibold ">
+                                Simple. Smart. Designed for small fleets and solo operators. Finally, software that
+                                speaks TRUCKING.
+                            </p>
                         </p>
-                        <div className="bg-blue-900/50 p-4 rounded-xl mb-8 border border-blue-500/30">
+                        {/* <div className="bg-blue-900/50 p-4 rounded-xl mb-8 border border-blue-500/30">
                             <p className="text-xl font-bold mb-2">
                                 <span className="text-orange-400">SPECIAL OFFER:</span> Use code{' '}
                                 <span className="bg-orange-500 px-3 py-1 rounded-md">FB69</span> at signup
@@ -81,10 +85,10 @@ export default function Home() {
                             <div className="mt-3 flex flex-col items-end">
                                 <PromoCodeButton />
                             </div>
-                        </div>
+                        </div> */}
                         <Link href="/auth/signin">
                             <button className="bg-orange-500 hover:bg-orange-600 text-white text-xl px-10 py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
-                                START FREE TRIAL
+                                Get Started for Free
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 24 24"
@@ -100,14 +104,30 @@ export default function Home() {
                             </button>
                         </Link>
                     </div>
-                    <div className="relative mt-16">
+                    <div className="relative mt-16 space-y-4">
                         <Image
-                            src="/dashboardnew.png"
+                            src="/dashboardmapview.png"
                             alt="App Dashboard Overview"
                             width={1600}
                             height={800}
                             loading="lazy"
-                            className="rounded-xl shadow-none"
+                            className="rounded-xl shadow-none hidden sm:block"
+                        />
+                        <Image
+                            src="/driverassignment.png"
+                            alt="App Dashboard Overview"
+                            width={1600}
+                            height={800}
+                            loading="lazy"
+                            className="rounded-xl shadow-none sm:hidden"
+                        />
+                        <Image
+                            src="/driverinvoice.png"
+                            alt="App Dashboard Overview"
+                            width={1600}
+                            height={800}
+                            loading="lazy"
+                            className="rounded-xl shadow-none sm:hidden"
                         />
                     </div>
                 </div>
@@ -116,14 +136,14 @@ export default function Home() {
             <section className="py-8 bg-gradient-to-r from-blue-900 to-slate-800">
                 <div className="mx-auto px-4 max-w-[1280px]">
                     <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
-                        <div className="text-xl font-bold">
+                        {/* <div className="text-xl font-bold">
                             <span className="text-orange-500">FB69 PROMO:</span> Expires in
-                        </div>
+                        </div> */}
                         <CountdownTimer showLabels={true} />
                         <Link href="/auth/signin">
-                            <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
+                            {/* <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
                                 Claim 69% Off Now
-                            </button>
+                            </button> */}
                         </Link>
                     </div>
                 </div>
@@ -648,7 +668,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1600')] opacity-10 z-0"></div>
                 <div className="mx-auto px-4 relative z-10 max-w-[1280px]">
                     <div className="max-w-4xl mx-auto text-center">
-                        <div className="inline-block bg-orange-500 text-white px-6 py-3 rounded-full mb-8 font-bold text-xl">
+                        <div className="inline-block bg-blue-800/60 text-white px-6 py-3 rounded-full mb-8 font-bold text-xl">
                             🔥 READY TO SEE IT WORK?
                         </div>
                         <h2 className="text-5xl md:text-6xl font-extrabold mb-8">
@@ -656,7 +676,7 @@ export default function Home() {
                             <br />
                             <span className="text-orange-500">No Credit Card Required.</span>
                         </h2>
-                        <div className="bg-blue-900/50 p-6 rounded-xl mb-8 border border-blue-500/30">
+                        {/* <div className="bg-blue-900/50 p-6 rounded-xl mb-8 border border-blue-500/30">
                             <p className="text-slate-400 text-sm p-4">
                                 Like what you see? Use promo code below to get start fo $8.99 only per driver.
                             </p>
@@ -671,13 +691,13 @@ export default function Home() {
                             <div className="mt-3 flex flex-col items-end">
                                 <PromoCodeButton />
                             </div>
-                        </div>
+                        </div> */}
                         <p className="text-xl md:text-2xl mb-12 text-gray-200">
                             Join other trucking companies who&apos;ve simplified their operations with CarrierNest.
                         </p>
                         <Link href="/auth/signin">
-                            <button className="bg-orange-500 hover:bg-orange-600 text-white text-2xl px-12 py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
-                                👉 START MY FREE TRIAL
+                            <button className="bg-orange-500 hover:bg-orange-600 text-white text-2xl py-2 px-4 sm:px-12 sm:py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
+                                👉 I AM READY TO HELP MY TRUCKING!
                             </button>
                         </Link>
                         <div className="mt-8 flex flex-col items-center">
@@ -710,6 +730,7 @@ export default function Home() {
 }
 
 import React, { useState, useEffect } from 'react';
+import { Span } from 'next/dist/trace';
 
 // Countdown Timer Component
 interface CountDownProps {
