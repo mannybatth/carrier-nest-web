@@ -154,7 +154,7 @@ const CarrierSetup: PageWithAuth = () => {
         formHook.setValue('carrierCode', code);
     };
 
-    const onSubmit = async (data: Carrier) => {
+    /* const onSubmit = async (data: Carrier) => {
         setIsLoading(true);
         try {
             const isUnique = await isCarrierCodeUnique(data.carrierCode);
@@ -176,6 +176,43 @@ const CarrierSetup: PageWithAuth = () => {
                     await update({
                         isUpdate: true,
                     });
+                    await replace('/');
+                }
+            } else {
+                notify({ title: 'Failed to create carrier', type: 'error' });
+                setIsLoading(false);
+            }
+        } catch (error) {
+            notify({ title: error.message, type: 'error' });
+            setIsLoading(false);
+        }
+    }; */
+
+    const onSubmit = async (data: Carrier) => {
+        setIsLoading(true);
+        try {
+            const isUnique = await isCarrierCodeUnique(data.carrierCode);
+
+            if (!isUnique) {
+                notify({ title: 'Carrier code is not unique', type: 'error' });
+                setIsLoading(false);
+                return;
+            }
+
+            const carrier = await createNewCarrier(data);
+
+            if (carrier) {
+                // ✅ Only fire conversion in production environment
+                if (typeof window !== 'undefined' && window.location.hostname === 'carriernest.com') {
+                    (window as any).gtag_report_conversion();
+                }
+
+                if (plan === SubscriptionPlan.PRO) {
+                    const url = await createCheckoutSession(SubscriptionPlan.PRO, numDrivers, data.email);
+                    window.location.href = url;
+                } else {
+                    notify({ title: 'Carrier created successfully', type: 'success' });
+                    await update({ isUpdate: true });
                     await replace('/');
                 }
             } else {

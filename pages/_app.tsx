@@ -89,11 +89,25 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                         <script
                             dangerouslySetInnerHTML={{
                                 __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'AW-17087140393');
-            `,
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-17087140393');
+
+      // Define conversion tracking function
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+        gtag('event', 'conversion', {
+            'send_to': 'AW-17087140393/XrmTCNGP9MgaEKmk5NM_',
+            'event_callback': callback
+        });
+        return false;
+      }
+    `,
                             }}
                         />
                     </Head>
