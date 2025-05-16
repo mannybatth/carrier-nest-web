@@ -58,6 +58,7 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                         <meta name="description" content="Carrier Nest - Transportation Management System" />
                         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
 
+                        {/* facebook pixel */}
                         <script
                             dangerouslySetInnerHTML={{
                                 __html: `
@@ -74,6 +75,7 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
         `,
                             }}
                         ></script>
+
                         <noscript>
                             <img
                                 height="1"
@@ -82,6 +84,18 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                                 src="https://www.facebook.com/tr?id=2234238333571180&ev=PageView&noscript=1"
                             />
                         </noscript>
+                        {/* Google tag (gtag.js) */}
+                        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17087140393"></script>
+                        <script
+                            dangerouslySetInnerHTML={{
+                                __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-17087140393');
+            `,
+                            }}
+                        />
                     </Head>
                     {Component.authenticationEnabled ? (
                         <AuthWrapper>
