@@ -418,7 +418,7 @@ const CarrierSetup: PageWithAuth = () => {
                         {/* Content Area */}
                         <div className="md:col-span-9">
                             <div
-                                className="overflow-hidden bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 transition-all duration-500 ease-in-out transform"
+                                className="overflow-y-scroll max-h-[77vh] md:max-h-[85vh] bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 transition-all duration-500 ease-in-out transform"
                                 style={{
                                     opacity: 1,
                                     transform: 'translateY(0)',
@@ -427,7 +427,7 @@ const CarrierSetup: PageWithAuth = () => {
                                 {/* Step 1: Company Lookup */}
                                 {activeStep === 0 && (
                                     <div className="p-8 animate-fadeIn">
-                                        <div className="max-w-2xl mx-auto">
+                                        <div className="max-w-2xl mx-auto relative">
                                             <h2 className="text-2xl font-bold text-blue-900">Find Your Company</h2>
                                             <p className="mt-2 text-gray-600">
                                                 Enter your MC number to automatically retrieve your company information
@@ -520,10 +520,11 @@ const CarrierSetup: PageWithAuth = () => {
                                                     </div>
                                                 </div>
                                             )}
+                                            <div className="h-20"></div>
 
-                                            <div className="flex flex-col gap-3 mt-8 sm:flex-row">
+                                            <div className="flex  gap-3 mt-8 flex-row absolute bottom-0">
                                                 <button
-                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                    className="inline-flex whitespace-nowrap items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3  text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
                                                     onClick={handleNext}
                                                     disabled={!companyData && !fetchError}
                                                 >
@@ -531,7 +532,7 @@ const CarrierSetup: PageWithAuth = () => {
                                                     <ArrowRightIcon className="w-5 h-5 ml-2" />
                                                 </button>
                                                 <button
-                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                    className="inline-flex whitespace-nowrap items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3  text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
                                                     onClick={handleNext}
                                                     disabled={companyData ? true : false}
                                                 >
@@ -544,8 +545,8 @@ const CarrierSetup: PageWithAuth = () => {
 
                                 {/* Step 2: Company Details */}
                                 {activeStep === 1 && (
-                                    <div className="p-8 animate-fadeIn">
-                                        <div className="max-w-3xl mx-auto">
+                                    <div className="p-8 animate-fadeIn relative">
+                                        <div className="max-w-3xl mx-auto  ">
                                             <div className="text-center">
                                                 <h2 className="text-2xl font-bold text-blue-900">
                                                     Company Account Details
@@ -742,31 +743,30 @@ const CarrierSetup: PageWithAuth = () => {
                                                     </div>
                                                 </div>
                                             </form>
-
-                                            <div className="flex flex-col gap-3 mt-8 sm:flex-row">
-                                                <button
-                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
-                                                    onClick={formHook.handleSubmit(handleNext)}
-                                                >
-                                                    Continue
-                                                    <ArrowRightIcon className="w-5 h-5 ml-2" />
-                                                </button>
-                                                <button
-                                                    className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
-                                                    onClick={handleBack}
-                                                >
-                                                    <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                                                    Back
-                                                </button>
-                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 mt-8 flex-row sticky py-4 bottom-0  bg-white">
+                                            <button
+                                                className="inline-flex items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                onClick={formHook.handleSubmit(handleNext)}
+                                            >
+                                                Continue
+                                                <ArrowRightIcon className="w-5 h-5 ml-2" />
+                                            </button>
+                                            <button
+                                                className="inline-flex items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                onClick={handleBack}
+                                            >
+                                                <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                                                Back
+                                            </button>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Step 3: Plan Selection */}
                                 {activeStep === 2 && (
-                                    <div className="p-4 sm:p-8 animate-subtle-fade">
-                                        <div className="max-w-4xl mx-auto">
+                                    <div className="p-4 sm:p-8 animate-subtle-fade  ">
+                                        <div className="max-w-4xl mx-auto  ">
                                             <div className="text-center">
                                                 <h2 className="text-2xl font-bold text-blue-900">Select Your Plan</h2>
                                                 <p className="mt-2 text-gray-600">
@@ -775,16 +775,37 @@ const CarrierSetup: PageWithAuth = () => {
                                                 </p>
                                             </div>
 
-                                            <div className="bg-orange-100 p-4 my-4 rounded-xl mb-8 border border-blue-500/30">
-                                                <p className="text-xl font-bold mb-2 text-center">
-                                                    <span className="text-orange-500">SPECIAL OFFER:</span> Use code{' '}
-                                                    <span className="bg-orange-500 px-3 py-1 rounded-md">FB69</span> to
-                                                    upgrade to Pro Plan!
+                                            <div className="bg-yellow-200/50 p-4 my-4 rounded-xl mb-8 border border-gray-200 shadow-md">
+                                                <p className="text-gray-700 font-bold text-sm sm:text-lg mb-2 text-center ">
+                                                    SPECIAL OFFER
                                                 </p>
-                                                <div className="flex flex-col md:flex-row items-center justify-center gap-2">
-                                                    <p>Get 69% OFF your first month! Limited time offer</p>
+                                                <p className="text-xs sm:text-lg font-bold mb-2 text-left md:text-center">
+                                                    Use code{' '}
+                                                    <span className="bg-blue-600 px-3 py-1 text-white rounded-md">
+                                                        50OffValue
+                                                    </span>{' '}
+                                                    to upgrade to Pro Plan!
+                                                </p>
+                                                <div className="flex flex-col md:flex-row items-left md:text-center justify-center gap-2   rounded-xl ">
+                                                    <p className="text-left md:text-center text-md sm:text-lg font-semibold text-gray-800">
+                                                        🚨{' '}
+                                                        <span className="text-blue-700 font-bold text-xs sm:text-lg">
+                                                            50% OFF
+                                                        </span>{' '}
+                                                        your first
+                                                        <span className="font-bold text-md sm:text-lg text-blue-700">
+                                                            {' '}
+                                                            6 months
+                                                        </span>{' '}
+                                                        — only for a limited time!
+                                                    </p>
                                                 </div>
-                                                <div className="flex flex-col md:flex-row items-center mt-8 justify-center gap-2">
+                                                <p className="text-center p-4 text-xs sm:text-sm font-normal text-gray-400 lg:w-1/2 mx-auto">
+                                                    This offer is valid for new users only. $19 per driver after that.
+                                                    Terms and conditions apply.
+                                                </p>
+
+                                                <div className="flex flex-col md:flex-row items-center mt-4 justify-center gap-2">
                                                     <p>expires in</p>
                                                     <CountdownTimer showLabels />
                                                 </div>
@@ -793,7 +814,7 @@ const CarrierSetup: PageWithAuth = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-8">
+                                            <div className="mt-8 relative">
                                                 <RadioGroup value={plan} onChange={setPlan} className="space-y-6">
                                                     {/* Plan Comparison Table */}
                                                     <div className="overflow-hidden bg-white border border-gray-200 rounded-xl shadow-sm">
@@ -1355,54 +1376,53 @@ const CarrierSetup: PageWithAuth = () => {
                                                         loads with less effort.
                                                     </p>
                                                 </div>
-
-                                                <div className="flex flex-col gap-3 mt-8 sm:flex-row">
-                                                    <button
-                                                        type="submit"
-                                                        disabled={
-                                                            isLoading ||
-                                                            isSubmitButtonDisabled ||
-                                                            !isValidProPlanDrivers(plan, numDrivers)
-                                                        }
-                                                        onClick={formHook.handleSubmit(onSubmit)}
-                                                        className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
-                                                    >
-                                                        {isLoading ? (
-                                                            <>
-                                                                <svg
-                                                                    className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    fill="none"
-                                                                    viewBox="0 0 24 24"
-                                                                >
-                                                                    <circle
-                                                                        className="opacity-25"
-                                                                        cx="12"
-                                                                        cy="12"
-                                                                        r="10"
-                                                                        stroke="currentColor"
-                                                                        strokeWidth="4"
-                                                                    ></circle>
-                                                                    <path
-                                                                        className="opacity-75"
-                                                                        fill="currentColor"
-                                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                                    ></path>
-                                                                </svg>
-                                                                Creating...
-                                                            </>
-                                                        ) : (
-                                                            'Create Carrier'
-                                                        )}
-                                                    </button>
-                                                    <button
-                                                        className="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
-                                                        onClick={handleBack}
-                                                    >
-                                                        <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                                                        Back
-                                                    </button>
-                                                </div>
+                                            </div>
+                                            <div className="flex  gap-3 mt-8 flex-row w-full sticky bottom-0 z-10 bg-white border-t border-gray-200 py-4 px-4">
+                                                <button
+                                                    type="submit"
+                                                    disabled={
+                                                        isLoading ||
+                                                        isSubmitButtonDisabled ||
+                                                        !isValidProPlanDrivers(plan, numDrivers)
+                                                    }
+                                                    onClick={formHook.handleSubmit(onSubmit)}
+                                                    className="inline-flex items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3 text-base font-medium text-white transition-all duration-300 bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none transform hover:scale-105"
+                                                >
+                                                    {isLoading ? (
+                                                        <>
+                                                            <svg
+                                                                className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <circle
+                                                                    className="opacity-25"
+                                                                    cx="12"
+                                                                    cy="12"
+                                                                    r="10"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth="4"
+                                                                ></circle>
+                                                                <path
+                                                                    className="opacity-75"
+                                                                    fill="currentColor"
+                                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                                ></path>
+                                                            </svg>
+                                                            Creating...
+                                                        </>
+                                                    ) : (
+                                                        'Create Carrier'
+                                                    )}
+                                                </button>
+                                                <button
+                                                    className="inline-flex items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3  text-base font-medium text-blue-700 transition-all duration-300 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transform hover:scale-105"
+                                                    onClick={handleBack}
+                                                >
+                                                    <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                                                    Back
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1472,21 +1492,21 @@ const CountdownTimer: React.FC<CountDownProps> = ({ showLabels = false, large = 
     if (showLabels) {
         return (
             <div className="flex items-center gap-2">
-                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                <div className={`bg-blue-200 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
                     <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
                         {hours.toString().padStart(2, '0')}
                     </span>
                     <span className="text-xs block">HRS</span>
                 </div>
                 <div className="text-xl">:</div>
-                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                <div className={`bg-blue-200 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
                     <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
                         {minutes.toString().padStart(2, '0')}
                     </span>
                     <span className="text-xs block">MIN</span>
                 </div>
                 <div className="text-xl">:</div>
-                <div className={`bg-orange-500 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
+                <div className={`bg-blue-200 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
                     <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
                         {seconds.toString().padStart(2, '0')}
                     </span>
@@ -1550,7 +1570,7 @@ const PromoCodeButton: React.FC<PromoCodeButtonProps> = ({ large = false }) => {
                         />
                         <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 019 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0116.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 013 20.625v-12z" />
                     </svg>
-                    Copy Code
+                    Claim Offer Code
                 </>
             )}
         </button>
