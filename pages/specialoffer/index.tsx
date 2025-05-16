@@ -65,14 +65,15 @@ export default function Home() {
                             </h1>
                         </div>
 
-                        <p className="text-xl md:text-2xl mb-10 text-gray-200">
+                        <div className="text-xl md:text-2xl mb-10 text-gray-200">
                             Get started for free. No credit card required. Import loads, assign drivers, track
                             deliveries, and send invoices—without touching a single spreadsheet.{' '}
-                            <p className="text-orange-500 font-semibold ">
+                            <p className="text-orange-500 font-semibold my-0 ">
                                 Simple. Smart. Designed for small fleets and solo operators. Finally, software that
                                 speaks TRUCKING.
                             </p>
-                        </p>
+                        </div>
+
                         {/* <div className="bg-blue-900/50 p-4 rounded-xl mb-8 border border-blue-500/30">
                             <p className="text-xl font-bold mb-2">
                                 <span className="text-orange-400">SPECIAL OFFER:</span> Use code{' '}
@@ -619,14 +620,27 @@ export default function Home() {
                                     </svg>
                                 ))}
                             </div>
-                            <p className="text-2xl italic mb-8">
-                                &quot;We were managing everything on paper. CarrierNest saved us hours a day. No BS, it
-                                works.&quot;
-                            </p>
-                            <div className="flex items-center">
-                                <div className="bg-blue-600 h-12 w-12 rounded-full flex items-center justify-center mr-4">
-                                    <span className="font-bold text-lg">MB</span>
-                                </div>
+
+                            <div className="text-xl italic mb-8">
+                                <blockquote className="leading-relaxed mb-4">
+                                    <p>
+                                        &#8220;Before CarrierNest, our whole operation was running on paper, texts, and
+                                        prayers. Loads were everywhere, driver pay was a guessing game, and we had no
+                                        real way to track how the business was doing. Invoicing alone took hours and was
+                                        still full of mistakes.&#8221;
+                                    </p>
+                                    <p className="mt-4">
+                                        &#8220;Switching to CarrierNest was like flipping a switch. We drag and drop
+                                        rate cons, the AI pulls all the info, and everything else just flows&mdash;from
+                                        dispatch to payment to invoicing. I actually know where my money&rsquo;s going
+                                        now.&#8221;
+                                    </p>
+                                    <p className="mt-4 font-semibold">
+                                        It&rsquo;s simple, it&rsquo;s fast, and best of all&mdash;it just works.
+                                        CarrierNest easily saves us several hours a day. No BS.&#8221;
+                                    </p>
+                                </blockquote>
+
                                 <div>
                                     <p className="font-bold text-xl">Manny B.</p>
                                     <p className="text-gray-300">Dispatcher, Indianapolis, IN</p>
@@ -667,6 +681,12 @@ export default function Home() {
             <section className="py-20 bg-gradient-to-r from-blue-900 to-slate-900 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1600')] opacity-10 z-0"></div>
                 <div className="mx-auto px-4 relative z-10 max-w-[1280px]">
+                    {/* Clean Pricing Comparison Table */}
+                    <div className="container mx-auto my-8 mb-24">
+                        <h1 className="text-3xl font-semibold text-center mb-4">Pricing Plans</h1>
+                        <PricingTable />
+                    </div>
+
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="inline-block bg-blue-800/60 text-white px-6 py-3 rounded-full mb-8 font-bold text-xl">
                             🔥 READY TO SEE IT WORK?
@@ -731,6 +751,7 @@ export default function Home() {
 
 import React, { useState, useEffect } from 'react';
 import { Span } from 'next/dist/trace';
+import PricingTable from 'components/PricingTable';
 
 // Countdown Timer Component
 interface CountDownProps {
