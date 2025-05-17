@@ -41,7 +41,7 @@ module.exports = {
                 },
             },
             fontFamily: {
-                sans: ['Inter var', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', 'sans-serif'],
             },
             animation: {
                 enter: 'enter 200ms ease-out',
