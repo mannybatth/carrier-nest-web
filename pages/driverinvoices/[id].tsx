@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, TrashIcon, PencilIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, TrashIcon, PencilIcon, ArrowDownTrayIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import Layout from '../../components/layout/Layout';
 import { notify } from 'components/Notification';
@@ -22,6 +22,7 @@ import dayjs from 'dayjs';
 import { PageWithAuth } from 'interfaces/auth';
 import { de } from 'date-fns/locale';
 import { downloadDriverInvoice } from 'components/driverinvoices/driverInvoicePdf';
+import { formatPhoneNumber } from 'lib/helpers/format';
 
 type ActionsDropdownProps = {
     invoice: ExpandedDriverInvoice;
@@ -751,8 +752,9 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                 <p className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate capitalize">
                                                     {invoice.driver.name.toLocaleLowerCase()}{' '}
                                                 </p>
-                                                <span className="text-sm font-light">
-                                                    Phone: {invoice.driver.phone}
+                                                <span className="text-sm font-light flex flex-row gap-1 items-center">
+                                                    <PhoneIcon className="w-4 h-4 text-blue-600" />{' '}
+                                                    {formatPhoneNumber(invoice.driver.phone)}
                                                 </span>
                                             </div>
                                             <div className=" mt-6 flex flex-col items-center justify-center lg:items-end lg:mt-0 md:ml-4 gap-3">
@@ -978,7 +980,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                                         href={`/loads/${assignment.load.id}#load-assignments`}
                                                                         target="_blank"
                                                                     >
-                                                                        <span className="underline">
+                                                                        <span className="font-semibold">
                                                                             {assignment.load.refNum}
                                                                         </span>
                                                                     </Link>
