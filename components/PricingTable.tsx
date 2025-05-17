@@ -7,8 +7,8 @@ export default function PricingTable() {
 
     const features = [
         { name: 'Number of Drivers', basic: '1', pro: 'Unlimited' },
-        { name: 'Load Imports', basic: '30 loads', pro: 'Unlimited' },
-        { name: 'AI RateCon PDF Imports', basic: '30 loads/month', pro: '60 loads/month' },
+        { name: 'Load Imports', basic: '30 loads total', pro: 'Unlimited' },
+        { name: 'AI RateCon PDF Imports', basic: '10 loads/month', pro: 'Unlimited' },
         { name: 'Storage Capacity', basic: '100MB', pro: '5GB' },
         { name: 'Driver Mobile App', basic: true, pro: true },
         { name: 'Priority Support', basic: false, pro: true },
