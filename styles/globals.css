@@ -1,5 +1,9 @@
 @tailwind base;
 
+body {
+    @apply font-sans;
+}
+
 @layer base {
     :root {
             --background: 0 0% 100%;
