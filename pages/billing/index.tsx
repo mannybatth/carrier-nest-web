@@ -25,6 +25,7 @@ import {
     PRO_PLAN_COST_PER_DRIVER,
     PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
 } from 'lib/constants';
+import { set } from 'date-fns';
 
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
@@ -36,7 +37,7 @@ const BillingPage = () => {
     const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
     const [invoices, setInvoices] = useState<Stripe.Invoice[]>([]);
     const [numDrivers, setNumDrivers] = useState<number | null>(1);
-
+    const [isCopied, setIsCopied] = useState(false);
     const isSubscriptionCanceling = subscriptionDetails?.cancel_at && currentPlan === SubscriptionPlan.PRO;
 
     useEffect(() => {
@@ -144,6 +145,25 @@ const BillingPage = () => {
                 return 'bg-gray-100 text-gray-800';
         }
     };
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).catch((err) => {
+            console.error('Failed to copy: ', err);
+        });
+    };
+
+    const handleClaimOffer = () => {
+        navigator.clipboard
+            .writeText('50OFFVALUE')
+            .then(() => {
+                setIsCopied(true);
+                setTimeout(() => {
+                    setIsCopied(false);
+                }, 1500);
+            })
+            .catch((err) => {
+                console.error('Failed to copy: ', err);
+            });
+    };
 
     return (
         <Layout
@@ -186,7 +206,7 @@ const BillingPage = () => {
                             iconColor="text-gray-600"
                         />
                         <div className="px-5 sm:px-6 md:px-8">
-                            <div className="max-w-4xl pb-6">
+                            <div className="max-w-7xl pb-6">
                                 {/* Subscription Details */}
                                 {!isLoading && subscriptionDetails && currentPlan === SubscriptionPlan.PRO && (
                                     <div className="mb-8 overflow-hidden bg-white border border-gray-200 rounded-lg">
@@ -244,6 +264,122 @@ const BillingPage = () => {
                                     </div>
                                 )}
 
+                                {/* Limited Time Offer - Mobile */}
+                                {currentPlan === SubscriptionPlan.BASIC && (
+                                    <div className="block md:hidden mb-8">
+                                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl overflow-hidden">
+                                            <div className="p-6">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                        Limited Time
+                                                    </span>
+                                                    <span className="text-sm font-medium text-blue-600">
+                                                        Special Offer
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                                    Get 50% off for 6 months
+                                                </h3>
+
+                                                <p className="text-sm text-gray-600 mb-4">
+                                                    Sign up today and save up to{' '}
+                                                    <span className="font-semibold">$9.50 per driver</span> with our
+                                                    special introductory offer. Upgrade now to unlock all Pro features
+                                                    at half the price.
+                                                </p>
+
+                                                <div className="bg-white border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+                                                    <div>
+                                                        <span className="text-xs font-medium text-gray-500">
+                                                            Use promo code
+                                                        </span>
+                                                        <p className="text-base font-mono font-bold text-gray-900">
+                                                            50OFFVALUE
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => copyToClipboard('50OFFVALUE')}
+                                                        className="text-sm text-blue-600 font-medium"
+                                                    >
+                                                        Copy
+                                                    </button>
+                                                </div>
+
+                                                <button
+                                                    onClick={handleClaimOffer}
+                                                    disabled={isCopied}
+                                                    className={`w-full py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                                                        isCopied
+                                                            ? 'bg-green-500 text-white'
+                                                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                    }`}
+                                                >
+                                                    {isCopied ? 'Code Copied!' : 'Claim Your Discount'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Limited Time Offer - Desktop */}
+                                {currentPlan === SubscriptionPlan.BASIC && (
+                                    <div className="hidden md:block mb-8">
+                                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl overflow-hidden">
+                                            <div className="p-6">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="max-w-xl">
+                                                        <div className="flex items-center space-x-2 mb-2">
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                                Limited Time
+                                                            </span>
+                                                            <span className="text-sm font-medium text-blue-600">
+                                                                Special Offer
+                                                            </span>
+                                                        </div>
+
+                                                        <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                                                            Get 50% off for your first 6 months
+                                                        </h3>
+
+                                                        <p className="text-sm text-gray-600">
+                                                            Take your logistics operation to the next level while saving
+                                                            up to{' '}
+                                                            <span className="font-semibold">$9.50 per driver</span> with
+                                                            our special introductory offer. Upgrade now to unlock all
+                                                            Pro features at half the price and experience the full power
+                                                            of our platform.
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="bg-white border border-blue-200 rounded-lg p-4 flex flex-col items-center">
+                                                        <span className="text-xs font-medium text-gray-500 mb-1">
+                                                            Use promo code
+                                                        </span>
+                                                        <p className="text-lg font-mono font-bold text-gray-900 mb-2">
+                                                            50OFFVALUE
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-6 flex justify-end">
+                                                    <button
+                                                        onClick={handleClaimOffer}
+                                                        disabled={isCopied}
+                                                        className={`py-3 px-6 rounded-xl font-medium text-sm transition-all ${
+                                                            isCopied
+                                                                ? 'bg-green-500 text-white'
+                                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                        }`}
+                                                    >
+                                                        {isCopied ? 'Code Copied!' : 'Claim Your Discount'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Pricing Plans - New Side-by-Side Comparison */}
                                 <div className="mb-8">
                                     <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -279,8 +415,8 @@ const BillingPage = () => {
                                                         </p>
                                                     </div>
                                                     {currentPlan === SubscriptionPlan.PRO && (
-                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
-                                                            <CheckIcon className="w-4 h-4 text-green-600" />
+                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600">
+                                                            <CheckIcon className="w-4 h-4 text-white" />
                                                         </div>
                                                     )}
                                                 </div>
@@ -343,7 +479,7 @@ const BillingPage = () => {
                                                             ></path>
                                                         </svg>
                                                         <span className="ml-2 text-sm text-gray-700">
-                                                            {BASIC_PLAN_TOTAL_LOADS} loads
+                                                            {BASIC_PLAN_TOTAL_LOADS} loads total
                                                         </span>
                                                     </div>
                                                 </div>
@@ -392,7 +528,7 @@ const BillingPage = () => {
                                                             ></path>
                                                         </svg>
                                                         <span className="ml-2 text-sm text-gray-700">
-                                                            {BASIC_PLAN_AI_RATECON_IMPORTS} loads
+                                                            {BASIC_PLAN_AI_RATECON_IMPORTS} loads/month
                                                         </span>
                                                     </div>
                                                 </div>
@@ -413,10 +549,11 @@ const BillingPage = () => {
                                                             ></path>
                                                         </svg>
                                                         <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            {numDrivers
+                                                            {/* {numDrivers
                                                                 ? PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers
                                                                 : PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER}
-                                                            /month
+                                                            /month */}
+                                                            Unlimited
                                                         </span>
                                                     </div>
                                                 </div>
@@ -482,6 +619,55 @@ const BillingPage = () => {
                                                 <div className="px-6 py-4 border-l border-gray-200">
                                                     <div className="flex items-center">
                                                         <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            Included
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-green-500"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M5 13l4 4L19 7"
+                                                            ></path>
+                                                        </svg>
+                                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                                            Included
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Priority Support */}
+                                            <div className="grid grid-cols-3">
+                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    Priority Support
+                                                </div>
+                                                <div className="px-6 py-4 border-l border-gray-200">
+                                                    <div className="flex items-center">
+                                                        <svg
                                                             className="w-5 h-5 text-red-500"
                                                             fill="none"
                                                             stroke="currentColor"
@@ -520,11 +706,12 @@ const BillingPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Priority Support */}
                                             <div className="grid grid-cols-3">
                                                 <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    Priority Support
+                                                    IFTA{' '}
+                                                    <span className="text-sm text-blue-600 font-light ">
+                                                        (coming soon)
+                                                    </span>
                                                 </div>
                                                 <div className="px-6 py-4 border-l border-gray-200">
                                                     <div className="flex items-center">
