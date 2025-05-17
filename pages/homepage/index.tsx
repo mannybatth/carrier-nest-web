@@ -270,7 +270,7 @@ const Homepage = () => {
 
                 {/* Dashboard Overview */}
                 <div className="my-16 bg-gray-50 p-8 rounded-lg">
-                    <div className="flex flex-row  items-center gap-8 ">
+                    <div className="flex flex-col sm:flex-row  items-center gap-8 ">
                         <div className="w-full  ">
                             <h2 className="mb-2 text-3xl font-extrabold text-gray-900">Daily Analytics</h2>
                             <p className="mb-6 text-lg text-gray-700">
@@ -292,8 +292,10 @@ const Homepage = () => {
                 </div>
 
                 {/* Clean Pricing Comparison Table */}
-                <div className=" mx-auto mt-12 mb-24 w-full sm:bg-gradient-to-br from-purple-400 to-blue-600/90  bg-gray-white sm:px-4 py-8 rounded-lg ">
-                    <h1 className="text-3xl font-semibold text-center mb-4">Pricing Plans</h1>
+                <div className=" mx-auto sm:mt-12 mb-24 w-full sm:bg-gradient-to-br from-purple-400 to-blue-600/90  bg-gray-white sm:px-4 py-8 rounded-lg ">
+                    <h1 className=" text-2xl sm:text-4xl font-extrabold sm:text-white text-center mb-4">
+                        Pricing Plans
+                    </h1>
                     <PricingTable />
                 </div>
 
