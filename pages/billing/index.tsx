@@ -814,14 +814,17 @@ const BillingPage = () => {
                                     </div>
 
                                     {/* Pro Plan Recommendation */}
-                                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                        <h3 className="text-lg font-medium text-blue-900">Why choose Pro?</h3>
-                                        <p className="mt-2 text-sm text-gray-700">
-                                            Upgrade to Pro for unlimited loads, driver mobile app access, and priority
-                                            support to maximize your efficiency. The Pro plan pays for itself by saving
-                                            you time and helping you manage more loads with less effort.
-                                        </p>
-                                    </div>
+                                    {currentPlan == SubscriptionPlan.BASIC && (
+                                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <h3 className="text-lg font-medium text-blue-900">Why choose Pro?</h3>
+                                            <p className="mt-2 text-sm text-gray-700">
+                                                Upgrade to Pro for unlimited loads, driver mobile app access, and
+                                                priority support to maximize your efficiency. The Pro plan pays for
+                                                itself by saving you time and helping you manage more loads with less
+                                                effort.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {stripeCustomerId && (
