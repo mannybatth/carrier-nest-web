@@ -6,17 +6,20 @@ export default function Home() {
     return (
         <div className="min-h-screen w-full bg-slate-900 text-white relative overflow-hidden">
             {/* Special Promotion Banner */}
-            <div className="bg-orange-500 text-white text-center py-3 fixed bottom-0 md:top-0  w-full h-fit z-50">
-                <div className="mx-auto px-4 max-w-[1280px] flex flex-col md:flex-row items-center justify-center gap-2">
+            <div className="bg-blue-500 text-white text-center py-3 fixed bottom-0 md:top-0  w-full h-fit z-50">
+                <div className="mx-auto px-2 max-w-[1280px] flex flex-row items-center justify-center gap-1">
                     {/*  <span className="font-bold text-xs md:text-lg">🔥 FACEBOOK SPECIAL: 69% OFF YOUR FIRST MONTH!</span>
                     <div className="hidden md:flex gap-2">
                         <PromoCodeButton />
                         <CountdownTimer />
                     </div> */}
-                    <span className="font-bold text-xs md:text-lg">Import your first load with AI magic!</span>
-                    <Link href="/auth/signin">
-                        <button className="bg-white/90 hover:bg-orange-600 text-orange-600 text-xs px-3 py-1 md:py-2 mx-4 font-semibold rounded-xl shadow-lg shadow-orange-700/70 transform hover:scale-105 transition-all">
-                            GET STARTED
+                    <p className="font-bold text-xs md:text-lg text-start">
+                        Import your first load with AI magic.{' '}
+                        <span className="text-orange-300 font-light  ">Setup takes less than 30 seconds!</span>
+                    </p>
+                    <Link href="/auth/signin?requestType=signin">
+                        <button className="bg-white/90 whitespace-nowrap  hover:bg-orange-500  hover:text-white text-orange-600 text-sm px-3 py-1 md:py-2 mx-4 font-bold rounded-full shadow-lg shadow-blue-700/70 transform hover:scale-105 transition-all">
+                            Try It Free
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
