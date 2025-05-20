@@ -77,13 +77,20 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
             <div className="flex flex-col flex-1 justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
                 <div className="mx-auto w-full max-w-sm lg:w-96">
                     <div>
+                        <div className="absolute top-0 text-lg font-semibold tracking-tight text-orange-800 py-2 md:py-6 flex flex-col items-start">
+                            <p>Welcome to CarrierNest</p>
+                            <span className="text-gray-800 text-xs font-light">
+                                Future of smart trucking. Driven by AI.
+                            </span>
+                        </div>
                         <Image
                             src="/logo_truck.svg"
                             alt="Logo"
                             width={100}
                             height={72}
-                            className="w-[100px] mb-4"
+                            className="w-[75px] mb-4 md:w-[100px] md:mb-6 lg:w-[125px] lg:mb-8"
                         ></Image>
+
                         <h2 className="mt-8 text-2xl font-bold tracking-tight leading-9 text-gray-900">
                             {requestType === 'signin' ? 'Sign in to your account' : 'Sign up for an account'}
                         </h2>
@@ -116,17 +123,17 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                         </div>
                     )}
 
-                    <div className="mt-5">
+                    <div className="mt-2">
                         <div>
                             <form className="space-y-6" method="POST" onSubmit={handleSubmit}>
                                 <div>
                                     <label
                                         htmlFor="email"
-                                        className="block font-medium leading-6 text-gray-900 text-md"
+                                        className="flex flex-col font-medium leading-6 text-gray-900 text-md"
                                     >
                                         Email address{' '}
                                         <span className="text-xs font-light text-gray-400">
-                                            (signin token will be emailed)
+                                            Signin request will be sent to your emailed
                                         </span>{' '}
                                     </label>
                                     <div className="mt-2">
