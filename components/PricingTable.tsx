@@ -11,6 +11,7 @@ export default function PricingTable() {
         { name: 'AI RateCon PDF Imports', basic: '10 loads/month', pro: 'Unlimited' },
         { name: 'Storage Capacity', basic: '100MB', pro: '5GB' },
         { name: 'Driver Mobile App', basic: true, pro: true },
+        { name: 'IFTA (coming soon)', basic: false, pro: true },
         { name: 'Priority Support', basic: false, pro: true },
     ];
 
