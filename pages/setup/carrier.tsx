@@ -455,7 +455,7 @@ const CarrierSetup: PageWithAuth = () => {
                         {/* Content Area */}
                         <div className="md:col-span-9">
                             <div
-                                className="overflow-y-scroll max-h-[77vh] md:max-h-[85vh] bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 transition-all duration-500 ease-in-out transform"
+                                className="overflow-y-scroll  md:max-h-[85vh] bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 transition-all duration-500 ease-in-out transform"
                                 style={{
                                     opacity: 1,
                                     transform: 'translateY(0)',
