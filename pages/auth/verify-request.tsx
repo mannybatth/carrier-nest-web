@@ -27,11 +27,14 @@ const VerifyRequest: React.FC = () => {
                         </h2>
                     </div>
 
-                    <div className="mt-5 space-y-4">
+                    <div className="mt-5 space-y-2">
                         <p className="text-base leading-6">A sign in link has been sent to your email address.</p>
-                        <div>
+                        <p className="text-xs highligh bg-yellow-50 border border-orange-100  p-2 rounded text-gray-600">
+                            Check your junk/spam folder, email will be sent by norply@carriernest.com
+                        </p>
+                        <div className="mt-8">
                             <Link href="/auth/signin">
-                                <button className="flex w-full justify-center rounded-md bg-orange-800 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-orange-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-800">
+                                <button className="flex w-full mt-8 justify-center rounded-md bg-orange-800 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-orange-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-800">
                                     Return to sign in
                                 </button>
                             </Link>
