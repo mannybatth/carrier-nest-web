@@ -5,10 +5,17 @@ import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import 'polyfills';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+
+declare global {
+    interface Window {
+        amplitude?: any;
+        sessionReplay?: any;
+    }
+}
 
 import { UserProvider } from '../components/context/UserContext';
 import ErrorBoundary from '../components/layout/ErrorBoundary';
@@ -23,6 +30,24 @@ type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextCompo
 const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
     const { status, session } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const tryInit = () => {
+                if (window?.amplitude && window.sessionReplay) {
+                    window?.amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
+                    window?.amplitude.init('52aa0adb075ae674b5c90a5e6703505f', {
+                        autocapture: {
+                            elementInteractions: true,
+                        },
+                    });
+                } else {
+                    setTimeout(tryInit, 100); // wait until scripts are loaded
+                }
+            };
+            tryInit();
+        }
+    }, []);
 
     if (status === 'authenticated' && router.pathname === '/setup/carrier') {
         return <>{children}</>;
@@ -75,6 +100,8 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
         `,
                             }}
                         ></script>
+                        <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+                        <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.8.0-min.js.gz"></script>
 
                         <noscript>
                             <img
