@@ -34,7 +34,7 @@ const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const tryInit = () => {
-                if (window?.amplitude && window.sessionReplay) {
+                if (window?.amplitude && window.sessionReplay && window.location.hostname === 'carriernest.com') {
                     window?.amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
                     window?.amplitude.init('52aa0adb075ae674b5c90a5e6703505f', {
                         autocapture: {
