@@ -184,7 +184,7 @@ const EditLoad: PageWithAuth = () => {
                     <div className="relative flex flex-col lg:flex-row  lg:items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
                         {/* Check if the PDF file exists */}
                         {currentRateconFile ? (
-                            <div className="flex-1 overflow-auto">
+                            <div className="flex-1 overflow-visible">
                                 <PDFViewer fileBlob={currentRateconFile} />
                             </div>
                         ) : (
@@ -196,10 +196,8 @@ const EditLoad: PageWithAuth = () => {
                         )}
 
                         <div
-                            className={`flex-1 flex ${
-                                currentRateconFile
-                                    ? 'relative lg:sticky top-2 overflow-y-scroll lg:max-h-screen bg-white p-1'
-                                    : ''
+                            className={`flex-1 flex  border border-gray-200 h-[86vh] ${
+                                currentRateconFile ? 'relative lg:sticky top-2  lg:max-h-screen bg-white p-1' : ''
                             } rounded-md `}
                         >
                             <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
@@ -212,8 +210,9 @@ const EditLoad: PageWithAuth = () => {
                                     prefillName={prefillName}
                                     setPrefillName={setPrefillName}
                                     parentStopsFieldArray={stopsFieldArray}
+                                    isEditMode={true}
                                 />
-                                <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                {/* <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
                                     <div className="flex-1"></div>
                                     <button
                                         type="submit"
@@ -221,7 +220,7 @@ const EditLoad: PageWithAuth = () => {
                                     >
                                         Save Load
                                     </button>
-                                </div>
+                                </div> */}
                             </form>
                         </div>
                     </div>
