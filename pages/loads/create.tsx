@@ -1,29 +1,33 @@
-import { PaperClipIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Customer, LoadStopType, Prisma } from '@prisma/client';
-import AnimatedProgress from 'components/loads/AnimationProgress';
+'use client';
+
+import { PaperClipIcon, TrashIcon, DocumentTextIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { DocumentMagnifyingGlassIcon, ExclamationCircleIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import { type Customer, LoadStopType, Prisma } from '@prisma/client';
 import PDFViewer from 'components/PDFViewer';
 import startOfDay from 'date-fns/startOfDay';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
-import { useRouter } from 'next/router';
-import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
-import { AILoad } from '../../interfaces/ai';
-import { PageWithAuth } from '../../interfaces/auth';
-import { ExpandedLoad } from '../../interfaces/models';
+import type { AILoad } from '../../interfaces/ai';
+import type { PageWithAuth } from '../../interfaces/auth';
+import type { ExpandedLoad } from '../../interfaces/models';
 import { apiUrl } from '../../lib/constants';
 import { parseDate } from '../../lib/helpers/date';
 import { fuzzySearch } from '../../lib/helpers/levenshtein';
 import { calcPdfPageCount } from '../../lib/helpers/pdf';
 import { getGeocoding, getRouteForCoords } from '../../lib/mapbox/searchGeo';
 import { getAllCustomers } from '../../lib/rest/customer';
-import { createLoad, getLoadById } from '../../lib/rest/load';
+import { createLoad, getLoadById, updateLoad } from '../../lib/rest/load';
 import { useUserContext } from 'components/context/UserContext';
 import Link from 'next/link';
+
+import { useSearchParams } from 'next/navigation';
 
 interface Line {
     text: string;
@@ -68,7 +72,6 @@ function updateProgress(foundProperties: Set<string>) {
     return (foundProperties.size / (expectedProperties.size + 1)) * 100;
 }
 
-// This function has been simplified to only check for the presence of a key
 function checkForProperties(chunk: string, foundProperties: Set<string>) {
     expectedProperties.forEach((property) => {
         if (chunk.includes(`"${property}"`) && !foundProperties.has(property)) {
@@ -82,33 +85,35 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
 const CreateLoad: PageWithAuth = () => {
     const formHook = useForm<ExpandedLoad>();
     const router = useRouter();
-    const { query } = useRouter();
-    const copyLoadId = query.copyLoadId as string;
+    const searchParams = useSearchParams();
+    const loadId = searchParams?.get('id') as string;
+    const copyLoadId = searchParams?.get('copyLoadId') as string;
     const { isProPlan, isLoadingCarrier } = useUserContext();
 
-    const [loading, setLoading] = React.useState(false);
-    const [openAddCustomer, setOpenAddCustomer] = React.useState(false);
-    const [showMissingCustomerLabel, setShowMissingCustomerLabel] = React.useState(false);
-    const [prefillName, setPrefillName] = React.useState(null);
-    const [currentRateconFile, setCurrentRateconFile] = React.useState<File>(null);
+    const [loading, setLoading] = useState(false);
+    const [openAddCustomer, setOpenAddCustomer] = useState(false);
+    const [showMissingCustomerLabel, setShowMissingCustomerLabel] = useState(false);
+    const [prefillName, setPrefillName] = useState(null);
+    const [currentRateconFile, setCurrentRateconFile] = useState<File>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
-    const [aiProgress, setAiProgress] = React.useState(0);
-    const [isRetrying, setIsRetrying] = React.useState(false);
+    const [aiProgress, setAiProgress] = useState(0);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const [ocrLines, setOcrLines] = React.useState<OCRLines>(null);
-    const [ocrVertices, setOcrVertices] = React.useState<{ x: number; y: number }[][]>(null);
-    const [ocrVerticesPage, setOcrVerticesPage] = React.useState<number>(null);
+    const [ocrLines, setOcrLines] = useState<OCRLines>(null);
+    const [ocrVertices, setOcrVertices] = useState<{ x: number; y: number }[][]>(null);
+    const [ocrVerticesPage, setOcrVerticesPage] = useState<number>(null);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
-    const [dragActive, setDragActive] = React.useState(false);
-
-    const [aiLimitReached, setAiLimitReached] = React.useState(false);
+    const [dragActive, setDragActive] = useState(false);
+    const [aiLimitReached, setAiLimitReached] = useState(false);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragleave') {
+        if (e.type === 'dragenter' || e.type === 'dragover') {
             setDragActive(true);
         } else if (e.type === 'dragleave') {
             setDragActive(false);
@@ -133,6 +138,39 @@ const CreateLoad: PageWithAuth = () => {
         }
     };
 
+    // Load existing load data for editing
+    useEffect(() => {
+        if (loadId) {
+            setIsEditMode(true);
+            const fetchLoad = async () => {
+                setLoading(true);
+                try {
+                    const load = await getLoadById(loadId);
+                    if (!load) {
+                        setLoading(false);
+                        return;
+                    }
+
+                    formHook.setValue('id', load.id);
+                    formHook.setValue('customer', load.customer);
+                    formHook.setValue('loadNum', load.loadNum);
+                    formHook.setValue('rate', load.rate);
+                    formHook.setValue('shipper', load.shipper);
+                    formHook.setValue('receiver', load.receiver);
+                    stopsFieldArray.replace(load.stops || []);
+                    formHook.setValue('routeEncoded', load.routeEncoded);
+                    formHook.setValue('routeDistanceMiles', load.routeDistanceMiles);
+                    formHook.setValue('routeDurationHours', load.routeDurationHours);
+                } catch (error) {
+                    notify({ title: 'Error', message: 'Error loading load data', type: 'error' });
+                }
+                setLoading(false);
+            };
+            fetchLoad();
+        }
+    }, [loadId, formHook]);
+
+    // Handle copying a load
     useEffect(() => {
         if (!copyLoadId) {
             return;
@@ -151,14 +189,14 @@ const CreateLoad: PageWithAuth = () => {
                 formHook.setValue('rate', load.rate);
                 formHook.setValue('shipper', load.shipper);
                 formHook.setValue('receiver', load.receiver);
-                formHook.setValue('stops', load.stops);
+                stopsFieldArray.replace(load.stops || []);
             } catch (error) {
                 notify({ title: 'Error', message: 'Error loading load data', type: 'error' });
             }
             setLoading(false);
         };
         copyLoad();
-    }, [copyLoadId]);
+    }, [copyLoadId, formHook]);
 
     const submit = async (data: ExpandedLoad) => {
         setLoading(true);
@@ -175,6 +213,11 @@ const CreateLoad: PageWithAuth = () => {
             receiver: data.receiver,
             stops: data.stops,
         };
+
+        // If editing, include the ID
+        if (isEditMode && data.id) {
+            loadData.id = data.id;
+        }
 
         const shipperAddress =
             loadData.shipper.street +
@@ -237,16 +280,26 @@ const CreateLoad: PageWithAuth = () => {
 
     const saveLoadData = async (loadData: ExpandedLoad) => {
         try {
-            const newLoad = await createLoad(loadData, currentRateconFile);
+            let newLoad;
 
-            notify({ title: 'New load created', message: 'New load created successfully' });
+            if (isEditMode) {
+                newLoad = await updateLoad(loadData.id, loadData);
+                notify({ title: 'Load updated', message: 'Load updated successfully' });
+            } else {
+                newLoad = await createLoad(loadData, currentRateconFile);
+                notify({ title: 'New load created', message: 'New load created successfully' });
+            }
 
             // Redirect to load page
             await router.push(`/loads/${newLoad.id}`);
             setLoading(false);
         } catch (error) {
             setLoading(false);
-            notify({ title: 'Error saving load', message: `${error.message}`, type: 'error' });
+            notify({
+                title: `Error ${isEditMode ? 'updating' : 'saving'} load`,
+                message: `${error.message}`,
+                type: 'error',
+            });
         }
     };
 
@@ -255,6 +308,7 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
         setIsRetrying(false);
         setAiProgress(0);
+        setIsProcessing(false);
     };
 
     const handleFileUpload = async (file: File) => {
@@ -262,32 +316,35 @@ const CreateLoad: PageWithAuth = () => {
             return;
         }
 
-        // Reset form and state
-        formHook.reset({
-            customer: null,
-            loadNum: null,
-            rate: null,
-            shipper: {
-                name: null,
-                street: null,
-                city: null,
-                state: null,
-                zip: null,
-            },
-            receiver: {
-                name: null,
-                street: null,
-                city: null,
-                state: null,
-                zip: null,
-            },
-            stops: [],
-        });
+        // Reset form and state if not in edit mode
+        if (!isEditMode) {
+            formHook.reset({
+                customer: null,
+                loadNum: null,
+                rate: null,
+                shipper: {
+                    name: null,
+                    street: null,
+                    city: null,
+                    state: null,
+                    zip: null,
+                },
+                receiver: {
+                    name: null,
+                    street: null,
+                    city: null,
+                    state: null,
+                    zip: null,
+                },
+                stops: [],
+            });
+        }
 
         setCurrentRateconFile(file);
         setLoading(true);
         setIsRetrying(false);
         setAiProgress(0);
+        setIsProcessing(true);
 
         // Validate PDF metadata
         let metadata: {
@@ -407,10 +464,13 @@ const CreateLoad: PageWithAuth = () => {
 
             const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false);
             const logisticsCompany = aiLoad?.logistics_company;
-            applyAIOutputToForm(aiLoad);
 
-            // Handle customer matching
-            handleCustomerMatching(logisticsCompany, customersList);
+            // Only apply AI output if not in edit mode or user confirms
+            if (!isEditMode || confirm('Do you want to replace your current data with the extracted information?')) {
+                applyAIOutputToForm(aiLoad);
+                // Handle customer matching
+                handleCustomerMatching(logisticsCompany, customersList);
+            }
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error processing document', type: 'error' });
             handleAIError();
@@ -420,6 +480,7 @@ const CreateLoad: PageWithAuth = () => {
         setLoading(false);
         setAiProgress(0);
         setIsRetrying(false);
+        setIsProcessing(false);
     };
 
     const validatePDFFile = async (file: File): Promise<{ metadata: any; numOfPages: number }> => {
@@ -608,6 +669,7 @@ const CreateLoad: PageWithAuth = () => {
 
         // Reset entire form
         formHook.reset({
+            ...(isEditMode ? { id: formHook.getValues('id') } : {}),
             customer: null,
             loadNum: null,
             rate: null,
@@ -657,7 +719,7 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         // Select last SO stop as receiver
-        const receiverStop = load.stops.reverse().find((stop) => stop.type === 'SO');
+        const receiverStop = [...load.stops].reverse().find((stop) => stop.type === 'SO');
         if (receiverStop) {
             formHook.setValue('receiver.name', receiverStop.name);
             formHook.setValue('receiver.street', receiverStop.address?.street || null);
@@ -698,6 +760,147 @@ const CreateLoad: PageWithAuth = () => {
         });
     };
 
+    const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
+        // Replace , with space
+        let value = (event.target as HTMLInputElement).value.replaceAll(/(?<=\w),(?=\w)/g, ' ');
+        // Remove special characters and convert to lowercase
+        const replaceExp = /[^a-zA-Z0-9 ]/g;
+        value = value.replace(replaceExp, '').toLowerCase();
+
+        // Get the field name
+        const fieldName = (event.target as HTMLInputElement).name;
+
+        if ((fieldName.includes('date') || fieldName.includes('time')) && !value) {
+            // Get stop name field to search against OCR response
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+
+            // Get name or street value to search against OCR response
+            value =
+                formHook
+                    .getValues(`${firstPartOfFieldName}.name` as keyof ExpandedLoad)
+                    ?.toString()
+                    .replace(replaceExp, '')
+                    .toLowerCase() ||
+                formHook
+                    .getValues(`${firstPartOfFieldName}.street` as keyof ExpandedLoad)
+                    ?.toString()
+                    .replace(replaceExp, '')
+                    .toLowerCase();
+
+            // Find in lines data for value
+            const matchingLine = ocrLines?.blocks?.find((line) =>
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+            );
+
+            // if line is found, find the closest date
+            if (matchingLine) {
+                const result = findClosestDate(ocrLines?.lines, matchingLine?.boundingPoly);
+                if (result) {
+                    setOcrVertices([result.boundingPoly.normalizedVertices]);
+                    setOcrVerticesPage(result.pageNumber);
+                    return;
+                }
+            }
+        }
+
+        // If value is empty, return
+        if (!value || !ocrLines?.lines) {
+            return;
+        }
+
+        if (fieldName.includes('date') && Number(value)) {
+            // Extract year, month, and day from the input
+            const year = value.slice(0, 4);
+            const month = value.slice(4, 6);
+            const day = value.slice(6, 8);
+
+            // Return in the desired format
+            value = `${month}${day}${year}`;
+        }
+
+        // Highlight the field border on hover
+        event.currentTarget.style.backgroundColor = '#f0f9ff';
+        event.currentTarget.style.borderColor = '#3b82f6';
+
+        // Check if the field is an address field
+        const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
+
+        // If the field is an address field, build city state zip string to search against OCR response
+        if (isAddressField) {
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+
+            const addCity = formHook
+                .getValues(`${firstPartOfFieldName}.city` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            const addState = formHook
+                .getValues(`${firstPartOfFieldName}.state` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            const addZip = formHook
+                .getValues(`${firstPartOfFieldName}.zip` as keyof ExpandedLoad)
+                ?.toString()
+                .replace(replaceExp, '')
+                .toLowerCase();
+            value = `${addCity} ${addState} ${addZip}`;
+        }
+
+        // Variable to hold the best matching line
+        let matchingLine: Line = null;
+
+        // Find the matching line in the OCR response
+        matchingLine = ocrLines?.lines?.find((line) =>
+            looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+        );
+
+        // If no matching line found, search in the blocks
+        if (!matchingLine) {
+            value = fieldName.includes('state') ? ` ${value} ` : value;
+            // Fuzzy search for the value in the OCR response
+            matchingLine = ocrLines?.blocks?.find((line) =>
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+            );
+        }
+
+        if (!matchingLine && fieldName.includes('date')) {
+            let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+
+            // Extract year, month, and day from the input
+            const year = value.slice(2, 4);
+            const month = value.slice(4, 6);
+            const day = value.slice(6, 8);
+
+            // Return in the desired format
+            value = `${month}${day}${year}`;
+
+            // Find in lines data for value
+            matchingLine = ocrLines?.lines?.find((line) =>
+                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
+            );
+        }
+
+        // Update matching vertices if matching line is found
+        if (matchingLine) {
+            setOcrVertices([matchingLine.boundingPoly.normalizedVertices]);
+            setOcrVerticesPage(matchingLine.pageNumber);
+        }
+    };
+
+    const mouseHoverOverFieldExited = (event: React.MouseEvent<HTMLInputElement>) => {
+        // Reset the field styling
+        event.currentTarget.style.backgroundColor = '';
+        event.currentTarget.style.borderColor = '';
+
+        // Reset the vertices
+        setOcrVertices(null);
+        // Reset the page number
+        setOcrVerticesPage(null);
+    };
+
     const twoStringWindowSearch = (s1: string, s2: string, windowSize: number) => {
         // Edge case: If window size is greater than either string's length
         if (s1.length < windowSize || s2.length < windowSize) {
@@ -734,20 +937,17 @@ const CreateLoad: PageWithAuth = () => {
 
         const tokens1 = normalize(str1);
         const tokens2 = normalize(str2);
-        // console.log('Tokens:', tokens1, tokens2);
 
         // Count matches
         const matches = tokens1.filter((token) => {
             const result = tokens2.find((token2) => {
                 return twoStringWindowSearch(token, token2, Math.round(token.length * 0.9));
             });
-            // console.log('result:', result);
             return result;
         }).length;
 
         // Determine similarity based on the proportion of matching tokens
         const threshold = Math.max(tokens1.length, tokens2.length) * 0.5; // Adjust threshold as needed
-        // console.log('Matches:', matches, 'Threshold:', threshold);
         return matches >= tokens1.length;
     };
 
@@ -758,7 +958,7 @@ const CreateLoad: PageWithAuth = () => {
         const dateRegex = /\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\/\d{2}\/\d{4}\b/g;
 
         let closestMatch: Line | null = null;
-        let minDistance = Infinity;
+        let minDistance = Number.POSITIVE_INFINITY;
 
         const getBoundingBoxCenter = (vertices: { x: number; y: number }[]) => {
             const x = (vertices[0].x + vertices[2].x) / 2;
@@ -799,297 +999,329 @@ const CreateLoad: PageWithAuth = () => {
         return closestMatch;
     };
 
-    const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
-        // Replace , with space
-        let value = (event.target as HTMLInputElement).value.replaceAll(/(?<=\w),(?=\w)/g, ' ');
-        // Remove special characters and convert to lowercase
-        const replaceExp = /[^a-zA-Z0-9 ]/g;
-        value = value.replace(replaceExp, '').toLowerCase();
+    const resetForm = () => {
+        // Reset the form fields
+        formHook.reset({
+            ...(isEditMode ? { id: formHook.getValues('id') } : {}),
+            customer: null,
+            loadNum: null,
+            rate: null,
+            shipper: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+                date: null,
+                time: null,
+            },
+            receiver: {
+                name: null,
+                street: null,
+                city: null,
+                state: null,
+                zip: null,
+                date: null,
+                time: null,
+            },
+            stops: [],
+        });
 
-        // Get the field name
-        const fieldName = (event.target as HTMLInputElement).name;
+        // Remove the rate confirmation file
+        setCurrentRateconFile(null);
 
-        // console.log('Mouse hover over field: ', value, fieldName);
-
-        if ((fieldName.includes('date') || fieldName.includes('time')) && !value) {
-            // Get stop name field to serach against OCR response
-            const lastDotIndex = fieldName.lastIndexOf('.');
-            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
-
-            // Get name or street value to search against OCR response
-            value =
-                formHook
-                    .getValues(`${firstPartOfFieldName}.name` as keyof ExpandedLoad)
-                    ?.toString()
-                    .replace(replaceExp, '')
-                    .toLowerCase() ||
-                formHook
-                    .getValues(`${firstPartOfFieldName}.street` as keyof ExpandedLoad)
-                    ?.toString()
-                    .replace(replaceExp, '')
-                    .toLowerCase();
-
-            // Find in lines data for value
-            const matchingLine = ocrLines?.blocks?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
-
-            // if line is found, find the closest date
-            if (matchingLine) {
-                const result = findClosestDate(ocrLines?.lines, matchingLine?.boundingPoly);
-                if (result) {
-                    //console.log('Matching line:', matchingLine.boundingPoly.normalizedVertices, matchingLine);
-                    setOcrVertices([result.boundingPoly.normalizedVertices]);
-                    setOcrVerticesPage(result.pageNumber);
-                    return;
-                }
-            }
-        }
-
-        // If value is empty, return
-        if (!value || !ocrLines?.lines) {
-            return;
-        }
-
-        if (fieldName.includes('date') && Number(value)) {
-            // Extract year, month, and day from the input
-            const year = value.slice(0, 4);
-            const month = value.slice(4, 6);
-            const day = value.slice(6, 8);
-
-            // Return in the desired format
-            value = `${month}${day}${year}`;
-        }
-
-        // Highlight the field border on hover
-        event.currentTarget.style.backgroundColor = '#cccccc7d';
-
-        // Check if the field is an address field
-        const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
-
-        // If the field is an address field, build city state zip string to search against OCR response
-        if (isAddressField) {
-            const lastDotIndex = fieldName.lastIndexOf('.');
-            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
-
-            const addCity = formHook
-                .getValues(`${firstPartOfFieldName}.city` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            const addState = formHook
-                .getValues(`${firstPartOfFieldName}.state` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            const addZip = formHook
-                .getValues(`${firstPartOfFieldName}.zip` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            value = `${addCity} ${addState} ${addZip}`;
-        }
-
-        // Variable to hold the best maching line
-        let matchingLine: Line = null;
-
-        // Find the matching line in the OCR response
-        matchingLine = ocrLines?.lines?.find((line) =>
-            looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-        );
-
-        // If no matching line found, search in the blocks
-        if (!matchingLine) {
-            value = fieldName.includes('state') ? ` ${value} ` : value;
-            // Fuzzy search for the value in the OCR response
-            matchingLine = ocrLines?.blocks?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
-        }
-
-        if (!matchingLine && fieldName.includes('date')) {
-            let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
-
-            // Extract year, month, and day from the input
-            const year = value.slice(2, 4);
-            const month = value.slice(4, 6);
-            const day = value.slice(6, 8);
-
-            // Return in the desired format
-            value = `${month}${day}${year}`;
-
-            // Find in lines data for value
-            matchingLine = ocrLines?.lines?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
-        }
-
-        // Update matching vertices if matching line is found
-        if (matchingLine) {
-            //console.log('Matching line:', matchingLine.boundingPoly.normalizedVertices, matchingLine);
-            setOcrVertices([matchingLine.boundingPoly.normalizedVertices]);
-            setOcrVerticesPage(matchingLine.pageNumber);
-        }
-    };
-
-    const mouseHoverOverFieldExited = (event: React.MouseEvent<HTMLInputElement>) => {
-        // Set the border on hover out back to normal
-
-        event.currentTarget.style.backgroundColor = 'white';
-
-        // Reset the vertices
+        // Reset other state
         setOcrVertices(null);
-        // Reset the page number
         setOcrVerticesPage(null);
+        setAiProgress(0);
+        setIsProcessing(false);
+        setIsRetrying(false);
+        setAiLimitReached(false);
     };
 
     return (
-        <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Create New Load</h1>}>
-            <div className={`${currentRateconFile ? 'max-w-full' : 'max-w-4xl'}  py-2 mx-auto`}>
+        <Layout
+            smHeaderComponent={
+                <h1 className="text-xl font-semibold text-gray-900">{isEditMode ? 'Edit Load' : 'Create New Load'}</h1>
+            }
+        >
+            <div className="max-w-[1980px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <BreadCrumb
-                    className="sm:px-6 md:px-8"
+                    className="md:mb-6"
                     paths={[
                         {
                             label: 'Loads',
                             href: '/loads',
                         },
                         {
-                            label: 'Create New Load',
+                            label: isEditMode ? 'Edit Load' : 'Create New Load',
                         },
                     ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="text-2xl font-semibold text-gray-900">Create New Load</h1>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+                />
+
+                <div className="relative top-4 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6  py-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 ">
+                        {isEditMode ? 'Edit Load' : 'Create New Load'}
+                    </h1>
+                    {/*
+                    <div className="flex space-x-3 ">
+                        <button
+                            type="button"
+                            onClick={resetForm}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                        >
+                            <ArrowPathIcon className="h-4 w-4 mr-2" />
+                            Reset Form
+                        </button>
+                        <button
+                            type="submit"
+                            form="load-form"
+                            className={`inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-lg shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 ${
+                                loading ? 'opacity-75 cursor-not-allowed' : ''
+                            }`}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    {isEditMode ? 'Updating...' : 'Creating...'}
+                                </>
+                            ) : (
+                                <>{isEditMode ? 'Update Load' : 'Create Load'}</>
+                            )}
+                        </button>
+                    </div> */}
                 </div>
 
                 {!isProPlan && !isLoadingCarrier && (
-                    <div className="mx-5 mb-6 transition-all md:mx-0 md:px-8">
-                        <div
-                            className={`p-6 border rounded-lg bg-gradient-to-r ${
-                                aiLimitReached
-                                    ? 'border-red-300 from-red-100 to-red-200'
-                                    : 'border-blue-100 from-blue-50 to-indigo-50'
-                            } `}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-medium text-blue-900">
-                                        {aiLimitReached
-                                            ? 'AI load import limit reached, unlock the speed + accuracy of AI by upgrading to Pro'
-                                            : 'Enhance your load management with AI'}
-                                    </h3>
-                                    <p className="mt-1 text-sm text-blue-700">
-                                        Your plan has limited AI document processing. Upgrade to Pro for unlimited AI
-                                        imports, faster processing, and enhanced accuracy in extracting load details.
-                                    </p>
-                                </div>
-                                <div className="ml-6">
-                                    <Link href="/billing">
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm animate-pulse hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        >
-                                            Upgrade Plan
-                                        </button>
+                    <div
+                        className={`mb-6 p-4 border rounded-lg ${
+                            aiLimitReached ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
+                        }`}
+                    >
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <ExclamationCircleIcon
+                                    className={`h-5 w-5 ${aiLimitReached ? 'text-red-400' : 'text-blue-400'}`}
+                                    aria-hidden="true"
+                                />
+                            </div>
+                            <div className="ml-3 flex-1 md:flex md:justify-between">
+                                <p className={`text-sm ${aiLimitReached ? 'text-red-700' : 'text-blue-700'}`}>
+                                    {aiLimitReached
+                                        ? 'AI load import limit reached. Unlock the speed + accuracy of AI by upgrading to Pro.'
+                                        : 'Your plan has limited AI document processing. Upgrade to Pro for unlimited AI imports.'}
+                                </p>
+                                <p className="mt-3 text-sm md:mt-0 md:ml-6">
+                                    <Link
+                                        href="/billing"
+                                        className={`whitespace-nowrap font-medium ${
+                                            aiLimitReached
+                                                ? 'text-red-700 hover:text-red-600'
+                                                : 'text-blue-700 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Upgrade Plan
+                                        <span aria-hidden="true"> &rarr;</span>
                                     </Link>
-                                </div>
+                                </p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {aiProgress > 0 && (
-                    <AnimatedProgress
-                        progress={aiProgress}
-                        label={isRetrying ? 'Fine tuning results' : 'Reading Document'}
-                        labelColor={isRetrying ? 'text-orange-600' : 'text-blue-600'}
-                        bgColor={isRetrying ? 'bg-orange-100' : 'bg-blue-100'}
-                    />
-                )}
+                <div className="flex gap-6 flex-col md:flex-row">
+                    {/* Left side - PDF upload/viewer */}
+                    <div
+                        className={`${
+                            currentRateconFile ? 'w-full md:w-[55%]' : 'w-full md:w-1/4'
+                        } transition-all duration-300`}
+                    >
+                        {aiProgress > 0 && (
+                            <div className="bg-white p-4 border border-gray-200 rounded-lg mb-4">
+                                <div className="flex items-center mb-2">
+                                    <div className={`mr-3 ${isRetrying ? 'text-amber-500' : 'text-blue-500'}`}>
+                                        <DocumentMagnifyingGlassIcon className="h-5 w-5 animate-pulse" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3
+                                            className={`font-medium text-sm ${
+                                                isRetrying ? 'text-amber-700' : 'text-blue-700'
+                                            }`}
+                                        >
+                                            {isRetrying ? 'Fine tuning results' : 'Reading Document'}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 truncate">
+                                            {isRetrying
+                                                ? 'Enhancing data extraction accuracy...'
+                                                : 'Extracting load information from your document...'}
+                                        </p>
+                                    </div>
+                                    <div className="ml-2 text-xs font-medium text-gray-500 whitespace-nowrap">
+                                        {Math.round(aiProgress)}%
+                                    </div>
+                                </div>
 
-                <div className="relative px-5 sm:px-6 md:px-8">
-                    {loading && <LoadingOverlay />}
-
-                    {aiProgress == 0 && !currentRateconFile && (
-                        <div
-                            onDragEnter={handleDrag}
-                            onDragLeave={handleDrag}
-                            onDragOver={handleDrag}
-                            onDrop={handleDrop}
-                            className="mb-4"
-                        >
-                            <label
-                                className={`flex justify-center w-full px-4 transition bg-white border-2 border-dashed rounded-md appearance-none cursor-pointer h-28
-                                    ${
-                                        dragActive
-                                            ? 'border-blue-400 bg-blue-50'
-                                            : 'border-gray-300 hover:border-gray-400'
-                                    }`}
-                            >
-                                <span className="flex items-center space-x-2">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className={`w-6 h-6 ${dragActive ? 'text-blue-600' : 'text-gray-600'}`}
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                        />
-                                    </svg>
-                                    <span className={`font-medium ${dragActive ? 'text-blue-600' : 'text-gray-600'}`}>
-                                        Drop a rate confirmation file, or{' '}
-                                        <span className="text-blue-600 underline">browse</span>
-                                    </span>
-                                </span>
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    accept="application/pdf"
-                                    onChange={handleFileInput}
-                                />
-                            </label>
-                        </div>
-                    )}
-
-                    {currentRateconFile && (
-                        <div className="flex items-center justify-between py-2 pl-4 pr-2 mb-4 bg-white border border-gray-200 rounded-md">
-                            <div className="flex items-center space-x-2">
-                                <PaperClipIcon className="flex-shrink-0 w-5 h-5 text-gray-400" aria-hidden="true" />
-                                <span className="font-medium text-gray-600">
-                                    {currentRateconFile.name} ({currentRateconFile.size} bytes)
-                                </span>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                        className={`h-2 rounded-full transition-all duration-300 ease-out ${
+                                            isRetrying ? 'bg-amber-500' : 'bg-blue-500'
+                                        }`}
+                                        style={{ width: `${aiProgress}%` }}
+                                    ></div>
+                                </div>
                             </div>
-                            <button
-                                type="button"
-                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                onClick={() => setCurrentRateconFile(null)}
-                            >
-                                <TrashIcon className="flex-shrink-0 w-4 h-4 mr-2 text-gray-800"></TrashIcon>
-                                Remove
-                            </button>
-                        </div>
-                    )}
+                        )}
 
-                    <div className="relative flex lg:flex-row items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
-                        {currentRateconFile ? (
-                            <div className="flex-1 overflow-auto ">
+                        {!currentRateconFile ? (
+                            <div className="sticky top-4 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="p-4 bg-gray-50 border-b border-gray-200">
+                                    <h2 className="text-lg font-medium text-gray-900">Rate Confirmation</h2>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Upload a PDF to automatically extract load information
+                                    </p>
+                                </div>
+                                <div
+                                    onDragEnter={handleDrag}
+                                    onDragLeave={handleDrag}
+                                    onDragOver={handleDrag}
+                                    onDrop={handleDrop}
+                                    className={`flex flex-col items-center justify-center p-12 transition-colors duration-200 ${
+                                        dragActive ? 'bg-blue-50' : 'bg-white'
+                                    }`}
+                                >
+                                    <div
+                                        className={`p-6 rounded-full ${
+                                            dragActive ? 'bg-blue-100' : 'bg-gray-100'
+                                        } mb-4`}
+                                    >
+                                        <DocumentTextIcon
+                                            className={`h-12 w-12 ${
+                                                dragActive ? 'text-blue-500' : 'text-gray-400'
+                                            } transition-colors duration-200`}
+                                        />
+                                    </div>
+                                    <h3
+                                        className={`text-lg font-medium mb-2 text-center ${
+                                            dragActive ? 'text-blue-700' : 'text-gray-700'
+                                        } transition-colors duration-200`}
+                                    >
+                                        {dragActive ? 'Drop to upload' : 'Drop a rate confirmation file'}
+                                    </h3>
+                                    <p className="text-sm text-gray-500 mb-4 text-center">or</p>
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                                        onClick={() => document.getElementById('file-upload').click()}
+                                    >
+                                        <ArrowUpTrayIcon
+                                            className="-ml-1 mr-2 h-5 w-5 text-gray-500"
+                                            aria-hidden="true"
+                                        />
+                                        Browse Files
+                                        <input
+                                            id="file-upload"
+                                            type="file"
+                                            className="hidden"
+                                            accept="application/pdf"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file && file.size > 10 * 1024 * 1024) {
+                                                    notify({
+                                                        title: 'File too large',
+                                                        message: 'Maximum file size is 10MB.',
+                                                        type: 'error',
+                                                    });
+                                                    e.target.value = '';
+                                                    return;
+                                                }
+                                                handleFileInput(e);
+                                            }}
+                                        />
+                                    </button>
+                                    <p className="mt-4 text-xs text-gray-500 text-center">
+                                        Supported format: PDF (max 8 pages)
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="block bg-white border border-gray-200 rounded-lg overflow-hidden overflow-y-visible ">
+                                <div className=" relative p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between overflow-hidden">
+                                    <div className="flex items-center overflow-hidden">
+                                        <PaperClipIcon className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
+                                        <span className="font-medium text-gray-700 text-sm truncate">
+                                            {currentRateconFile.name} ({Math.round(currentRateconFile.size / 1024)} KB)
+                                        </span>
+                                    </div>
+                                    <div className="flex space-x-2    bg-gray-50">
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center p-1.5 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            onClick={() => document.getElementById('file-upload-replace').click()}
+                                            title="Replace file"
+                                        >
+                                            <ArrowPathIcon className="h-4 w-4 text-gray-500" />
+                                            <input
+                                                id="file-upload-replace"
+                                                type="file"
+                                                className="hidden"
+                                                accept="application/pdf"
+                                                onChange={handleFileInput}
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center p-1.5 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            onClick={() => setCurrentRateconFile(null)}
+                                            title="Remove file"
+                                        >
+                                            <TrashIcon className="h-4 w-4 text-gray-500" />
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* PDF Viewer Component */}
                                 <PDFViewer
                                     fileBlob={currentRateconFile}
                                     scrollToPage={ocrVerticesPage}
                                     ocrVertices={ocrVertices}
+                                    isProcessing={isProcessing}
+                                    processingProgress={aiProgress}
                                 />
                             </div>
-                        ) : null}
+                        )}
+                    </div>
+
+                    {/* Right side - Form */}
+                    <div
+                        className={`${
+                            currentRateconFile ? 'w-full md:w-[45%]' : 'w-full md:w-3/4'
+                        } transition-all duration-300 flex-shrink-0`}
+                    >
+                        {/* This div makes the form panel sticky and defines its fixed height. */}
+                        {/* LoadForm inside will use h-full to fill this height and manage its own internal scroll. */}
                         <div
-                            className={`flex-1 flex ${
-                                currentRateconFile ? 'sticky top-2 overflow-y-scroll max-h-screen bg-white p-1' : ''
-                            }  rounded-md `}
+                            className={`sticky top-4 bg-white border border-gray-200 overflow-hidden rounded-lg h-full ${
+                                currentRateconFile ? 'md:h-[85vh]' : 'h-full'
+                            } `}
                         >
                             <form id="load-form" onSubmit={formHook.handleSubmit(submit)} className="h-full">
                                 <LoadForm
@@ -1103,16 +1335,10 @@ const CreateLoad: PageWithAuth = () => {
                                     parentStopsFieldArray={stopsFieldArray}
                                     mouseHoverOverField={mouseHoverOverField}
                                     mouseHoverOutField={mouseHoverOverFieldExited}
+                                    loading={loading}
+                                    onResetForm={resetForm}
+                                    isEditMode={isEditMode}
                                 />
-                                <div className="flex px-4 py-4 mt-4 border-t-2 border-neutral-200">
-                                    <div className="flex-1"></div>
-                                    <button
-                                        type="submit"
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                    >
-                                        Create Load
-                                    </button>
-                                </div>
                             </form>
                         </div>
                     </div>
