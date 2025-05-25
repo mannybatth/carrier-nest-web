@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable react/prop-types */
+
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
