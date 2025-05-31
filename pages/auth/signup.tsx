@@ -177,7 +177,9 @@ const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                                         placeholder="Enter your email"
                                         className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-orange-500 focus:ring-orange-500 focus:ring-1 transition-colors duration-200"
                                     />
-                                    <p className="mt-1 text-xs text-gray-500">We'll send you a secure sign-in link</p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        We&apos;ll send you a secure sign-in link
+                                    </p>
                                 </div>
 
                                 <button
@@ -244,7 +246,7 @@ const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                         <div className="max-w-md">
                             <h2 className="text-3xl font-bold mb-4">Smart trucking starts here</h2>
                             <p className="text-lg text-orange-100 mb-6">
-                                Start with our free Basic Plan and upgrade when you're ready to scale.
+                                Start with our free Basic Plan and upgrade when you&apos;re ready to scale.
                             </p>
 
                             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
