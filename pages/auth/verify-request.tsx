@@ -30,7 +30,7 @@ const VerifyRequest: React.FC = () => {
                     <div className="mt-5 space-y-2">
                         <p className="text-base leading-6">A sign in link has been sent to your email address.</p>
                         <p className="text-xs highligh bg-yellow-50 border border-orange-100  p-2 rounded text-gray-600">
-                            Check your junk/spam folder, email will be sent by norply@carriernest.com
+                            Check your junk/spam folder, email will be sent by noreply@carriernest.com
                         </p>
                         <div className="mt-8">
                             <Link href="/auth/signin">
