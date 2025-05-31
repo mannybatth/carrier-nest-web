@@ -165,7 +165,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                                 placeholder="Enter your email"
                                 className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-orange-500 focus:ring-orange-500 focus:ring-1 transition-colors duration-200"
                             />
-                            <p className="mt-1 text-xs text-gray-500">We'll send you a secure sign-in link</p>
+                            <p className="mt-1 text-xs text-gray-500">We&apos;ll send you a secure sign-in link</p>
                         </div>
 
                         <button
@@ -209,7 +209,7 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                     {/* Footer Links */}
                     <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">
-                            Don't have an account?{' '}
+                            Don&apos;t have an account?{' '}
                             <Link href="/sign-in" className="text-orange-600 hover:text-orange-500 font-medium">
                                 Sign up for free
                             </Link>
