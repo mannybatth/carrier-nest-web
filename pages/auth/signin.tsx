@@ -1,9 +1,10 @@
-import { XCircleIcon } from '@heroicons/react/24/solid';
-import { NextPage } from 'next';
+'use client';
+
+import { XCircleIcon, TruckIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
+import type { NextPage } from 'next';
 import { signIn } from 'next-auth/react';
-import Image from 'next/image';
 import React, { useEffect } from 'react';
-import { GetServerSideProps } from 'next';
+import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { appUrl } from 'lib/constants';
 
@@ -38,13 +39,11 @@ const errors: Record<SignInErrorTypes, string> = {
 
 type Props = {
     callbackUrl: string;
-    requestType?: 'signin' | 'signup';
     error: SignInErrorTypes;
 };
 
-const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }: Props) => {
+const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
-
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
     useEffect(() => {
@@ -73,181 +72,159 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
     };
 
     return (
-        <div className="flex flex-1 min-h-full">
-            <div className="flex flex-col flex-1 justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
-                <div className="mx-auto w-full max-w-sm lg:w-96">
-                    <div>
-                        <div className="absolute top-0 text-lg font-semibold tracking-tight text-orange-800 py-2 md:py-6 flex flex-col items-start">
-                            <p>Welcome to CarrierNest</p>
-                            <span className="text-gray-800 text-xs font-light">
-                                Future of smart trucking. Driven by AI.
-                            </span>
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                {/* Header */}
+                <div className="text-center">
+                    <div className="mb-6">
+                        <div className="flex items-center justify-center">
+                            <img
+                                src="/logo_truck.svg"
+                                alt="CarrierNest Logo"
+                                className="w-[75px] mx-auto mb-4 md:w-[100px] md:mb-6 lg:w-[125px] lg:mb-8"
+                            />
                         </div>
-                        <Image
-                            src="/logo_truck.svg"
-                            alt="Logo"
-                            width={100}
-                            height={72}
-                            className="w-[75px] mb-4 md:w-[100px] md:mb-6 lg:w-[125px] lg:mb-8"
-                        ></Image>
-
-                        <h2 className="mt-8 text-2xl font-bold tracking-tight leading-9 text-gray-900">
-                            {requestType === 'signin' ? 'Sign in to your account' : 'Sign up for an account'}
-                        </h2>
-
-                        {/* <p className="mt-2 text-sm leading-6 text-gray-500">
-                            Not a member?{' '}
-                            <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-500">
-                                Start a 14 day free trial
-                            </a>
-                        </p> */}
                     </div>
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+                    <p className="mt-2 text-sm text-gray-600">Sign in to your CarrierNest account</p>
+                </div>
+            </div>
 
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md mx-4">
+                <div className="bg-white py-8 px-4 shadow-sm rounded-lg sm:px-10 border border-gray-200">
                     {error && (
-                        <div className="p-4 mt-3 bg-red-50 rounded-md">
+                        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
                             <div className="flex">
                                 <div className="flex-shrink-0">
-                                    <XCircleIcon className="w-5 h-5 text-red-400" aria-hidden="true" />
+                                    <XCircleIcon className="w-4 h-4 text-red-400" aria-hidden="true" />
                                 </div>
                                 <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-red-800">
-                                        There were errors with your submission
-                                    </h3>
-                                    <div className="mt-2 text-sm text-red-700">
-                                        <ul role="list" className="pl-5 list-disc">
-                                            <li>{error}</li>
-                                        </ul>
-                                    </div>
+                                    <p className="text-sm text-red-700">{error}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="mt-2">
-                        <div>
-                            <form className="space-y-6" method="POST" onSubmit={handleSubmit}>
-                                <div>
-                                    <label
-                                        htmlFor="email"
-                                        className="flex flex-col font-medium leading-6 text-gray-900 text-md"
-                                    >
-                                        Email address{' '}
-                                        <span className="text-xs font-light text-gray-400">
-                                            Signin request will be sent to your emailed
-                                        </span>{' '}
-                                    </label>
-                                    <div className="mt-2">
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            autoComplete="email"
-                                            required
-                                            className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-orange-800 sm:text-sm sm:leading-6"
-                                        />
-                                    </div>
-                                </div>
+                    {/* Social Login Buttons */}
+                    <div className="space-y-3 mb-6">
+                        <button
+                            onClick={() => signIn('google', { redirectTo: callbackUrl })}
+                            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        >
+                            <span
+                                className="w-4 h-4"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 48 48'%3E%3Cdefs%3E%3Cpath id='a' d='M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z'/%3E%3C/defs%3E%3CclipPath id='b'%3E%3Cuse xlinkHref='%23a' overflow='visible'/%3E%3C/clipPath%3E%3Cpath clipPath='url(%23b)' fill='%23FBBC05' d='M0 37V11l17 13z'/%3E%3Cpath clipPath='url(%23b)' fill='%23EA4335' d='M0 11l17 13 7-6.1L48 14V0H0z'/%3E%3Cpath clipPath='url(%23b)' fill='%2334A853' d='M0 37l30-23 7.9 1L48 0v48H0z'/%3E%3Cpath clipPath='url(%23b)' fill='%234285F4' d='M48 48L17 24l-4-3 35-10z'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'contain',
+                                }}
+                            />
+                            Continue with Google
+                        </button>
 
-                                <div>
-                                    <div className="p-0 pb-3 m-0 text-xs font-light text-gray-400">
-                                        By signing up, you agree to our
-                                        <Link href="/terms" className="font-medium">
-                                            {` Terms of Use`}
-                                        </Link>
-                                        .
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={loadingSubmit}
-                                        className="flex w-full justify-center items-center rounded-md bg-orange-800 h-9 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-orange-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-800"
-                                    >
-                                        {loadingSubmit ? (
-                                            <svg
-                                                className="mr-3 -ml-1 w-5 h-5 text-white animate-spin"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                ></circle>
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                ></path>
-                                            </svg>
-                                        ) : requestType === 'signin' ? (
-                                            'Sign in with email'
-                                        ) : (
-                                            'Sign up with email'
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
+                        <button
+                            onClick={() => signIn('microsoft-entra-id', { redirectTo: callbackUrl })}
+                            className="flex w-full items-center justify-center gap-3 rounded-lg bg-[#0078d4] px-4 py-2.5 text-sm text-white hover:bg-[#106ebe] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                            <span
+                                className="w-4 h-4"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='21' height='21'%3E%3Cpath fill='%23f25022' d='M1 1h9v9H1z'/%3E%3Cpath fill='%2300a4ef' d='M1 11h9v9H1z'/%3E%3Cpath fill='%237fba00' d='M11 1h9v9h-9z'/%3E%3Cpath fill='%23ffb900' d='M11 11h9v9h-9z'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'contain',
+                                }}
+                            />
+                            Continue with Microsoft
+                        </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-gray-300" />
                         </div>
-
-                        <div className="mt-10">
-                            <div className="relative">
-                                <div className="flex absolute inset-0 items-center" aria-hidden="true">
-                                    <div className="w-full border-t border-gray-200" />
-                                </div>
-                                <div className="flex relative justify-center text-sm font-medium leading-6">
-                                    <span className="px-6 text-gray-900 bg-white">Or continue with</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mt-6">
-                                <button
-                                    onClick={() => signIn('google', { redirectTo: callbackUrl })}
-                                    className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[#505050] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
-                                >
-                                    <span
-                                        className="mr-2"
-                                        style={{
-                                            backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 48 48'%3E%3Cdefs%3E%3Cpath id='a' d='M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z'/%3E%3C/defs%3E%3CclipPath id='b'%3E%3Cuse xlink:href='%23a' overflow='visible'/%3E%3C/clipPath%3E%3Cpath clip-path='url(%23b)' fill='%23FBBC05' d='M0 37V11l17 13z'/%3E%3Cpath clip-path='url(%23b)' fill='%23EA4335' d='M0 11l17 13 7-6.1L48 14V0H0z'/%3E%3Cpath clip-path='url(%23b)' fill='%2334A853' d='M0 37l30-23 7.9 1L48 0v48H0z'/%3E%3Cpath clip-path='url(%23b)' fill='%234285F4' d='M48 48L17 24l-4-3 35-10z'/%3E%3C/svg%3E")`,
-                                            backgroundRepeat: 'no-repeat',
-                                            backgroundPosition: 'center',
-                                            width: '18px',
-                                            height: '18px',
-                                        }}
-                                    ></span>
-                                    <span className="text-sm font-semibold leading-6">Google</span>
-                                </button>
-
-                                <button
-                                    onClick={() => signIn('microsoft-entra-id', { redirectTo: callbackUrl })}
-                                    className="flex w-full items-center justify-center gap-3 rounded-md bg-[#24292F] px-3 py-1.5 text-white hover:bg-[#3c3f43] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#24292F]"
-                                >
-                                    <span
-                                        className="mr-2"
-                                        style={{
-                                            backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='21' height='21'%3E%3Cpath fill='%23f25022' d='M1 1h9v9H1z'/%3E%3Cpath fill='%2300a4ef' d='M1 11h9v9H1z'/%3E%3Cpath fill='%237fba00' d='M11 1h9v9h-9z'/%3E%3Cpath fill='%23ffb900' d='M11 11h9v9h-9z'/%3E%3C/svg%3E")`,
-                                            backgroundRepeat: 'no-repeat',
-                                            backgroundPosition: 'center',
-                                            width: '18px',
-                                            height: '18px',
-                                        }}
-                                    ></span>
-                                    <span className="text-sm font-semibold leading-6">Microsoft</span>
-                                </button>
-                            </div>
+                        <div className="relative flex justify-center text-xs">
+                            <span className="px-3 text-gray-500 bg-white">Or with email</span>
                         </div>
                     </div>
+
+                    {/* Email Form */}
+                    <form className="space-y-4" method="POST" onSubmit={handleSubmit}>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                Email address
+                            </label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                placeholder="Enter your email"
+                                className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-orange-500 focus:ring-orange-500 focus:ring-1 transition-colors duration-200"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">We'll send you a secure sign-in link</p>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loadingSubmit}
+                            className="group relative flex w-full justify-center items-center rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                        >
+                            {loadingSubmit ? (
+                                <>
+                                    <svg
+                                        className="mr-2 w-4 h-4 text-white animate-spin"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        />
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        />
+                                    </svg>
+                                    Sending link...
+                                </>
+                            ) : (
+                                <>
+                                    Send sign-in link
+                                    <ArrowRightIcon className="ml-2 w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Footer Links */}
+                    <div className="mt-6 text-center">
+                        <p className="text-xs text-gray-500">
+                            Don't have an account?{' '}
+                            <Link href="/sign-in" className="text-orange-600 hover:text-orange-500 font-medium">
+                                Sign up for free
+                            </Link>
+                        </p>
+                    </div>
+
+                    <div className="mt-4 text-center">
+                        <p className="text-xs text-gray-500">
+                            By signing in, you agree to our{' '}
+                            <Link href="/terms" className="text-orange-600 hover:text-orange-500">
+                                Terms of Service
+                            </Link>
+                        </p>
+                    </div>
                 </div>
-            </div>
-            <div className="hidden relative flex-1 w-0 lg:block">
-                <img
-                    className="object-cover absolute inset-0 w-full h-full"
-                    style={{ objectPosition: '40% 50%' }}
-                    src="/cover.jpg"
-                    alt=""
-                />
             </div>
         </div>
     );
