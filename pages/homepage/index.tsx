@@ -141,7 +141,7 @@ const Homepage = () => {
                             className={`p-2 md:px-6 md:py-2 font-semibold transition whitespace-nowrap text-sm md:text-lg ${
                                 status === 'authenticated'
                                     ? 'bg-blue-600 text-white hover:bg-blue-700 '
-                                    : 'bg-slate-200 text-slate-500 hover:bg-slate-300 '
+                                    : 'bg-slate-50 text-slate-500 hover:bg-slate-300 border '
                             }  rounded-md `}
                             onClick={() => {
                                 status === 'authenticated' ? router.push('/') : router.push('/auth/signin');
@@ -152,10 +152,10 @@ const Homepage = () => {
 
                         {status !== 'authenticated' && (
                             <button
-                                className="p-2 text-sm  font-semibold text-white transition bg-blue-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-blue-700"
-                                onClick={() => router.push('/auth/signin')}
+                                className="p-2 shadow-lg text-sm  font-semibold text-white transition bg-orange-600 rounded-md md:px-6 md:py-2 whitespace-nowrap md:text-lg hover:bg-orange-700"
+                                onClick={() => router.push('/auth/signup')}
                             >
-                                Get Started!
+                                Try it Free!
                             </button>
                         )}
                     </div>
@@ -174,12 +174,12 @@ const Homepage = () => {
                             <div className="mt-6">
                                 <div className="flex flex-wrap gap-4">
                                     <button
-                                        className="px-6 py-3 font-semibold text-white transition bg-blue-600 rounded-md hover:bg-blue-700"
+                                        className="px-6 py-3 shadow-lg shadow-gray-800/50 font-semibold text-white transition bg-orange-600 rounded-md hover:bg-orange-700"
                                         onClick={() =>
-                                            status === 'authenticated' ? router.push('/') : router.push('/auth/signin')
+                                            status === 'authenticated' ? router.push('/') : router.push('/auth/signup')
                                         }
                                     >
-                                        Get Started
+                                        Get Started for Free
                                     </button>
                                     {/* <button
                                         className="px-6 py-3 font-semibold text-gray-700 transition border border-gray-300 rounded-md hover:bg-gray-100"
@@ -262,7 +262,7 @@ const Homepage = () => {
                     </p>
                     <button
                         className="px-8 py-3 font-semibold text-blue-600 transition bg-white rounded-md hover:bg-gray-100"
-                        onClick={() => (status === 'authenticated' ? router.push('/') : router.push('/auth/signin'))}
+                        onClick={() => (status === 'authenticated' ? router.push('/') : router.push('/auth/signup'))}
                     >
                         Start For Free
                     </button>

@@ -15,9 +15,9 @@ export default function Home() {
                     </div> */}
                     <p className="font-bold text-xs md:text-lg text-start">
                         Import your first load with AI magic.{' '}
-                        <span className="text-orange-300 font-light  ">Setup takes less than 30 seconds!</span>
+                        <span className="text-slate-300 font-light  ">Setup takes less than 30 seconds!</span>
                     </p>
-                    <Link href="/auth/signin?requestType=signin">
+                    <Link href="/auth/signup">
                         <button className="bg-white/90 whitespace-nowrap  hover:bg-orange-500  hover:text-white text-orange-600 text-sm px-3 py-1 md:py-2 mx-4 font-bold rounded-full shadow-lg shadow-blue-700/70 transform hover:scale-105 transition-all">
                             Try It Free
                             <svg
@@ -90,7 +90,7 @@ export default function Home() {
                                 <PromoCodeButton />
                             </div>
                         </div> */}
-                        <Link href="/auth/signin">
+                        <Link href="/auth/signup">
                             <button className="bg-orange-500 hover:bg-orange-600 text-white text-xl px-10 py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
                                 Get Started for Free
                                 <svg
@@ -144,7 +144,7 @@ export default function Home() {
                             <span className="text-orange-500">FB69 PROMO:</span> Expires in
                         </div> */}
                         <CountdownTimer showLabels={true} />
-                        <Link href="/auth/signin">
+                        <Link href="/auth/signup">
                             {/* <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
                                 Claim 69% Off Now
                             </button> */}
@@ -718,7 +718,7 @@ export default function Home() {
                         <p className="text-xl md:text-2xl mb-12 text-gray-200">
                             Join other trucking companies who&apos;ve simplified their operations with CarrierNest.
                         </p>
-                        <Link href="/auth/signin">
+                        <Link href="/auth/signup">
                             <button className="bg-orange-500 hover:bg-orange-600 text-white text-2xl py-2 px-4 sm:px-12 sm:py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
                                 👉 I AM READY TO HELP MY TRUCKING!
                             </button>
