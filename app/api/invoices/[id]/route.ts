@@ -11,6 +11,15 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
     const invoiceId = context.params.id;
 
     const response = await getInvoice({ session, invoiceId, req });
+
+    const safeJson = (data: any) => JSON.stringify(data, (_, val) => (typeof val === 'bigint' ? val.toString() : val));
+
+    // Convert BigDecimal to string for JSON response.invoice
+    // Convert all BigDecimal values in the invoice object to string
+    if (response.data?.invoice) {
+        response.data.invoice = JSON.parse(safeJson(response.data.invoice));
+    }
+
     return NextResponse.json(response, { status: response.code });
 });
 
