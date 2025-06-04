@@ -5,6 +5,7 @@ import { FaceFrownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import type { Customer, Driver, Load } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
+import type { NextRouter } from 'next/router';
 import React, { Fragment, useEffect, useState } from 'react';
 import type { SearchResult } from '../../interfaces/models';
 import { useDebounce } from '../../lib/debounce';
@@ -113,7 +114,20 @@ const SideBarSearch: React.FC<SideBarSearchProps> = ({ collapsed }) => {
 };
 
 // Clean search dialog
-const SearchDialog = ({
+interface SearchDialogProps {
+    open: boolean;
+    setOpen: (open: boolean) => void;
+    afterLeave: () => void;
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+    isSearching: boolean;
+    setIsSearching: (searching: boolean) => void;
+    searchResults: [string, SearchResult<Load>[] | SearchResult<Customer>[] | SearchResult<Driver>[]][] | null;
+    router: NextRouter;
+}
+
+/* eslint-disable react/prop-types */
+const SearchDialog: React.FC<SearchDialogProps> = ({
     open,
     setOpen,
     afterLeave,
@@ -151,7 +165,8 @@ const SearchDialog = ({
                     as="div"
                     className="z-10 max-w-xl mx-auto overflow-hidden bg-white shadow-xl rounded-xl ring-1 ring-slate-200"
                     value=""
-                    onChange={({ group, item }: any) => {
+                    onChange={(selection: any) => {
+                        const { group, item } = selection;
                         if (group === 'loads') {
                             router.push(`/loads/${item.id}`);
                         } else if (group === 'customers') {
