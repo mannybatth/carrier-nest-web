@@ -210,16 +210,16 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
                     <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">
                             Don&apos;t have an account?{' '}
-                            <Link href="/sign-in" className="text-orange-600 hover:text-orange-500 font-medium">
+                            <Link href="/auth/signup" className="text-blue-400 hover:text-blue-500 font-medium">
                                 Sign up for free
                             </Link>
                         </p>
                     </div>
 
-                    <div className="mt-4 text-center">
+                    <div className="mt-2 text-center">
                         <p className="text-xs text-gray-500">
                             By signing in, you agree to our{' '}
-                            <Link href="/terms" className="text-orange-600 hover:text-orange-500">
+                            <Link href="/terms" className="text-blue-400 hover:text-blue-500">
                                 Terms of Service
                             </Link>
                         </p>
