@@ -39,11 +39,10 @@ const errors: Record<SignInErrorTypes, string> = {
 
 type Props = {
     callbackUrl: string;
-    requestType?: 'signin' | 'signup';
     error: SignInErrorTypes;
 };
 
-const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }: Props) => {
+const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
@@ -79,7 +78,7 @@ const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                 <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
                     <div className="w-full max-w-sm mx-auto lg:w-96">
                         {/* Header */}
-                        <div className="text-center mb-8">
+                        <div className="text-center mb-12">
                             <div className="mb-6">
                                 <div className="flex items-center justify-center">
                                     <img
@@ -95,13 +94,11 @@ const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
 
                         {/* Main CTA */}
                         <div className="mb-8">
-                            <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">
-                                {requestType === 'signin' ? 'Welcome back' : 'Get started for free'}
+                            <h2 className="text-xl font-semibold text-gray-900 text-left mb-0">
+                                {'Get started for free'}
                             </h2>
-                            <p className="text-center text-gray-600 text-sm mb-6">
-                                {requestType === 'signin'
-                                    ? 'Sign in to your account'
-                                    : 'Start with our free Basic Plan • No credit card required'}
+                            <p className="text-left text-gray-500 text-xs mb-6">
+                                {'Start with our free Basic Plan • No credit card required'}
                             </p>
 
                             {error && (
@@ -213,17 +210,26 @@ const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType, requestType }:
                                         </>
                                     ) : (
                                         <>
-                                            {requestType === 'signin' ? 'Send sign-in link' : 'Get started free'}
+                                            {'Get started free'}
                                             <ArrowRightIcon className="ml-2 w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
                                         </>
                                     )}
                                 </button>
                             </form>
 
+                            <div className="mt-6 text-center">
+                                <p className="text-xs text-gray-500">
+                                    Already have an account?{' '}
+                                    <Link href="/auth/signin" className="text-blue-400 hover:text-blue-500 font-medium">
+                                        Sign-in Here
+                                    </Link>
+                                </p>
+                            </div>
+
                             {/* Terms */}
                             <p className="mt-4 text-xs text-center text-gray-500">
                                 By continuing, you agree to our{' '}
-                                <Link href="/terms" className="text-orange-600 hover:text-orange-500">
+                                <Link href="/terms" className="text-blue-400 hover:text-blue-500">
                                     Terms of Service
                                 </Link>
                             </p>
