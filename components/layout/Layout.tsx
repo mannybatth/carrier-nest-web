@@ -1,6 +1,9 @@
+'use client';
+
 import { Dialog, Transition } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import React, { Fragment, PropsWithChildren, useState } from 'react';
+import { Bars3Icon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import type React from 'react';
+import { Fragment, type PropsWithChildren, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 import CreateNewButton from './CreateNewButton';
 import Navigation from './Navigation';
@@ -15,6 +18,7 @@ export type Props = PropsWithChildren<{
 
 const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     return (
         <div className={className}>
@@ -50,7 +54,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         leaveFrom="translate-x-0"
                         leaveTo="-translate-x-full"
                     >
-                        <div className="relative flex flex-col flex-1 w-full max-w-xs bg-white">
+                        <div className="relative flex flex-col flex-1 w-full max-w-xs bg-white shadow-xl">
                             <Transition.Child
                                 as={Fragment}
                                 enter="ease-in-out duration-300"
@@ -73,12 +77,12 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 </div>
                             </Transition.Child>
                             <div className="flex-1 h-0 pt-0 pb-4 overflow-y-auto">
-                                <SideBarFooter></SideBarFooter>
-                                <SideBarSearch></SideBarSearch>
-                                <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
-                                <Navigation></Navigation>
+                                <SideBarFooter collapsed={false} />
+                                <SideBarSearch collapsed={false} />
+                                <CreateNewButton className="mx-4 mt-4" collapsed={false} />
+                                <Navigation collapsed={false} />
                             </div>
-                            <SideBarAccount></SideBarAccount>
+                            <SideBarAccount collapsed={false} />
                         </div>
                     </Transition.Child>
                     <div className="flex-shrink-0 w-14">{/* Force sidebar to shrink to fit close icon */}</div>
@@ -86,19 +90,45 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
             </Transition.Root>
 
             {/* Static sidebar for desktop */}
-            <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-                <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-zinc-100">
-                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-y-auto">
-                        <SideBarFooter></SideBarFooter>
-                        <SideBarSearch></SideBarSearch>
-                        <CreateNewButton className="mx-4 mt-4"></CreateNewButton>
-                        <Navigation></Navigation>
+            <div
+                className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 transition-all duration-300 ease-in-out ${
+                    sidebarCollapsed ? 'md:w-16' : 'md:w-64'
+                }`}
+            >
+                <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-gradient-to-b from-slate-50 to-gray-100 shadow-none">
+                    {/* Collapse/Expand Button */}
+                    <div className="absolute top-4 -right-3 z-50">
+                        <button
+                            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                            className="flex items-center justify-center w-6 h-6 bg-white border border-gray-300 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                            {sidebarCollapsed ? (
+                                <ChevronRightIcon className="w-3 h-3 text-gray-600" />
+                            ) : (
+                                <ChevronLeftIcon className="w-3 h-3 text-gray-600" />
+                            )}
+                        </button>
                     </div>
 
-                    <SideBarAccount></SideBarAccount>
+                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-y-auto">
+                        <SideBarFooter collapsed={sidebarCollapsed} />
+                        <SideBarSearch collapsed={sidebarCollapsed} />
+                        <CreateNewButton
+                            className={sidebarCollapsed ? 'mx-2 mt-4' : 'mx-4 mt-4'}
+                            collapsed={sidebarCollapsed}
+                        />
+                        <Navigation collapsed={sidebarCollapsed} />
+                    </div>
+
+                    <SideBarAccount collapsed={sidebarCollapsed} />
                 </div>
             </div>
-            <div className="flex flex-col flex-1 md:pl-64">
+
+            <div
+                className={`flex flex-col flex-1 transition-all duration-300 ease-in-out ${
+                    sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'
+                }`}
+            >
                 {/* Menu button for smaller screens */}
                 <div className="sticky top-0 z-10 flex items-center px-1 pt-1 bg-white md:hidden sm:pl-3 sm:pt-3">
                     <button
@@ -112,7 +142,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     <div className="flex-1 min-w-0 ml-1 mr-1">{smHeaderComponent}</div>
                 </div>
 
-                <main className="flex-1  ">{children}</main>
+                <main className="flex-1">{children}</main>
             </div>
         </div>
     );
