@@ -1,894 +1,895 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import {
+    CheckCircleIcon,
+    ArrowRightIcon,
+    TruckIcon,
+    DocumentTextIcon,
+    ChartBarIcon,
+    ClockIcon,
+    CreditCardIcon,
+    BoltIcon,
+    EnvelopeIcon,
+    ChevronUpIcon,
+} from '@heroicons/react/24/outline';
+import { useEffect, useRef, useState } from 'react';
+import React from 'react';
 
-// Main page component (Server Component)
 export default function Home() {
+    // Refs for scroll functionality
+    const featuresRef = useRef<HTMLDivElement>(null);
+    const pricingRef = useRef<HTMLDivElement>(null);
+
+    // State for scroll-to-top button
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    // Check scroll position to show/hide scroll-to-top button
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowScrollTop(window.scrollY > 500);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Scroll to top function
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Scroll to section functions
+    const scrollToFeatures = () => {
+        featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const scrollToPricing = () => {
+        pricingRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     return (
-        <div className="min-h-screen w-full bg-slate-900 text-white relative overflow-hidden">
-            {/* Special Promotion Banner */}
-            <div className="bg-blue-500 text-white text-center py-3 fixed bottom-0 md:top-0  w-full h-fit z-50">
-                <div className="mx-auto px-2 max-w-[1280px] flex flex-row items-center justify-center gap-1">
-                    {/*  <span className="font-bold text-xs md:text-lg">🔥 FACEBOOK SPECIAL: 69% OFF YOUR FIRST MONTH!</span>
-                    <div className="hidden md:flex gap-2">
-                        <PromoCodeButton />
-                        <CountdownTimer />
-                    </div> */}
-                    <p className="font-bold text-xs md:text-lg text-start">
-                        Import your first load with AI magic.{' '}
-                        <span className="text-slate-300 font-light  ">Setup takes less than 30 seconds!</span>
-                    </p>
-                    <Link href="/auth/signup">
-                        <button className="bg-white/90 whitespace-nowrap  hover:bg-orange-500  hover:text-white text-orange-600 text-sm px-3 py-1 md:py-2 mx-4 font-bold rounded-full shadow-lg shadow-blue-700/70 transform hover:scale-105 transition-all">
-                            Try It Free
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-6 h-6 ml-2 inline"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                        </button>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Hero Section - Bolder and more impactful */}
-            <section className="relative py-20 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-slate-900 z-0"></div>
-                <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1600')] opacity-10 z-0"></div>
-                <div className="mx-auto px-4 relative z-10 max-w-[1280px]">
-                    <div className="max-w-4xl mx-auto text-center mb-12">
-                        <div className="inline-block bg-blue-800/60 text-white px-4 py-2 rounded-full mt-12 mb-6 font-bold">
-                            TRANSPORTATION MANAGEMENT SYSTEM
-                        </div>
-                        <div className="flex items-center justify-center my-8 mb-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-12 h-12 mr-3"
-                            >
-                                <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 116 0h3a.75.75 0 00.75-.75V15z" />
-                                <path d="M8.25 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0zM15.75 6.75a.75.75 0 00-.75.75v11.25c0 .087.015.17.042.248a3 3 0 015.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 00-3.732-10.104 1.837 1.837 0 00-1.47-.725H15.75z" />
-                                <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-                            </svg>
-                            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-                                Try The TMS That <span className="text-orange-500">Actually Works</span>
-                            </h1>
-                        </div>
-                        <div className="flex items-center justify-center  mb-4">
-                            <h1 className="whitespace-nowrap bg-white rounded-full w-fit text-center text-orange-500 px-4 py-1 font-extrabold  border-4 border-white/70 bg-gradient-to-r from-white/30 to-orange-600/60 bg-clip-text text-transparent mb-4">
-                                {' '}
-                                Powered by AI
-                            </h1>
-                        </div>
-
-                        <div className="text-xl md:text-2xl mb-10 text-gray-200">
-                            Get started for free. No credit card required. Import loads, assign drivers, track
-                            deliveries, and send invoices—without touching a single spreadsheet.{' '}
-                            <p className="text-orange-500 font-semibold my-0 ">
-                                Simple. Smart. Designed for small fleets and solo operators. Finally, software that
-                                speaks TRUCKING.
-                            </p>
-                        </div>
-
-                        {/* <div className="bg-blue-900/50 p-4 rounded-xl mb-8 border border-blue-500/30">
-                            <p className="text-xl font-bold mb-2">
-                                <span className="text-orange-400">SPECIAL OFFER:</span> Use code{' '}
-                                <span className="bg-orange-500 px-3 py-1 rounded-md">FB69</span> at signup
-                            </p>
-                            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
-                                <p>Get 69% OFF your first month! Limited time offer - expires in</p>
-                                <CountdownTimer />
+        <div className="min-h-screen bg-white">
+            {/* Sticky Header with CTA */}
+            <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+                <div className="container flex items-center justify-between h-16 px-4 mx-auto">
+                    <div className="flex items-end gap-2">
+                        <div className="p-1 pr-0">
+                            <div className="flex items-center justify-center">
+                                <Image src="/logo_truck.svg" alt="CarrierNest Logo" width={40} height={40} />
                             </div>
-                            <div className="mt-3 flex flex-col items-end">
-                                <PromoCodeButton />
-                            </div>
-                        </div> */}
+                        </div>
+                        <span className="text-xl font-bold">CarrierNest</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {/* <Link href="/auth/signin" className="text-sm font-medium text-gray-600 hover:text-gray-900">
+                            Sign In
+                        </Link> */}
                         <Link href="/auth/signup">
-                            <button className="bg-orange-500 hover:bg-orange-600 text-white text-xl px-10 py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
-                                Get Started for Free
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="w-6 h-6 ml-2 inline"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
+                            <button className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600 transition-colors">
+                                Try For Free
                             </button>
                         </Link>
                     </div>
-                    <div className="relative mt-16 space-y-4">
-                        <Image
-                            src="/dashboardmapview.png"
-                            alt="App Dashboard Overview"
-                            width={1600}
-                            height={800}
-                            loading="lazy"
-                            className="rounded-xl shadow-none hidden sm:block"
-                        />
-                        <Image
-                            src="/driverassignment.png"
-                            alt="App Dashboard Overview"
-                            width={1600}
-                            height={800}
-                            loading="lazy"
-                            className="rounded-xl shadow-none sm:hidden"
-                        />
-                        <Image
-                            src="/driverinvoice.png"
-                            alt="App Dashboard Overview"
-                            width={1600}
-                            height={800}
-                            loading="lazy"
-                            className="rounded-xl shadow-none sm:hidden"
-                        />
+                </div>
+            </header>
+
+            {/* Hero Section - Focused on Quick Setup */}
+            <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50">
+                <div className="container px-4 py-16 mx-auto md:py-24 lg:py-32">
+                    <div className="grid items-center gap-12 lg:grid-cols-2">
+                        <div className="flex flex-col max-w-lg gap-6">
+                            <div className="flex items-center px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 rounded-full w-fit">
+                                <ClockIcon className="w-4 h-4 mr-2" />
+                                <span>Setup takes less than 30 seconds</span>
+                            </div>
+
+                            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+                                The TMS that <span className="text-orange-500">actually works</span> for small fleets
+                            </h1>
+
+                            <p className="text-base text-gray-600 sm:text-lg">
+                                Import loads, assign drivers, track deliveries, and send invoices&#8212;without touching
+                                a single spreadsheet. Designed for small fleets and solo operators.
+                            </p>
+
+                            <div className="flex flex-col gap-4 sm:flex-row">
+                                <Link href="/auth/signup" className="w-full sm:w-auto">
+                                    <button className="w-full px-6 py-3 text-base font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center">
+                                        Get Started Free
+                                        <ArrowRightIcon className="w-4 h-4 ml-2" />
+                                    </button>
+                                </Link>
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <CreditCardIcon className="w-4 h-4" />
+                                    <span>No credit card required</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                    <span className="text-gray-700">AI-powered load import</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                    <span className="text-gray-700">One-click invoicing</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                    <span className="text-gray-700">Driver-friendly mobile app</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-blue-500/20 rounded-3xl blur-2xl -z-10"></div>
+                            <div className="relative overflow-hidden border border-gray-200 rounded-xl shadow-lg">
+                                <Image
+                                    src="/mkt/gifs/setup.gif"
+                                    alt="CarrierNest Dashboard"
+                                    width={800}
+                                    height={600}
+                                    className="w-full"
+                                    priority
+                                    unoptimized
+                                />
+                            </div>
+                            <div className="absolute -bottom-4  left-4 bg-white animate-pulse p-2 rounded-lg shadow-lg border border-orange-200">
+                                <div className="flex items-center gap-2">
+                                    <BoltIcon className="w-5 h-5 text-yellow-500" />
+                                    <span className="font-bold text-sm ">30 sec. Setup - No CC Required</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-8 bg-gradient-to-r from-blue-900 to-slate-800">
-                <div className="mx-auto px-4 max-w-[1280px]">
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
-                        {/* <div className="text-xl font-bold">
-                            <span className="text-orange-500">FB69 PROMO:</span> Expires in
-                        </div> */}
-                        <CountdownTimer showLabels={true} />
+            {/* How It Works - Visual Step Process */}
+            <section className="py-16 bg-white md:py-24">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto mb-12 text-center">
+                        <h2 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl md:mb-4">How It Works</h2>
+                        <p className="text-lg text-gray-600">
+                            See how easy it is to use CarrierNest. No complicated onboarding or training required.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-8 md:grid-cols-3">
+                        <div className="relative p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="absolute flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full -top-5">
+                                1
+                            </div>
+                            <h3 className="mt-4 mb-2 text-xl font-bold">Drop Your Rate Con</h3>
+                            <p className="text-gray-600">
+                                Simply drag and drop your rate confirmation PDF. No manual data entry needed.
+                            </p>
+                            <div className="p-4 mt-4 bg-gray-50 rounded-md">
+                                <Image
+                                    src="/mkt/gifs/upload.gif"
+                                    alt="Drag and drop interface"
+                                    width={300}
+                                    height={150}
+                                    className="mx-auto rounded"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="relative p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="absolute flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full -top-5">
+                                2
+                            </div>
+                            <h3 className="mt-4 mb-2 text-xl font-bold">AI Extracts Everything</h3>
+                            <p className="text-gray-600">
+                                Our AI instantly pulls all load details, pickup/delivery info, and payment terms.
+                            </p>
+                            <div className="p-4 mt-4 bg-gray-50 rounded-md">
+                                <Image
+                                    src="/mkt/gifs/aiprocess.gif"
+                                    alt="AI extraction"
+                                    width={300}
+                                    height={150}
+                                    className="mx-auto rounded"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="relative p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="absolute flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full -top-5">
+                                3
+                            </div>
+                            <h3 className="mt-4 mb-2 text-xl font-bold">Ready to Dispatch</h3>
+                            <p className="text-gray-600">
+                                Assign drivers, track deliveries, and send invoices with just a few clicks.
+                            </p>
+                            <div className="p-4 mt-4 bg-gray-50 rounded-md">
+                                <Image
+                                    src="/mkt/gifs/aiextractloaddetails.gif"
+                                    alt="Dispatch interface"
+                                    width={300}
+                                    height={150}
+                                    className="mx-auto rounded"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center mt-12">
                         <Link href="/auth/signup">
-                            {/* <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
-                                Claim 69% Off Now
-                            </button> */}
+                            <button className="px-6 py-3 text-base font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors flex items-center">
+                                Try It Now
+                                <ArrowRightIcon className="w-4 h-4 ml-2" />
+                            </button>
                         </Link>
                     </div>
                 </div>
             </section>
 
-            {/* Feature Highlights - Bold cards with icons */}
-            <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800">
-                <div className="mx-auto px-4 max-w-[1280px]">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
-                                One System. Complete Control.
-                            </span>
+            {/* Problem-Solution Section */}
+            <section className="py-16 bg-gray-50 md:py-24">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto mb-12 text-center">
+                        <h2 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl md:mb-4">
+                            Stop Wasting Time on Paperwork
                         </h2>
-                        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+                        <p className="text-lg text-gray-600">
+                            See how CarrierNest eliminates the most frustrating parts of running your trucking business
+                        </p>
+                    </div>
+
+                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-red-100 rounded-lg">
+                                <DocumentTextIcon className="w-6 h-6 text-red-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">Before: Manual Data Entry</h3>
+                            <p className="text-gray-600">
+                                Typing load details from PDFs into spreadsheets, wasting hours every week and making
+                                costly mistakes.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-green-100 rounded-lg">
+                                <BoltIcon className="w-6 h-6 text-green-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">After: AI-Powered Import</h3>
+                            <p className="text-gray-600">
+                                Just drag and drop your rate con. AI pulls all the details instantly with perfect
+                                accuracy.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-red-100 rounded-lg">
+                                <TruckIcon className="w-6 h-6 text-red-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">Before: Lost Track of Loads</h3>
+                            <p className="text-gray-600">
+                                Constantly calling drivers for updates, missing delivery windows, and scrambling to find
+                                load info.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-green-100 rounded-lg">
+                                <ChartBarIcon className="w-6 h-6 text-green-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">After: Real-Time Tracking</h3>
+                            <p className="text-gray-600">
+                                See where every truck is in real-time. Get automatic alerts for pickups and deliveries.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-red-100 rounded-lg">
+                                <CreditCardIcon className="w-6 h-6 text-red-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">Before: Delayed Invoicing</h3>
+                            <p className="text-gray-600">
+                                Spending hours creating invoices, chasing PODs, and waiting weeks to get paid for
+                                completed loads.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-green-100 rounded-lg">
+                                <DocumentTextIcon className="w-6 h-6 text-green-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold">After: One-Click Invoicing</h3>
+                            <p className="text-gray-600">
+                                Delivery complete? Click once and your invoice is sent with all required documentation
+                                attached.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Social Proof Section */}
+            <section className="py-16 bg-white md:py-24">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto mb-12 text-center">
+                        <h2 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl md:mb-4">
+                            Trusted by Trucking Companies Like Yours
+                        </h2>
+                        <div className="flex items-center justify-center gap-1 mb-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <svg
+                                    key={i}
+                                    className="w-5 h-5 text-yellow-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            ))}
+                            <span className="ml-2 text-gray-600">4.8/5 (30+ reviews)</span>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-8 md:grid-cols-2">
+                        <div className="p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="flex items-center justify-center w-12 h-12 text-white bg-orange-500 rounded-full">
+                                    MB
+                                </div>
+                                <div>
+                                    <h4 className="font-bold">Manny B.</h4>
+                                    <p className="text-sm text-gray-600">Dispatcher, Indianapolis, IN</p>
+                                </div>
+                            </div>
+                            <p className="text-gray-700">
+                                &#8220;Switching to CarrierNest was like flipping a switch. We drag and drop rate cons,
+                                the AI pulls all the info, and everything else just flows. It&#8217;s simple, it&#8217;s
+                                fast, and best of all&#8212;it just works. Easily saves us several hours a day.&#8221;
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="flex items-center justify-center w-12 h-12 text-white bg-orange-500 rounded-full">
+                                    JT
+                                </div>
+                                <div>
+                                    <h4 className="font-bold">James T.</h4>
+                                    <p className="text-sm text-gray-600">Owner-Operator, Dallas, TX</p>
+                                </div>
+                            </div>
+                            <p className="text-gray-700">
+                                &#8220;As a solo operator, I was drowning in paperwork. CarrierNest took me 30 seconds
+                                to set up, and now I spend my time driving instead of doing data entry. The mobile app
+                                is actually easy to use, and I get paid faster with the one-click invoicing.&#8221;
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Feature Highlights */}
+            <section ref={featuresRef} className="py-16 bg-gray-50 md:py-24" id="features">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto mb-12 text-center">
+                        <h2 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl md:mb-4">
+                            Everything You Need in One System
+                        </h2>
+                        <p className="text-lg text-gray-600">
                             Stop juggling multiple tools. CarrierNest handles everything your trucking operation needs.
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {/* Feature Card 1 */}
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-blue-500/20 shadow-xl transform hover:scale-105 transition-all">
-                            <div className="bg-blue-600 p-3 rounded-xl inline-block mb-6">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="w-8 h-8"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M5.625 1.5H9a3.75 3.75 0 013.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 013.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 01-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875zM9.75 14.25a.75.75 0 000 1.5H15a.75.75 0 000-1.5H9.75z"
-                                        clipRule="evenodd"
-                                    />
-                                    <path d="M14.25 5.25a5.23 5.23 0 00-1.279-3.434 9.768 9.768 0 016.963 6.963A5.23 5.23 0 0016.5 7.5h-1.875a.375.375 0 01-.375-.375V5.25z" />
-                                </svg>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <DocumentTextIcon className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <h3 className="text-lg font-bold">AI Load Import</h3>
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">Drop the Manual Work</h3>
-                            <ul className="space-y-3">
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Just drag and drop your rate con</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>AI pulls out everything you need</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>No typing, no guesswork</span>
-                                </li>
-                            </ul>
+                            <p className="mb-4 text-gray-600">
+                                Just drag and drop your rate con. AI pulls out everything you need. No typing, no
+                                guesswork.
+                            </p>
                         </div>
 
-                        {/* Feature Card 2 */}
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-blue-500/20 shadow-xl transform hover:scale-105 transition-all">
-                            <div className="bg-orange-500 p-3 rounded-xl inline-block mb-6">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="w-8 h-8"
-                                >
-                                    <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 116 0h3a.75.75 0 00.75-.75V15z" />
-                                    <path d="M8.25 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0zM15.75 6.75a.75.75 0 00-.75.75v11.25c0 .087.015.17.042.248a3 3 0 015.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 00-3.732-10.104 1.837 1.837 0 00-1.47-.725H15.75z" />
-                                    <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-                                </svg>
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <TruckIcon className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <h3 className="text-lg font-bold">Dispatch & Tracking</h3>
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">Assign & Track Loads</h3>
-                            <ul className="space-y-3">
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Assign loads in seconds</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Pay drivers by mile, load, or hour</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>See where everyone is at any time</span>
-                                </li>
-                            </ul>
+                            <p className="mb-4 text-gray-600">
+                                Assign loads in seconds. Pay drivers by mile, load, or hour. See where everyone is at
+                                any time.
+                            </p>
                         </div>
 
-                        {/* Feature Card 3 */}
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-blue-500/20 shadow-xl transform hover:scale-105 transition-all">
-                            <div className="bg-purple-600 p-3 rounded-xl inline-block mb-6">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="w-8 h-8"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 3A1.5 1.5 0 0012 4.5h4.5A1.5 1.5 0 0015 3h-1.5z"
-                                        clipRule="evenodd"
-                                    />
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M3 9.375C3 8.339 3.84 7.5 4.875 7.5h9.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 013 20.625V9.375zM6 12a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V12zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75zM6 15a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V15zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75zM6 18a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V18zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <DocumentTextIcon className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <h3 className="text-lg font-bold">One-Click Invoicing</h3>
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">One-Click Invoicing</h3>
-                            <ul className="space-y-3">
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Delivery done? POD uploaded?</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Click once—invoice sent</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <div className="bg-green-500 p-1 rounded-full mr-3 mt-1.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-3 h-3 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span>Fast and Simple</span>
-                                </li>
-                            </ul>
+                            <p className="mb-4 text-gray-600">
+                                Delivery done? POD uploaded? Click once&#8212;invoice sent with all documentation
+                                attached.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <ChartBarIcon className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <h3 className="text-lg font-bold">Real-Time Analytics</h3>
+                            </div>
+                            <p className="mb-4 text-gray-600">
+                                See what&#8217;s working and fix what&#8217;s not. Track your most profitable routes and
+                                customers.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <svg
+                                        className="w-5 h-5 text-orange-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg font-bold">Driver Mobile App</h3>
+                            </div>
+                            <p className="mb-4 text-gray-600">
+                                Simple one-tap controls for trip management. Upload delivery docs with a photo. No
+                                paperwork.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col p-6 bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+                                    <svg
+                                        className="w-5 h-5 text-orange-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg font-bold">Document Management</h3>
+                            </div>
+                            <p className="mb-4 text-gray-600">
+                                Store all your documents in one place. Find what you need instantly. Never lose a POD
+                                again.
+                            </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Mobile App Section - Visual and bold */}
-            <section className="py-20 bg-gradient-to-b from-slate-800 to-slate-900">
-                <div className="mx-auto px-4 max-w-[1280px]">
-                    <div className="flex flex-col lg:flex-row items-center justify-center gap-16">
-                        <div className=" ">
-                            <div className="relative ">
-                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500 to-purple-600/50 rounded-3xl blur-2xl opacity-30"></div>
-                                <Image
-                                    src="/carriernestiphoneapp.png"
-                                    alt="App Dashboard Overview"
-                                    width={350}
-                                    height={500}
-                                    loading="lazy"
-                                    className="  rounded-xl shadow-none "
-                                />
-                            </div>
-                        </div>
-                        <div className="lg:w-1/2">
-                            <div className="inline-block bg-blue-600 text-white px-4 py-2 rounded-full mb-6 font-bold">
-                                DRIVER-FRIENDLY
-                            </div>
-                            <h2 className="text-4xl md:text-5xl font-bold mb-8">
-                                Mobile App That <span className="text-orange-500">Actually Makes Sense</span>
-                            </h2>
-                            <div className="space-y-6">
-                                <div className="flex items-start">
-                                    <div className="bg-green-500 p-3 rounded-full mr-4 mt-1">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-4 h-4 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold mb-1">See where they&apos;re going</h3>
-                                        <p className="text-gray-300">
-                                            Clear directions and load details at their fingertips
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start">
-                                    <div className="bg-green-500 p-3 rounded-full mr-4 mt-1">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-4 h-4 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold mb-1">Start and finish trips</h3>
-                                        <p className="text-gray-300">Simple one-tap controls for trip management</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start">
-                                    <div className="bg-green-500 p-3 rounded-full mr-4 mt-1">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-4 h-4 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold mb-1">Upload delivery docs</h3>
-                                        <p className="text-gray-300">
-                                            Snap a photo and you&apos;re done - no paperwork
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start">
-                                    <div className="bg-green-500 p-3 rounded-full mr-4 mt-1">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            className="w-4 h-4 text-slate-900"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold mb-1">Get tracked without the drama</h3>
-                                        <p className="text-gray-300">
-                                            Privacy-focused location tracking that just works
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-10 bg-slate-800 p-6 rounded-xl border border-blue-500/20">
-                                <p className="text-xl font-bold">
-                                    No training videos. No complaints. Just a solid tool that works.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Analytics Section - Bold and visual */}
-            <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800">
-                <div className="mx-auto px-4 max-w-[1280px]">
-                    <div className="text-center mb-16">
-                        <div className="inline-block bg-purple-600 text-white px-4 py-2 rounded-full mb-6 font-bold">
-                            REAL-TIME INSIGHTS
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                            See What&apos;s Working. <span className="text-orange-500">Fix What&apos;s Not.</span>
-                        </h2>
-                        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                            Live reports show you exactly where your business stands, without the spreadsheet headaches.
+            {/* Pricing Section - Simple and Clear */}
+            <section ref={pricingRef} className="py-12 bg-white md:py-24" id="pricing">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto mb-8 text-center md:mb-12">
+                        <h2 className="mb-3 text-2xl font-bold md:text-4xl md:mb-4">Simple, Transparent Pricing</h2>
+                        <p className="text-base text-gray-600 md:text-lg">
+                            No hidden fees. No long-term contracts. Cancel anytime.
                         </p>
                     </div>
 
-                    <div className="relative mb-16 text-center ">
-                        <div className="absolute -inset-12 bg-gradient-to-bl from-blue-500/50 to-purple-400/60 rounded-xl blur-3xl opacity-30"></div>
-                        <Image
-                            src="/dashboarddailyanalytics.png"
-                            alt="App Dashboard Overview"
-                            width={800}
-                            height={200}
-                            loading="lazy"
-                            className="  rounded-xl shadow-none text-center mx-auto"
-                        />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <div className="bg-slate-800 p-8 rounded-xl border border-blue-500/20 shadow-lg">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-10 h-10 text-green-500 mb-4"
-                            >
-                                <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
-                            </svg>
-                            <h3 className="text-2xl font-bold mb-2">Who&apos;s pulling weight</h3>
-                            <p className="text-gray-300">See your top performers and optimize your fleet accordingly</p>
-                        </div>
-                        <div className="bg-slate-800 p-8 rounded-xl border border-blue-500/20 shadow-lg">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-10 h-10 text-blue-500 mb-4"
-                            >
-                                <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
-                            </svg>
-                            <h3 className="text-2xl font-bold mb-2">What&apos;s making money</h3>
-                            <p className="text-gray-300">Track your most profitable routes and customers</p>
-                        </div>
-                        <div className="bg-slate-800 p-8 rounded-xl border border-blue-500/20 shadow-lg">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-10 h-10 text-orange-500 mb-4"
-                            >
-                                <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
-                            </svg>
-                            <h3 className="text-2xl font-bold mb-2">What&apos;s falling behind</h3>
-                            <p className="text-gray-300">Identify problems before they cost you money</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Testimonial Section - Bold and trustworthy */}
-            <section className="py-20 bg-gradient-to-b from-slate-800 to-slate-900">
-                <div className="mx-auto px-4 max-w-[1280px]">
                     <div className="max-w-4xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-4xl font-bold mb-4">Don&apos;t take our word for it</h2>
-                        </div>
+                        {/* Mobile View */}
+                        <div className="block md:hidden">
+                            <div className="space-y-4">
+                                {/* Basic Plan - Mobile */}
+                                <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                    <div className="mb-4 text-center">
+                                        <h3 className="text-lg font-bold">Basic Plan</h3>
+                                        <div className="flex items-center justify-center mt-2">
+                                            <span className="text-3xl font-bold">Free</span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-1">Perfect for getting started</p>
+                                    </div>
 
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-10 rounded-2xl border border-blue-500/20 shadow-2xl relative">
-                            <div className="absolute -top-6 -left-6">
-                                <div className="bg-orange-500 p-4 rounded-full">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        className="w-8 h-8 text-white"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
+                                    <ul className="mb-6 space-y-2 text-sm">
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">1 Driver</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">30 loads total</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">10 AI imports/month</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">100MB storage</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Driver mobile app</span>
+                                        </li>
+                                    </ul>
+
+                                    <Link href="/auth/signup" className="block w-full">
+                                        <button className="w-full px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                            Start Free
+                                        </button>
+                                    </Link>
+                                </div>
+
+                                {/* Pro Plan - Mobile */}
+                                <div className="relative p-6 bg-white border-2 border-orange-500 rounded-xl shadow-md">
+                                    <div className="absolute px-3 py-1 text-xs font-bold text-white bg-orange-500 rounded-full -top-3 right-6">
+                                        MOST POPULAR
+                                    </div>
+                                    <div className="mb-4 text-center">
+                                        <h3 className="text-lg font-bold">Pro Plan</h3>
+                                        <div className="flex flex-col items-center mt-2">
+                                            <span className="text-xs text-gray-400 line-through">
+                                                $19/month per driver
+                                            </span>
+                                            <div className="flex items-center">
+                                                <span className="text-3xl font-bold text-orange-600">$9.50</span>
+                                                <span className="ml-1 text-sm text-gray-500">/month per driver</span>
+                                            </div>
+                                            <span className="px-2 py-1 mt-1 text-xs font-medium text-orange-700 bg-orange-100 rounded">
+                                                50% OFF for 6 months
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <ul className="mb-6 space-y-2 text-sm">
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Unlimited drivers</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Unlimited loads</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Unlimited AI imports</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">5GB storage</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Driver mobile app</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">IFTA (coming soon)</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-4 h-4 mt-0.5 text-green-500" />
+                                            <span className="ml-2 text-gray-700">Priority support</span>
+                                        </li>
+                                    </ul>
+
+                                    <Link href="/auth/signup" className="block w-full">
+                                        <button className="w-full px-6 py-3 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors">
+                                            Start Free
+                                        </button>
+                                    </Link>
                                 </div>
                             </div>
-                            <div className="flex mb-6">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                    <svg
-                                        key={i}
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        className="w-6 h-6 text-yellow-500"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                ))}
-                            </div>
+                        </div>
 
-                            <div className="text-xl italic mb-8">
-                                <blockquote className="leading-relaxed mb-4">
-                                    <p>
-                                        &#8220;Before CarrierNest, our whole operation was running on paper, texts, and
-                                        prayers. Loads were everywhere, driver pay was a guessing game, and we had no
-                                        real way to track how the business was doing. Invoicing alone took hours and was
-                                        still full of mistakes.&#8221;
-                                    </p>
-                                    <p className="mt-4">
-                                        &#8220;Switching to CarrierNest was like flipping a switch. We drag and drop
-                                        rate cons, the AI pulls all the info, and everything else just flows&mdash;from
-                                        dispatch to payment to invoicing. I actually know where my money&rsquo;s going
-                                        now.&#8221;
-                                    </p>
-                                    <p className="mt-4 font-semibold">
-                                        It&rsquo;s simple, it&rsquo;s fast, and best of all&mdash;it just works.
-                                        CarrierNest easily saves us several hours a day. No BS.&#8221;
-                                    </p>
-                                </blockquote>
+                        {/* Desktop View */}
+                        <div className="hidden md:block">
+                            <div className="grid gap-8 md:grid-cols-2">
+                                <div className="p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                    <div className="mb-4 text-center">
+                                        <h3 className="text-xl font-bold">Basic Plan</h3>
+                                        <div className="flex items-center justify-center mt-2">
+                                            <span className="text-4xl font-bold">Free</span>
+                                        </div>
+                                        <p className="text-gray-500 mt-2">Perfect for getting started</p>
+                                    </div>
 
-                                <div>
-                                    <p className="font-bold text-xl">Manny B.</p>
-                                    <p className="text-gray-300">Dispatcher, Indianapolis, IN</p>
+                                    <ul className="mb-8 space-y-3">
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">1 Driver</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">30 loads total</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">10 AI imports/month</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">100MB storage</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Driver mobile app</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="relative p-8 bg-white border-2 border-orange-500 rounded-xl shadow-md">
+                                    <div className="absolute px-4 py-1 text-xs font-bold text-white bg-orange-500 rounded-full -top-3 right-8">
+                                        MOST POPULAR
+                                    </div>
+                                    <div className="mb-4 text-center">
+                                        <h3 className="text-xl font-bold">Pro Plan</h3>
+                                        <div className="flex flex-col items-center mt-2">
+                                            <span className="text-sm text-gray-400 line-through">
+                                                $19/month per driver
+                                            </span>
+                                            <div className="flex items-center">
+                                                <span className="text-4xl font-bold text-orange-600">$9.50</span>
+                                                <span className="ml-2 text-gray-500">/month per driver</span>
+                                            </div>
+                                            <span className="px-3 py-1 mt-2 text-sm font-medium text-orange-700 bg-orange-100 rounded">
+                                                50% OFF for 6 months
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <ul className="mb-8 space-y-3">
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Unlimited drivers</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Unlimited loads</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Unlimited AI imports</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">5GB storage</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Driver mobile app</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">IFTA (coming soon)</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <CheckCircleIcon className="flex-shrink-0 w-5 h-5 mt-0.5 text-green-500" />
+                                            <span className="ml-3 text-gray-700">Priority support</span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            {/* Promotion Highlight */}
-            {/* <section className="py-12 bg-gradient-to-r from-orange-600 to-orange-800">
-                <div className="mx-auto px-4 max-w-[1280px]">
-                    <div className="text-center">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                            FACEBOOK EXCLUSIVE: 69% OFF YOUR FIRST MONTH.
-                        </h2>
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-6">
-                            <div className="bg-white text-orange-600 px-6 py-3 rounded-lg text-2xl font-bold">
-                                Use Code: FB69
-                            </div>
-                            <PromoCodeButton large={true} />
-                        </div>
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-2 mb-6">
-                            <p className="text-xl font-bold">This special offer expires in:</p>
-                            <CountdownTimer showLabels={true} large={true} />
-                        </div>
-                        <Link href="/auth/signin">
-                            <button className="bg-white hover:bg-gray-100 text-orange-600 text-xl px-8 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all">
-                                Claim Your 69% Discount Now
-                            </button>
-                        </Link>
-                    </div>
-                </div>
-            </section> */}
-
-            {/* Final CTA - Bold and unmissable */}
-            <section className="py-20 bg-gradient-to-r from-blue-900 to-slate-900 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1600')] opacity-10 z-0"></div>
-                <div className="mx-auto px-4 relative z-10 max-w-[1280px]">
-                    {/* Clean Pricing Comparison Table */}
-                    <div className="container mx-auto my-8 mb-24">
-                        <h1 className="text-3xl font-semibold text-center mb-4">Pricing Plans</h1>
-                        <PricingTable />
-                    </div>
-
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="inline-block bg-blue-800/60 text-white px-6 py-3 rounded-full mb-8 font-bold text-xl">
-                            🔥 READY TO SEE IT WORK?
-                        </div>
-                        <h2 className="text-5xl md:text-6xl font-extrabold mb-8">
-                            Try It For Free.
-                            <br />
-                            <span className="text-orange-500">No Credit Card Required.</span>
-                        </h2>
-                        {/* <div className="bg-blue-900/50 p-6 rounded-xl mb-8 border border-blue-500/30">
-                            <p className="text-slate-400 text-sm p-4">
-                                Like what you see? Use promo code below to get start fo $8.99 only per driver.
-                            </p>
-                            <p className="text-2xl font-bold mb-2">
-                                Remember to use code <span className="bg-orange-500 px-4 py-1 rounded-md">FB69</span>{' '}
-                                for 69% OFF
-                            </p>
-                            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
-                                <p className="text-lg">Limited time offer - expires in:</p>
-                                <CountdownTimer />
-                            </div>
-                            <div className="mt-3 flex flex-col items-end">
-                                <PromoCodeButton />
-                            </div>
-                        </div> */}
-                        <p className="text-xl md:text-2xl mb-12 text-gray-200">
-                            Join other trucking companies who&apos;ve simplified their operations with CarrierNest.
+                    <div className="p-4 mt-6 text-center bg-gray-50 rounded-lg md:p-12 md:mt-24">
+                        <p className="md:text-4xl font-extrabold text-gray-500 w-1/2 mx-auto ">
+                            Elevate your trucking business with CarrierNest. AI enabled TMS with simple and powerful
+                            features.
                         </p>
-                        <Link href="/auth/signup">
-                            <button className="bg-orange-500 hover:bg-orange-600 text-white text-2xl py-2 px-4 sm:px-12 sm:py-8 rounded-xl shadow-lg shadow-orange-500/30 transform hover:scale-105 transition-all">
-                                👉 I AM READY TO HELP MY TRUCKING!
-                            </button>
-                        </Link>
-                        <div className="mt-8 flex flex-col items-center">
-                            <p className="text-gray-300 mb-4">Trusted by trucking companies across the country</p>
-                            <div className="flex items-center space-x-2 text-yellow-500">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                    <svg
-                                        key={i}
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        className="w-5 h-5"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                ))}
-                                <span className="text-white ml-2">4.8/5 reviews</span>
-                            </div>
-                        </div>
-                        <p className="mt-6 text-gray-300">The TMS for the 99% of fleets that actually do the work.</p>
                     </div>
                 </div>
             </section>
+
+            {/* Final CTA Section */}
+            <section className="py-16 text-white bg-gradient-to-r from-orange-600 to-orange-500 md:py-24">
+                <div className="container px-4 mx-auto">
+                    <div className="max-w-3xl mx-auto text-center">
+                        <h2 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl md:mb-4">
+                            Ready to simplify your trucking operation?
+                        </h2>
+                        <p className="mb-8 text-xl">Setup takes less than 30 seconds. No credit card required.</p>
+                        <Link href="/auth/signup">
+                            <button className="px-6 py-3 text-base font-medium text-orange-600 bg-white rounded-lg hover:bg-gray-100 transition-colors flex items-center mx-auto">
+                                Try CarrierNest Free
+                                <ArrowRightIcon className="w-5 h-5 ml-2" />
+                            </button>
+                        </Link>
+                        <p className="mt-6 text-sm text-orange-100">
+                            Join other smart trucking companies who&#8217;ve simplified their operations with
+                            CarrierNest.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Floating CTA for Mobile */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white border-t border-gray-200 md:hidden">
+                <Link href="/auth/signup" className="block w-full">
+                    <button className="w-full px-6 py-3 text-base font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center">
+                        Import load under 30 sec. - Try Free
+                        <ArrowRightIcon className="w-4 h-4 ml-2" />
+                    </button>
+                </Link>
+            </div>
+
+            {/* Scroll to Top Button */}
+            {showScrollTop && (
+                <button
+                    onClick={scrollToTop}
+                    className="fixed bottom-20 right-4 z-40 p-2 bg-gray-800 text-white rounded-full shadow-lg md:bottom-6"
+                    aria-label="Scroll to top"
+                >
+                    <ChevronUpIcon className="w-5 h-5" />
+                </button>
+            )}
+
+            {/* Footer - Improved for Mobile */}
+            <footer className="py-12 bg-gray-900 text-gray-400 pb-24 md:pb-12">
+                <div className="container px-4 mx-auto">
+                    {/* Logo and Description */}
+                    <div className="grid gap-8 mb-8 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="col-span-1 md:col-span-2 lg:col-span-1">
+                            <div className="flex items-end gap-2 mb-4">
+                                <div className="p-1 pr-0">
+                                    <div className="flex items-center justify-center">
+                                        <Image src="/logo_truck.svg" alt="CarrierNest Logo" width={40} height={40} />
+                                    </div>
+                                </div>
+                                <span className="text-xl font-bold text-white">CarrierNest</span>
+                            </div>
+                            <p className="text-sm text-gray-400 mb-4">
+                                The transportation management system that actually works for small fleets and solo
+                                operators.
+                            </p>
+                            <div className="flex items-center gap-4">
+                                <a
+                                    href="https://www.facebook.com/carriernest"
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                </a>
+                                <a href="#" className="text-gray-400 hover:text-white">
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                                    </svg>
+                                </a>
+                                <a
+                                    href="https://www.instagram.com/carriernestapp/"
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Quick Links */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+                                Quick Links
+                            </h3>
+                            <ul className="space-y-3">
+                                <li>
+                                    <button onClick={scrollToFeatures} className="text-gray-400 hover:text-white">
+                                        Features
+                                    </button>
+                                </li>
+                                <li>
+                                    <button onClick={scrollToPricing} className="text-gray-400 hover:text-white">
+                                        Pricing
+                                    </button>
+                                </li>
+                                <li>
+                                    <Link href="/auth/signup" className="text-gray-400 hover:text-white">
+                                        Sign Up
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/auth/signin" className="text-gray-400 hover:text-white">
+                                        Sign In
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Legal */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Legal</h3>
+                            <ul className="space-y-3">
+                                <li>
+                                    <Link href="/terms" className="text-gray-400 hover:text-white">
+                                        Terms of Service
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/privacy-policy" className="text-gray-400 hover:text-white">
+                                        Privacy Policy
+                                    </Link>
+                                </li>
+                                {/* <li>
+                                    <Link href="#" className="text-gray-400 hover:text-white">
+                                        Cookie Policy
+                                    </Link>
+                                </li> */}
+                            </ul>
+                        </div>
+
+                        {/* Contact */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact</h3>
+                            <ul className="space-y-3">
+                                <li className="flex items-center">
+                                    <EnvelopeIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                    <a href="mailto:support@carriernest.com" className="text-gray-400 hover:text-white">
+                                        support@carriernest.com
+                                    </a>
+                                </li>
+                                <li>
+                                    <Link href="#" className="text-gray-400 hover:text-white flex items-center">
+                                        <svg
+                                            className="w-4 h-4 mr-2"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                                            />
+                                        </svg>
+                                        (206) 565-4638
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Copyright */}
+                    <div className="pt-8 mt-8 border-t border-gray-800 md:flex md:items-center md:justify-between">
+                        <p className="text-sm text-gray-400">
+                            &#169; {new Date().getFullYear()} CarrierNest. All rights reserved.
+                        </p>
+                        <div className="mt-4 md:mt-0">
+                            <p className="text-xs text-gray-500">
+                                Designed for trucking companies that want to simplify their operations.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
-
-import React, { useState, useEffect } from 'react';
-import { Span } from 'next/dist/trace';
-import PricingTable from 'components/PricingTable';
-
-// Countdown Timer Component
-interface CountDownProps {
-    showLabels?: boolean;
-    large?: boolean;
-}
-
-const CountdownTimer: React.FC<CountDownProps> = ({ showLabels = false, large = false }) => {
-    const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
-
-    useEffect(() => {
-        // May 13, 2025 at 10 PM
-        const startDate = new Date(2025, 4, 13, 22, 0, 0);
-
-        const calculateTimeLeft = () => {
-            const now = new Date();
-            const timeDiff = now.getTime() - startDate.getTime();
-
-            // Calculate how many complete 48-hour cycles have passed
-            const cycleMs = 48 * 60 * 60 * 1000;
-            const cycles = Math.floor(timeDiff / cycleMs);
-
-            // Calculate the end time of the current cycle
-            const currentCycleEndTime = new Date(startDate.getTime() + (cycles + 1) * cycleMs);
-
-            // Calculate time remaining in current cycle
-            const timeRemaining = currentCycleEndTime.getTime() - now.getTime();
-
-            // Convert to hours, minutes, seconds
-            const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-            return { hours, minutes, seconds };
-        };
-
-        // Initial calculation
-        setTimeLeft(calculateTimeLeft());
-
-        // Update every second
-        const timer = setInterval(() => {
-            setTimeLeft(calculateTimeLeft());
-        }, 1000);
-
-        // Cleanup
-        return () => clearInterval(timer);
-    }, []);
-
-    const { hours, minutes, seconds } = timeLeft;
-
-    if (showLabels) {
-        return (
-            <div className="flex items-center gap-2">
-                <div className={`bg-slate-700 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
-                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
-                        {hours.toString().padStart(2, '0')}
-                    </span>
-                    <span className="text-xs block">HRS</span>
-                </div>
-                <div className="text-xl">:</div>
-                <div className={`bg-slate-700 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
-                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
-                        {minutes.toString().padStart(2, '0')}
-                    </span>
-                    <span className="text-xs block">MIN</span>
-                </div>
-                <div className="text-xl">:</div>
-                <div className={`bg-slate-700 px-3 py-2 rounded-lg ${large ? 'px-4 py-3' : ''}`}>
-                    <span className={`font-mono font-bold ${large ? 'text-3xl' : 'text-2xl'}`}>
-                        {seconds.toString().padStart(2, '0')}
-                    </span>
-                    <span className="text-xs block">SEC</span>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <span className="font-mono font-bold">
-            {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
-            {seconds.toString().padStart(2, '0')}
-        </span>
-    );
-};
-
-// Promo Code Button Component
-interface PromoCodeButtonProps {
-    large?: boolean;
-}
-
-const PromoCodeButton: React.FC<PromoCodeButtonProps> = ({ large = false }) => {
-    const [copied, setCopied] = useState(false);
-
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText('FB69').then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        });
-    };
-
-    return (
-        <button
-            onClick={copyToClipboard}
-            className={`
-        ${copied ? 'bg-green-500 text-white' : 'bg-white text-blue-600'}
-        ${large ? 'px-4 py-3 text-lg' : 'px-3 py-1 text-sm'}
-        rounded-md font-bold transition-colors flex items-center gap-1
-      `}
-            aria-label="Copy promo code FB69 to clipboard"
-        >
-            {copied ? (
-                <>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                        <path
-                            fillRule="evenodd"
-                            d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                    Copied!
-                </>
-            ) : (
-                <>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                        <path
-                            fillRule="evenodd"
-                            d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 01-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0113.5 1.5H15a3 3 0 012.663 1.618zM12 4.5A1.5 1.5 0 0113.5 3H15a1.5 1.5 0 011.5 1.5H12z"
-                            clipRule="evenodd"
-                        />
-                        <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 019 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0116.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 013 20.625v-12z" />
-                    </svg>
-                    Copy Code
-                </>
-            )}
-        </button>
-    );
-};
