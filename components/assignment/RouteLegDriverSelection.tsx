@@ -1,14 +1,16 @@
-import { Dialog } from '@headlessui/react';
+'use client';
+
 import { ArrowLeftIcon, UserCircleIcon, LightBulbIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
-import { Driver, ChargeType, Prisma } from '@prisma/client';
+import { type Driver, ChargeType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { getAllDrivers } from '../../lib/rest/driver';
 import { useLoadContext } from '../context/LoadContext';
 import Spinner from '../Spinner';
-import { DriverWithCharge } from 'interfaces/assignment';
+import type { DriverWithCharge } from 'interfaces/assignment';
 import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
 import Link from 'next/link';
+import { formatPhoneNumber } from 'lib/helpers/format';
 
 type Props = {
     title?: string;
@@ -117,6 +119,16 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             .toNumber();
     };
 
+    const calculateIndividualPay = (driverWithCharge: DriverWithCharge) => {
+        return calculateDriverPay({
+            chargeType: driverWithCharge.chargeType,
+            chargeValue: driverWithCharge.chargeValue,
+            distanceMiles: distanceMiles,
+            durationHours: durationHours,
+            loadRate: loadRate,
+        }).toNumber();
+    };
+
     const getDefaultChargeType = (driverId: string) => {
         const driver = allDrivers.find((d) => d.id === driverId);
         return driver?.defaultChargeType || null;
@@ -183,169 +195,266 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         }
     };
 
+    const getChargeTypeLabel = (chargeType: ChargeType) => {
+        switch (chargeType) {
+            case ChargeType.PER_MILE:
+                return 'Per Mile';
+            case ChargeType.PER_HOUR:
+                return 'Per Hour';
+            case ChargeType.FIXED_PAY:
+                return 'Fixed Pay';
+            case ChargeType.PERCENTAGE_OF_LOAD:
+                return '% of Load';
+            default:
+                return 'Unknown';
+        }
+    };
+
+    const selectedCount = Object.keys(selectedDriversWatch).length;
+    const profitMargin = new Prisma.Decimal(loadRate).toNumber() - totalPay;
+    const profitPercentage = loadRate.toNumber() > 0 ? (profitMargin / loadRate.toNumber()) * 100 : 0;
+
     return (
-        <div className="flex flex-col h-full space-y-4">
-            <div className="flex items-start flex-none space-x-4">
-                <button
-                    type="button"
-                    className="inline-flex items-center flex-none px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onGoBack();
-                    }}
-                >
-                    <ArrowLeftIcon className="w-4 h-4"></ArrowLeftIcon>
-                    <span className="ml-1">Back</span>
-                </button>
-                <Dialog.Title className="flex-1 text-lg font-semibold leading-6 text-gray-900">
-                    {title ? title : 'Add Drivers to Load'}
-                </Dialog.Title>
-            </div>
-            {noDefaultDrivers && !loadingAllDrivers && (
-                <div className="flex items-center p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
-                    <LightBulbIcon className="w-10 h-10 mr-2" />
-                    Tip: Add default charge types and values for drivers on the Drivers page for faster assignments.
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+                <div className="flex items-center p-6">
+                    <button
+                        type="button"
+                        className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors mr-3"
+                        onClick={onGoBack}
+                    >
+                        <ArrowLeftIcon className="w-4 h-4 text-gray-600" />
+                    </button>
+                    <div className="flex-1">
+                        <h1 className="text-lg font-bold text-gray-900">{title || 'Select Drivers'}</h1>
+                        <p className="text-xs text-gray-500 mt-0.5">Choose drivers and set their pay rates</p>
+                    </div>
                 </div>
-            )}
+            </div>
+
             {loadingAllDrivers ? (
-                <div className="flex items-start justify-center flex-1 h-32">
-                    <div className="flex items-center mt-10 space-x-2 text-gray-500">
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="flex items-center space-x-3 text-gray-500">
                         <Spinner />
-                        <span>Loading drivers...</span>
+                        <span className="text-base">Loading drivers...</span>
                     </div>
                 </div>
             ) : (
                 <>
+                    {/* Tip Banner - More subtle design */}
+                    {noDefaultDrivers && (
+                        <div className="mx-4 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-start space-x-2">
+                                <LightBulbIcon className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs text-blue-800">
+                                    <p className="font-medium">
+                                        Pro Tip: Set default pay rates for drivers to speed up assignments.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {allDrivers.length > 0 ? (
-                        <form
-                            onSubmit={handleSubmit(saveSelectedDrivers)}
-                            className="flex flex-col flex-1 overflow-auto"
-                        >
-                            <ul role="list" className="pb-4 overflow-y-auto divide-y divide-gray-200">
-                                {allDrivers?.map((driver, index) => (
-                                    <li key={index}>
-                                        <div className="flex items-center space-x-4">
-                                            <div className="flex-1">
-                                                <label htmlFor={`driver-${index}`}>
-                                                    <div className="relative flex items-center flex-1 py-4 pl-4 space-x-4 cursor-pointer">
-                                                        <UserCircleIcon
-                                                            className="w-6 h-6 text-gray-500"
-                                                            aria-hidden="true"
+                        <form onSubmit={handleSubmit(saveSelectedDrivers)} className="flex flex-col flex-1">
+                            {/* Scrollable Content with proper padding at bottom */}
+                            <div className="flex-1 overflow-y-auto pb-safe">
+                                <div className="p-6 space-y-3">
+                                    {/* Condensed Driver Selection */}
+                                    {allDrivers?.map((driver, index) => {
+                                        const isSelected = !!selectedDriversWatch[driver.id];
+                                        const driverData = selectedDriversWatch[driver.id];
+                                        const individualPay =
+                                            isSelected && driverData ? calculateIndividualPay(driverData) : 0;
+
+                                        return (
+                                            <div
+                                                key={index}
+                                                className={`
+                      bg-white rounded-lg border shadow-sm transition-all duration-200
+                      ${
+                          isSelected
+                              ? 'border-blue-200 bg-blue-50 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                      }
+                    `}
+                                            >
+                                                <div className="flex items-center p-3">
+                                                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                                                        <UserCircleIcon className="w-5 h-5 text-gray-500" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-900 capitalize truncate">
+                                                            {driver.name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-600 truncate">
+                                                            {formatPhoneNumber(driver.phone)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex-shrink-0">
+                                                        <input
+                                                            type="checkbox"
+                                                            value={driver.id}
+                                                            checked={isSelected}
+                                                            onChange={(e) => handleCheckboxChange(e, driver)}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                         />
-                                                        <div className="flex-1 truncate">
-                                                            <p className="text-sm font-bold text-gray-900 capitalize truncate">
-                                                                {driver.name}
-                                                            </p>
-                                                            <p className="text-sm text-gray-500 truncate">
-                                                                {driver.phone}
-                                                            </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Condensed Driver Configuration */}
+                                                {isSelected && (
+                                                    <div className="border-t border-blue-100 p-3 bg-blue-50/50">
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                    Pay Type
+                                                                </label>
+                                                                <select
+                                                                    {...register(
+                                                                        `selectedDrivers.${driver.id}.chargeType`,
+                                                                        {
+                                                                            required: true,
+                                                                            onChange: (e) =>
+                                                                                handleChargeTypeChange(
+                                                                                    driver.id,
+                                                                                    e.target.value as ChargeType,
+                                                                                ),
+                                                                        },
+                                                                    )}
+                                                                    className="block w-full px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                                                >
+                                                                    <option value="" disabled>
+                                                                        Select Type
+                                                                    </option>
+                                                                    <option value={ChargeType.PER_MILE}>
+                                                                        Per Mile
+                                                                    </option>
+                                                                    <option value={ChargeType.PER_HOUR}>
+                                                                        Per Hour
+                                                                    </option>
+                                                                    <option value={ChargeType.FIXED_PAY}>
+                                                                        Fixed Pay
+                                                                    </option>
+                                                                    <option value={ChargeType.PERCENTAGE_OF_LOAD}>
+                                                                        % of Load
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                    Pay Amount
+                                                                </label>
+                                                                <div className="relative">
+                                                                    <input
+                                                                        {...register(
+                                                                            `selectedDrivers.${driver.id}.chargeValue`,
+                                                                            {
+                                                                                required: true,
+                                                                                min: 0,
+                                                                                valueAsNumber: true,
+                                                                            },
+                                                                        )}
+                                                                        type="number"
+                                                                        placeholder={getPlaceholder(
+                                                                            driverData?.chargeType,
+                                                                        )}
+                                                                        step="any"
+                                                                        min="0"
+                                                                        max={
+                                                                            driverData?.chargeType ===
+                                                                            ChargeType.PERCENTAGE_OF_LOAD
+                                                                                ? 100
+                                                                                : undefined
+                                                                        }
+                                                                        onWheel={(e) => e.currentTarget.blur()}
+                                                                        className="block w-full px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                                                    />
+                                                                    {individualPay > 0 && (
+                                                                        <div className="absolute right-0 top-0 h-full flex items-center pr-2">
+                                                                            <span className="text-xs font-medium text-green-600">
+                                                                                {formatCurrency(individualPay)}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </label>
+                                                )}
                                             </div>
-                                            <div className="flex items-center h-6 pr-4">
-                                                <input
-                                                    id={`driver-${index}`}
-                                                    type="checkbox"
-                                                    value={driver.id}
-                                                    checked={!!selectedDriversWatch[driver.id]}
-                                                    onChange={(e) => handleCheckboxChange(e, driver)}
-                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                                />
-                                            </div>
-                                        </div>
-                                        {selectedDriversWatch[driver.id] && (
-                                            <div className="flex flex-row items-end w-full gap-2 px-1 mb-2">
-                                                <select
-                                                    name={`selectedDrivers.${driver.id}.chargeType`}
-                                                    {...register(`selectedDrivers.${driver.id}.chargeType`, {
-                                                        required: true,
-                                                        onChange: (e) =>
-                                                            handleChargeTypeChange(
-                                                                driver.id,
-                                                                e.target.value as ChargeType,
-                                                            ),
-                                                    })}
-                                                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                >
-                                                    <option value="" disabled>
-                                                        Select Pay Type
-                                                    </option>
-                                                    <option value={ChargeType.PER_MILE}>Per Mile</option>
-                                                    <option value={ChargeType.PER_HOUR}>Per Hour</option>
-                                                    <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
-                                                    <option value={ChargeType.PERCENTAGE_OF_LOAD}>
-                                                        Percentage of Load
-                                                    </option>
-                                                </select>
-                                                <input
-                                                    name={`selectedDrivers.${driver.id}.chargeValue`}
-                                                    type="number"
-                                                    {...register(`selectedDrivers.${driver.id}.chargeValue`, {
-                                                        required: true,
-                                                        min: 0,
-                                                        valueAsNumber: true,
-                                                    })}
-                                                    placeholder={getPlaceholder(
-                                                        selectedDriversWatch[driver.id]?.chargeType,
-                                                    )}
-                                                    step="any"
-                                                    min="0"
-                                                    max={
-                                                        selectedDriversWatch[driver.id]?.chargeType ===
-                                                        ChargeType.PERCENTAGE_OF_LOAD
-                                                            ? 100
-                                                            : undefined
-                                                    }
-                                                    onWheel={(e) => e.currentTarget.blur()}
-                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                />
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Bottom Padding for Fixed Actions */}
+                                {selectedCount > 0 && <div className="h-24" />}
+                            </div>
+
+                            {/* Bottom Actions - Sticky instead of fixed/absolute */}
+                            {selectedCount > 0 && (
+                                <div className="sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-md">
+                                    <div className="p-6">
+                                        {/* Subtle Calculations Summary */}
+                                        {totalPay > 0 && (
+                                            <div className="mb-3 p-2 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-xs text-gray-500">Total Pay:</span>
+                                                    <span className="text-sm font-bold text-gray-900">
+                                                        {formatCurrency(totalPay)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-xs text-gray-500">Profit:</span>
+                                                    <span
+                                                        className={`text-sm font-bold ${
+                                                            profitMargin >= 0 ? 'text-green-600' : 'text-red-600'
+                                                        }`}
+                                                    >
+                                                        {formatCurrency(profitMargin)} ({profitPercentage.toFixed(1)}%)
+                                                    </span>
+                                                </div>
                                             </div>
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
-                            {Object.keys(selectedDriversWatch).length > 0 && (
-                                <div className="sticky py-2 bg-white border-t-[1px] flex-col sm:px-2 space-y-2">
-                                    <div className="flex-col items-center">
-                                        <div className="text-sm font-medium text-gray-700">
-                                            Estimated Total Pay: {formatCurrency(totalPay)}
+
+                                        {/* Action Buttons */}
+                                        <div className="flex items-center space-x-3">
+                                            <button
+                                                type="submit"
+                                                disabled={!isValid}
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm"
+                                            >
+                                                Select {selectedCount} Driver{selectedCount !== 1 ? 's' : ''}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={onGoBack}
+                                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
                                         </div>
-                                        <div className="text-sm font-medium text-gray-700">
-                                            Load Rate: {formatCurrency(new Prisma.Decimal(loadRate).toNumber())}
-                                        </div>
-                                    </div>
-                                    <div className="space-x-3">
-                                        <button
-                                            type="submit"
-                                            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-default disabled:bg-blue-600"
-                                            disabled={!isValid}
-                                        >
-                                            Select ({Object.keys(selectedDriversWatch).length})
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                            onClick={() => onGoBack()}
-                                        >
-                                            Cancel
-                                        </button>
                                     </div>
                                 </div>
                             )}
                         </form>
                     ) : (
-                        <div className="flex items-start justify-center flex-1 h-32">
-                            <div className="flex flex-col items-center gap-1 mt-10 space-x-2 text-center text-gray-500">
-                                <div>No drivers available to add.</div>
-                                <div className="flex items-center space-x-1">
-                                    <span>Add more drivers under</span>
-                                    <div className="flex items-center space-x-1">
-                                        <Link href="/drivers" target={'_blank'} className="flex items-center space-x-1">
+                        <div className="flex-1 flex items-center justify-center">
+                            <div className="flex flex-col items-center text-center text-gray-500 space-y-3 px-4">
+                                <UserCircleIcon className="w-12 h-12 text-gray-300" />
+                                <div>
+                                    <p className="text-base font-medium">No drivers available</p>
+                                    <div className="flex items-center justify-center space-x-1 mt-2">
+                                        <span className="text-sm">Add drivers on the</span>
+                                        <Link
+                                            href="/drivers"
+                                            target="_blank"
+                                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                        >
                                             Drivers Page
-                                            <ArrowTopRightOnSquareIcon className="inline w-4 h-4 ml-1" />
+                                            <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
                                         </Link>
-                                        .
                                     </div>
                                 </div>
                             </div>
