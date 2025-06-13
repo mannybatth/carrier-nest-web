@@ -1,22 +1,22 @@
+'use client';
+
 import { Dialog, Transition } from '@headlessui/react';
 import {
     PlusIcon,
     UserCircleIcon,
     XMarkIcon,
     UserPlusIcon,
-    ChevronDownIcon,
-    ChevronUpIcon,
-    PencilIcon,
     PencilSquareIcon,
     ChevronDoubleRightIcon,
+    Bars3Icon,
 } from '@heroicons/react/24/outline';
-import React, { Fragment } from 'react';
+import React, { Fragment, useCallback, useRef, useState, useEffect } from 'react';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
-import { LoadStop, Prisma, Route } from '@prisma/client';
-import { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
+import { type LoadStop, Prisma, type Route } from '@prisma/client';
+import type { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
 import { notify } from 'components/Notification';
-import { CreateAssignmentRequest, DriverWithCharge, UpdateAssignmentRequest } from 'interfaces/assignment';
+import type { CreateAssignmentRequest, DriverWithCharge, UpdateAssignmentRequest } from 'interfaces/assignment';
 import RouteLegDriverSelection from './RouteLegDriverSelection';
 import RouteLegLocationSelection from './RouteLegLocationSelection';
 import { useRouteLegDataContext } from 'components/context/RouteLegDataContext';
@@ -25,6 +25,382 @@ import { useLocalStorage } from 'lib/useLocalStorage';
 import { hoursToReadable } from 'lib/helpers/time';
 import { createRouteLeg, updateRouteLeg } from 'lib/rest/assignment';
 import { calculateDriverPay, formatCurrency } from 'lib/helpers/calculateDriverPay';
+
+interface DragState {
+    isDragging: boolean;
+    draggedIndex: number | null;
+    hoverIndex: number | null;
+    dragDirection: 'up' | 'down' | null;
+    dragOffset: { x: number; y: number };
+}
+
+interface LocationItemProps {
+    location: ExpandedRouteLegLocation;
+    index: number;
+    onReorder: (fromIndex: number, toIndex: number) => void;
+    onRemove: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    dragState: DragState;
+    onDragStateChange: (state: Partial<DragState>) => void;
+}
+
+const LocationItem: React.FC<LocationItemProps> = ({
+    location,
+    index,
+    onReorder,
+    onRemove,
+    dragState,
+    onDragStateChange,
+}) => {
+    const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
+    const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+    const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const dragRef = useRef<HTMLDivElement>(null);
+    const itemRef = useRef<HTMLDivElement>(null);
+
+    const isLoadStop = !!location.loadStop;
+    const item = isLoadStop ? location.loadStop : location.location;
+    const itemId = location.loadStop?.id || location.location.id;
+
+    const isDragging = dragState.isDragging && dragState.draggedIndex === index;
+    const isHovered = dragState.hoverIndex === index && dragState.draggedIndex !== index;
+    const shouldSlideUp = isHovered && dragState.dragDirection === 'up';
+    const shouldSlideDown = isHovered && dragState.dragDirection === 'down';
+
+    // Calculate transform for sliding effect
+    const getTransform = () => {
+        if (isDragging) {
+            return `translate(${dragState.dragOffset.x}px, ${dragState.dragOffset.y}px) scale(1.02) rotate(2deg)`;
+        }
+        if (shouldSlideUp) {
+            return 'translateY(-8px)';
+        }
+        if (shouldSlideDown) {
+            return 'translateY(8px)';
+        }
+        return 'translateY(0px)';
+    };
+
+    // Desktop drag handlers
+    const handleDragStart = (e: React.DragEvent) => {
+        const rect = itemRef.current?.getBoundingClientRect();
+        if (rect) {
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+
+            onDragStateChange({
+                isDragging: true,
+                draggedIndex: index,
+                dragOffset: { x: 0, y: 0 },
+            });
+
+            // Hide default drag image
+            const emptyImg = new Image();
+            emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+            e.dataTransfer.setDragImage(emptyImg, 0, 0);
+        }
+
+        e.dataTransfer.setData('text/plain', index.toString());
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragEnd = () => {
+        onDragStateChange({
+            isDragging: false,
+            draggedIndex: null,
+            hoverIndex: null,
+            dragDirection: null,
+            dragOffset: { x: 0, y: 0 },
+        });
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (dragState.draggedIndex !== null && dragState.draggedIndex !== index) {
+            const rect = itemRef.current?.getBoundingClientRect();
+            if (rect) {
+                const mouseY = e.clientY;
+                const itemCenterY = rect.top + rect.height / 2;
+                const direction = mouseY < itemCenterY ? 'up' : 'down';
+
+                onDragStateChange({
+                    hoverIndex: index,
+                    dragDirection: direction,
+                });
+            }
+        }
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        if (dragState.draggedIndex !== null && dragState.draggedIndex !== index) {
+            onDragStateChange({ hoverIndex: index });
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        // Only clear hover if we're actually leaving the element
+        const rect = itemRef.current?.getBoundingClientRect();
+        if (rect) {
+            const { clientX, clientY } = e;
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+                onDragStateChange({ hoverIndex: null, dragDirection: null });
+            }
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+
+        const fromIndex = Number.parseInt(e.dataTransfer.getData('text/plain'));
+        const toIndex = index;
+
+        if (fromIndex !== toIndex) {
+            onReorder(fromIndex, toIndex);
+        }
+
+        onDragStateChange({
+            isDragging: false,
+            draggedIndex: null,
+            hoverIndex: null,
+            dragDirection: null,
+            dragOffset: { x: 0, y: 0 },
+        });
+    };
+
+    // Track mouse movement during drag for visual feedback
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isDragging && itemRef.current) {
+                const rect = itemRef.current.getBoundingClientRect();
+                const offsetX = e.clientX - rect.left - rect.width / 2;
+                const offsetY = e.clientY - rect.top - rect.height / 2;
+
+                onDragStateChange({
+                    dragOffset: { x: offsetX * 0.3, y: offsetY * 0.3 }, // Dampen movement
+                });
+            }
+        };
+
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove);
+            return () => document.removeEventListener('mousemove', handleMouseMove);
+        }
+    }, [isDragging, onDragStateChange]);
+
+    // Mobile touch handlers
+    const handleTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+
+        const timer = setTimeout(() => {
+            onDragStateChange({
+                isDragging: true,
+                draggedIndex: index,
+                dragOffset: { x: 0, y: 0 },
+            });
+
+            // Haptic feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }, 500);
+
+        setLongPressTimer(timer);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!touchStartPos) return;
+
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+        const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+
+        // Cancel long press if moved too much
+        if ((deltaX > 10 || deltaY > 10) && longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+
+        // Handle drag if started
+        if (isDragging) {
+            e.preventDefault();
+
+            // Update drag offset
+            const offsetX = (touch.clientX - touchStartPos.x) * 0.3;
+            const offsetY = (touch.clientY - touchStartPos.y) * 0.3;
+
+            onDragStateChange({
+                dragOffset: { x: offsetX, y: offsetY },
+            });
+
+            // Find element under touch
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const dropTarget = elementBelow?.closest('[data-drop-target]');
+
+            if (dropTarget && dropTarget !== itemRef.current) {
+                const targetIndex = Number.parseInt(dropTarget.getAttribute('data-index') || '0');
+                const rect = dropTarget.getBoundingClientRect();
+                const touchY = touch.clientY;
+                const itemCenterY = rect.top + rect.height / 2;
+                const direction = touchY < itemCenterY ? 'up' : 'down';
+
+                onDragStateChange({
+                    hoverIndex: targetIndex,
+                    dragDirection: direction,
+                });
+            }
+        }
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+
+        if (isDragging && dragState.hoverIndex !== null && dragState.hoverIndex !== index) {
+            onReorder(index, dragState.hoverIndex);
+        }
+
+        setTouchStartPos(null);
+        onDragStateChange({
+            isDragging: false,
+            draggedIndex: null,
+            hoverIndex: null,
+            dragDirection: null,
+            dragOffset: { x: 0, y: 0 },
+        });
+    };
+
+    return (
+        <div
+            ref={itemRef}
+            draggable
+            data-drop-target
+            data-index={index}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={`
+        relative bg-white rounded-lg p-4 border transition-all duration-300 ease-out
+        ${
+            isDragging
+                ? 'opacity-90 shadow-2xl z-50 border-blue-400 ring-2 ring-blue-200 ring-opacity-50'
+                : 'opacity-100 shadow-sm border-gray-200'
+        }
+        ${isHovered && !isDragging ? 'border-blue-300 shadow-md bg-blue-50' : ''}
+        ${!isDragging ? 'hover:shadow-md hover:border-gray-300' : ''}
+        cursor-grab active:cursor-grabbing
+      `}
+            style={{
+                transform: getTransform(),
+                zIndex: isDragging ? 1000 : 'auto',
+                transition: isDragging
+                    ? 'box-shadow 0.2s ease-out, border-color 0.2s ease-out'
+                    : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+        >
+            {/* Drag indicator overlay */}
+            {isDragging && <div className="absolute inset-0 bg-blue-500 bg-opacity-5 rounded-lg pointer-events-none" />}
+
+            {/* Drop zone indicators */}
+            {isHovered && !isDragging && (
+                <>
+                    {shouldSlideUp && <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-400 rounded-full" />}
+                    {shouldSlideDown && (
+                        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-400 rounded-full" />
+                    )}
+                </>
+            )}
+
+            <div className="flex items-start space-x-3 relative z-10">
+                <div className="flex-shrink-0 flex flex-col items-center space-y-2">
+                    <div
+                        className={`
+            w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm transition-all duration-200
+            ${isDragging ? 'bg-blue-600 scale-110 shadow-lg' : 'bg-blue-500'}
+          `}
+                    >
+                        {index + 1}
+                    </div>
+                    <div
+                        className={`
+            w-5 h-5 bg-gray-100 rounded flex items-center justify-center transition-all duration-200
+            ${isDragging ? 'bg-blue-100' : ''}
+          `}
+                    >
+                        <Bars3Icon
+                            className={`w-3 h-3 transition-colors duration-200 ${
+                                isDragging ? 'text-blue-600' : 'text-gray-500'
+                            }`}
+                        />
+                    </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p
+                        className={`
+            text-base font-semibold capitalize truncate mb-1 transition-colors duration-200
+            ${isDragging ? 'text-blue-900' : 'text-gray-900'}
+          `}
+                    >
+                        {item.name.toLowerCase()}
+                    </p>
+                    {isLoadStop && (
+                        <p
+                            className={`
+              text-sm font-medium mb-1 transition-colors duration-200
+              ${isDragging ? 'text-blue-700' : 'text-blue-600'}
+            `}
+                        >
+                            {new Date((item as LoadStop).date).toLocaleDateString()} @ {(item as LoadStop).time}
+                        </p>
+                    )}
+                    <p
+                        className={`
+            text-sm truncate mb-1 capitalize transition-colors duration-200
+            ${isDragging ? 'text-blue-700' : 'text-gray-600'}
+          `}
+                    >
+                        {item.street.toLowerCase()}
+                    </p>
+                    <p
+                        className={`
+            text-sm capitalize transition-colors duration-200
+            ${isDragging ? 'text-blue-600' : 'text-gray-500'}
+          `}
+                    >
+                        {item.city.toLowerCase()}, {item.state.toUpperCase()}
+                    </p>
+                </div>
+                <div className="flex-shrink-0">
+                    <div
+                        className={`
+            w-6 h-6 bg-gray-50 rounded flex items-center justify-center border transition-all duration-200
+            ${isDragging ? 'bg-blue-50 border-blue-300' : 'border-gray-200'}
+          `}
+                    >
+                        <input
+                            type="checkbox"
+                            value={itemId}
+                            checked={true}
+                            onChange={onRemove}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 type Props = {
     show: boolean;
@@ -35,6 +411,13 @@ type Props = {
 const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const [load, setLoad] = useLoadContext();
     const [routeLegData, setRouteLegData] = useRouteLegDataContext();
+    const [dragState, setDragState] = useState<DragState>({
+        isDragging: false,
+        draggedIndex: null,
+        hoverIndex: null,
+        dragDirection: null,
+        dragOffset: { x: 0, y: 0 },
+    });
 
     const [showDriverSelection, setShowDriverSelection] = React.useState(false);
     const [showLegLocationSelection, setShowLegLocationSelection] = React.useState(false);
@@ -43,6 +426,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
 
     const [saveLoading, setSaveLoading] = React.useState(false);
     const [loadingRouteDetails, setLoadingRouteDetails] = React.useState(false);
+
+    const handleDragStateChange = useCallback((newState: Partial<DragState>) => {
+        setDragState((prev) => ({ ...prev, ...newState }));
+    }, []);
 
     React.useEffect(() => {
         if (routeLeg) {
@@ -83,6 +470,13 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         });
         setShowLegLocationSelection(false);
         setShowDriverSelection(false);
+        setDragState({
+            isDragging: false,
+            draggedIndex: null,
+            hoverIndex: null,
+            dragDirection: null,
+            dragOffset: { x: 0, y: 0 },
+        });
     };
 
     const handleDriverCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,21 +501,28 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 ...routeLegData,
                 locations: newLocationList,
             });
+
+            updateRouteDetails(newLocationList);
         }
     };
 
-    const onSelectedDriversChange = (drivers: DriverWithCharge[]) => {
-        setRouteLegData({
-            ...routeLegData,
-            driversWithCharge: drivers,
-        });
-    };
+    const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
+        setRouteLegData((prevData) => {
+            const newLocations = [...prevData.locations];
+            const [movedItem] = newLocations.splice(fromIndex, 1);
+            newLocations.splice(toIndex, 0, movedItem);
 
-    const onSelectedLegLocationsChange = async (locations: ExpandedRouteLegLocation[]) => {
-        setRouteLegData({
-            ...routeLegData,
-            locations: locations,
+            // Debounce route updates
+            setTimeout(() => {
+                updateRouteDetails(newLocations);
+            }, 300);
+
+            return { ...prevData, locations: newLocations };
         });
+    }, []);
+
+    const updateRouteDetails = async (locations: ExpandedRouteLegLocation[]) => {
+        if (locations.length < 2) return;
 
         setLoadingRouteDetails(true);
         try {
@@ -148,6 +549,22 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         } finally {
             setLoadingRouteDetails(false);
         }
+    };
+
+    const onSelectedDriversChange = (drivers: DriverWithCharge[]) => {
+        setRouteLegData({
+            ...routeLegData,
+            driversWithCharge: drivers,
+        });
+    };
+
+    const onSelectedLegLocationsChange = async (locations: ExpandedRouteLegLocation[]) => {
+        setRouteLegData({
+            ...routeLegData,
+            locations: locations,
+        });
+
+        updateRouteDetails(locations);
     };
 
     const submit = async () => {
@@ -218,22 +635,6 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         }
     };
 
-    const repositionLegLocations = (index: number, direction: 'up' | 'down') => {
-        setRouteLegData((prevData) => {
-            const newLocations = [...prevData.locations];
-
-            if (direction === 'up' && index > 0) {
-                // Swap with the previous item
-                [newLocations[index - 1], newLocations[index]] = [newLocations[index], newLocations[index - 1]];
-            } else if (direction === 'down' && index < newLocations.length - 1) {
-                // Swap with the next item
-                [newLocations[index + 1], newLocations[index]] = [newLocations[index], newLocations[index + 1]];
-            }
-
-            return { ...prevData, locations: newLocations };
-        });
-    };
-
     const calcDriverPay = (driverId: string) => {
         const chargeType = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeType;
         const chargeValue = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeValue ?? 0;
@@ -267,7 +668,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" />
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" />
                 </Transition.Child>
 
                 <div className="fixed inset-0 overflow-hidden">
@@ -282,23 +683,23 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                 leaveFrom="translate-x-0"
                                 leaveTo="translate-x-full"
                             >
-                                <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
+                                <Dialog.Panel className="w-screen max-w-md sm:max-w-lg pointer-events-auto">
                                     {saveLoading && <LoadingOverlay />}
 
                                     {showLegLocationSelection && (
-                                        <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
+                                        <div className="relative flex flex-col h-full space-y-4 bg-white shadow-xl">
                                             <RouteLegLocationSelection
                                                 title="Select Stops"
                                                 onLegLocationsSelectionSave={onSelectedLegLocationsChange}
                                                 onGoBack={() => {
                                                     setShowLegLocationSelection(false);
                                                 }}
-                                            ></RouteLegLocationSelection>
+                                            />
                                         </div>
                                     )}
 
                                     {showDriverSelection && (
-                                        <div className="relative flex flex-col h-full px-5 py-6 space-y-4 bg-white shadow-xl">
+                                        <div className="relative flex flex-col h-full  bg-white shadow-xl">
                                             <RouteLegDriverSelection
                                                 title="Select Drivers"
                                                 selectedDrivers={routeLegData.driversWithCharge}
@@ -307,442 +708,360 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                 loadRate={new Prisma.Decimal(load.rate)}
                                                 onDriverSelectionSave={onSelectedDriversChange}
                                                 onGoBack={() => setShowDriverSelection(false)}
-                                            ></RouteLegDriverSelection>
+                                            />
                                         </div>
                                     )}
 
-                                    <div className="relative flex flex-col h-full px-5 overflow-y-scroll bg-white shadow-xl">
-                                        <div className="flex-1 py-6">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
-                                                    {routeLeg ? 'Edit Assignment' : 'Create New Assignment'}
-                                                </Dialog.Title>
-                                                <div className="flex items-center ml-3 h-7">
-                                                    <button
-                                                        type="button"
-                                                        className="relative text-gray-400 bg-white rounded-md hover:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                                                        onClick={() => close(false)}
-                                                    >
-                                                        <span className="absolute -inset-2.5" />
-                                                        <span className="sr-only">Close panel</span>
-                                                        <XMarkIcon className="w-6 h-6" aria-hidden="true" />
-                                                    </button>
+                                    <div className="relative flex flex-col h-full overflow-y-scroll bg-white shadow-xl">
+                                        <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
+                                            {/* Header */}
+                                            <div className="sticky top-0 flex items-start pt-4 bg-white z-20 justify-between mb-6 sm:mb-8 pb-4 border-b border-gray-100">
+                                                <div>
+                                                    <Dialog.Title className="text-xl sm:text-2xl font-bold text-gray-900">
+                                                        {routeLeg ? 'Edit Assignment' : 'Create Assignment'}
+                                                    </Dialog.Title>
+                                                    <p className="text-sm sm:text-base text-gray-600 mt-1">
+                                                        {routeLeg
+                                                            ? 'Update route details and assignments'
+                                                            : 'Set up a new route assignment'}
+                                                    </p>
                                                 </div>
+                                                <button
+                                                    type="button"
+                                                    className="p-2 text-gray-400 bg-gray-50 rounded-lg hover:bg-gray-100 hover:text-gray-600 transition-colors border border-gray-200"
+                                                    onClick={() => close(false)}
+                                                >
+                                                    <XMarkIcon className="w-5 h-5" aria-hidden="true" />
+                                                </button>
                                             </div>
 
-                                            <section className="my-4">
+                                            {/* Route Section */}
+                                            <section className="mb-6 sm:mb-8">
                                                 {routeLegData.locations.length !== 0 && (
-                                                    <>
-                                                        <div className="flex justify-between">
-                                                            <div className="flex-col">
-                                                                <h5 className="text-sm font-semibold text-slate-600">
-                                                                    Route
+                                                    <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
+                                                            <div>
+                                                                <h5 className="text-lg sm:text-xl font-bold text-gray-900">
+                                                                    Route Stops
                                                                 </h5>
-                                                                <p className="text-xs font-light text-slate-400">
-                                                                    Selected stops/locations for this assignment
+                                                                <p className="text-sm text-gray-600 mt-1">
+                                                                    {dragState.isDragging
+                                                                        ? 'Drop to reorder • Release to place'
+                                                                        : 'Long press and drag to reorder stops • Tap checkbox to remove stop'}
                                                                 </p>
                                                             </div>
-                                                            <div className="flex-shrink-0 ml-2">
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                                    onClick={() => setShowLegLocationSelection(true)}
-                                                                >
-                                                                    <PencilSquareIcon className="flex-shrink-0 w-4 h-4 mr-1 text-gray-800"></PencilSquareIcon>
-                                                                    <p className="w-full text-sm text-center">
-                                                                        Edit Route
-                                                                    </p>
-                                                                </button>
-                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="mt-3 sm:mt-0 whitespace-nowrap inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all"
+                                                                onClick={() => setShowLegLocationSelection(true)}
+                                                            >
+                                                                <PencilSquareIcon className="w-4 h-4 mr-2" />
+                                                                Edit Route
+                                                            </button>
                                                         </div>
-                                                        <ul role="list" className="overflow-y-auto">
-                                                            {routeLegData.locations.map((legLocation, index) => {
-                                                                const isLoadStop = !!legLocation.loadStop;
-                                                                const item = isLoadStop
-                                                                    ? legLocation.loadStop
-                                                                    : legLocation.location;
 
-                                                                return (
-                                                                    <li key={index}>
-                                                                        <div className="flex items-center my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
-                                                                            <div className="flex-1">
-                                                                                <label>
-                                                                                    <div className="relative flex items-center flex-1 px-4 py-2 space-x-4 cursor-default">
-                                                                                        <div className="flex flex-col items-center gap-4 justify-items-start">
-                                                                                            <p className="relative top-0 w-6 h-6 p-1 text-xs text-center rounded-full bg-slate-200">
-                                                                                                {index + 1}
-                                                                                            </p>
-                                                                                        </div>
-                                                                                        <div className="flex-1">
-                                                                                            <p className="text-base font-semibold text-gray-900 capitalize line-clamp-2">
-                                                                                                {item.name.toLowerCase()}
-                                                                                            </p>
-                                                                                            {isLoadStop && (
-                                                                                                <p className="text-xs text-gray-800">
-                                                                                                    {new Date(
-                                                                                                        (
-                                                                                                            item as LoadStop
-                                                                                                        ).date,
-                                                                                                    ).toLocaleDateString()}{' '}
-                                                                                                    @{' '}
-                                                                                                    {
-                                                                                                        (
-                                                                                                            item as LoadStop
-                                                                                                        ).time
-                                                                                                    }
-                                                                                                </p>
-                                                                                            )}
-                                                                                            <p className="text-sm text-gray-500 capitalize">
-                                                                                                {item.street.toLowerCase()}
-                                                                                            </p>
-                                                                                            <p className="text-sm text-gray-500 capitalize">
-                                                                                                {item.city.toLowerCase()}
-                                                                                                ,{' '}
-                                                                                                {item.state.toUpperCase()}
-                                                                                                , {item.zip}
-                                                                                            </p>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </label>
-                                                                            </div>
-                                                                            {/* <div className="flex flex-col items-center justify-between min-h-full gap-3 pr-4">
-                                                                                {index !== 0 ? (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
-                                                                                        onClick={() =>
-                                                                                            repositionLegLocations(
-                                                                                                index,
-                                                                                                'up',
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <ChevronUpIcon
-                                                                                            className="w-5 h-5"
-                                                                                            aria-hidden="true"
-                                                                                            color="black"
-                                                                                        />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <p className="w-4 h-4"></p>
-                                                                                )}
-                                                                                <input
-                                                                                    id={`stop-${index}`}
-                                                                                    name={`stop-${index}`}
-                                                                                    type="checkbox"
-                                                                                    value={
-                                                                                        legLocation.loadStop?.id ||
-                                                                                        legLocation.location.id
-                                                                                    }
-                                                                                    checked={true} // Assuming checked state is determined elsewhere
-                                                                                    onChange={
-                                                                                        handleLegLocationCheckboxChange
-                                                                                    }
-                                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
-                                                                                />
-                                                                                {index <
-                                                                                routeLegData.locations.length - 1 ? (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className={`m-0 items-center p-0 text-sm font-medium leading-4 text-white bg-white rounded-full hover:bg-slate-300 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:ring-green-600`}
-                                                                                        onClick={() =>
-                                                                                            repositionLegLocations(
-                                                                                                index,
-                                                                                                'down',
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <ChevronDownIcon
-                                                                                            className="w-5 h-5"
-                                                                                            aria-hidden="true"
-                                                                                            color="black"
-                                                                                        />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <p className="w-4 h-4"></p>
-                                                                                )}
-                                                                            </div> */}
-                                                                        </div>
-                                                                    </li>
-                                                                );
-                                                            })}
-                                                        </ul>
+                                                        <div className="space-y-3">
+                                                            {routeLegData.locations.map((location, index) => (
+                                                                <LocationItem
+                                                                    key={location.loadStop?.id || location.location.id}
+                                                                    location={location}
+                                                                    index={index}
+                                                                    onReorder={handleReorder}
+                                                                    onRemove={handleLegLocationCheckboxChange}
+                                                                    dragState={dragState}
+                                                                    onDragStateChange={handleDragStateChange}
+                                                                />
+                                                            ))}
+                                                        </div>
+
                                                         {loadingRouteDetails ? (
-                                                            <p className="p-2 text-sm rounded bg-cyan-300/20">
-                                                                Loading route details...
-                                                            </p>
+                                                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                                <p className="text-sm font-medium text-blue-800">
+                                                                    Loading route details...
+                                                                </p>
+                                                            </div>
                                                         ) : (
                                                             routeLegData.distanceMiles &&
                                                             routeLegData.durationHours && (
-                                                                <p className="p-2 text-sm rounded bg-cyan-300/20">
-                                                                    Route Distance:{' '}
-                                                                    {new Prisma.Decimal(routeLegData.distanceMiles)
-                                                                        .toNumber()
-                                                                        .toFixed(2)}{' '}
-                                                                    miles
-                                                                    <br />
-                                                                    Route Travel Time:{' '}
-                                                                    {hoursToReadable(
-                                                                        new Prisma.Decimal(
-                                                                            routeLegData.durationHours,
-                                                                        ).toNumber(),
-                                                                    )}
-                                                                </p>
+                                                                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                                                        <div>
+                                                                            <span className="font-semibold text-blue-900">
+                                                                                Distance:
+                                                                            </span>
+                                                                            <span className="ml-2 text-blue-700">
+                                                                                {new Prisma.Decimal(
+                                                                                    routeLegData.distanceMiles,
+                                                                                )
+                                                                                    .toNumber()
+                                                                                    .toFixed(2)}{' '}
+                                                                                miles
+                                                                            </span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="font-semibold text-blue-900">
+                                                                                Duration:
+                                                                            </span>
+                                                                            <span className="ml-2 text-blue-700">
+                                                                                {hoursToReadable(
+                                                                                    new Prisma.Decimal(
+                                                                                        routeLegData.durationHours,
+                                                                                    ).toNumber(),
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             )
                                                         )}
-                                                    </>
+                                                    </div>
                                                 )}
-                                                {/* Placeholder for when there are no locations selected */}
+
                                                 {routeLegData.locations.length === 0 && (
-                                                    <div className="flex flex-col items-center justify-center py-10 border-2 border-blue-200 border-dashed rounded-lg bg-blue-50">
-                                                        <p className="mt-2 text-sm font-semibold text-blue-600">
+                                                    <div className="bg-blue-50 rounded-lg p-6 sm:p-8 text-center border border-blue-200">
+                                                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                            <ChevronDoubleRightIcon className="w-6 h-6 text-blue-600" />
+                                                        </div>
+                                                        <h5 className="text-lg font-semibold text-blue-900 mb-2">
                                                             Assignment Route
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-blue-400">
-                                                            Select stops/locations for this assignment
+                                                        </h5>
+                                                        <p className="text-sm text-blue-700 mb-4">
+                                                            Select stops and locations for this assignment
                                                         </p>
                                                         <button
                                                             type="button"
-                                                            className="inline-flex items-center px-4 py-2 mt-4 text-sm font-medium leading-4 text-white bg-blue-600 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
                                                             onClick={() => setShowLegLocationSelection(true)}
                                                         >
-                                                            <p className="w-full text-sm font-semibold text-center">
-                                                                Select Locations
-                                                            </p>
-                                                            <ChevronDoubleRightIcon
-                                                                className="w-5 h-5 ml-1"
-                                                                aria-hidden="true"
-                                                            />
+                                                            Select Locations
+                                                            <ChevronDoubleRightIcon className="w-4 h-4 ml-2" />
                                                         </button>
                                                     </div>
                                                 )}
                                             </section>
 
+                                            {/* Rest of the component remains the same... */}
+                                            {/* Drivers Section */}
                                             {routeLegData.locations.length !== 0 && (
-                                                <section className="my-4">
+                                                <section className="mb-6 sm:mb-8">
                                                     {routeLegData.driversWithCharge.length !== 0 && (
-                                                        <>
-                                                            <div className="flex justify-between">
-                                                                <div className="flex-col">
-                                                                    <h5 className="text-sm font-semibold text-slate-600">
-                                                                        Route Drivers
+                                                        <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
+                                                                <div>
+                                                                    <h5 className="text-lg sm:text-xl font-bold text-gray-900">
+                                                                        Assigned Drivers
                                                                     </h5>
-                                                                    <p className="text-xs font-light text-slate-400">
-                                                                        Drivers for this assignment
+                                                                    <p className="text-sm text-gray-600 mt-1">
+                                                                        Drivers assigned to this route
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex-shrink-0 ml-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="inline-flex items-center px-3 py-1 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                                        onClick={() => setShowDriverSelection(true)}
-                                                                    >
-                                                                        <PencilSquareIcon className="flex-shrink-0 w-4 h-4 mr-1 text-gray-800"></PencilSquareIcon>
-                                                                        <p className="w-full text-sm text-center">
-                                                                            Edit Drivers
-                                                                        </p>
-                                                                    </button>
-                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all"
+                                                                    onClick={() => setShowDriverSelection(true)}
+                                                                >
+                                                                    <PencilSquareIcon className="w-4 h-4 mr-2" />
+                                                                    Edit Drivers
+                                                                </button>
                                                             </div>
 
-                                                            <ul
-                                                                role="list"
-                                                                className="overflow-y-auto divide-gray-200 "
-                                                            >
+                                                            <div className="space-y-3 mb-4">
                                                                 {routeLegData.driversWithCharge?.map((item, index) => (
-                                                                    <li key={index}>
-                                                                        <div className="flex items-center my-2 space-x-4 border rounded-lg bg-slate-50 border-slate-200">
-                                                                            <div className="flex-1">
-                                                                                <div className="relative flex items-center flex-1 px-4 py-2 space-x-4">
-                                                                                    <UserCircleIcon
-                                                                                        className="w-6 h-6 text-gray-500"
-                                                                                        aria-hidden="true"
-                                                                                    />
-                                                                                    <div className="flex-1">
-                                                                                        <p className="text-sm font-bold text-gray-900 capitalize line-clamp-2">
-                                                                                            {item.driver.name}
-                                                                                        </p>
-                                                                                        <p className="text-sm text-gray-500">
-                                                                                            Estimated Pay:{' '}
-                                                                                            {formatCurrency(
-                                                                                                calcDriverPay(
-                                                                                                    item.driver.id,
-                                                                                                ).toNumber(),
-                                                                                            )}
-                                                                                        </p>
-                                                                                    </div>
-                                                                                </div>
+                                                                    <div
+                                                                        key={index}
+                                                                        className="bg-white rounded-lg p-4 shadow-sm border border-gray-200"
+                                                                    >
+                                                                        <div className="flex items-center space-x-3">
+                                                                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
+                                                                                <UserCircleIcon className="w-6 h-6 text-gray-600" />
                                                                             </div>
-                                                                            <div className="flex items-center h-6 pr-4">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="text-base font-semibold text-gray-900 capitalize truncate">
+                                                                                    {item.driver.name}
+                                                                                </p>
+                                                                                <p className="text-sm text-green-600 font-medium">
+                                                                                    Pay:{' '}
+                                                                                    {formatCurrency(
+                                                                                        calcDriverPay(
+                                                                                            item.driver.id,
+                                                                                        ).toNumber(),
+                                                                                    )}
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="w-6 h-6 bg-gray-50 rounded flex items-center justify-center border">
                                                                                 <input
-                                                                                    id={`driver-${index}`}
-                                                                                    name={`driver-${index}`}
                                                                                     type="checkbox"
                                                                                     value={item.driver.id}
                                                                                     checked={true}
                                                                                     onChange={
                                                                                         handleDriverCheckboxChange
                                                                                     }
-                                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                                                 />
                                                                             </div>
                                                                         </div>
-                                                                    </li>
+                                                                    </div>
                                                                 ))}
-                                                            </ul>
+                                                            </div>
 
-                                                            <div className="p-2 text-sm rounded bg-cyan-300/20">
-                                                                <div>
-                                                                    Estimated Total Pay:{' '}
-                                                                    {formatCurrency(calculateTotalPay())}
-                                                                </div>
-                                                                <div>
-                                                                    Load Rate:{' '}
-                                                                    {formatCurrency(
-                                                                        new Prisma.Decimal(load.rate).toNumber(),
-                                                                    )}
+                                                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                                                    <div>
+                                                                        <span className="font-semibold text-blue-900">
+                                                                            Total Pay:
+                                                                        </span>
+                                                                        <span className="ml-2 text-green-600 font-bold">
+                                                                            {formatCurrency(calculateTotalPay())}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="font-semibold text-blue-900">
+                                                                            Load Rate:
+                                                                        </span>
+                                                                        <span className="ml-2 text-blue-700 font-bold">
+                                                                            {formatCurrency(
+                                                                                new Prisma.Decimal(
+                                                                                    load.rate,
+                                                                                ).toNumber(),
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </>
+                                                        </div>
                                                     )}
-                                                    {/* Placeholder for when there are no drivers selected */}
+
                                                     {routeLegData.driversWithCharge.length === 0 && (
-                                                        <div className="flex flex-col items-center justify-center py-10 border-2 border-blue-200 border-dashed rounded-lg bg-blue-50">
-                                                            <p className="mt-2 text-sm font-semibold text-blue-600">
+                                                        <div className="bg-blue-50 rounded-lg p-6 sm:p-8 text-center border border-blue-200">
+                                                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                                <UserPlusIcon className="w-6 h-6 text-blue-600" />
+                                                            </div>
+                                                            <h5 className="text-lg font-semibold text-blue-900 mb-2">
                                                                 Route Drivers
-                                                            </p>
-                                                            <p className="mt-1 text-xs text-blue-400">
-                                                                Select driver(s) for this assignment
+                                                            </h5>
+                                                            <p className="text-sm text-blue-700 mb-4">
+                                                                Select drivers for this assignment
                                                             </p>
                                                             <button
                                                                 type="button"
-                                                                className="inline-flex items-center px-4 py-2 mt-4 text-sm font-medium leading-4 text-white bg-blue-600 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+                                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
                                                                 onClick={() => setShowDriverSelection(true)}
                                                             >
-                                                                <p className="w-full text-sm font-semibold text-center">
-                                                                    Select Drivers
-                                                                </p>
-                                                                <ChevronDoubleRightIcon
-                                                                    className="w-5 h-5 ml-1"
-                                                                    aria-hidden="true"
-                                                                />
+                                                                Select Drivers
+                                                                <ChevronDoubleRightIcon className="w-4 h-4 ml-2" />
                                                             </button>
                                                         </div>
                                                     )}
                                                 </section>
                                             )}
 
+                                            {/* Schedule Section */}
                                             {routeLegData.driversWithCharge.length !== 0 &&
                                                 routeLegData.locations.length !== 0 && (
-                                                    <section className="my-4">
-                                                        <div className="flex flex-col justify-start mb-2">
-                                                            <h5 className="text-sm font-semibold text-slate-600">
-                                                                Start Date & Time
-                                                            </h5>
-                                                            <p className="text-xs font-light text-slate-400">
-                                                                When should drivers begin this assignment
-                                                            </p>
-                                                        </div>
+                                                    <section className="mb-6 sm:mb-8">
+                                                        <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+                                                            <div className="mb-4 sm:mb-6">
+                                                                <h5 className="text-lg sm:text-xl font-bold text-gray-900">
+                                                                    Schedule Details
+                                                                </h5>
+                                                                <p className="text-sm text-gray-600 mt-1">
+                                                                    When should drivers begin this assignment
+                                                                </p>
+                                                            </div>
 
-                                                        <div className="flex flex-row items-end w-full gap-2">
-                                                            <input
-                                                                onChange={(e) => {
-                                                                    setRouteLegData({
-                                                                        ...routeLegData,
-                                                                        scheduledDate: e.target.value,
-                                                                    });
-                                                                }}
-                                                                value={
-                                                                    new Date(routeLegData.scheduledDate)
-                                                                        .toISOString()
-                                                                        .split('T')[0]
-                                                                }
-                                                                type="date"
-                                                                max="9999-12-31"
-                                                                min={new Date().toLocaleString().split('T')[0]}
-                                                                autoComplete="date"
-                                                                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            />
-                                                            <input
-                                                                required
-                                                                type="time"
-                                                                value={routeLegData.scheduledTime}
-                                                                onChange={(e) => {
-                                                                    setRouteLegData({
-                                                                        ...routeLegData,
-                                                                        scheduledTime: e.target.value,
-                                                                    });
-                                                                }}
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            />
-                                                        </div>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 sm:mb-6">
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                        Date
+                                                                    </label>
+                                                                    <input
+                                                                        onChange={(e) => {
+                                                                            setRouteLegData({
+                                                                                ...routeLegData,
+                                                                                scheduledDate: e.target.value,
+                                                                            });
+                                                                        }}
+                                                                        value={
+                                                                            new Date(routeLegData.scheduledDate)
+                                                                                .toISOString()
+                                                                                .split('T')[0]
+                                                                        }
+                                                                        type="date"
+                                                                        className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                        Time
+                                                                    </label>
+                                                                    <input
+                                                                        type="time"
+                                                                        value={routeLegData.scheduledTime}
+                                                                        onChange={(e) => {
+                                                                            setRouteLegData({
+                                                                                ...routeLegData,
+                                                                                scheduledTime: e.target.value,
+                                                                            });
+                                                                        }}
+                                                                        className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                                    />
+                                                                </div>
+                                                            </div>
 
-                                                        <div className="col-span-12 mt-4 mb-2 sm:col-span-4 lg:col-span-3">
-                                                            <label
-                                                                className="block text-sm font-semibold text-slate-600"
-                                                                htmlFor="driverInstructions"
-                                                            >
-                                                                Optional Driver Instructions
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={routeLegData.driverInstructions}
-                                                                onChange={(e) => {
-                                                                    setRouteLegData({
-                                                                        ...routeLegData,
-                                                                        driverInstructions: e.target.value,
-                                                                    });
-                                                                }}
-                                                                autoComplete="state"
-                                                                id="driverInstructions"
-                                                                placeholder="Enter special instructions for the driver(s) here"
-                                                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            />
-                                                        </div>
-
-                                                        <div className="flex flex-col justify-start my-4">
-                                                            <div className="flex items-center justify-between h-full p-2 py-1 rounded-lg bg-slate-100 ">
-                                                                <label
-                                                                    htmlFor={'sms-send'}
-                                                                    className="flex-1 py-1 text-xs font-medium text-gray-900 cursor-pointer sm:text-sm"
-                                                                >
-                                                                    Send notification to selected drivers
+                                                            <div className="mb-4 sm:mb-6">
+                                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                    Driver Instructions (Optional)
                                                                 </label>
                                                                 <input
-                                                                    id={'sms-send'}
-                                                                    name={'sms-send'}
-                                                                    type="checkbox"
-                                                                    checked={sendSMS}
-                                                                    onChange={(e) => setSendSMS(e.target.checked)}
-                                                                    className="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-blue-600"
+                                                                    type="text"
+                                                                    value={routeLegData.driverInstructions}
+                                                                    onChange={(e) => {
+                                                                        setRouteLegData({
+                                                                            ...routeLegData,
+                                                                            driverInstructions: e.target.value,
+                                                                        });
+                                                                    }}
+                                                                    placeholder="Enter special instructions for drivers"
+                                                                    className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                                                 />
+                                                            </div>
+
+                                                            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                                                                <label className="flex items-center space-x-3 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={sendSMS}
+                                                                        onChange={(e) => setSendSMS(e.target.checked)}
+                                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                    />
+                                                                    <span className="text-sm font-medium text-gray-700">
+                                                                        Send notification to selected drivers
+                                                                    </span>
+                                                                </label>
                                                             </div>
                                                         </div>
                                                     </section>
                                                 )}
 
-                                            <div className="h-16"></div>
+                                            <div className="h-16 sm:h-20"></div>
                                         </div>
 
+                                        {/* Sticky Footer */}
                                         {!showDriverSelection && !showLegLocationSelection && (
-                                            <div className="sticky bottom-0 right-0 left-0 py-3 bg-white border-t-[1px] z-50 w-full text-center">
-                                                <div className="flex flex-col">
-                                                    <button
-                                                        type="button"
-                                                        disabled={
-                                                            routeLegData.driversWithCharge.length < 1 ||
-                                                            routeLegData.locations.length < 2 ||
-                                                            saveLoading
-                                                        }
-                                                        className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-700 border border-transparent rounded-md shadow-sm hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:bg-green-700 disabled:cursor-not-allowed"
-                                                        onClick={() => submit()}
-                                                    >
-                                                        <PlusIcon className="-ml-0.5 h-7 w-5" aria-hidden="true" />
-                                                        <p className="w-full text-sm font-semibold text-center">
-                                                            {routeLeg ? 'Save Assignment' : 'Add Assignment'}
-                                                        </p>
-                                                    </button>
-                                                </div>
+                                            <div className="sticky bottom-0 left-0 right-0 p-4 sm:p-6 bg-white border-t border-gray-200 shadow-lg">
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        routeLegData.driversWithCharge.length < 1 ||
+                                                        routeLegData.locations.length < 2 ||
+                                                        saveLoading
+                                                    }
+                                                    className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                    onClick={() => submit()}
+                                                >
+                                                    <PlusIcon className="w-5 h-5 mr-2" />
+                                                    {routeLeg ? 'Save Assignment' : 'Add Assignment'}
+                                                </button>
                                             </div>
                                         )}
                                     </div>
