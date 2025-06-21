@@ -18,7 +18,7 @@ import ELDProviderCard from '../../../components/eld/ELDProviderCard';
 import ELDConnectionModal from '../../../components/eld/ELDConnectionModal';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
 import { PageWithAuth } from '../../../interfaces/auth';
-import { useELDApi } from '../../../lib/eld/ELDApiClient';
+//import { useELDApi } from '../../../lib/eld/ELDApiClient';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { notify } from '../../../components/Notification';
 
@@ -98,7 +98,7 @@ const ELDProvidersPage: PageWithAuth = () => {
     const [loading, setLoading] = useState(true);
     const [currentConnection, setCurrentConnection] = useState<any>(null);
 
-    const eldApi = useELDApi();
+    const eldApi = undefined; //useELDApi();
 
     // Load current connection on component mount
     useEffect(() => {
@@ -108,7 +108,7 @@ const ELDProvidersPage: PageWithAuth = () => {
     const loadCurrentConnection = async () => {
         try {
             setLoading(true);
-            const response = await eldApi.getConnection();
+            const response = await eldApi?.getConnection();
 
             if (response.success && response.data) {
                 setCurrentConnection(response.data);
@@ -183,7 +183,7 @@ const ELDProvidersPage: PageWithAuth = () => {
         if (!selectedProvider) return false;
 
         try {
-            const response = await eldApi.createConnection(selectedProvider.id, selectedProvider.name, credentials);
+            const response = await eldApi?.createConnection(selectedProvider.id, selectedProvider.name, credentials);
 
             if (response.success) {
                 notify({
@@ -216,7 +216,7 @@ const ELDProvidersPage: PageWithAuth = () => {
 
     const handleDisconnect = async (providerId: string) => {
         try {
-            const response = await eldApi.deleteConnection();
+            const response = await eldApi?.deleteConnection();
 
             if (response.success) {
                 notify({
@@ -258,7 +258,7 @@ const ELDProvidersPage: PageWithAuth = () => {
         if (!currentConnection) return;
 
         try {
-            const response = await eldApi.triggerManualSync();
+            const response = await eldApi?.triggerManualSync();
 
             if (response.success) {
                 notify({
