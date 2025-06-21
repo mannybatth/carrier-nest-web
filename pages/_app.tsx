@@ -20,6 +20,7 @@ declare global {
 import { UserProvider } from '../components/context/UserContext';
 import ErrorBoundary from '../components/layout/ErrorBoundary';
 import Spinner from '../components/Spinner';
+import { SidebarProvider } from '../contexts/SidebarContext';
 import { useAuth } from '../hooks/useAuth';
 import { AuthEnabledComponentConfig } from '../interfaces/auth';
 import '../styles/globals.css';
@@ -77,16 +78,17 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
         <>
             <ErrorBoundary>
                 <SessionProvider session={session}>
-                    <Head>
-                        <title>Carrier Nest</title>
-                        <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-                        <meta name="description" content="Carrier Nest - Transportation Management System" />
-                        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+                    <SidebarProvider>
+                        <Head>
+                            <title>Carrier Nest</title>
+                            <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                            <meta name="description" content="Carrier Nest - Transportation Management System" />
+                            <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
 
-                        {/* facebook pixel */}
-                        <script
-                            dangerouslySetInnerHTML={{
-                                __html: `
+                            {/* facebook pixel */}
+                            <script
+                                dangerouslySetInnerHTML={{
+                                    __html: `
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
             n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -98,24 +100,24 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
             fbq('init', '2234238333571180');
             fbq('track', 'PageView');
         `,
-                            }}
-                        ></script>
-                        <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
-                        <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.8.0-min.js.gz"></script>
+                                }}
+                            ></script>
+                            <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+                            <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.8.0-min.js.gz"></script>
 
-                        <noscript>
-                            <img
-                                height="1"
-                                width="1"
-                                style={{ display: 'none' }}
-                                src="https://www.facebook.com/tr?id=2234238333571180&ev=PageView&noscript=1"
-                            />
-                        </noscript>
-                        {/* Google tag (gtag.js) */}
-                        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17087140393"></script>
-                        <script
-                            dangerouslySetInnerHTML={{
-                                __html: `
+                            <noscript>
+                                <img
+                                    height="1"
+                                    width="1"
+                                    style={{ display: 'none' }}
+                                    src="https://www.facebook.com/tr?id=2234238333571180&ev=PageView&noscript=1"
+                                />
+                            </noscript>
+                            {/* Google tag (gtag.js) */}
+                            <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17087140393"></script>
+                            <script
+                                dangerouslySetInnerHTML={{
+                                    __html: `
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
@@ -135,19 +137,20 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
         return false;
       }
     `,
-                            }}
-                        />
-                    </Head>
-                    {Component.authenticationEnabled ? (
-                        <AuthWrapper>
-                            <UserProvider>
-                                <Component {...pageProps} />
-                            </UserProvider>
-                        </AuthWrapper>
-                    ) : (
-                        <Component {...pageProps} />
-                    )}
-                    <Toaster position="top-right" />
+                                }}
+                            />
+                        </Head>
+                        {Component.authenticationEnabled ? (
+                            <AuthWrapper>
+                                <UserProvider>
+                                    <Component {...pageProps} />
+                                </UserProvider>
+                            </AuthWrapper>
+                        ) : (
+                            <Component {...pageProps} />
+                        )}
+                        <Toaster position="top-right" />
+                    </SidebarProvider>
                 </SessionProvider>
             </ErrorBoundary>
             <Analytics />
