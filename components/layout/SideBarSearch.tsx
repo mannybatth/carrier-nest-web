@@ -163,7 +163,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
             >
                 <Combobox
                     as="div"
-                    className="z-10 max-w-xl mx-auto overflow-hidden bg-white shadow-xl rounded-xl ring-1 ring-slate-200"
+                    className="relative z-50 max-w-xl mx-auto overflow-hidden bg-white shadow-xl rounded-xl ring-1 ring-slate-200"
                     value=""
                     onChange={(selection: any) => {
                         const { group, item } = selection;
@@ -205,7 +205,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                             {searchResults?.length > 0 && (
                                 <Combobox.Options
                                     static
-                                    className="z-10 py-2 overflow-y-auto text-sm max-h-72 border-t border-slate-100"
+                                    className="relative z-50 py-2 overflow-y-auto text-sm max-h-72 border-t border-slate-100"
                                 >
                                     {searchResults.map(
                                         ([group, items]) =>
