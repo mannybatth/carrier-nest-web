@@ -5,6 +5,7 @@ import { Bars3Icon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroic
 import type React from 'react';
 import { Fragment, type PropsWithChildren, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
+import { useSidebar } from '../../contexts/SidebarContext';
 import CreateNewButton from './CreateNewButton';
 import Navigation from './Navigation';
 import SideBarAccount from './SideBarAccount';
@@ -18,7 +19,7 @@ export type Props = PropsWithChildren<{
 
 const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const { sidebarCollapsed, toggleSidebar } = useSidebar();
 
     return (
         <div className={className}>
@@ -77,7 +78,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 </div>
                             </Transition.Child>
                             <div className="flex-1 h-0 pt-0 pb-4 overflow-y-auto">
-                                <SideBarFooter collapsed={false} />
+                                <SideBarFooter collapsed={false} onToggle={() => setSidebarOpen(false)} />
                                 <SideBarSearch collapsed={false} />
                                 <CreateNewButton className="mx-4 mt-4" collapsed={false} />
                                 <Navigation collapsed={false} />
@@ -95,23 +96,9 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     sidebarCollapsed ? 'md:w-16' : 'md:w-64'
                 }`}
             >
-                <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-gradient-to-b from-slate-50 to-gray-100 shadow-none">
-                    {/* Collapse/Expand Button */}
-                    <div className="absolute top-4 -right-3 z-50">
-                        <button
-                            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                            className="flex items-center justify-center w-6 h-6 bg-white border border-gray-300 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        >
-                            {sidebarCollapsed ? (
-                                <ChevronRightIcon className="w-3 h-3 text-gray-600" />
-                            ) : (
-                                <ChevronLeftIcon className="w-3 h-3 text-gray-600" />
-                            )}
-                        </button>
-                    </div>
-
+                <div className="flex flex-col flex-1 min-h-0 border-r  border-gray-200 bg-gradient-to-b from-slate-50 to-gray-100 shadow-none">
                     <div className="flex flex-col flex-1 pt-0 pb-4 overflow-y-auto">
-                        <SideBarFooter collapsed={sidebarCollapsed} />
+                        <SideBarFooter collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
                         <SideBarSearch collapsed={sidebarCollapsed} />
                         <CreateNewButton
                             className={sidebarCollapsed ? 'mx-2 mt-4' : 'mx-4 mt-4'}
