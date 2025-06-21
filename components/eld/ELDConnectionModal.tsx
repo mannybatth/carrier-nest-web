@@ -156,7 +156,7 @@ const ELDConnectionModal: React.FC<ELDConnectionModalProps> = ({ provider, onClo
                     <div className="space-y-5">
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                             <p className="text-sm text-blue-800">
-                                You'll need your {provider.name} API credentials to establish the connection.
+                                You&apos;ll need your {provider.name} API credentials to establish the connection.
                                 {provider.website && (
                                     <span>
                                         {' '}
