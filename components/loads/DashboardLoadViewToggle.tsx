@@ -867,7 +867,8 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                 Load# {load.loadNum}
                                                             </div>
                                                             <div className="font-base text-gray-900 font-semibold">
-                                                                {load.customer.name.toUpperCase()}
+                                                                {load.customer?.name?.toUpperCase() ||
+                                                                    'No Customer Assigned'}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -1979,7 +1980,7 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                 </Link>
                                                             </div>
                                                             <div className="font-semibold text-sm text-gray-900 truncate uppercase">
-                                                                {load.customer.name}
+                                                                {load.customer?.name || 'No Customer Assigned'}
                                                             </div>
                                                         </div>
                                                         <div className="absolute -top-6 right-0">
