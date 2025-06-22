@@ -222,3 +222,73 @@ body {
 .scale-103 {
     transform: scale(1.03);
 }
+
+/* Date input placeholder styling - comprehensive approach */
+/* Target all date inputs when they're empty (no value attribute or empty value) */
+input[type="date"]:not([value]),
+input[type="date"][value=""],
+input[type="date"]:invalid {
+    color: #9CA3AF !important; /* gray-400 for placeholder */
+}
+
+/* Target specific webkit date input parts when empty/invalid */
+input[type="date"]:not([value])::-webkit-datetime-edit-text,
+input[type="date"]:not([value])::-webkit-datetime-edit-month-field,
+input[type="date"]:not([value])::-webkit-datetime-edit-day-field,
+input[type="date"]:not([value])::-webkit-datetime-edit-year-field,
+input[type="date"][value=""]::-webkit-datetime-edit-text,
+input[type="date"][value=""]::-webkit-datetime-edit-month-field,
+input[type="date"][value=""]::-webkit-datetime-edit-day-field,
+input[type="date"][value=""]::-webkit-datetime-edit-year-field,
+input[type="date"]:invalid::-webkit-datetime-edit-text,
+input[type="date"]:invalid::-webkit-datetime-edit-month-field,
+input[type="date"]:invalid::-webkit-datetime-edit-day-field,
+input[type="date"]:invalid::-webkit-datetime-edit-year-field {
+    color: #9CA3AF !important; /* gray-400 for placeholder */
+}
+
+/* When the date input has a value, use the normal dark text color */
+input[type="date"]:valid[value]:not([value=""]) {
+    color: #111827 !important; /* gray-900 for actual dates */
+    font-weight: 600;
+}
+
+/* Ensure valid date inputs show dark text for all parts */
+input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-text,
+input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-month-field,
+input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-day-field,
+input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-year-field {
+    color: #111827 !important; /* gray-900 for actual dates */
+    font-weight: 600;
+}
+
+/* Fallback approach using our specific background class */
+.bg-gray-50[type="date"]:not([value]),
+.bg-gray-50[type="date"][value=""] {
+    color: #9CA3AF !important;
+}
+
+.bg-gray-50[type="date"]:not([value])::-webkit-datetime-edit-text,
+.bg-gray-50[type="date"]:not([value])::-webkit-datetime-edit-month-field,
+.bg-gray-50[type="date"]:not([value])::-webkit-datetime-edit-day-field,
+.bg-gray-50[type="date"]:not([value])::-webkit-datetime-edit-year-field,
+.bg-gray-50[type="date"][value=""]::-webkit-datetime-edit-text,
+.bg-gray-50[type="date"][value=""]::-webkit-datetime-edit-month-field,
+.bg-gray-50[type="date"][value=""]::-webkit-datetime-edit-day-field,
+.bg-gray-50[type="date"][value=""]::-webkit-datetime-edit-year-field {
+    color: #9CA3AF !important;
+}
+
+/* Ensure filled dates show dark text with our background class */
+.bg-gray-50[type="date"][value]:not([value=""]) {
+    color: #111827 !important;
+    font-weight: 600;
+}
+
+.bg-gray-50[type="date"][value]:not([value=""])::-webkit-datetime-edit-text,
+.bg-gray-50[type="date"][value]:not([value=""])::-webkit-datetime-edit-month-field,
+.bg-gray-50[type="date"][value]:not([value=""])::-webkit-datetime-edit-day-field,
+.bg-gray-50[type="date"][value]:not([value=""])::-webkit-datetime-edit-year-field {
+    color: #111827 !important;
+    font-weight: 600;
+}

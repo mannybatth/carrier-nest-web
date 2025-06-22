@@ -75,6 +75,17 @@ const EditLoad: PageWithAuth = () => {
     };
 
     const submit = async (data: ExpandedLoad) => {
+        // Validate that a customer is selected
+        if (!data.customer) {
+            notify({
+                title: 'Customer Required',
+                message: 'Please select a customer before updating the load.',
+                type: 'error',
+            });
+            setLoading(false);
+            return;
+        }
+
         console.log('data to save', data);
 
         const loadData: ExpandedLoad = {

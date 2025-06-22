@@ -117,7 +117,7 @@ export const LoadsTableCompact: React.FC<Props> = ({
                                     </div>
                                     <div className="text-xs text-gray-500">Load# {load.loadNum}</div>
                                     <div className="text-base font-semibold text-gray-900  whitespace-nowrap truncate max-w-72">
-                                        {load.customer.name.toUpperCase()}
+                                        {load.customer?.name?.toUpperCase() || 'No Customer Assigned'}
                                     </div>
                                     <div className="text-green-600 font-semibold ">
                                         {load?.rate ? `$${load.rate}` : 'N/A'}

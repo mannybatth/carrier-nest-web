@@ -90,7 +90,7 @@ function calculateStats(loads: ExpandedLoad[] = []): Stats {
         if (!load.customerId || !load.customer?.name) return;
 
         const customerId = load.customerId;
-        const customerName = load.customer.name;
+        const customerName = load.customer?.name || 'No Customer Assigned';
 
         if (!customerMap.has(customerId)) {
             customerMap.set(customerId, {

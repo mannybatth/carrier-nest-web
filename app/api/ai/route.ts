@@ -26,6 +26,19 @@ interface LogisticsData {
     }[];
     rate: number;
     invoice_emails: string[];
+    customer_details?: {
+        name: string;
+        contact_email?: string;
+        billing_email?: string;
+        payment_status_email?: string;
+        address?: {
+            street: string;
+            city: string;
+            state: string;
+            zip: string;
+            country: string;
+        };
+    };
 }
 
 const system = `Objective: Extract sequences from a rate confirmation document using OCR and structure the extracted data.
@@ -54,7 +67,20 @@ Output Format:
         ... (repeat this structure for each stop regardless if it appears multiple times)
     ],
     "rate": number or null,
-    "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null
+    "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null,
+    "customer_details": {
+        "name": string or null,
+        "contact_email": string or null,
+        "billing_email": string or null,
+        "payment_status_email": string or null,
+        "address": {
+            "street": string or null,
+            "city": string or null,
+            "state": string or null,
+            "zip": string or null,
+            "country": string or null
+        } or null
+    } or null
 }
 
 Extraction Guidelines:
@@ -69,6 +95,16 @@ Extraction Guidelines:
         - Time: The shipping/receiving hours for the shipment. The extracted time should strictly be in the 24-hour format. If a range is provided, it should appear in the format "HH:mm - HH:mm", for instance, "05:00 - 20:00". If the time is accompanied by a date within the range (like "2023-06-01 05:00 - 2023-07-08 20:00"), only the time portion should be extracted, omitting the date.
 5. Rate: Look for "Total", "Rate", "Amount". Extract the complete amount including any additional fees. Represent the value numerically.
 6. Invoice Emails: Extract all emails where invoices should be sent. If none are found, use 'null'.
+7. Customer Details: Extract comprehensive broker information as customer details (since you invoice the broker who generated this rate confirmation):
+    - Name: The broker/logistics company name. This is the entity that contracted the load and will be invoiced. Look for "Broker", "Logistics Company", "Contracted By", "Bill To", or the main company header on the rate confirmation.
+    - Contact Email: Broker's primary contact email, often labeled as "Contact", "Email", "Broker Email", "Coordinator Email"
+    - Billing Email: Email where the broker expects BOL/POD paperwork to be sent for processing invoices. Look for "Submit Documents", "Send BOL", "Send POD", "Document Submission", "Paperwork Email", "Invoice Documents", or similar instructions.
+    - Payment Status Email: Email for inquiries about payment status, typically the accounts payable department. Look for "Accounts Payable", "AP Email", "Payment Inquiries", "Payment Status", "Finance Department", "AR Department", or contact information for payment-related questions.
+    - Address: The broker's mailing address where they want documents sent. This can be either a PO Box or a normal street address. This address typically appears close to the broker name/company header, often in "Bill To", "Send Documents To", or broker contact information sections. This is NOT the pickup or delivery location addresses.
+
+    IMPORTANT: Customer details should represent the BROKER/LOGISTICS COMPANY that generated the rate confirmation and will be invoiced, NOT the shipper at the pickup location. The broker is your customer who you need to bill for transportation services.
+
+    NOTE: In the example above, "C.H. Robinson" is the broker/customer (who you invoice) and "Gorilla Glue Company" is the shipper (at pickup location). The customer_details should reflect the broker (C.H. Robinson), not the shipper (Gorilla Glue Company).
 
 Advanced Extraction Details:
 1. PO Numbers:
@@ -81,7 +117,17 @@ Advanced Extraction Details:
     - This is vital. Capture the entire sequence of label-value pairs immediately following mentions of "Reference", "Ref Numbers", or "Shipper ID". These pairs are typically separated by commas.
     - Concatenate all the captured label-value pairs from a single stop using commas but without line breaks.
     - Stay vigilant for any continuation on the next page and strictly avoid usual address patterns or mentions like "Phone", "Tel", or "Contact".
-
+4. Broker Information Extraction (CRITICAL for customer_details):
+    - Look for sections like "Broker INFORMATION", "BILL TO", "Contracted By", "Load Broker", or company headers/letterheads
+    - The broker is usually the company that generated the rate confirmation document
+    - Broker address should be different from pickup/delivery locations and is often in header, footer, or "Bill To" sections
+    - The broker address typically appears near the broker company name, often in the document header or a dedicated "Bill To" or "Send Documents To" section
+    - Email addresses may be in dedicated sections or near broker contact information (e.g., "Broker Email", "Broker Contact", "Load Coordinator")
+    - Common broker identifiers: company logos, "Rate Confirmation from [Company]", "Contracted By", "Broker: [Company]"
+    - The broker name often appears prominently at the top of the document or in document headers
+    - For billing_email: Look for document submission instructions like "Submit freight bills to:", "Send BOL/POD to:", "Document submission:", "Paperwork email:"
+    - For payment_status_email: Look for payment inquiry instructions like "Payment questions:", "Accounts payable:", "Payment status:", "Finance contact:"
+    - Broker name and address and contact information is typically found close by at the top of bottom of the document
 Example:
 Document snippet:
 
@@ -89,6 +135,8 @@ LOGISTICS DETAILS
 -----------------
 
 Contracted By:     C.H. Robinson
+                   14701 Charlson Rd
+                   Eden Prairie, MN 55347
 
 LOAD CONFIRMATION
 -----------------
@@ -122,6 +170,9 @@ INVOICE DETAILS
 ---------------
 Please submit freight bills to the following emails:
 - LoadDocs@CHRobinson.com
+
+Payment inquiries should be directed to:
+- AP@CHRobinson.com
 
 Page 1 of 1
 
@@ -164,7 +215,20 @@ Extraction output:
         }
     ],
     "rate": 800.00,
-    "invoice_emails": ["LoadDocs@CHRobinson.com"]
+    "invoice_emails": ["LoadDocs@CHRobinson.com"],
+    "customer_details": {
+        "name": "C.H. Robinson",
+        "contact_email": null,
+        "billing_email": "LoadDocs@CHRobinson.com",
+        "payment_status_email": "AP@CHRobinson.com",
+        "address": {
+            "street": "14701 Charlson Rd",
+            "city": "Eden Prairie",
+            "state": "MN",
+            "zip": "55347",
+            "country": null
+        }
+    }
 }`;
 
 export const maxDuration = 30;
