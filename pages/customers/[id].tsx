@@ -225,11 +225,18 @@ const CustomerDetailsPage: PageWithAuth = () => {
     };
 
     const deleteCustomer = async (id: string) => {
-        await deleteCustomerById(id);
+        try {
+            await deleteCustomerById(id);
 
-        notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
-
-        router.push('/customers');
+            notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
+            router.push('/customers');
+        } catch (error) {
+            notify({ 
+                title: 'Unable to delete customer', 
+                message: error.message,
+                type: 'error' 
+            });
+        }
     };
 
     return (
