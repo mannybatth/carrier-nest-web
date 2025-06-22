@@ -266,7 +266,7 @@ const EditLoad: PageWithAuth = () => {
                                                 No Rate Confirmation
                                             </h3>
                                             <p className="text-sm text-gray-500">
-                                                This load doesn't have a rate confirmation document attached.
+                                                This load doesn&apos;t have a rate confirmation document attached.
                                             </p>
                                         </div>
                                     )}

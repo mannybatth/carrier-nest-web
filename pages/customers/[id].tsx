@@ -101,7 +101,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ className, customer, 
 
 const CustomerDetailsPage: PageWithAuth = () => {
     const router = useRouter();
-    const searchParams = new URLSearchParams(router.query as any);
+    const searchParams = new URLSearchParams(router.query as Record<string, string>);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -109,8 +109,6 @@ const CustomerDetailsPage: PageWithAuth = () => {
     const limitProp = Number(searchParams.get('limit')) || 10;
     const offsetProp = Number(searchParams.get('offset')) || 0;
     const customerId = router.query.id as string;
-
-    const [lastLoadsTableLimit, setLastLoadsTableLimit] = useLocalStorage('lastLoadsTableLimit', limitProp);
 
     const [loadingCustomer, setLoadingCustomer] = React.useState(true);
     const [loadingLoads, setLoadingLoads] = React.useState(true);
@@ -231,10 +229,10 @@ const CustomerDetailsPage: PageWithAuth = () => {
             notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
             router.push('/customers');
         } catch (error) {
-            notify({ 
-                title: 'Unable to delete customer', 
+            notify({
+                title: 'Unable to delete customer',
                 message: error.message,
-                type: 'error' 
+                type: 'error',
             });
         }
     };
@@ -386,7 +384,7 @@ const CustomerDetailsPage: PageWithAuth = () => {
                             <div className="col-span-12">
                                 <h3 className="mb-2">Loads for Customer</h3>
                                 {loadingLoads ? (
-                                    <LoadsTableSkeleton limit={lastLoadsTableLimit} />
+                                    <LoadsTableSkeleton limit={limitProp} />
                                 ) : (
                                     <LoadsTable
                                         loads={loadsList}
