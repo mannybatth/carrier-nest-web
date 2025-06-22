@@ -14,7 +14,7 @@ import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
-import type { AILoad } from '../../interfaces/ai';
+import type { AILoad, AIStop, AICustomerDetails } from '../../interfaces/ai';
 import type { PageWithAuth } from '../../interfaces/auth';
 import type { ExpandedLoad } from '../../interfaces/models';
 import { apiUrl } from '../../lib/constants';
@@ -94,6 +94,7 @@ const CreateLoad: PageWithAuth = () => {
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = useState(false);
     const [prefillName, setPrefillName] = useState(null);
+    const [extractedCustomerDetails, setExtractedCustomerDetails] = useState<AICustomerDetails>(null);
     const [currentRateconFile, setCurrentRateconFile] = useState<File>(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
@@ -462,14 +463,14 @@ const CreateLoad: PageWithAuth = () => {
                 })),
             ]);
 
-            const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false);
+            const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false, customersList);
             const logisticsCompany = aiLoad?.logistics_company;
 
             // Only apply AI output if not in edit mode or user confirms
             if (!isEditMode || confirm('Do you want to replace your current data with the extracted information?')) {
                 applyAIOutputToForm(aiLoad);
                 // Handle customer matching
-                handleCustomerMatching(logisticsCompany, customersList);
+                handleCustomerMatching(logisticsCompany, customersList, aiLoad);
             }
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error processing document', type: 'error' });
@@ -529,7 +530,7 @@ const CreateLoad: PageWithAuth = () => {
         });
     };
 
-    const handleCustomerMatching = (logisticsCompany: string, customersList: Customer[]) => {
+    const handleCustomerMatching = (logisticsCompany: string, customersList: Customer[], aiLoad?: AILoad) => {
         if (!logisticsCompany || !customersList) {
             return;
         }
@@ -543,12 +544,21 @@ const CreateLoad: PageWithAuth = () => {
             setPrefillName(logisticsCompany);
             setShowMissingCustomerLabel(true);
             setOpenAddCustomer(true);
+            // Store extracted customer details for pre-filling the form
+            if (aiLoad?.customer_details) {
+                setExtractedCustomerDetails(aiLoad.customer_details);
+            }
         } else {
             formHook.setValue('customer', customersList[matchedIndex]);
         }
     };
 
-    const getAILoad = async (documentsInBlocks: any[], documentsInLines: any[], isRetry = false): Promise<AILoad> => {
+    const getAILoad = async (
+        documentsInBlocks: any[],
+        documentsInLines: any[],
+        isRetry = false,
+        customersList?: Customer[],
+    ): Promise<AILoad> => {
         const response = await fetch(`${apiUrl}/ai`, {
             method: 'POST',
             headers: {
@@ -558,39 +568,24 @@ const CreateLoad: PageWithAuth = () => {
                 documents: isRetry ? documentsInLines : documentsInBlocks,
             }),
         });
-        const streamReader = response.body.getReader();
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const text = await response.text();
         let aiLoad: AILoad = null;
-        const foundProperties = new Set<string>();
-        let buffer = '';
-
-        const processChunk = (chunk: string) => {
-            const progress = checkForProperties(chunk, foundProperties);
-            setAiProgress(10 + (progress || 0) * (90 / 100));
-        };
-
-        while (true) {
-            const { value, done } = await streamReader.read();
-            if (done) {
-                setAiProgress(100);
-                try {
-                    // First try to extract JSON from code fence
-                    const jsonMatch = buffer.match(/```json\s*([\s\S]*?)\s*```/);
-                    if (jsonMatch) {
-                        aiLoad = JSON.parse(jsonMatch[1]);
-                    } else {
-                        // If no code fence found, try parsing the entire buffer as JSON
-                        aiLoad = JSON.parse(buffer);
-                    }
-                } catch (error) {
-                    console.error('Error parsing JSON:', error);
-                    throw new Error('Failed read document');
-                }
-                break;
+        try {
+            // Try to extract JSON from code fence if present
+            const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) {
+                aiLoad = JSON.parse(jsonMatch[1]);
+            } else {
+                aiLoad = JSON.parse(text);
             }
-            const decoded = new TextDecoder().decode(value);
-            buffer += decoded;
-            processChunk(decoded);
+        } catch (error) {
+            console.error('Error parsing JSON:', error);
+            throw new Error('Failed to parse document response');
         }
 
         if (isRetry) {
@@ -607,11 +602,12 @@ const CreateLoad: PageWithAuth = () => {
         if (!aiLoad?.logistics_company || !aiLoad?.load_number || needRetryOnStops) {
             setIsRetrying(true);
             setAiProgress(10);
-
             // Retry with line-by-line data
-            return getAILoad(documentsInBlocks, documentsInLines, true);
+            return getAILoad(documentsInBlocks, documentsInLines, true, customersList);
         }
 
+        // Update the form all at once
+        applyAIOutputToForm(aiLoad);
         return aiLoad;
     };
 
@@ -679,6 +675,11 @@ const CreateLoad: PageWithAuth = () => {
                 city: null,
                 state: null,
                 zip: null,
+                date: null,
+                time: null,
+                poNumbers: null,
+                pickUpNumbers: null,
+                referenceNumbers: null,
             },
             receiver: {
                 name: null,
@@ -686,6 +687,11 @@ const CreateLoad: PageWithAuth = () => {
                 city: null,
                 state: null,
                 zip: null,
+                date: null,
+                time: null,
+                poNumbers: null,
+                pickUpNumbers: null,
+                referenceNumbers: null,
             },
             stops: [],
         });
@@ -761,8 +767,8 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
-        // Replace , with space
-        let value = (event.target as HTMLInputElement).value.replaceAll(/(?<=\w),(?=\w)/g, ' ');
+        // Replace comma between word characters with space
+        let value = (event.target as HTMLInputElement).value.replace(/(\w),(\w)/g, '$1 $2');
         // Remove special characters and convert to lowercase
         const replaceExp = /[^a-zA-Z0-9 ]/g;
         value = value.replace(replaceExp, '').toLowerCase();
@@ -947,8 +953,7 @@ const CreateLoad: PageWithAuth = () => {
         }).length;
 
         // Determine similarity based on the proportion of matching tokens
-        const threshold = Math.max(tokens1.length, tokens2.length) * 0.5; // Adjust threshold as needed
-        return matches >= tokens1.length;
+        return matches >= Math.min(tokens1.length, tokens2.length * 0.8);
     };
 
     const findClosestDate = (
@@ -1014,6 +1019,9 @@ const CreateLoad: PageWithAuth = () => {
                 zip: null,
                 date: null,
                 time: null,
+                poNumbers: null,
+                pickUpNumbers: null,
+                referenceNumbers: null,
             },
             receiver: {
                 name: null,
@@ -1023,6 +1031,9 @@ const CreateLoad: PageWithAuth = () => {
                 zip: null,
                 date: null,
                 time: null,
+                poNumbers: null,
+                pickUpNumbers: null,
+                referenceNumbers: null,
             },
             stops: [],
         });
@@ -1037,6 +1048,10 @@ const CreateLoad: PageWithAuth = () => {
         setIsProcessing(false);
         setIsRetrying(false);
         setAiLimitReached(false);
+        setExtractedCustomerDetails(null);
+        setOpenAddCustomer(false);
+        setShowMissingCustomerLabel(false);
+        setPrefillName(null);
     };
 
     return (
@@ -1338,6 +1353,7 @@ const CreateLoad: PageWithAuth = () => {
                                     loading={loading}
                                     onResetForm={resetForm}
                                     isEditMode={isEditMode}
+                                    extractedCustomerDetails={extractedCustomerDetails}
                                 />
                             </form>
                         </div>
