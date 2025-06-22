@@ -115,7 +115,7 @@ const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !load) && <LoadingOverlay />}
+                    {(loading || !load) && <LoadingOverlay message="Loading load data..." />}
 
                     <div className="pt-1 space-y-6">
                         {load && <LoadCard load={load} />}

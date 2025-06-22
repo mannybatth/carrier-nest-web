@@ -429,7 +429,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     onClose={() => setOpenDeleteLegConfirmation(false)}
                 />
                 <div className="relative max-w-7xl py-2 mx-auto">
-                    {downloadingDocs && <LoadingOverlay />}
+                    {downloadingDocs && <LoadingOverlay message="Downloading documents..." />}
                     <BreadCrumb
                         className="sm:px-6 md:px-8"
                         paths={[

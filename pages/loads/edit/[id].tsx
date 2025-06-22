@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { LoadProvider, useLoadContext } from 'components/context/LoadContext';
 import { useRouter } from 'next/router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
@@ -30,6 +30,12 @@ const EditLoad: PageWithAuth = () => {
     const [downloadRateconFile, setDownloadRateconFile] = React.useState(false);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
+
+    // Memoize PDF viewer to prevent unnecessary re-renders
+    const pdfViewer = useMemo(() => {
+        if (!currentRateconFile) return null;
+        return <PDFViewer fileBlob={currentRateconFile} />;
+    }, [currentRateconFile]);
 
     useEffect(() => {
         if (!load) {
@@ -72,6 +78,24 @@ const EditLoad: PageWithAuth = () => {
             console.error('Error downloading file:', error);
         }
         setDownloadRateconFile(false);
+    };
+
+    const resetForm = () => {
+        if (!load) return;
+
+        // Reset form to original load data
+        formHook.reset();
+        formHook.setValue('customer', load.customer);
+        formHook.setValue('loadNum', load.loadNum);
+        formHook.setValue('rate', load.rate);
+        formHook.setValue('shipper', load.shipper);
+        formHook.setValue('receiver', load.receiver);
+        formHook.setValue('stops', load.stops);
+
+        // Reset customer form states
+        setOpenAddCustomer(false);
+        setShowMissingCustomerLabel(false);
+        setPrefillName(null);
     };
 
     const submit = async (data: ExpandedLoad) => {
@@ -168,9 +192,9 @@ const EditLoad: PageWithAuth = () => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Load</h1>}>
-            <div className={`${load?.rateconDocument ? 'max-w-full' : 'max-w-7xl'}  py-2 mx-auto`}>
+            <div className="max-w-[1980px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <BreadCrumb
-                    className="sm:px-6 md:px-8"
+                    className="md:mb-6"
                     paths={[
                         {
                             label: 'Loads',
@@ -184,34 +208,112 @@ const EditLoad: PageWithAuth = () => {
                             label: 'Edit Load',
                         },
                     ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="text-2xl font-semibold text-gray-900">Edit Load</h1>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !load) && <LoadingOverlay />}
+                />
 
-                    <div className="relative flex flex-col lg:flex-row  lg:items-start w-full h-full min-h-screen gap-3 mb-4 bg-white rounded-lg">
-                        {/* Check if the PDF file exists */}
-                        {currentRateconFile ? (
-                            <div className="flex-1 overflow-visible">
-                                <PDFViewer fileBlob={currentRateconFile} />
+                <div className="relative top-4 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 py-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edit Load</h1>
+                </div>
+
+                {(loading || !load) && (
+                    <LoadingOverlay message={loading ? 'Updating load...' : 'Loading load data...'} />
+                )}
+
+                <div className="flex gap-6 flex-col md:flex-row">
+                    {/* Left side - PDF viewer */}
+                    <div
+                        className={`${
+                            currentRateconFile ? 'w-full md:w-[55%]' : 'w-full md:w-1/4'
+                        } transition-all duration-300`}
+                    >
+                        {!currentRateconFile ? (
+                            <div className="sticky top-4 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="p-4 bg-gray-50 border-b border-gray-200">
+                                    <h2 className="text-lg font-medium text-gray-900">Rate Confirmation</h2>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {downloadRateconFile
+                                            ? 'Loading rate confirmation document...'
+                                            : load?.rateconDocument
+                                            ? 'Rate confirmation document loading...'
+                                            : 'No rate confirmation document available'}
+                                    </p>
+                                </div>
+                                <div className="flex flex-col items-center justify-center p-12">
+                                    {downloadRateconFile || load?.rateconDocument ? (
+                                        <div className="flex items-center justify-center p-4">
+                                            <Spinner className="text-blue-600" />
+                                            <span className="ml-2 text-sm text-gray-600">
+                                                Loading Rate Confirmation...
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center">
+                                            <div className="p-6 rounded-full bg-gray-100 mb-4">
+                                                <svg
+                                                    className="h-12 w-12 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-medium text-gray-700 mb-2">
+                                                No Rate Confirmation
+                                            </h3>
+                                            <p className="text-sm text-gray-500">
+                                                This load doesn&apos;t have a rate confirmation document attached.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ) : (
-                            load?.rateconDocument && (
-                                <div className="flex items-center justify-center flex-1 p-4 font-semi">
-                                    <Spinner /> Loading Rate Confirmation...
+                            <div className="block bg-white border border-gray-200 rounded-lg overflow-hidden overflow-y-visible">
+                                <div className="relative p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between overflow-hidden">
+                                    <div className="flex items-center overflow-hidden">
+                                        <svg
+                                            className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                            />
+                                        </svg>
+                                        <span className="font-medium text-gray-700 text-sm truncate">
+                                            {currentRateconFile.name} ({Math.round(currentRateconFile.size / 1024)} KB)
+                                        </span>
+                                    </div>
                                 </div>
-                            )
+                                {/* PDF Viewer Component */}
+                                {pdfViewer}
+                            </div>
                         )}
+                    </div>
 
+                    {/* Right side - Form */}
+                    <div
+                        className={`${
+                            currentRateconFile ? 'w-full md:w-[45%]' : 'w-full md:w-3/4'
+                        } transition-all duration-300 flex-shrink-0`}
+                    >
+                        {/* This div makes the form panel sticky and defines its fixed height. */}
+                        {/* LoadForm inside will use h-full to fill this height and manage its own internal scroll. */}
                         <div
-                            className={`flex-1 flex  border border-gray-200 h-[86vh] ${
-                                currentRateconFile ? 'relative lg:sticky top-2  lg:max-h-screen bg-white p-1' : ''
-                            } rounded-md `}
+                            className={`sticky top-4 bg-white border border-gray-200 overflow-hidden rounded-lg h-full ${
+                                currentRateconFile ? 'md:h-[85vh]' : 'h-full'
+                            }`}
                         >
-                            <form id="load-form" onSubmit={formHook.handleSubmit(submit)}>
+                            <form id="load-form" onSubmit={formHook.handleSubmit(submit)} className="h-full">
                                 <LoadForm
                                     formHook={formHook}
                                     openAddCustomerFromProp={openAddCustomer}
@@ -221,17 +323,10 @@ const EditLoad: PageWithAuth = () => {
                                     prefillName={prefillName}
                                     setPrefillName={setPrefillName}
                                     parentStopsFieldArray={stopsFieldArray}
+                                    loading={loading}
+                                    onResetForm={resetForm}
                                     isEditMode={true}
                                 />
-                                {/* <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                                    <div className="flex-1"></div>
-                                    <button
-                                        type="submit"
-                                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                    >
-                                        Save Load
-                                    </button>
-                                </div> */}
                             </form>
                         </div>
                     </div>

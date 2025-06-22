@@ -15,7 +15,7 @@ import { useLocalStorage } from '../../lib/useLocalStorage';
 
 const CustomersPage: PageWithAuth = () => {
     const router = useRouter();
-    const searchParams = new URLSearchParams(router.query as any);
+    const searchParams = new URLSearchParams(router.query as Record<string, string>);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
         sortOrder: searchParams.get('sortOrder'),
@@ -115,10 +115,18 @@ const CustomersPage: PageWithAuth = () => {
     };
 
     const deleteCustomer = async (id: string) => {
-        await deleteCustomerById(id);
+        try {
+            await deleteCustomerById(id);
 
-        notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
-        reloadCustomers({ sort, limit, offset, useTableLoading: true });
+            notify({ title: 'Customer deleted', message: 'Customer deleted successfully' });
+            reloadCustomers({ sort, limit, offset, useTableLoading: true });
+        } catch (error) {
+            notify({
+                title: 'Unable to delete customer',
+                message: error.message,
+                type: 'error',
+            });
+        }
 
         setCustomerIdToDelete(null);
     };

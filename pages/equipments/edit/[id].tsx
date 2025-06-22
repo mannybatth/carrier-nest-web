@@ -75,7 +75,7 @@ const EditEquipmentPage = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !equipment) && <LoadingOverlay />}
+                    {(loading || !equipment) && <LoadingOverlay message="Loading equipment data..." />}
                     <form id="equipment-form" onSubmit={formHook.handleSubmit(submit)}>
                         <EquipmentForm formHook={formHook} drivers={drivers} condensed={false} />
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">

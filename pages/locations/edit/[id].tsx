@@ -83,7 +83,7 @@ const EditLocationPage: PageWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !location) && <LoadingOverlay />}
+                    {(loading || !location) && <LoadingOverlay message="Loading location data..." />}
                     <form id="location-form" onSubmit={formHook.handleSubmit(submit)}>
                         <LocationForm formHook={formHook}></LocationForm>
                         <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">

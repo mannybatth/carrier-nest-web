@@ -76,6 +76,20 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
         return NextResponse.json({ code: 404, errors: [{ message: 'Customer not found' }] }, { status: 404 });
     }
 
+    // Check if the customer has any loads associated with it
+    const loads = await prisma.load.findMany({
+        where: {
+            customerId: String(id),
+            carrierId: session.user.defaultCarrierId,
+        },
+    });
+    if (loads.length > 0) {
+        return NextResponse.json(
+            { code: 400, errors: [{ message: 'Cannot delete customer with associated loads' }] },
+            { status: 400 },
+        );
+    }
+
     await prisma.customer.delete({
         where: { id: String(id) },
     });
