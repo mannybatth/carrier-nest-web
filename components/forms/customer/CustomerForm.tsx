@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Controller, UseFormReturn } from 'react-hook-form';
+import { Combobox } from '@headlessui/react';
+import {
+    CheckIcon,
+    ChevronUpDownIcon,
+    BuildingOffice2Icon,
+    EnvelopeIcon,
+    MapPinIcon,
+    ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import classNames from 'classnames';
 import { countryCodes } from '../../../interfaces/country-codes';
 import { Customer } from '@prisma/client';
-import { BuildingOffice2Icon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { useDebounce } from '../../../lib/debounce';
+import { type SearchCustomer, searchCustomersByName } from '../../../lib/rest/customer';
+import Spinner from '../../Spinner';
 
 type Props = {
     formHook: UseFormReturn<Customer>;
     condensed?: boolean;
+    onExistingCustomerFound?: (customer: SearchCustomer) => void;
 };
 
 const CustomerForm: React.FC<Props> = ({
@@ -14,9 +28,102 @@ const CustomerForm: React.FC<Props> = ({
         register,
         control,
         formState: { errors },
+        watch,
+        setValue,
     },
     condensed,
+    onExistingCustomerFound,
 }) => {
+    // Customer search state
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+    const [customerSearchResults, setCustomerSearchResults] = useState<SearchCustomer[]>(null);
+    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
+    const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+    const [foundCustomer, setFoundCustomer] = useState<SearchCustomer | null>(null);
+
+    // Watch the name field value
+    const nameValue = watch('name');
+
+    // Customer search effect
+    useEffect(() => {
+        if (!debouncedCustomerSearchTerm) {
+            setIsSearchingCustomer(false);
+            setCustomerSearchResults(null);
+            setShowDuplicateWarning(false);
+            setFoundCustomer(null);
+            return;
+        }
+
+        async function searchFetch() {
+            const customers = await searchCustomersByName(debouncedCustomerSearchTerm);
+            setIsSearchingCustomer(false);
+
+            const noResults = customers.length === 0;
+            if (noResults) {
+                setCustomerSearchResults([]);
+                setShowDuplicateWarning(false);
+                setFoundCustomer(null);
+                return;
+            }
+
+            setCustomerSearchResults(customers);
+
+            // Check for exact or very close matches
+            const exactMatch = customers.find(
+                (c) => c.name.toLowerCase() === debouncedCustomerSearchTerm.toLowerCase(),
+            );
+
+            if (exactMatch) {
+                setShowDuplicateWarning(true);
+                setFoundCustomer(exactMatch);
+            } else {
+                setShowDuplicateWarning(false);
+                setFoundCustomer(null);
+            }
+        }
+
+        searchFetch();
+    }, [debouncedCustomerSearchTerm]);
+
+    // Update search term when name changes
+    useEffect(() => {
+        if (nameValue && nameValue.length > 0) {
+            setIsSearchingCustomer(true);
+            setCustomerSearchTerm(nameValue);
+        } else {
+            setCustomerSearchTerm('');
+            setCustomerSearchResults(null);
+        }
+    }, [nameValue]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('[data-customer-search]')) {
+                setCustomerSearchResults(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const handleUseExistingCustomer = () => {
+        if (foundCustomer && onExistingCustomerFound) {
+            onExistingCustomerFound(foundCustomer);
+        }
+    };
+
+    const handleCreateAnyway = () => {
+        setShowDuplicateWarning(false);
+        setFoundCustomer(null);
+        setCustomerSearchResults(null);
+        setCustomerSearchTerm('');
+    };
     // Modern input styles consistent with the app's design system
     const inputStyles =
         'block w-full px-4 py-2.5 sm:py-3 bg-gray-50 border border-transparent rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white hover:bg-white transition-all duration-200 sm:text-sm font-medium';
@@ -81,34 +188,115 @@ const CustomerForm: React.FC<Props> = ({
                                     </span>
                                 </div>
                             </label>
-                            <input
-                                {...register('name', { required: 'Customer name is required' })}
-                                type="text"
-                                id="customer-name"
-                                placeholder="Enter customer name"
-                                autoComplete="organization"
-                                className={`${inputStyles} ${
-                                    errors.name
-                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
-                                        : ''
-                                }`}
+
+                            <Controller
+                                control={control}
+                                rules={{ required: 'Customer name is required' }}
+                                name="name"
+                                render={({ field, fieldState: { error } }) => (
+                                    <div className="relative z-50" data-customer-search>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                                            </div>
+                                            <input
+                                                {...field}
+                                                type="text"
+                                                id="customer-name"
+                                                placeholder="Enter customer name"
+                                                autoComplete="organization"
+                                                className={`w-full pl-10 pr-10 px-4 py-2.5 sm:py-3 bg-gray-50 border border-transparent rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white hover:bg-white transition-all duration-200 sm:text-sm font-medium ${
+                                                    error
+                                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
+                                                        : ''
+                                                }`}
+                                            />
+                                            {isSearchingCustomer && customerSearchTerm && (
+                                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                                    <Spinner className="h-4 w-4 text-gray-400" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Search Results Dropdown */}
+                                        {customerSearchTerm.length > 0 &&
+                                            customerSearchResults &&
+                                            customerSearchResults.length > 0 &&
+                                            !showDuplicateWarning && (
+                                                <div className="absolute z-[60] w-full py-1 mt-1 overflow-auto bg-white shadow-xl max-h-40 rounded-md border border-gray-200">
+                                                    {customerSearchResults.map((customer) => (
+                                                        <div
+                                                            key={customer.id}
+                                                            className="relative select-none py-3 pl-4 pr-9 cursor-pointer hover:bg-blue-50 text-gray-900"
+                                                            onClick={() => {
+                                                                setValue('name', customer.name);
+                                                                setShowDuplicateWarning(true);
+                                                                setFoundCustomer(customer);
+                                                                setCustomerSearchResults(null);
+                                                                setCustomerSearchTerm('');
+                                                            }}
+                                                        >
+                                                            <span className="block truncate font-medium">
+                                                                {customer.name}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                        {/* Duplicate Warning */}
+                                        {showDuplicateWarning && foundCustomer && (
+                                            <div className="relative z-40 mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                                <div className="flex items-start">
+                                                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-medium text-amber-800">
+                                                            Customer Already Exists
+                                                        </h4>
+                                                        <p className="mt-1 text-sm text-amber-700">
+                                                            A customer named &quot;<strong>{foundCustomer.name}</strong>
+                                                            &quot; already exists in your system.
+                                                        </p>
+                                                        <div className="mt-3 flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleUseExistingCustomer}
+                                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-200"
+                                                            >
+                                                                Use Existing Customer
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleCreateAnyway}
+                                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                                            >
+                                                                Create Anyway
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {error && (
+                                            <div className={`${errorStyles} mt-2`}>
+                                                <svg
+                                                    className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                                <span>{error.message}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             />
-                            {errors.name && (
-                                <div className={errorStyles}>
-                                    <svg
-                                        className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                    <span>{errors.name?.message}</span>
-                                </div>
-                            )}
                         </div>
                     </div>
 

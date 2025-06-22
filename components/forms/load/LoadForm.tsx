@@ -16,7 +16,12 @@ import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, type UseFormReturn, useForm } from 'react-hook-form';
 import type { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
-import { type SearchCustomer, searchCustomersByName, createCustomer } from '../../../lib/rest/customer';
+import {
+    type SearchCustomer,
+    searchCustomersByName,
+    createCustomer,
+    getCustomerById,
+} from '../../../lib/rest/customer';
 import Spinner from '../../Spinner';
 import CustomerForm from '../customer/CustomerForm';
 import MoneyInput from '../MoneyInput';
@@ -166,6 +171,45 @@ const LoadForm: React.FC<Props> = ({
         if (setPrefillName) setPrefillName(null);
     };
 
+    const onExistingCustomerSelect = async (searchCustomer: SearchCustomer) => {
+        try {
+            // Fetch full customer data using the ID
+            const fullCustomer = await getCustomerById(searchCustomer.id);
+
+            setValue('customer', fullCustomer, { shouldValidate: true });
+            setShowCustomerForm(false);
+            // Reset customer form
+            customerFormHook.reset();
+            // Clear any prefilled data
+            if (setShowMissingCustomerLabel) setShowMissingCustomerLabel(false);
+            if (setPrefillName) setPrefillName(null);
+        } catch (error) {
+            console.error('Error fetching customer details:', error);
+            // Fallback: create a minimal customer object with available data
+            const customer: Customer = {
+                id: searchCustomer.id,
+                name: searchCustomer.name,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                contactEmail: '',
+                billingEmail: '',
+                paymentStatusEmail: '',
+                street: '',
+                city: '',
+                state: '',
+                zip: '',
+                country: '',
+                carrierId: '',
+            };
+
+            setValue('customer', customer, { shouldValidate: true });
+            setShowCustomerForm(false);
+            customerFormHook.reset();
+            if (setShowMissingCustomerLabel) setShowMissingCustomerLabel(false);
+            if (setPrefillName) setPrefillName(null);
+        }
+    };
+
     const handleCustomerFormSubmit = async (data: Customer) => {
         setCustomerFormLoading(true);
 
@@ -211,7 +255,11 @@ const LoadForm: React.FC<Props> = ({
 
     return (
         <>
-            <div className="flex flex-col h-full relative overflow-hidden">
+            <div
+                className={`flex flex-col relative overflow-hidden transition-all duration-500 ${
+                    showCustomerForm ? 'h-auto overflow-y-auto' : 'h-full min-h-[600px]'
+                }`}
+            >
                 {/* Customer Form - Animated Slide In */}
                 <div
                     className={`absolute inset-0 flex flex-col transform transition-all duration-500 ease-out z-20 ${
@@ -251,81 +299,87 @@ const LoadForm: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    {/* Customer Form Content */}
+                    {/* Customer Form Content - Full Width Layout */}
                     <div
-                        className={`flex-1 overflow-y-auto p-6 transition-all duration-500 delay-150 ${
+                        className={`flex-1 transition-all duration-500 delay-150 ${
                             showCustomerForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                         }`}
                     >
-                        <form onSubmit={customerFormHook.handleSubmit(handleCustomerFormSubmit)}>
-                            <CustomerForm formHook={customerFormHook} condensed={false} />
-                        </form>
-                    </div>
+                        <div className="p-6 pb-0 w-full">
+                            <form onSubmit={customerFormHook.handleSubmit(handleCustomerFormSubmit)}>
+                                <CustomerForm
+                                    formHook={customerFormHook}
+                                    condensed={false}
+                                    onExistingCustomerFound={onExistingCustomerSelect}
+                                />
+                            </form>
+                        </div>
 
-                    {/* Customer Form Footer */}
-                    <div
-                        className={`flex-shrink-0 p-6 border-t border-gray-200 bg-white transition-all duration-500 delay-200 ${
-                            showCustomerForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                        }`}
-                    >
-                        <div className="flex justify-between">
-                            <button
-                                type="button"
-                                onClick={handleBackToLoadForm}
-                                className="inline-flex justify-center items-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105"
-                            >
-                                <ArrowLeftIcon className="mr-2 h-4 w-4" />
-                                Back to Load Details
-                            </button>
-                            <button
-                                type="submit"
-                                form="customer-form"
-                                onClick={customerFormHook.handleSubmit(handleCustomerFormSubmit)}
-                                disabled={customerFormLoading}
-                                className={`inline-flex justify-center items-center px-8 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 ${
-                                    customerFormLoading ? 'opacity-75 cursor-not-allowed scale-100' : ''
-                                }`}
-                            >
-                                {customerFormLoading ? (
-                                    <>
-                                        <svg
-                                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <circle
-                                                className="opacity-25"
-                                                cx="12"
-                                                cy="12"
-                                                r="10"
+                        {/* Customer Form Footer - Full Width */}
+                        <div
+                            className={`mx-6 mt-4 mb-6 p-6 border border-gray-200 bg-white rounded-lg shadow-sm transition-all duration-500 delay-200 ${
+                                showCustomerForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                            }`}
+                        >
+                            <div className="flex flex-col sm:flex-row justify-between gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleBackToLoadForm}
+                                    className="inline-flex justify-center items-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                >
+                                    <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                                    Back to Load Details
+                                </button>
+                                <button
+                                    type="submit"
+                                    form="customer-form"
+                                    onClick={customerFormHook.handleSubmit(handleCustomerFormSubmit)}
+                                    disabled={customerFormLoading}
+                                    className={`inline-flex justify-center items-center px-8 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md ${
+                                        customerFormLoading ? 'opacity-75 cursor-not-allowed' : ''
+                                    }`}
+                                >
+                                    {customerFormLoading ? (
+                                        <>
+                                            <svg
+                                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                ></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            Creating Customer...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-4 w-4 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
                                                 stroke="currentColor"
-                                                strokeWidth="4"
-                                            ></circle>
-                                            <path
-                                                className="opacity-75"
-                                                fill="currentColor"
-                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                            ></path>
-                                        </svg>
-                                        Creating Customer...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-4 w-4 mr-2"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth={2}
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Create Customer
-                                    </>
-                                )}
-                            </button>
+                                                strokeWidth={2}
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Create Customer
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
