@@ -4,6 +4,23 @@ export interface AILoad {
     stops: AIStop[];
     rate: number;
     invoice_emails: string[];
+    customer_details?: AICustomerDetails;
+}
+
+export interface AICustomerDetails {
+    name: string;
+    contact_email?: string;
+    billing_email?: string;
+    payment_status_email?: string;
+    address?: AICustomerAddress;
+}
+
+export interface AICustomerAddress {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
 }
 
 export interface AIStop {
