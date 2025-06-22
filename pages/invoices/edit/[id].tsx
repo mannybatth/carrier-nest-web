@@ -104,7 +104,7 @@ const EditInvoicePage: PageWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !invoice) && <LoadingOverlay />}
+                    {(loading || !invoice) && <LoadingOverlay message="Loading invoice data..." />}
 
                     <div className="pt-1 space-y-6">
                         {invoice && <LoadCard load={invoice.load} />}

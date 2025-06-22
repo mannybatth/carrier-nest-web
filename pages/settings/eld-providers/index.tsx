@@ -292,7 +292,7 @@ const ELDProvidersPage: PageWithAuth = () => {
         return (
             <SettingsLayout title="ELD Providers" maxWidth="4xl">
                 <div className="relative min-h-[400px]">
-                    <LoadingOverlay />
+                    <LoadingOverlay message="Loading ELD providers..." />
                 </div>
             </SettingsLayout>
         );
