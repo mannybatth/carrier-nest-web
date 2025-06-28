@@ -64,6 +64,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
             },
             data: {
                 defaultCarrierId: carrier.id,
+                role: 'admin', // Set the carrier owner as admin
                 carriers: {
                     connect: {
                         id: carrier.id,
