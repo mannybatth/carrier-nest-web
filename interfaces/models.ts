@@ -634,3 +634,215 @@ export type NewDriverInvoice = {
     assignments: ExpandedDriverAssignment[];
     lineItems: DriverInvoiceLineItem[];
 };
+
+/**
+ * User (Team Member)
+ */
+const expandedUser = Prisma.validator<Prisma.UserDefaultArgs>()({
+    include: {
+        defaultCarrier: {
+            select: {
+                id: true,
+                name: true,
+                email: true,
+            },
+        },
+        carriers: {
+            select: {
+                id: true,
+                name: true,
+                email: true,
+            },
+        },
+        accounts: {
+            select: {
+                id: true,
+                provider: true,
+            },
+        },
+    },
+});
+export type ExpandedUser = Partial<Prisma.UserGetPayload<typeof expandedUser>>;
+
+export enum UserRole {
+    ADMIN = 'admin',
+    DISPATCHER = 'dispatcher',
+    ACCOUNTING = 'accounting',
+}
+
+export interface UserPermissions {
+    // User management
+    manageUsers: boolean;
+
+    // Load management
+    viewLoads: boolean;
+    createLoads: boolean;
+    editLoads: boolean;
+    deleteLoads: boolean;
+    assignDrivers: boolean;
+    updateLoadStatuses: boolean;
+
+    // Document management
+    viewDocuments: boolean;
+    uploadDocuments: boolean;
+
+    // Invoice management
+    viewInvoices: boolean;
+    createInvoices: boolean;
+    editInvoices: boolean;
+    generateInvoices: boolean;
+
+    // Payment management
+    viewPayments: boolean;
+    applyPayments: boolean;
+    manageDriverPay: boolean;
+
+    // Settings
+    manageSettings: boolean;
+
+    // Assignments
+    viewAssignments: boolean;
+    manageAssignments: boolean;
+    updateAssignmentProgress: boolean;
+}
+
+export const getRolePermissions = (role: UserRole): UserPermissions => {
+    switch (role) {
+        case UserRole.ADMIN:
+            return {
+                manageUsers: true,
+                viewLoads: true,
+                createLoads: true,
+                editLoads: true,
+                deleteLoads: true,
+                assignDrivers: true,
+                updateLoadStatuses: true,
+                viewDocuments: true,
+                uploadDocuments: true,
+                viewInvoices: true,
+                createInvoices: true,
+                editInvoices: true,
+                generateInvoices: true,
+                viewPayments: true,
+                applyPayments: true,
+                manageDriverPay: true,
+                manageSettings: true,
+                viewAssignments: true,
+                manageAssignments: true,
+                updateAssignmentProgress: true,
+            };
+
+        case UserRole.DISPATCHER:
+            return {
+                manageUsers: false,
+                viewLoads: true,
+                createLoads: true,
+                editLoads: true,
+                deleteLoads: false,
+                assignDrivers: true,
+                updateLoadStatuses: true,
+                viewDocuments: true,
+                uploadDocuments: true,
+                viewInvoices: false,
+                createInvoices: false,
+                editInvoices: false,
+                generateInvoices: false,
+                viewPayments: false,
+                applyPayments: false,
+                manageDriverPay: false,
+                manageSettings: false,
+                viewAssignments: true,
+                manageAssignments: true,
+                updateAssignmentProgress: true,
+            };
+
+        case UserRole.ACCOUNTING:
+            return {
+                manageUsers: false,
+                viewLoads: true,
+                createLoads: false,
+                editLoads: false,
+                deleteLoads: false,
+                assignDrivers: false,
+                updateLoadStatuses: false,
+                viewDocuments: true,
+                uploadDocuments: false,
+                viewInvoices: true,
+                createInvoices: true,
+                editInvoices: true,
+                generateInvoices: true,
+                viewPayments: true,
+                applyPayments: true,
+                manageDriverPay: true,
+                manageSettings: false,
+                viewAssignments: true,
+                manageAssignments: false,
+                updateAssignmentProgress: false,
+            };
+
+        default:
+            // Default to most restrictive permissions
+            return {
+                manageUsers: false,
+                viewLoads: false,
+                createLoads: false,
+                editLoads: false,
+                deleteLoads: false,
+                assignDrivers: false,
+                updateLoadStatuses: false,
+                viewDocuments: false,
+                uploadDocuments: false,
+                viewInvoices: false,
+                createInvoices: false,
+                editInvoices: false,
+                generateInvoices: false,
+                viewPayments: false,
+                applyPayments: false,
+                manageDriverPay: false,
+                manageSettings: false,
+                viewAssignments: false,
+                manageAssignments: false,
+                updateAssignmentProgress: false,
+            };
+    }
+};
+
+export const getRoleLabel = (role: UserRole): string => {
+    switch (role) {
+        case UserRole.ADMIN:
+            return 'Admin';
+        case UserRole.DISPATCHER:
+            return 'Dispatcher';
+        case UserRole.ACCOUNTING:
+            return 'Accounting';
+        default:
+            return 'Unknown';
+    }
+};
+
+export const getRoleDescription = (role: UserRole): string => {
+    switch (role) {
+        case UserRole.ADMIN:
+            return 'Full access: manage users, loads, assignments, invoices, payments, settings';
+        case UserRole.DISPATCHER:
+            return 'Manage loads, assign drivers, edit loads, update statuses';
+        case UserRole.ACCOUNTING:
+            return 'View loads, generate invoices, apply payments, manage driver pay';
+        default:
+            return '';
+    }
+};
+
+export interface TeamMemberData {
+    name: string;
+    email: string;
+    role?: UserRole;
+}
+
+export interface TeamMemberInvite {
+    email: string;
+    role: UserRole;
+    carrierId: string;
+    invitedBy: string;
+    expiresAt: Date;
+}
