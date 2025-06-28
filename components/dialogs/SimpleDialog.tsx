@@ -1,6 +1,7 @@
 import React, { Fragment, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import Spinner from '../Spinner';
 
 interface SimpleDialogProps {
     show?: boolean;
@@ -15,6 +16,8 @@ interface SimpleDialogProps {
     icon?: React.ComponentType<{ className: string; 'aria-hidden': boolean }>;
     iconBgColor?: string;
     iconColor?: string;
+    loading?: boolean;
+    loadingText?: string;
 }
 
 const SimpleDialog: React.FC<SimpleDialogProps> = ({
@@ -30,15 +33,19 @@ const SimpleDialog: React.FC<SimpleDialogProps> = ({
     icon: Icon = ExclamationTriangleIcon,
     iconBgColor = 'bg-red-100',
     iconColor = 'text-red-600',
+    loading = false,
+    loadingText = 'Processing...',
 }) => {
     const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
     const handlePrimaryAction = () => {
+        if (loading) return; // Prevent action when loading
         primaryButtonAction && primaryButtonAction();
-        onClose();
+        if (!loading) onClose(); // Only close if not loading (for async operations)
     };
 
     const handleSecondaryAction = () => {
+        if (loading) return; // Prevent closing during loading
         secondaryButtonAction && secondaryButtonAction();
         onClose();
     };
@@ -90,21 +97,32 @@ const SimpleDialog: React.FC<SimpleDialogProps> = ({
                                 </div>
 
                                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                                    <button
-                                        type="button"
-                                        className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm ${primaryButtonColor} sm:ml-3 sm:w-auto`}
-                                        onClick={handlePrimaryAction}
-                                    >
-                                        {primaryButtonText}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center w-full px-3 py-2 mt-3 text-sm font-semibold text-gray-900 bg-white rounded-md shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                                        onClick={handleSecondaryAction}
-                                        ref={cancelButtonRef}
-                                    >
-                                        {secondaryButtonText}
-                                    </button>
+                                    {loading ? (
+                                        <div className="flex items-center justify-center w-full p-3 text-blue-600">
+                                            <Spinner />
+                                            <span className="ml-2 text-sm font-medium">{loadingText}</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm ${primaryButtonColor} sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                onClick={handlePrimaryAction}
+                                                disabled={loading}
+                                            >
+                                                {primaryButtonText}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="inline-flex justify-center w-full px-3 py-2 mt-3 text-sm font-semibold text-gray-900 bg-white rounded-md shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                                                onClick={handleSecondaryAction}
+                                                ref={cancelButtonRef}
+                                                disabled={loading}
+                                            >
+                                                {secondaryButtonText}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </Dialog.Panel>
                         </Transition.Child>
