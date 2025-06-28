@@ -58,7 +58,7 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     const [locationSearchTerm, setLocationSearchTerm] = useState('');
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const [locationSearchResults, setLocationSearchResults] = React.useState<LocationEntry[]>(null);
-    const [debouncedLocationSearchTerm, setDebouncedLocationSearchTerm] = useDebounce(locationSearchTerm, 500);
+    const debouncedLocationSearchTerm = useDebounce(locationSearchTerm, 500);
     const [selectedLocation, setSelectedLocation] = useState<LocationEntry>(null);
 
     const fieldId = (name: string): any => {
@@ -375,7 +375,6 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                                     onChange={(selectedLocation: LocationEntry) => {
                                         setSelectedLocation(selectedLocation);
                                         setLocationSearchTerm('');
-                                        setDebouncedLocationSearchTerm('');
 
                                         const { regionText, iso3166Info } = regionFromLocationEntry(selectedLocation);
                                         if (iso3166Info) {
