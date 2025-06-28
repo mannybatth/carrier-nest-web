@@ -376,8 +376,9 @@ const TeamSettings: PageWithAuth = () => {
                                     ) : (
                                         teamMembers.filter((member) => {
                                             const hasAccount = member.accounts && member.accounts.length > 0;
-                                            const hasCompletedOnboarding = member.name && member.name.trim().length > 0;
-                                            return hasAccount || hasCompletedOnboarding;
+                                            const isEmailVerified =
+                                                member.emailVerified !== null && member.emailVerified !== undefined;
+                                            return isEmailVerified || hasAccount;
                                         }).length
                                     )}
                                 </p>
@@ -400,8 +401,10 @@ const TeamSettings: PageWithAuth = () => {
                                     ) : (
                                         teamMembers.filter((member) => {
                                             const hasAccount = member.accounts && member.accounts.length > 0;
-                                            const hasCompletedOnboarding = member.name && member.name.trim().length > 0;
-                                            return !hasAccount && !hasCompletedOnboarding;
+                                            const isEmailVerified =
+                                                member.emailVerified !== null && member.emailVerified !== undefined;
+                                            const isActive = isEmailVerified || hasAccount;
+                                            return !isActive;
                                         }).length
                                     )}
                                 </p>
