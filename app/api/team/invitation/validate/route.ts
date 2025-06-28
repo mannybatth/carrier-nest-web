@@ -1,11 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { isValidTokenFormat, isInvitationExpired } from 'lib/team-invitation';
 
-export async function GET(req: Request) {
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
     try {
-        const { searchParams } = new URL(req.url);
-        const token = searchParams.get('token');
+        const token = req.nextUrl.searchParams.get('token');
 
         if (!token || !isValidTokenFormat(token)) {
             return NextResponse.json(
