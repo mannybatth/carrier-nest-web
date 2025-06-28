@@ -23,7 +23,7 @@ const SideBarSearch: React.FC<SideBarSearchProps> = ({ collapsed }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] =
         React.useState<[string, SearchResult<Load>[] | SearchResult<Customer>[] | SearchResult<Driver>[]][]>(null);
-    const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
     useEffect(() => {
         if (!debouncedSearchTerm) {

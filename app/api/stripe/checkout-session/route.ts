@@ -25,8 +25,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
     let carrier = null;
     if (carrierEmail) {
+        // Convert email to lowercase for case-insensitive comparison
+        const normalizedEmail = carrierEmail.toLowerCase();
         carrier = await prisma.carrier.findUnique({
-            where: { email: carrierEmail },
+            where: { email: normalizedEmail },
             include: { subscription: true },
         });
     } else if (session?.user?.defaultCarrierId) {

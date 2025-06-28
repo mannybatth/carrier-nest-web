@@ -49,6 +49,7 @@ model User {
     emailVerified    DateTime?
     image            String?
     isSiteAdmin      Boolean          @default(false)
+    role             String           @default("dispatcher")
     defaultCarrierId String?          @map("default_carrier_id")
     accounts         Account[]
     invoices         Invoice[]
@@ -72,6 +73,30 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model TeamInvitation {
+    id            String    @id @default(cuid())
+    email         String
+    token         String    @unique
+    carrierId     String
+    carrierName   String?
+    inviterName   String?
+    inviterEmail  String?
+    role          String?
+    expires       DateTime
+    createdAt     DateTime  @default(now())
+    usedAt        DateTime?
+    used          Boolean   @default(false)
+    emailSentAt   DateTime? // When the last email was sent
+    emailCount    Int       @default(1) // Number of emails sent for this invitation
+    lastEmailSent DateTime  @default(now()) // Last time email was sent
+
+    carrier Carrier @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+    @@index([email, carrierId])
+    @@index([expires])
+    @@index([lastEmailSent])
 }
 
 model Carrier {
@@ -103,6 +128,7 @@ model Carrier {
     subscription           Subscription?
     rateconImportsCount    Int                     @default(0)
     lastImportReset        DateTime                @default(now())
+    teamInvitations        TeamInvitation[]
 
     @@index([name, email, carrierCode])
 }

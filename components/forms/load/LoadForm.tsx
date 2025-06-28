@@ -77,7 +77,7 @@ const LoadForm: React.FC<Props> = ({
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = React.useState<SearchCustomer[]>(null);
-    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
+    const debouncedCustomerSearchTerm = useDebounce(customerSearchTerm, 500);
 
     const { fields: stopFields, append: appendStop, remove: removeStop } = useFieldArray({ name: 'stops', control });
     const stopsFieldArray = parentStopsFieldArray || { fields: stopFields, append: appendStop, remove: removeStop };
@@ -445,7 +445,6 @@ const LoadForm: React.FC<Props> = ({
                                                                 value={field.value || ''}
                                                                 onChange={(selectedCustomer: Customer) => {
                                                                     setCustomerSearchTerm('');
-                                                                    setDebouncedCustomerSearchTerm('');
                                                                     field.onChange(selectedCustomer);
                                                                 }}
                                                             >

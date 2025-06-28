@@ -38,7 +38,7 @@ const CustomerForm: React.FC<Props> = ({
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = useState<SearchCustomer[]>(null);
-    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useDebounce(customerSearchTerm, 500);
+    const debouncedCustomerSearchTerm = useDebounce(customerSearchTerm, 500);
     const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
     const [foundCustomer, setFoundCustomer] = useState<SearchCustomer | null>(null);
 

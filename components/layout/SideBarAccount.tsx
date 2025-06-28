@@ -86,7 +86,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
     }
 
     return (
-        <div className="border-t border-slate-200">
+        <div className="border-t border-slate-200 ">
             <Menu as="div" className="relative inline-block w-full">
                 <Menu.Button className="flex flex-row relative items-center w-full px-3 py-3 space-x-3 text-left hover:bg-slate-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white">
                     <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-medium text-white rounded-lg bg-slate-600">
@@ -110,7 +110,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                 >
-                    <Menu.Items className="absolute z-10 w-full bottom-full mb-2 origin-bottom bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none">
+                    <Menu.Items className="absolute z-50 w-full bottom-full mb-2 origin-bottom bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none">
                         <div className="py-1">
                             <Menu.Item>
                                 {({ active }) => (

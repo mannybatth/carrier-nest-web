@@ -25,8 +25,10 @@ async function findAndAttachCarrier(stripeCustomerId: string, email?: string) {
 
     // Try to find carrier by email if provided
     if (email) {
+        // Convert email to lowercase for case-insensitive comparison
+        const normalizedEmail = email.toLowerCase();
         const carrier = await prisma.carrier.findUnique({
-            where: { email },
+            where: { email: normalizedEmail },
         });
 
         if (carrier) {
@@ -140,8 +142,10 @@ export const POST = async (req: NextAuthRequest) => {
 
                 await findAndAttachCarrier(session.customer as string, session.customer_email);
 
+                // Convert email to lowercase for case-insensitive comparison
+                const normalizedEmail = session.customer_email.toLowerCase();
                 const carrier = await prisma.carrier.findUnique({
-                    where: { email: session.customer_email },
+                    where: { email: normalizedEmail },
                     include: { subscription: true },
                 });
 
