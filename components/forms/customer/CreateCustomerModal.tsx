@@ -147,7 +147,7 @@ const CreateCustomerModal: React.FC<Props> = ({
                         leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                         leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     >
-                        <Dialog.Panel className="relative w-full max-w-2xl h-[90vh] bg-white rounded-lg shadow-xl flex flex-col">
+                        <Dialog.Panel className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col">
                             {/* Fixed Header */}
                             <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
                                 <div>
@@ -173,14 +173,11 @@ const CreateCustomerModal: React.FC<Props> = ({
                                     </svg>
                                 </button>
                             </div>
-
+                            ``
                             {/* Scrollable Content */}
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <form ref={formRef} id="customer-form" className="h-full">
-                                    <CustomerForm formHook={formHook} condensed={condensed} />
-                                </form>
+                            <div className="flex-1 overflow-y-scroll p-6">
+                                <CustomerForm formHook={formHook} condensed={condensed} />
                             </div>
-
                             {/* Fixed Footer */}
                             <div className="border-t border-gray-200 p-6 flex-shrink-0">
                                 <button
