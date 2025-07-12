@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { PDFDocument } from 'pdf-lib';
 
 import { useSearchParams } from 'next/navigation';
+import { set } from 'date-fns';
 
 interface Line {
     text: string;
@@ -93,6 +94,7 @@ const CreateLoad: PageWithAuth = () => {
     const { isProPlan, isLoadingCarrier } = useUserContext();
 
     const [loading, setLoading] = useState(false);
+    const [loadSubmitting, setLoadSubmitting] = useState(false);
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
     const [showMissingCustomerLabel, setShowMissingCustomerLabel] = useState(false);
     const [prefillName, setPrefillName] = useState(null);
@@ -725,7 +727,8 @@ const CreateLoad: PageWithAuth = () => {
     }, [copyLoadId, formHook]);
 
     const submit = async (data: ExpandedLoad) => {
-        setLoading(true);
+        //setLoading(true);
+        setLoadSubmitting(true);
 
         data.shipper.type = LoadStopType.SHIPPER;
         data.receiver.type = LoadStopType.RECEIVER;
@@ -815,12 +818,13 @@ const CreateLoad: PageWithAuth = () => {
                 newLoad = await createLoad(loadData, currentRateconFile);
                 notify({ title: 'New load created', message: 'New load created successfully' });
             }
-
+            //setLoading(false);
+            setLoadSubmitting(false);
             // Redirect to load page
-            await router.push(`/loads/${newLoad.id}`);
-            setLoading(false);
+            router.push(`/loads/${newLoad.id}`);
         } catch (error) {
-            setLoading(false);
+            //setLoading(false);
+            setLoadSubmitting(false);
             notify({
                 title: `Error ${isEditMode ? 'updating' : 'saving'} load`,
                 message: `${error.message}`,
@@ -832,6 +836,7 @@ const CreateLoad: PageWithAuth = () => {
     const handleAIError = () => {
         setCurrentRateconFile(null);
         setLoading(false);
+        setLoadSubmitting(false);
         setIsRetrying(false);
         setAiProgress(0);
         setIsProcessing(false);
@@ -1607,7 +1612,7 @@ const CreateLoad: PageWithAuth = () => {
                 <h1 className="text-xl font-semibold text-gray-900">{isEditMode ? 'Edit Load' : 'Create New Load'}</h1>
             }
         >
-            {loading && !isProcessingText && !isProcessingImages && (
+            {loading && loadSubmitting && (
                 <LoadingOverlay message={isEditMode ? 'Updating load...' : 'Creating load...'} />
             )}
             <div className="max-w-[1980px] w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 md:py-6">
