@@ -299,7 +299,11 @@ export const POST = auth(async (req: NextAuthRequest) => {
         }
 
         // Generate a new refnum based on the last load created for carrier
+        // Find the last load created for the carrier
         const lastLoad = await prisma.load.findFirst({
+            where: {
+                carrierId,
+            },
             orderBy: {
                 refNum: 'desc', // Sort by refNum in descending order
             },
