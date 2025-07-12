@@ -26,9 +26,12 @@ import {
     PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER,
 } from 'lib/constants';
 import { set } from 'date-fns';
+import { useAuth } from '../../hooks/useAuth';
 
 const BillingPage = () => {
     const { defaultCarrier } = useUserContext();
+    // Add useAuth hook to handle session refresh after Stripe checkout
+    useAuth();
     const currentPlan = defaultCarrier?.subscription?.plan || SubscriptionPlan.BASIC;
     const stripeCustomerId = defaultCarrier?.subscription?.stripeCustomerId || null;
     const stripeSubscriptionId = defaultCarrier?.subscription?.stripeSubscriptionId || null;
@@ -78,6 +81,7 @@ const BillingPage = () => {
     }, [stripeCustomerId]);
 
     const handlePlanChange = async (plan: SubscriptionPlan) => {
+        console.log('Attempting to change plan to:', plan, 'with', numDrivers, 'drivers');
         try {
             const url = await createCheckoutSession(plan, numDrivers);
             window.location.href = url;
@@ -380,497 +384,255 @@ const BillingPage = () => {
                                     </div>
                                 )}
 
-                                {/* Pricing Plans - New Side-by-Side Comparison */}
+                                {/* Pricing Plans - New Card Layout */}
                                 <div className="mb-8">
-                                    <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
-                                        {/* Table Header */}
-                                        <div className="grid grid-cols-3 border-b border-gray-200">
-                                            <div className="px-6 py-4 text-sm font-medium text-gray-500">Features</div>
-                                            <div className="px-6 py-4 border-l border-gray-200">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <h3 className="text-lg font-bold text-gray-900">Basic Plan</h3>
-                                                        <p className="text-base font-medium text-gray-500">Free</p>
-                                                    </div>
-                                                    {currentPlan === SubscriptionPlan.BASIC && (
-                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
-                                                            <CheckIcon className="w-4 h-4 text-green-600" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <div className="flex items-center">
-                                                            <h3 className="text-lg font-bold text-gray-900">
-                                                                Pro Plan
-                                                            </h3>
-                                                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                Recommended
+                                    <div className="space-y-8">
+                                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                                            {/* Basic Plan Card */}
+                                            <div
+                                                className={`rounded-2xl border p-6 text-center transition-all duration-300 flex flex-col h-full ${
+                                                    currentPlan === SubscriptionPlan.BASIC
+                                                        ? 'border-blue-600 ring-2 ring-blue-600'
+                                                        : 'border-gray-200 bg-gray-50'
+                                                }`}
+                                            >
+                                                <div className="flex-grow">
+                                                    <h3 className="text-2xl font-bold text-gray-900">Basic</h3>
+                                                    <p className="mt-2 text-lg font-medium text-gray-500">Free</p>
+                                                    <p className="mt-4 text-sm text-gray-600">
+                                                        For individuals and small teams just getting started.
+                                                    </p>
+
+                                                    <ul className="mt-8 space-y-4 text-left">
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                {BASIC_PLAN_TOTAL_LOADS} loads total
                                                             </span>
-                                                        </div>
-                                                        <p className="text-base font-medium text-gray-500">
-                                                            ${PRO_PLAN_COST_PER_DRIVER}/month per driver
-                                                        </p>
-                                                    </div>
-                                                    {currentPlan === SubscriptionPlan.PRO && (
-                                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600">
-                                                            <CheckIcon className="w-4 h-4 text-white" />
-                                                        </div>
-                                                    )}
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                {BASIC_PLAN_AI_RATECON_IMPORTS} AI RateCon Imports/month
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                {BASIC_PLAN_MAX_STORAGE_MB}MB Storage
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                {BASIC_PLAN_MAX_DRIVERS} Driver
+                                                            </span>
+                                                        </li>
+                                                    </ul>
                                                 </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Driver Count Input (always visible for Pro) */}
-                                        <div className="grid grid-cols-3 border-b border-gray-200">
-                                            <div className="px-6 py-4 text-sm font-medium text-gray-500">
-                                                Number of drivers
-                                            </div>
-                                            <div className="px-6 py-4 border-l border-gray-200">
-                                                <div className="text-sm text-gray-700">{BASIC_PLAN_MAX_DRIVERS}</div>
-                                            </div>
-                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                <div className="flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        id="numDrivers"
-                                                        value={numDrivers ?? ''}
-                                                        onChange={handleNumDriversChange}
-                                                        min="1"
-                                                        className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                        disabled={
-                                                            currentPlan === SubscriptionPlan.PRO &&
-                                                            !isSubscriptionCanceling
-                                                        }
-                                                    />
-                                                </div>
-                                                {numDrivers && numDrivers > 0 && (
-                                                    <div className="mt-2 text-sm font-medium text-blue-700">
-                                                        Total: ${(PRO_PLAN_COST_PER_DRIVER * numDrivers).toFixed(2)}
-                                                        /month
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Feature Rows */}
-                                        <div className="divide-y divide-gray-200">
-                                            {/* Load Imports */}
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    Load Imports
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm text-gray-700">
-                                                            {BASIC_PLAN_TOTAL_LOADS} loads total
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            Unlimited
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* AI RateCon PDF Imports */}
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    AI RateCon PDF Imports
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm text-gray-700">
-                                                            {BASIC_PLAN_AI_RATECON_IMPORTS} loads/month
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            {/* {numDrivers
-                                                                ? PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER * numDrivers
-                                                                : PRO_PLAN_AI_RATECON_IMPORTS_PER_DRIVER}
-                                                            /month */}
-                                                            Unlimited
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Storage Capacity */}
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    Storage Capacity
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm text-gray-700">
-                                                            {BASIC_PLAN_MAX_STORAGE_MB}MB
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            {numDrivers
-                                                                ? PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER * numDrivers
-                                                                : PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER}
-                                                            GB
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Driver mobile app */}
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    Driver mobile app
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            Included
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            Included
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Priority Support */}
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    Priority Support
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-red-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M6 18L18 6M6 6l12 12"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm text-gray-700">Not included</span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            Included
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-3">
-                                                <div className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    IFTA{' '}
-                                                    <span className="text-sm text-blue-600 font-light ">
-                                                        (coming soon)
-                                                    </span>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-red-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M6 18L18 6M6 6l12 12"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm text-gray-700">Not included</span>
-                                                    </div>
-                                                </div>
-                                                <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
-                                                    <div className="flex items-center">
-                                                        <svg
-                                                            className="w-5 h-5 text-green-500"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M5 13l4 4L19 7"
-                                                            ></path>
-                                                        </svg>
-                                                        <span className="ml-2 text-sm font-medium text-gray-700">
-                                                            Included
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="grid grid-cols-3 border-t border-gray-200">
-                                            <div className="px-6 py-4 text-sm font-medium text-gray-900"></div>
-                                            <div className="px-6 py-4 border-l border-gray-200">
                                                 <button
-                                                    className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:pointer-events-none ${
-                                                        currentPlan === SubscriptionPlan.BASIC ||
-                                                        isSubscriptionCanceling
-                                                            ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'
-                                                            : 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
+                                                    className={`mt-8 block w-full rounded-lg py-3 text-sm font-semibold transition-colors ${
+                                                        currentPlan === SubscriptionPlan.BASIC
+                                                            ? 'bg-gray-200 text-gray-800 cursor-default'
+                                                            : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                                                     }`}
-                                                    onClick={() => {
-                                                        setShowDowngradeDialog(true);
-                                                    }}
+                                                    onClick={() => setShowDowngradeDialog(true)}
                                                     disabled={
                                                         currentPlan === SubscriptionPlan.BASIC ||
                                                         isSubscriptionCanceling
                                                     }
                                                 >
                                                     {currentPlan === SubscriptionPlan.BASIC
-                                                        ? 'Current plan'
+                                                        ? 'Current Plan'
                                                         : isSubscriptionCanceling
-                                                        ? 'Downgrade scheduled'
+                                                        ? 'Downgrade Scheduled'
                                                         : 'Switch to Basic'}
                                                 </button>
                                             </div>
-                                            <div className="px-6 py-4 border-l border-gray-200 bg-blue-50">
+
+                                            {/* Pro Plan Card */}
+                                            <div
+                                                className={`rounded-2xl border p-6 text-center transition-all duration-300 flex flex-col h-full ${
+                                                    currentPlan === SubscriptionPlan.PRO
+                                                        ? 'border-blue-600 ring-2 ring-blue-600'
+                                                        : 'border-gray-200 bg-white'
+                                                }`}
+                                            >
+                                                <div className="flex-grow">
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <h3 className="text-2xl font-bold text-gray-900">Pro</h3>
+                                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                                            Recommended
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-2 text-lg font-medium text-gray-500">
+                                                        ${PRO_PLAN_COST_PER_DRIVER}/driver/month
+                                                    </p>
+                                                    <p className="mt-4 text-sm text-gray-600">
+                                                        For growing businesses that need more power and features.
+                                                    </p>
+
+                                                    <div className="mt-6">
+                                                        <h4 className="text-lg font-semibold text-gray-900 text-left">
+                                                            Number of Drivers
+                                                        </h4>
+                                                        <div className="mt-2 flex items-center space-x-4">
+                                                            <input
+                                                                type="number"
+                                                                id="numDrivers"
+                                                                value={numDrivers ?? ''}
+                                                                onChange={handleNumDriversChange}
+                                                                min="1"
+                                                                className="w-24 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                                disabled={
+                                                                    currentPlan === SubscriptionPlan.PRO &&
+                                                                    !isSubscriptionCanceling
+                                                                }
+                                                            />
+                                                            {numDrivers > 0 && (
+                                                                <p className="text-sm font-medium text-gray-800">
+                                                                    Total:{' '}
+                                                                    <span className="text-lg font-bold text-blue-600">
+                                                                        $
+                                                                        {(
+                                                                            PRO_PLAN_COST_PER_DRIVER * numDrivers
+                                                                        ).toFixed(2)}
+                                                                    </span>
+                                                                    /month
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <ul className="mt-8 space-y-4 text-left">
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                Unlimited loads
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                Unlimited AI RateCon Imports
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                {PRO_PLAN_MAX_STORAGE_GB_PER_DRIVER}GB Storage per
+                                                                driver
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                Priority Support
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex items-center">
+                                                            <CheckIcon className="h-5 w-5 text-green-500" />
+                                                            <span className="ml-3 text-sm text-gray-800">
+                                                                IFTA Reporting (Coming Soon)
+                                                            </span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+
                                                 <button
-                                                    className={`w-full px-4 py-2 text-center rounded-lg font-medium disabled:opacity-70 disabled:pointer-events-none ${
-                                                        currentPlan === SubscriptionPlan.PRO
-                                                            ? isSubscriptionCanceling
-                                                                ? 'bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
-                                                                : 'bg-blue-600 hover:bg-gray-200 text-white border border-gray-200'
-                                                            : 'bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600'
+                                                    className={`mt-8 block w-full rounded-lg py-3 text-sm font-semibold transition-colors ${
+                                                        currentPlan === SubscriptionPlan.PRO && !isSubscriptionCanceling
+                                                            ? 'bg-gray-200 text-gray-800 cursor-default'
+                                                            : 'bg-blue-600 hover:bg-blue-700 text-white'
                                                     }`}
-                                                    onClick={() =>
-                                                        isSubscriptionCanceling
-                                                            ? handleBillingPortal()
-                                                            : handlePlanChange(SubscriptionPlan.PRO)
-                                                    }
+                                                    onClick={() => handlePlanChange(SubscriptionPlan.PRO)}
                                                     disabled={
-                                                        (currentPlan === SubscriptionPlan.PRO &&
-                                                            !isSubscriptionCanceling) ||
-                                                        !numDrivers ||
-                                                        numDrivers < 1
+                                                        currentPlan === SubscriptionPlan.PRO && !isSubscriptionCanceling
                                                     }
                                                 >
                                                     {currentPlan === SubscriptionPlan.PRO
-                                                        ? isSubscriptionCanceling
-                                                            ? 'Resume Plan'
-                                                            : 'Current plan'
-                                                        : 'Switch to Pro'}
+                                                        ? 'Current Plan'
+                                                        : 'Upgrade to Pro'}
                                                 </button>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Pro Plan Recommendation */}
-                                    {currentPlan == SubscriptionPlan.BASIC && (
-                                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                            <h3 className="text-lg font-medium text-blue-900">Why choose Pro?</h3>
-                                            <p className="mt-2 text-sm text-gray-700">
-                                                Upgrade to Pro for unlimited loads, driver mobile app access, and
-                                                priority support to maximize your efficiency. The Pro plan pays for
-                                                itself by saving you time and helping you manage more loads with less
-                                                effort.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {stripeCustomerId && (
-                                    <div className="space-y-4">
-                                        <h2 className="text-xl font-semibold">Billing history</h2>
-                                        <div className="space-y-2">
-                                            {invoices.length > 0 ? (
-                                                <div className="min-w-full overflow-hidden bg-white border border-gray-200 rounded-lg">
-                                                    <div className="text-xs font-medium text-gray-500 uppercase bg-gray-50">
-                                                        <div className="grid grid-cols-3 gap-4 px-6 py-3">
-                                                            <div>Date</div>
-                                                            <div>Amount</div>
-                                                            <div>Status</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="divide-y divide-gray-200">
-                                                        {invoices.map((invoice) => (
-                                                            <div
-                                                                key={invoice.id}
-                                                                className="grid grid-cols-3 gap-4 px-6 py-4"
-                                                            >
-                                                                <div className="text-sm text-gray-600">
-                                                                    {formatDate(invoice.created)}
-                                                                </div>
-                                                                <div className="text-sm font-medium text-gray-900">
-                                                                    ${(invoice.total / 100).toFixed(2)} USD
-                                                                </div>
-                                                                <div>
-                                                                    <span
-                                                                        className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
-                                                                            invoice.status,
-                                                                        )}`}
-                                                                    >
-                                                                        {invoice.status}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                        {/* Billing History */}
+                                        {invoices.length > 0 && (
+                                            <div className="rounded-2xl border border-gray-200 bg-white">
+                                                <div className="p-6">
+                                                    <h3 className="text-lg font-semibold text-gray-900">
+                                                        Billing History
+                                                    </h3>
+                                                    <p className="mt-1 text-sm text-gray-600">
+                                                        View and download your past invoices.
+                                                    </p>
                                                 </div>
-                                            ) : (
-                                                <p className="text-gray-500">No billing history available</p>
-                                            )}
-                                        </div>
+                                                <div className="overflow-x-auto">
+                                                    <table className="min-w-full divide-y divide-gray-200 rounded-lg">
+                                                        <thead className="bg-gray-50">
+                                                            <tr>
+                                                                <th
+                                                                    scope="col"
+                                                                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                                                >
+                                                                    Date
+                                                                </th>
+                                                                <th
+                                                                    scope="col"
+                                                                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                                                >
+                                                                    Status
+                                                                </th>
+                                                                <th
+                                                                    scope="col"
+                                                                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                                                >
+                                                                    Amount
+                                                                </th>
+                                                                <th scope="col" className="relative px-6 py-3">
+                                                                    <span className="sr-only">Download</span>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                                            {invoices.map((invoice) => (
+                                                                <tr key={invoice.id}>
+                                                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                                                                        {formatDate(invoice.created)}
+                                                                    </td>
+                                                                    <td className="whitespace-nowrap px-6 py-4">
+                                                                        <span
+                                                                            className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusBadgeColor(
+                                                                                invoice.status,
+                                                                            )}`}
+                                                                        >
+                                                                            {invoice.status}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                                                        ${(invoice.amount_paid / 100).toFixed(2)}
+                                                                    </td>
+                                                                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                                                        <a
+                                                                            href={invoice.invoice_pdf}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-blue-600 hover:text-blue-800"
+                                                                        >
+                                                                            Download
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </>

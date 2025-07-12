@@ -75,6 +75,17 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+model AccountDeletionCode {
+    id        String   @id @default(cuid())
+    carrierId String
+    code      String
+    expires   DateTime
+    createdAt DateTime @default(now())
+    carrier   Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+    @@unique([carrierId])
+}
+
 model TeamInvitation {
     id            String    @id @default(cuid())
     email         String
@@ -129,6 +140,7 @@ model Carrier {
     rateconImportsCount    Int                     @default(0)
     lastImportReset        DateTime                @default(now())
     teamInvitations        TeamInvitation[]
+    accountDeletionCodes   AccountDeletionCode[]
 
     @@index([name, email, carrierCode])
 }

@@ -73,7 +73,6 @@ const LoadForm: React.FC<Props> = ({
     const [openAddCustomer, setOpenAddCustomer] = useState(false);
     const [showCustomerForm, setShowCustomerForm] = useState(false);
     const [customerFormLoading, setCustomerFormLoading] = useState(false);
-
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
     const [customerSearchResults, setCustomerSearchResults] = React.useState<SearchCustomer[]>(null);
@@ -148,13 +147,11 @@ const LoadForm: React.FC<Props> = ({
         async function searchFetch() {
             const customers = await searchCustomersByName(debouncedCustomerSearchTerm);
             setIsSearchingCustomer(false);
-
             const noResults = customers.length === 0;
             if (noResults) {
                 setCustomerSearchResults([]);
                 return;
             }
-
             setCustomerSearchResults(customers);
         }
 
@@ -175,7 +172,6 @@ const LoadForm: React.FC<Props> = ({
         try {
             // Fetch full customer data using the ID
             const fullCustomer = await getCustomerById(searchCustomer.id);
-
             setValue('customer', fullCustomer, { shouldValidate: true });
             setShowCustomerForm(false);
             // Reset customer form
@@ -201,7 +197,6 @@ const LoadForm: React.FC<Props> = ({
                 country: '',
                 carrierId: '',
             };
-
             setValue('customer', customer, { shouldValidate: true });
             setShowCustomerForm(false);
             customerFormHook.reset();
@@ -212,7 +207,6 @@ const LoadForm: React.FC<Props> = ({
 
     const handleCustomerFormSubmit = async (data: Customer) => {
         setCustomerFormLoading(true);
-
         try {
             const customerData: Partial<Customer> = {
                 name: data.name,
@@ -225,7 +219,6 @@ const LoadForm: React.FC<Props> = ({
                 zip: data.zip || '',
                 country: data.country || '',
             };
-
             const newCustomer = await createCustomer(customerData);
             onNewCustomerCreate(newCustomer);
         } catch (error) {
@@ -255,18 +248,15 @@ const LoadForm: React.FC<Props> = ({
 
     return (
         <>
-            <div
-                className={`flex flex-col relative overflow-hidden transition-all duration-500 ${
-                    showCustomerForm ? 'h-auto overflow-y-auto' : 'h-full min-h-[600px]'
-                }`}
-            >
+            {/* Main Container - Fixed height with proper overflow handling */}
+            <div className="flex flex-col h-full relative overflow-hidden">
                 {/* Customer Form - Animated Slide In */}
                 <div
-                    className={`absolute inset-0 flex flex-col transform transition-all duration-500 ease-out z-20 ${
+                    className={`absolute inset-0 flex flex-col transform transition-all duration-500 ease-out z-20 bg-white ${
                         showCustomerForm ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                     }`}
                 >
-                    {/* Customer Form Header */}
+                    {/* Customer Form Header - Fixed */}
                     <div
                         className={`flex-shrink-0 p-6 border-b border-gray-200 bg-gray-50 transition-all duration-500 delay-75 ${
                             showCustomerForm ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
@@ -299,13 +289,14 @@ const LoadForm: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    {/* Customer Form Content - Full Width Layout */}
+                    {/* Customer Form Content - Scrollable with proper spacing */}
                     <div
-                        className={`flex-1 transition-all duration-500 delay-150 ${
+                        className={`flex-1 flex flex-col transition-all duration-500 delay-150 overflow-hidden ${
                             showCustomerForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                         }`}
                     >
-                        <div className="p-6 pb-0 w-full">
+                        {/* Form Content - Scrollable */}
+                        <div className="flex-1 overflow-y-auto p-6">
                             <form onSubmit={customerFormHook.handleSubmit(handleCustomerFormSubmit)}>
                                 <CustomerForm
                                     formHook={customerFormHook}
@@ -315,9 +306,9 @@ const LoadForm: React.FC<Props> = ({
                             </form>
                         </div>
 
-                        {/* Customer Form Footer - Full Width */}
+                        {/* Customer Form Footer - Fixed at bottom */}
                         <div
-                            className={`mx-6 mt-4 mb-6 p-6 border border-gray-200 bg-white rounded-lg shadow-sm transition-all duration-500 delay-200 ${
+                            className={`flex-shrink-0 mx-6 mb-6 p-6 border border-gray-200 bg-white rounded-lg shadow-sm transition-all duration-500 delay-200 ${
                                 showCustomerForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                             }`}
                         >
@@ -392,9 +383,8 @@ const LoadForm: React.FC<Props> = ({
                             : 'translate-x-0 opacity-100 scale-100'
                     }`}
                 >
-                    {/* Form Content - Scrollable */}
-                    <div className="flex-1 overflow-y-auto p-6 pb-24">
-                        {/* Content: Takes available space, scrolls, padding-bottom for button bar */}
+                    {/* Form Content - Scrollable with proper bottom padding */}
+                    <div className="flex-1 overflow-y-auto p-6 pb-32">
                         <div className="space-y-8">
                             {/* Customer & Load Info Section */}
                             <div>
@@ -510,7 +500,6 @@ const LoadForm: React.FC<Props> = ({
                                                                                                                 customer.name
                                                                                                             }
                                                                                                         </span>
-
                                                                                                         {selected && (
                                                                                                             <span
                                                                                                                 className={classNames(
@@ -528,7 +517,6 @@ const LoadForm: React.FC<Props> = ({
                                                                                             </Combobox.Option>
                                                                                         ),
                                                                                     )}
-
                                                                                 {customerSearchResults?.length ===
                                                                                     0 && (
                                                                                     <div className="px-4 py-3 text-gray-500 text-sm">
@@ -634,7 +622,6 @@ const LoadForm: React.FC<Props> = ({
                                         />
                                     </button>
                                 </div>
-
                                 {expandedSections.shipper && (
                                     <LoadFormStop
                                         {...{ register, errors, control, setValue, getValues, watch }}
@@ -665,7 +652,6 @@ const LoadForm: React.FC<Props> = ({
                                         />
                                     </button>
                                 </div>
-
                                 {expandedSections.stops && (
                                     <div>
                                         {stopsFieldArray.fields.length > 0 ? (
@@ -684,7 +670,7 @@ const LoadForm: React.FC<Props> = ({
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-center py-4 px-4  text-gray-500 bg-gray-50">
+                                            <div className="text-center py-4 px-4 text-gray-500 bg-gray-50">
                                                 <PlusSmallIcon className="mx-auto h-6 w-6 text-gray-400 mb-4" />
                                                 <p className="text-lg font-medium">No additional stops</p>
                                                 <p className="text-sm mt-1">
@@ -692,7 +678,6 @@ const LoadForm: React.FC<Props> = ({
                                                 </p>
                                             </div>
                                         )}
-
                                         <div className="mt-6 flex justify-center">
                                             <button
                                                 type="button"
@@ -742,7 +727,6 @@ const LoadForm: React.FC<Props> = ({
                                         />
                                     </button>
                                 </div>
-
                                 {expandedSections.receiver && (
                                     <LoadFormStop
                                         {...{ register, errors, control, setValue, getValues, watch }}
@@ -754,12 +738,11 @@ const LoadForm: React.FC<Props> = ({
                             </div>
                         </div>
                     </div>
+
                     {/* Fixed Action Buttons at Bottom */}
                     {!isEditMode && (
-                        <div className="fixed sm:absolute  bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
-                            {' '}
-                            {/* Buttons: Sticks to the bottom of the relative parent */}
-                            <div className="flex  flex-row gap-3 justify-end">
+                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
+                            <div className="flex flex-row gap-3 justify-end">
                                 <button
                                     type="button"
                                     onClick={onResetForm}
@@ -831,11 +814,10 @@ const LoadForm: React.FC<Props> = ({
                             </div>
                         </div>
                     )}
+
                     {isEditMode && (
-                        <div className="fixed sm:absolute bottom-0 left-0 right-0 bg-white border-t p-4 ">
-                            {' '}
-                            {/* Buttons: Sticks to the bottom of the relative parent */}
-                            <div className="flex  flex-row gap-3 justify-end">
+                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4">
+                            <div className="flex flex-row gap-3 justify-end">
                                 <button
                                     type="button"
                                     onClick={() => router?.back()}

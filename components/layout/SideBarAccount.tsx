@@ -38,7 +38,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                     >
-                        <Menu.Items className="absolute bottom-full left-0 mb-2 w-48 origin-bottom-left bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none z-50">
+                        <Menu.Items className="fixed bottom-16 left-2 mb-2 w-48 origin-bottom-left bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none z-[9999]">
                             <div className="py-1">
                                 <div className="px-4 py-3 border-b border-slate-100">
                                     <p className="text-sm font-medium text-slate-900 truncate">
@@ -46,6 +46,20 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                                     </p>
                                     <p className="text-xs text-slate-500 truncate">{defaultCarrier?.email || ''}</p>
                                 </div>
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <Link href={`/billing`}>
+                                            <button
+                                                className={classNames(
+                                                    active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
+                                                    'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
+                                                )}
+                                            >
+                                                Plan & Billing
+                                            </button>
+                                        </Link>
+                                    )}
+                                </Menu.Item>
                                 <Menu.Item>
                                     {({ active }) => (
                                         <Link href={`/settings`}>
@@ -110,8 +124,22 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                 >
-                    <Menu.Items className="absolute z-50 w-full bottom-full mb-2 origin-bottom bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none">
+                    <Menu.Items className="fixed z-[9999] w-64 bottom-16 left-4 mb-2 origin-bottom bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none">
                         <div className="py-1">
+                            <Menu.Item>
+                                {({ active }) => (
+                                    <Link href={`/billing`}>
+                                        <button
+                                            className={classNames(
+                                                active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
+                                                'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
+                                            )}
+                                        >
+                                            Plan & Billing
+                                        </button>
+                                    </Link>
+                                )}
+                            </Menu.Item>
                             <Menu.Item>
                                 {({ active }) => (
                                     <Link href={`/settings`}>

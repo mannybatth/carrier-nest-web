@@ -85,12 +85,6 @@ const navigation = [
         icon: WrenchIcon,
         iconSolid: WrenchIconSolid,
     },
-    {
-        name: 'Plan & Billing',
-        href: '/billing',
-        icon: CreditCardIcon,
-        iconSolid: CreditCardIconSolid,
-    },
 ];
 
 interface NavigationProps {

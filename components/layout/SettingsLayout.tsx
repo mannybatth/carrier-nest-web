@@ -92,7 +92,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children, title, maxWid
     const contentMarginLeft = 'md:ml-64'; // Always 256px margin for settings sidebar width
 
     // Settings sidebar positioning classes with dynamic left positioning and standard styling
-    const sidebarClasses = `hidden md:block md:fixed md:inset-y-0 ${settingsSidebarLeft} md:w-64 bg-gradient-to-b from-slate-50 to-gray-100 border-r border-gray-200 shadow-sm z-1 transition-all duration-300 ease-in-out`;
+    const sidebarClasses = `hidden md:block md:fixed md:inset-y-0 ${settingsSidebarLeft} md:w-64 bg-gradient-to-b from-slate-50 to-gray-100 border-r border-gray-200 shadow-sm z-40 transition-all duration-300 ease-in-out`;
 
     // Generate max-width class based on prop
     const maxWidthClass = maxWidth === 'full' ? 'max-w-full' : `max-w-${maxWidth}`;
@@ -237,7 +237,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children, title, maxWid
                 <div className={`${contentMarginLeft} min-h-screen transition-all duration-300 ease-in-out`}>
                     <div className="bg-gray-50 min-h-screen">
                         <div className={`px-4 md:px-8 py-6 md:py-8 ${maxWidthClass}`}>
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                                 <div className="px-6 py-6">{children}</div>
                             </div>
                         </div>
