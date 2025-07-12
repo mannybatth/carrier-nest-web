@@ -1612,9 +1612,7 @@ const CreateLoad: PageWithAuth = () => {
                 <h1 className="text-xl font-semibold text-gray-900">{isEditMode ? 'Edit Load' : 'Create New Load'}</h1>
             }
         >
-            {loading && loadSubmitting && (
-                <LoadingOverlay message={isEditMode ? 'Updating load...' : 'Creating load...'} />
-            )}
+            {loadSubmitting && <LoadingOverlay message={isEditMode ? 'Updating load...' : 'Creating load...'} />}
             <div className="max-w-[1980px] w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 md:py-6">
                 <BreadCrumb
                     className="mb-4 md:mb-6"
