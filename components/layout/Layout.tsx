@@ -25,7 +25,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
         <div className={className}>
             <Tooltip
                 id="tooltip"
-                className="z-50 rounded-[12px] p-0"
+                className="z-[99] rounded-[12px] p-0"
                 style={{
                     padding: '8px 14px',
                     borderRadius: '12px',
@@ -34,7 +34,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
             />
 
             <Transition.Root show={sidebarOpen} as={Fragment}>
-                <Dialog as="div" className="fixed inset-0 z-40 flex md:hidden" onClose={setSidebarOpen}>
+                <Dialog as="div" className="fixed inset-0 z-60 flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child
                         as={Fragment}
                         enter="transition-opacity ease-linear duration-300"
@@ -92,12 +92,12 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
 
             {/* Static sidebar for desktop */}
             <div
-                className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 transition-all duration-300 ease-in-out ${
+                className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 z-50 transition-all duration-300 ease-in-out ${
                     sidebarCollapsed ? 'md:w-16' : 'md:w-64'
                 }`}
             >
                 <div className="flex flex-col flex-1 min-h-0 border-r  border-gray-200 bg-gradient-to-b from-slate-50 to-gray-100 shadow-none">
-                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-y-auto">
+                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-visible">
                         <SideBarFooter collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
                         <SideBarSearch collapsed={sidebarCollapsed} />
                         <CreateNewButton
@@ -107,6 +107,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         <Navigation collapsed={sidebarCollapsed} />
                     </div>
 
+                    {/* Account section positioned at bottom */}
                     <SideBarAccount collapsed={sidebarCollapsed} />
                 </div>
             </div>
