@@ -93,12 +93,12 @@ const RowContent = React.memo(
                                 const rect = buttonRef.current.getBoundingClientRect();
                                 const scrollY = window.scrollY;
                                 const viewportHeight = window.innerHeight;
-                                
+
                                 // Calculate the best position for the dropdown
                                 const menuHeight = 200; // Approximate menu height
                                 const spaceBelow = viewportHeight - rect.bottom;
                                 const spaceAbove = rect.top;
-                                
+
                                 let top: number;
                                 if (spaceBelow >= menuHeight) {
                                     // Position below the button if there's enough space
@@ -110,17 +110,17 @@ const RowContent = React.memo(
                                     // If not enough space above or below, position in the middle of viewport
                                     top = scrollY + (viewportHeight - menuHeight) / 2;
                                 }
-                                
+
                                 // Horizontal positioning - align to the right of the button
                                 let left = rect.right - 192; // 192px = w-48 (12rem * 16px)
-                                
+
                                 // Ensure the menu doesn't go off the right edge of the screen
                                 if (left < 10) {
                                     left = 10;
                                 } else if (left + 192 > window.innerWidth - 10) {
                                     left = window.innerWidth - 192 - 10;
                                 }
-                                
+
                                 setMenuPosition({ top, left });
                             }
                         }, [open]);
@@ -150,7 +150,7 @@ const RowContent = React.memo(
                                 >
                                     <Menu.Items
                                         static
-                                        className="fixed z-[9999] w-48 rounded-md bg-white shadow-lg
+                                        className="fixed z-[10] w-48 rounded-md bg-white shadow-lg
                                                  ring-1 ring-black ring-opacity-5 focus:outline-none"
                                         style={{
                                             top: `${menuPosition.top}px`,
@@ -165,7 +165,9 @@ const RowContent = React.memo(
                                                     <Menu.Item key={idx}>
                                                         {({ active }) => (
                                                             <button
-                                                                onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
+                                                                onClick={(e) =>
+                                                                    handleMenuItemClick(e, menuItem.onClick)
+                                                                }
                                                                 className={`${
                                                                     active ? 'bg-gray-100' : ''
                                                                 } block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100`}
@@ -315,7 +317,7 @@ const Table = ({
             )}
 
             <div
-                id="table-container" 
+                id="table-container"
                 className="w-full overflow-x-auto rounded-lg border border-gray-200 shadow-sm"
                 role="region"
                 aria-label="Scrollable table"
