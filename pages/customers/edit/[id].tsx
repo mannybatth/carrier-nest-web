@@ -1,6 +1,5 @@
 import { Customer } from '@prisma/client';
 import { CustomerProvider, useCustomerContext } from 'components/context/CustomerContext';
-import { LoadingOverlay } from 'components/LoadingOverlay';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -8,6 +7,7 @@ import CustomerForm from '../../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { notify } from '../../../components/Notification';
+import CustomerEditSkeleton from '../../../components/skeletons/CustomerEditSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { updateCustomer } from '../../../lib/rest/customer';
 
@@ -91,19 +91,23 @@ const EditCustomer: PageWithAuth = () => {
                     <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                 </div>
                 <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !customer) && <LoadingOverlay />}
-                    <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <CustomerForm formHook={formHook}></CustomerForm>
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Save Customer
-                            </button>
-                        </div>
-                    </form>
+                    {!customer ? (
+                        <CustomerEditSkeleton />
+                    ) : (
+                        <form id="customer-form" onSubmit={formHook.handleSubmit(submit)}>
+                            <CustomerForm formHook={formHook} isEditMode={true} currentCustomerId={customer?.id} />
+                            <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
+                                <div className="flex-1"></div>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? 'Saving...' : 'Save Customer'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </Layout>
