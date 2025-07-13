@@ -305,142 +305,145 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
         while (attempts < maxAttempts) {
             try {
-                // Find the last load created for the carrier
-                const lastLoad = await prisma.load.findFirst({
-                    where: {
-                        carrierId,
-                    },
-                    orderBy: {
-                        refNum: 'desc',
-                    },
-                    select: {
-                        refNum: true,
-                    },
-                });
+                // Use a transaction to ensure atomic refNum generation
+                load = await prisma.$transaction(async (tx) => {
+                    // Find the last load created for the carrier
+                    const lastLoad = await tx.load.findFirst({
+                        where: {
+                            carrierId,
+                        },
+                        orderBy: {
+                            createdAt: 'desc',
+                        },
+                        select: {
+                            refNum: true,
+                        },
+                    });
 
-                // Extract the numeric part from the last refNum and increment it
-                // If no last load found, start with LD-1
-                const lastLoadNum = lastLoad ? parseInt(lastLoad.refNum.split('LD-')[1], 10) : 0;
-                const nextRefNum = `LD-${lastLoadNum + 1}`;
+                    // Extract the numeric part from the last refNum and increment it
+                    // If no last load found, start with LD-1
+                    const lastLoadNum = lastLoad ? parseInt(lastLoad.refNum.split('LD-')[1], 10) : 0;
+                    const nextRefNum = `LD-${lastLoadNum + 1}`;
 
-                load = await prisma.load.create({
-                    data: {
-                        refNum: nextRefNum,
-                        loadNum: loadData.loadNum || '',
-                        rate: loadData.rate || 0,
-                        status: 'CREATED',
-                        user: {
-                            connect: {
-                                id: req.auth.user.id,
-                            },
-                        },
-                        carrier: {
-                            connect: {
-                                id: req.auth.user.defaultCarrierId,
-                            },
-                        },
-                        customer: {
-                            connect: {
-                                id: loadData.customer.id,
-                            },
-                        },
-                        shipper: {
-                            create: {
-                                type: loadData.shipper.type,
-                                name: loadData.shipper.name,
-                                street: loadData.shipper.street || '',
-                                city: loadData.shipper.city || '',
-                                state: loadData.shipper.state || '',
-                                zip: loadData.shipper.zip || '',
-                                country: loadData.shipper.country || '',
-                                date: loadData.shipper.date || '',
-                                time: loadData.shipper.time || '',
-                                stopIndex: loadData.shipper.stopIndex || 0,
-                                longitude: loadData.shipper.longitude || 0,
-                                latitude: loadData.shipper.latitude || 0,
-                                poNumbers: loadData.shipper.poNumbers || '',
-                                pickUpNumbers: loadData.shipper.pickUpNumbers || '',
-                                referenceNumbers: loadData.shipper.referenceNumbers || '',
-                                user: {
-                                    connect: {
-                                        id: req.auth.user.id,
-                                    },
+                    return await tx.load.create({
+                        data: {
+                            refNum: nextRefNum,
+                            loadNum: loadData.loadNum || '',
+                            rate: loadData.rate || 0,
+                            status: 'CREATED',
+                            user: {
+                                connect: {
+                                    id: req.auth.user.id,
                                 },
                             },
-                        },
-                        receiver: {
-                            create: {
-                                type: loadData.receiver.type,
-                                name: loadData.receiver.name,
-                                street: loadData.receiver.street || '',
-                                city: loadData.receiver.city || '',
-                                state: loadData.receiver.state || '',
-                                zip: loadData.receiver.zip || '',
-                                country: loadData.receiver.country || '',
-                                date: loadData.receiver.date || '',
-                                time: loadData.receiver.time || '',
-                                stopIndex: loadData.receiver.stopIndex || 0,
-                                longitude: loadData.receiver.longitude || 0,
-                                latitude: loadData.receiver.latitude || 0,
-                                poNumbers: loadData.receiver.poNumbers || '',
-                                pickUpNumbers: loadData.receiver.pickUpNumbers || '',
-                                referenceNumbers: loadData.receiver.referenceNumbers || '',
-                                user: {
-                                    connect: {
-                                        id: req.auth.user.id,
-                                    },
+                            carrier: {
+                                connect: {
+                                    id: req.auth.user.defaultCarrierId,
                                 },
                             },
-                        },
-                        ...(loadData.stops &&
-                            loadData.stops.length > 0 && {
-                                stops: {
-                                    create: loadData.stops.map((stop) => ({
-                                        type: stop.type,
-                                        name: stop.name,
-                                        street: stop.street || '',
-                                        city: stop.city || '',
-                                        state: stop.state || '',
-                                        zip: stop.zip || '',
-                                        country: stop.country || '',
-                                        date: stop.date || '',
-                                        time: stop.time || '',
-                                        stopIndex: stop.stopIndex || 0,
-                                        longitude: stop.longitude || 0,
-                                        latitude: stop.latitude || 0,
-                                        poNumbers: stop.poNumbers || '',
-                                        pickUpNumbers: stop.pickUpNumbers || '',
-                                        referenceNumbers: stop.referenceNumbers || '',
-                                        user: {
-                                            connect: {
-                                                id: req.auth.user.id,
-                                            },
+                            customer: {
+                                connect: {
+                                    id: loadData.customer.id,
+                                },
+                            },
+                            shipper: {
+                                create: {
+                                    type: loadData.shipper.type,
+                                    name: loadData.shipper.name,
+                                    street: loadData.shipper.street || '',
+                                    city: loadData.shipper.city || '',
+                                    state: loadData.shipper.state || '',
+                                    zip: loadData.shipper.zip || '',
+                                    country: loadData.shipper.country || '',
+                                    date: loadData.shipper.date || '',
+                                    time: loadData.shipper.time || '',
+                                    stopIndex: loadData.shipper.stopIndex || 0,
+                                    longitude: loadData.shipper.longitude || 0,
+                                    latitude: loadData.shipper.latitude || 0,
+                                    poNumbers: loadData.shipper.poNumbers || '',
+                                    pickUpNumbers: loadData.shipper.pickUpNumbers || '',
+                                    referenceNumbers: loadData.shipper.referenceNumbers || '',
+                                    user: {
+                                        connect: {
+                                            id: req.auth.user.id,
                                         },
-                                    })),
+                                    },
                                 },
-                            }),
-                        routeEncoded: loadData.routeEncoded || '',
-                        routeDistanceMiles: loadData.routeDistanceMiles || 0,
-                        routeDurationHours: loadData.routeDurationHours || 0,
-                        ...(loadData.rateconDocument
-                            ? {
-                                  rateconDocument: {
-                                      create: {
-                                          fileKey: loadData.rateconDocument.fileKey || '',
-                                          fileUrl: loadData.rateconDocument.fileUrl || '',
-                                          fileName: loadData.rateconDocument.fileName || '',
-                                          fileType: loadData.rateconDocument.fileType || '',
-                                          fileSize: loadData.rateconDocument.fileSize || 0,
-                                          user: {
-                                              connect: {
-                                                  id: req.auth.user.id,
+                            },
+                            receiver: {
+                                create: {
+                                    type: loadData.receiver.type,
+                                    name: loadData.receiver.name,
+                                    street: loadData.receiver.street || '',
+                                    city: loadData.receiver.city || '',
+                                    state: loadData.receiver.state || '',
+                                    zip: loadData.receiver.zip || '',
+                                    country: loadData.receiver.country || '',
+                                    date: loadData.receiver.date || '',
+                                    time: loadData.receiver.time || '',
+                                    stopIndex: loadData.receiver.stopIndex || 0,
+                                    longitude: loadData.receiver.longitude || 0,
+                                    latitude: loadData.receiver.latitude || 0,
+                                    poNumbers: loadData.receiver.poNumbers || '',
+                                    pickUpNumbers: loadData.receiver.pickUpNumbers || '',
+                                    referenceNumbers: loadData.receiver.referenceNumbers || '',
+                                    user: {
+                                        connect: {
+                                            id: req.auth.user.id,
+                                        },
+                                    },
+                                },
+                            },
+                            ...(loadData.stops &&
+                                loadData.stops.length > 0 && {
+                                    stops: {
+                                        create: loadData.stops.map((stop) => ({
+                                            type: stop.type,
+                                            name: stop.name,
+                                            street: stop.street || '',
+                                            city: stop.city || '',
+                                            state: stop.state || '',
+                                            zip: stop.zip || '',
+                                            country: stop.country || '',
+                                            date: stop.date || '',
+                                            time: stop.time || '',
+                                            stopIndex: stop.stopIndex || 0,
+                                            longitude: stop.longitude || 0,
+                                            latitude: stop.latitude || 0,
+                                            poNumbers: stop.poNumbers || '',
+                                            pickUpNumbers: stop.pickUpNumbers || '',
+                                            referenceNumbers: stop.referenceNumbers || '',
+                                            user: {
+                                                connect: {
+                                                    id: req.auth.user.id,
+                                                },
+                                            },
+                                        })),
+                                    },
+                                }),
+                            routeEncoded: loadData.routeEncoded || '',
+                            routeDistanceMiles: loadData.routeDistanceMiles || 0,
+                            routeDurationHours: loadData.routeDurationHours || 0,
+                            ...(loadData.rateconDocument
+                                ? {
+                                      rateconDocument: {
+                                          create: {
+                                              fileKey: loadData.rateconDocument.fileKey || '',
+                                              fileUrl: loadData.rateconDocument.fileUrl || '',
+                                              fileName: loadData.rateconDocument.fileName || '',
+                                              fileType: loadData.rateconDocument.fileType || '',
+                                              fileSize: loadData.rateconDocument.fileSize || 0,
+                                              user: {
+                                                  connect: {
+                                                      id: req.auth.user.id,
+                                                  },
                                               },
                                           },
                                       },
-                                  },
-                              }
-                            : {}),
-                    },
+                                  }
+                                : {}),
+                        },
+                    });
                 });
 
                 // If we reach here, the creation was successful, break out of the retry loop
@@ -450,7 +453,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
                 // If this is a unique constraint violation and we haven't exceeded max attempts, retry
                 if (error.code === 'P2002' && error.meta?.target?.includes('refNum') && attempts < maxAttempts) {
-                    console.log(`Retry attempt ${attempts} for refNum generation due to conflict`);
+                    // console.log(`Retry attempt ${attempts} for refNum generation due to conflict`);
                     // Add a small random delay to reduce chances of repeated conflicts
                     await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
                     continue;
