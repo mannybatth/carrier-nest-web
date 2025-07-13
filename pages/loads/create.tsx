@@ -1,6 +1,6 @@
 'use client';
 
-import { PaperClipIcon, TrashIcon, DocumentTextIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { PaperClipIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { DocumentMagnifyingGlassIcon, ExclamationCircleIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { type Customer, LoadStopType, Prisma } from '@prisma/client';
 import PDFViewer from 'components/PDFViewer';
@@ -15,7 +15,7 @@ import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { notify } from '../../components/Notification';
-import type { AILoad, AIStop, AICustomerDetails } from '../../interfaces/ai';
+import type { AILoad, AICustomerDetails } from '../../interfaces/ai';
 import type { PageWithAuth } from '../../interfaces/auth';
 import type { ExpandedLoad } from '../../interfaces/models';
 import { apiUrl } from '../../lib/constants';
@@ -30,7 +30,6 @@ import Link from 'next/link';
 import { PDFDocument } from 'pdf-lib';
 
 import { useSearchParams } from 'next/navigation';
-import { set } from 'date-fns';
 
 interface Line {
     text: string;
@@ -80,7 +79,7 @@ class OCRMatcher {
 
     private static normalizeText(text: string): string {
         if (this.textCache.has(text)) {
-            return this.textCache.get(text)!;
+            return this.textCache.get(text) as string;
         }
 
         const normalized = text
@@ -99,7 +98,7 @@ class OCRMatcher {
 
     private static tokenize(text: string): string[] {
         if (this.tokenCache.has(text)) {
-            return this.tokenCache.get(text)!;
+            return this.tokenCache.get(text) as string[];
         }
 
         const tokens = this.normalizeText(text).split(/\s+/).filter(Boolean);
@@ -216,7 +215,7 @@ class OCRMatcher {
         searchValue: string,
         ocrLines: Line[],
         fieldType: string,
-        maxResults: number = 5,
+        maxResults = 5,
     ): Array<{ line: Line; confidence: number; matchType: string }> {
         if (!searchValue?.trim() || !ocrLines?.length) return [];
 
@@ -843,7 +842,6 @@ class DateTimeFormatter {
             let match;
             while ((match = pattern.exec(lineText)) !== null) {
                 let month, day, year;
-                let confidence = 0.8; // Base confidence for pattern matches
 
                 // Numeric patterns
                 const [, part1, part2, part3] = match.map((p) => parseInt(p) || p);
@@ -897,9 +895,9 @@ class DateTimeFormatter {
                     // Check if this matches our target date
                     if (month === targetMonth && day === targetDay) {
                         if (year === targetYear) {
-                            return { match: true, confidence: Math.min(confidence + 0.05, 1.0) }; // Boost for exact year match
+                            return { match: true, confidence: Math.min(0.8 + 0.05, 1.0) }; // Boost for exact year match
                         } else if (year % 100 === targetYear2Digit || year === targetYear2Digit) {
-                            return { match: true, confidence: Math.max(confidence - 0.1, 0.7) }; // Slight penalty for 2-digit year match
+                            return { match: true, confidence: Math.max(0.8 - 0.1, 0.7) }; // Slight penalty for 2-digit year match
                         }
                     }
                 }
