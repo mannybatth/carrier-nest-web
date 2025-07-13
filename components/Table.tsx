@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 'use client';
 
-import React, { useEffect, useState, useCallback, Fragment } from 'react';
+import React, { useEffect, useState, useCallback, Fragment, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronDownIcon, ChevronUpIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import Spinner from './Spinner';
@@ -84,53 +84,107 @@ const RowContent = React.memo(
 
             {row.menuItems?.length > 0 && (
                 <Menu as="td" className="relative px-2 py-3 text-right">
-                    <div>
-                        <Menu.Button
-                            className="flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 rounded-full
-               hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                            aria-label="Row actions"
-                        >
-                            <EllipsisVerticalIcon className="w-5 h-5" />
-                        </Menu.Button>
-                    </div>
+                    {({ open }) => {
+                        const buttonRef = useRef<HTMLButtonElement>(null);
+                        const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
-                    <Transition
-                        as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                    >
-                        <Menu.Items
-                            className="absolute right-0 z-20 mt-1 w-48 rounded-md bg-white shadow-lg
-               ring-1 ring-black ring-opacity-5 focus:outline-none"
-                        >
-                            <div className="py-1">
-                                {row.menuItems.map((menuItem, idx) => {
-                                    // Check if menuItem is valid
-                                    if (!menuItem) return null;
+                        useEffect(() => {
+                            if (open && buttonRef.current) {
+                                const rect = buttonRef.current.getBoundingClientRect();
+                                const scrollY = window.scrollY;
+                                const viewportHeight = window.innerHeight;
 
-                                    return (
-                                        <Menu.Item key={idx}>
-                                            {({ active }) => (
-                                                <button
-                                                    onClick={(e) => handleMenuItemClick(e, menuItem.onClick)}
-                                                    className={`${
-                                                        active ? 'bg-gray-100' : ''
-                                                    } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                                                    role="menuitem"
-                                                >
-                                                    {menuItem.title}
-                                                </button>
-                                            )}
-                                        </Menu.Item>
-                                    );
-                                })}
-                            </div>
-                        </Menu.Items>
-                    </Transition>
+                                // Calculate the best position for the dropdown
+                                const menuHeight = 200; // Approximate menu height
+                                const spaceBelow = viewportHeight - rect.bottom;
+                                const spaceAbove = rect.top;
+
+                                let top: number;
+                                if (spaceBelow >= menuHeight) {
+                                    // Position below the button if there's enough space
+                                    top = rect.bottom + scrollY + 4;
+                                } else if (spaceAbove >= menuHeight) {
+                                    // Position above the button if there's enough space above
+                                    top = rect.top + scrollY - menuHeight - 4;
+                                } else {
+                                    // If not enough space above or below, position in the middle of viewport
+                                    top = scrollY + (viewportHeight - menuHeight) / 2;
+                                }
+
+                                // Horizontal positioning - align to the right of the button
+                                let left = rect.right - 192; // 192px = w-48 (12rem * 16px)
+
+                                // Ensure the menu doesn't go off the right edge of the screen
+                                if (left < 10) {
+                                    left = 10;
+                                } else if (left + 192 > window.innerWidth - 10) {
+                                    left = window.innerWidth - 192 - 10;
+                                }
+
+                                setMenuPosition({ top, left });
+                            }
+                        }, [open]);
+
+                        return (
+                            <>
+                                <div>
+                                    <Menu.Button
+                                        ref={buttonRef}
+                                        className="flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 rounded-full
+                                                 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                        aria-label="Row actions"
+                                    >
+                                        <EllipsisVerticalIcon className="w-5 h-5" />
+                                    </Menu.Button>
+                                </div>
+
+                                <Transition
+                                    show={open}
+                                    as={Fragment}
+                                    enter="transition ease-out duration-100"
+                                    enterFrom="transform opacity-0 scale-95"
+                                    enterTo="transform opacity-100 scale-100"
+                                    leave="transition ease-in duration-75"
+                                    leaveFrom="transform opacity-100 scale-100"
+                                    leaveTo="transform opacity-0 scale-95"
+                                >
+                                    <Menu.Items
+                                        static
+                                        className="fixed z-[10] w-48 rounded-md bg-white shadow-lg
+                                                 ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                        style={{
+                                            top: `${menuPosition.top}px`,
+                                            left: `${menuPosition.left}px`,
+                                        }}
+                                    >
+                                        <div className="py-1">
+                                            {row.menuItems.map((menuItem, idx) => {
+                                                if (!menuItem) return null;
+
+                                                return (
+                                                    <Menu.Item key={idx}>
+                                                        {({ active }) => (
+                                                            <button
+                                                                onClick={(e) =>
+                                                                    handleMenuItemClick(e, menuItem.onClick)
+                                                                }
+                                                                className={`${
+                                                                    active ? 'bg-gray-100' : ''
+                                                                } block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100`}
+                                                                role="menuitem"
+                                                            >
+                                                                {menuItem.title}
+                                                            </button>
+                                                        )}
+                                                    </Menu.Item>
+                                                );
+                                            })}
+                                        </div>
+                                    </Menu.Items>
+                                </Transition>
+                            </>
+                        );
+                    }}
                 </Menu>
             )}
         </>

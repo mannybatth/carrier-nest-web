@@ -92,7 +92,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
 
             {/* Static sidebar for desktop */}
             <div
-                className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 z-50 transition-all duration-300 ease-in-out ${
+                className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 z-10 transition-all duration-300 ease-in-out ${
                     sidebarCollapsed ? 'md:w-16' : 'md:w-64'
                 }`}
             >
