@@ -21,6 +21,8 @@ type Props = {
     formHook: UseFormReturn<Customer>;
     condensed?: boolean;
     onExistingCustomerFound?: (customer: SearchCustomer) => void;
+    isEditMode?: boolean;
+    currentCustomerId?: string;
 };
 
 const CustomerForm: React.FC<Props> = ({
@@ -33,6 +35,8 @@ const CustomerForm: React.FC<Props> = ({
     },
     condensed,
     onExistingCustomerFound,
+    isEditMode = false,
+    currentCustomerId,
 }) => {
     // Customer search state
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
@@ -67,11 +71,18 @@ const CustomerForm: React.FC<Props> = ({
                 return;
             }
 
-            setCustomerSearchResults(customers);
+            // Filter out the current customer from search results when in edit mode
+            const filteredCustomers =
+                isEditMode && currentCustomerId ? customers.filter((c) => c.id !== currentCustomerId) : customers;
+
+            setCustomerSearchResults(filteredCustomers);
 
             // Check for exact or very close matches
             const exactMatch = customers.find(
-                (c) => c.name.toLowerCase() === debouncedCustomerSearchTerm.toLowerCase(),
+                (c) =>
+                    c.name.toLowerCase() === debouncedCustomerSearchTerm.toLowerCase() &&
+                    // Don't show duplicate warning for the current customer being edited
+                    !(isEditMode && currentCustomerId && c.id === currentCustomerId),
             );
 
             if (exactMatch) {
@@ -84,7 +95,7 @@ const CustomerForm: React.FC<Props> = ({
         }
 
         searchFetch();
-    }, [debouncedCustomerSearchTerm]);
+    }, [debouncedCustomerSearchTerm, isEditMode, currentCustomerId]);
 
     // Update search term when name changes
     useEffect(() => {
