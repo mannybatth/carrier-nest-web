@@ -10,6 +10,7 @@ import { ExpandedLoad } from '../interfaces/models';
 import { getUpcomingLoads } from '../lib/rest/dashboard';
 import LoadViewToggle from '../components/loads/DashboardLoadViewToggle';
 import DashboardStatsDigest from '../components/DashboardStatsDigest';
+import SwitchWithLabel from '../components/switchWithLabel';
 
 const Dashboard: PageWithAuth = () => {
     const { data: session } = useSession();
@@ -32,12 +33,20 @@ const Dashboard: PageWithAuth = () => {
         setLoadsList(loads);
         setLoadsLoading(false);
 
-        if (loads.length === 0 && (todayDataOnly || todayData)) {
-            // if no loads are found, set loadsLoading to false after 2 seconds
+        // If no loads are found and today-only is enabled, automatically disable it after 1 second
+        if (loads.length === 0 && (todayDataOnly ?? todayData)) {
+            setTimeout(async () => {
+                localStorage.setItem('todayDataOnly', 'false');
+                setTodayData(false);
 
-            localStorage.setItem('todayDataOnly', 'false');
-
-            setTodayData(!todayData);
+                // Reload with all data if we just disabled today-only
+                if (todayDataOnly ?? todayData) {
+                    setLoadsLoading(true);
+                    const allLoads = await getUpcomingLoads(false);
+                    setLoadsList(allLoads);
+                    setLoadsLoading(false);
+                }
+            }, 1000);
         }
     };
 
@@ -92,32 +101,34 @@ const Dashboard: PageWithAuth = () => {
                 <div className="px-6 md:px-8  ">
                     <>
                         {!loadsLoading && loadsList?.length === 0 ? (
-                            <div className="relative mx-5 mb-4 overflow-hidden border border-blue-100 shadow-md md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
-                                <div className="flex flex-col items-center justify-center max-w-2xl px-6 py-16 mx-auto text-center h-[88vh]">
-                                    <div className="flex items-center justify-center p-3 mb-2 bg-blue-100 rounded-full">
-                                        <ClipboardDocumentCheckIcon
-                                            className="w-8 h-8 text-blue-600"
-                                            aria-hidden="true"
-                                        />
-                                    </div>
-                                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">No Upcoming Loads</h2>
-                                    <p className="max-w-sm mt-2 text-gray-500">
-                                        You don&rsquo;t have any upcoming or in-progress loads at the moment. Ready to
-                                        add your next load?
-                                    </p>
-                                    <div className="flex flex-col items-center mt-8 gap-y-6">
-                                        <Link href="/loads/create" className="w-full sm:w-auto">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
-                                            >
-                                                <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
-                                                Create New Load
-                                            </button>
-                                        </Link>
+                            <>
+                                <div className="relative mx-5 mb-4 overflow-hidden border border-blue-100 shadow-md md:mx-0 bg-gradient-to-b from-blue-50 to-white rounded-xl">
+                                    <div className="flex flex-col items-center justify-center max-w-2xl px-6 py-16 mx-auto text-center h-[88vh]">
+                                        <div className="flex items-center justify-center p-3 mb-2 bg-blue-100 rounded-full">
+                                            <ClipboardDocumentCheckIcon
+                                                className="w-8 h-8 text-blue-600"
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                        <h2 className="mt-2 text-2xl font-semibold text-gray-900">No Upcoming Loads</h2>
+                                        <p className="max-w-sm mt-2 text-gray-500">
+                                            You don&rsquo;t have any upcoming or in-progress loads at the moment. Ready
+                                            to add your next load?
+                                        </p>
+                                        <div className="flex flex-col items-center mt-8 gap-y-6">
+                                            <Link href="/loads/create" className="w-full sm:w-auto">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                                                >
+                                                    <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
+                                                    Create New Load
+                                                </button>
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         ) : (
                             <LoadViewToggle
                                 todayDataOnly={handleTodaysDataOnlyToggled}
