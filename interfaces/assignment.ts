@@ -15,6 +15,7 @@ export interface RouteLegData {
     scheduledTime: string;
     distanceMiles?: number;
     durationHours?: number;
+    routeEncoded?: string;
 }
 
 export interface CreateAssignmentRequest {
