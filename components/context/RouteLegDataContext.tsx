@@ -17,6 +17,7 @@ export function RouteLegDataProvider({ children }: RouteLegDataProviderProps) {
         driverInstructions: '',
         scheduledDate: new Date().toISOString().split('T')[0],
         scheduledTime: '',
+        routeEncoded: undefined,
     });
 
     return (
