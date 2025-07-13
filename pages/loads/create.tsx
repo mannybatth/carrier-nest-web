@@ -8,7 +8,7 @@ import startOfDay from 'date-fns/startOfDay';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
@@ -71,6 +71,905 @@ const expectedProperties = new Set([
     'invoice_emails',
 ]);
 
+// Optimized OCR matching utilities for better performance and accuracy
+class OCRMatcher {
+    // Caching for performance optimization
+    private static textCache = new Map<string, string>();
+    private static tokenCache = new Map<string, string[]>();
+    private static readonly CACHE_LIMIT = 1000;
+
+    private static normalizeText(text: string): string {
+        if (this.textCache.has(text)) {
+            return this.textCache.get(text)!;
+        }
+
+        const normalized = text
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ');
+
+        // Prevent memory leaks by limiting cache size
+        if (this.textCache.size >= this.CACHE_LIMIT) {
+            this.textCache.clear();
+        }
+        this.textCache.set(text, normalized);
+        return normalized;
+    }
+
+    private static tokenize(text: string): string[] {
+        if (this.tokenCache.has(text)) {
+            return this.tokenCache.get(text)!;
+        }
+
+        const tokens = this.normalizeText(text).split(/\s+/).filter(Boolean);
+
+        // Prevent memory leaks by limiting cache size
+        if (this.tokenCache.size >= this.CACHE_LIMIT) {
+            this.tokenCache.clear();
+        }
+        this.tokenCache.set(text, tokens);
+        return tokens;
+    }
+
+    static clearCaches(): void {
+        this.textCache.clear();
+        this.tokenCache.clear();
+    }
+
+    private static calculateJaccardSimilarity(set1: Set<string>, set2: Set<string>): number {
+        const intersection = new Set(Array.from(set1).filter((x) => set2.has(x)));
+        const union = new Set([...Array.from(set1), ...Array.from(set2)]);
+        return union.size === 0 ? 0 : intersection.size / union.size;
+    }
+
+    private static calculateLevenshteinDistance(str1: string, str2: string): number {
+        // Early termination for very different lengths
+        const maxLength = Math.max(str1.length, str2.length);
+        if (Math.abs(str1.length - str2.length) > maxLength * 0.7) {
+            return maxLength;
+        }
+
+        const matrix = Array(str2.length + 1)
+            .fill(null)
+            .map(() => Array(str1.length + 1).fill(null));
+
+        for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= str2.length; j++) {
+            for (let i = 1; i <= str1.length; i++) {
+                const substitutionCost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,
+                    matrix[j - 1][i] + 1,
+                    matrix[j - 1][i - 1] + substitutionCost,
+                );
+            }
+        }
+
+        return matrix[str2.length][str1.length];
+    }
+
+    private static calculateEditSimilarity(str1: string, str2: string): number {
+        const maxLength = Math.max(str1.length, str2.length);
+        if (maxLength === 0) return 1;
+        const distance = this.calculateLevenshteinDistance(str1, str2);
+        return 1 - distance / maxLength;
+    }
+
+    private static isSubsequence(shorter: string, longer: string): boolean {
+        let i = 0;
+        for (let j = 0; j < longer.length && i < shorter.length; j++) {
+            if (shorter[i] === longer[j]) i++;
+        }
+        return i === shorter.length;
+    }
+
+    // Pre-filtering to improve performance
+    private static preFilterLines(ocrLines: Line[], fieldType: string, searchValue: string): Line[] {
+        if (fieldType.includes('time')) {
+            return ocrLines.filter((line) => !this.isMonetaryPattern(line.text));
+        }
+
+        if (fieldType.includes('date')) {
+            return ocrLines.filter((line) => this.hasDatePattern(line.text));
+        }
+
+        if (fieldType.includes('name') || fieldType.includes('location')) {
+            return ocrLines.filter((line) => this.isRelevantForLocation(line.text, searchValue));
+        }
+
+        return ocrLines;
+    }
+
+    private static isMonetaryPattern(text: string): boolean {
+        return /\$[\d,]+\.?\d*|\b\d+\.\d{2}\b|\b\d{4}\.\d{2}\b|\b\d{3,4}\.\d{2}\b|invoice|total|amount|rate|cost|price|pay|bill|charge|fee/i.test(
+            text,
+        );
+    }
+
+    private static hasDatePattern(text: string): boolean {
+        return /\b\d{1,2}[\/\-\.\s]\d{1,2}[\/\-\.\s]\d{2,4}\b|\b\d{4}[\/\-\.\s]\d{1,2}[\/\-\.\s]\d{1,2}\b|\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(
+            text,
+        );
+    }
+
+    public static hasDatePatternPublic(text: string): boolean {
+        return this.hasDatePattern(text);
+    }
+
+    private static isRelevantForLocation(text: string, searchValue: string): boolean {
+        // Basic relevance check for location fields
+        const hasAddressInfo =
+            /\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)\b/i.test(text) ||
+            /\b\d{5}(-\d{4})?\b/.test(text) ||
+            /\b[A-Z]{2}\b/.test(text) ||
+            /\b(company|corp|corporation|inc|llc|ltd|warehouse|facility)\b/i.test(text);
+
+        const containsSearchTerm = this.normalizeText(text).includes(this.normalizeText(searchValue));
+
+        return hasAddressInfo || containsSearchTerm || text.length > searchValue.length * 1.5;
+    }
+
+    static findBestMatches(
+        searchValue: string,
+        ocrLines: Line[],
+        fieldType: string,
+        maxResults: number = 5,
+    ): Array<{ line: Line; confidence: number; matchType: string }> {
+        if (!searchValue?.trim() || !ocrLines?.length) return [];
+
+        const normalizedSearch = this.normalizeText(searchValue);
+        const searchTokens = new Set(this.tokenize(searchValue));
+
+        // Pre-filter lines for better performance
+        const relevantLines = this.preFilterLines(ocrLines, fieldType, searchValue);
+        const results: Array<{ line: Line; confidence: number; matchType: string }> = [];
+
+        for (const line of relevantLines) {
+            const confidence = this.calculateLineConfidence(
+                searchValue,
+                normalizedSearch,
+                searchTokens,
+                line,
+                fieldType,
+            );
+
+            if (confidence > 0.1) {
+                results.push({
+                    line,
+                    confidence,
+                    matchType: this.getMatchType(confidence),
+                });
+            }
+
+            // Early termination for performance
+            if (results.length >= maxResults * 3 && results.some((r) => r.confidence > 0.9)) {
+                break;
+            }
+        }
+
+        return results.sort((a, b) => b.confidence - a.confidence).slice(0, maxResults);
+    }
+
+    private static calculateLineConfidence(
+        searchValue: string,
+        normalizedSearch: string,
+        searchTokens: Set<string>,
+        line: Line,
+        fieldType: string,
+    ): number {
+        const normalizedLineText = this.normalizeText(line.text);
+        const lineTokens = new Set(this.tokenize(line.text));
+        let confidence = 0;
+
+        // 1. Exact match (highest priority)
+        if (normalizedSearch === normalizedLineText) {
+            confidence = 1.0;
+        }
+        // 2. Exact substring match
+        else if (normalizedLineText.includes(normalizedSearch) || normalizedSearch.includes(normalizedLineText)) {
+            const longer = normalizedLineText.length > normalizedSearch.length ? normalizedLineText : normalizedSearch;
+            const shorter =
+                normalizedLineText.length <= normalizedSearch.length ? normalizedLineText : normalizedSearch;
+            confidence = 0.95 * (shorter.length / longer.length);
+        }
+        // 3. All tokens present
+        else if (searchTokens.size > 0 && Array.from(searchTokens).every((token) => lineTokens.has(token))) {
+            confidence = 0.9 * this.calculateJaccardSimilarity(searchTokens, lineTokens);
+        }
+        // 4. Subsequence match
+        else if (
+            this.isSubsequence(normalizedSearch, normalizedLineText) ||
+            this.isSubsequence(normalizedLineText, normalizedSearch)
+        ) {
+            confidence = 0.8 * this.calculateEditSimilarity(normalizedSearch, normalizedLineText);
+        }
+        // 5. Jaccard similarity for token overlap
+        else if (searchTokens.size > 0) {
+            const jaccard = this.calculateJaccardSimilarity(searchTokens, lineTokens);
+            if (jaccard > 0.3) {
+                confidence = 0.7 * jaccard;
+            }
+        }
+        // 6. Edit distance similarity
+        else {
+            const editSim = this.calculateEditSimilarity(normalizedSearch, normalizedLineText);
+            if (editSim > 0.6) {
+                confidence = 0.6 * editSim;
+            }
+        }
+
+        // Apply field-specific boosts
+        if (confidence > 0) {
+            confidence = this.applyFieldSpecificBoosts(confidence, searchValue, line.text, fieldType);
+        }
+
+        return Math.min(confidence, 1.0);
+    }
+
+    private static getMatchType(confidence: number): string {
+        if (confidence >= 0.95) return 'exact';
+        if (confidence >= 0.85) return 'high';
+        if (confidence >= 0.7) return 'good';
+        if (confidence >= 0.5) return 'partial';
+        return 'weak';
+    }
+
+    private static applyFieldSpecificBoosts(
+        baseConfidence: number,
+        searchValue: string,
+        lineText: string,
+        fieldType: string,
+    ): number {
+        let confidence = baseConfidence;
+
+        // Optimized field-specific boost patterns with early returns
+        const lowerLineText = lineText.toLowerCase();
+
+        // Date field optimizations
+        if (fieldType.includes('date')) {
+            // Penalize obvious non-dates first
+            if (
+                /^\d{1,2}$/.test(lineText.trim()) ||
+                /^\d+\.\d+$/.test(lineText.trim()) ||
+                /^[#\$%@]+$/.test(lineText.trim())
+            ) {
+                return confidence * 0.1;
+            }
+
+            // Boost for valid date patterns
+            const datePatterns = [
+                { pattern: /\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}\b/, boost: 1.4 },
+                { pattern: /\b\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}\b/, boost: 1.3 },
+                {
+                    pattern: /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s,]+\d{1,2}[\s,]+\d{4}\b/i,
+                    boost: 1.35,
+                },
+            ];
+
+            for (const { pattern, boost } of datePatterns) {
+                if (pattern.test(lineText)) {
+                    confidence *= boost;
+                    break;
+                }
+            }
+        }
+
+        // Time field optimizations
+        else if (fieldType.includes('time')) {
+            // Heavy penalty for monetary patterns
+            if (this.isMonetaryPattern(lineText)) {
+                return confidence * 0.3;
+            }
+
+            // Boost for valid time patterns
+            const timeMatch = lineText.match(/\b(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?\b/);
+            if (timeMatch) {
+                const hours = parseInt(timeMatch[1]);
+                const minutes = parseInt(timeMatch[2]);
+                const hasAmPm = !!timeMatch[3];
+
+                if (
+                    (hasAmPm && hours >= 1 && hours <= 12 && minutes <= 59) ||
+                    (!hasAmPm && hours <= 23 && minutes <= 59)
+                ) {
+                    confidence *= hasAmPm ? 1.4 : 1.3;
+                }
+            } else if (/\b\d{4}\s*(hours?|hrs?)\b/i.test(lineText)) {
+                confidence *= 1.2;
+            }
+        }
+
+        // Location name optimizations
+        else if (fieldType.includes('location_name')) {
+            const boosts = [];
+
+            // Company keywords
+            if (
+                /\b(company|corp|corporation|inc|llc|ltd|warehouse|facility|plant|terminal|yard|dock)\b/i.test(lineText)
+            ) {
+                boosts.push(1.2);
+            }
+
+            // Address components scoring
+            let addressScore = 0;
+            if (/\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)\b/i.test(lineText))
+                addressScore += 3;
+            if (/\b\d{5}(-\d{4})?\b/.test(lineText)) addressScore += 2;
+            if (/\b[A-Z]{2}\b/.test(lineText)) addressScore += 1;
+            if (/\b(company|corp|corporation|inc|llc|ltd|warehouse|facility)\b/i.test(lineText)) addressScore += 2;
+
+            if (addressScore >= 3) boosts.push(1.3);
+            else if (addressScore >= 2) boosts.push(1.25);
+            else if (addressScore >= 1) boosts.push(1.15);
+
+            // Apply highest boost
+            if (boosts.length > 0) {
+                confidence *= Math.max(...boosts);
+            }
+        }
+
+        // Reference number optimizations
+        else if (fieldType.includes('_reference') || fieldType.includes('Numbers')) {
+            if (/\b(po|purchase\s+order|ref|reference|pickup|pick\s*up|delivery|del)\b/i.test(lineText)) {
+                confidence *= 1.3;
+            }
+            if (/\b[A-Z0-9]{3,}\b/.test(lineText) && /\d/.test(lineText) && /[A-Za-z]/.test(lineText)) {
+                confidence *= 1.2;
+            }
+        }
+
+        // Address component optimizations
+        else if (fieldType.includes('zip')) {
+            if (/\b\d{5}(-\d{4})?\b/.test(lineText)) confidence *= 1.4;
+        } else if (fieldType.includes('state')) {
+            if (/\b[A-Z]{2}\b/.test(lineText)) confidence *= 1.3;
+        }
+
+        // Stop type context boosts
+        if (fieldType.includes('pickup') || fieldType.includes('shipper')) {
+            if (/\b(pickup|pick\s*up|shipper|origin|pu)\b/.test(lowerLineText)) {
+                confidence *= 1.2;
+            }
+        } else if (fieldType.includes('dropoff') || fieldType.includes('receiver') || fieldType.includes('delivery')) {
+            if (/\b(delivery|drop\s*off|receiver|destination|consignee|so)\b/.test(lowerLineText)) {
+                confidence *= 1.2;
+            }
+        }
+
+        // Length similarity bonus
+        const lengthRatio =
+            Math.min(searchValue.length, lineText.length) / Math.max(searchValue.length, lineText.length);
+        if (lengthRatio > 0.7) {
+            confidence *= 1.1;
+        }
+
+        return Math.min(confidence, 1.0);
+    }
+
+    // Helper method for calculating location relevance score
+    private static getLocationScore(text: string): number {
+        let score = 0;
+        if (/\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)\b/i.test(text))
+            score += 3;
+        if (/\b\d{5}(-\d{4})?\b/.test(text)) score += 2;
+        if (/\b[A-Z]{2}\b/.test(text)) score += 1;
+        if (/\b(company|corp|corporation|inc|llc|ltd|warehouse|facility)\b/i.test(text)) score += 2;
+        return score;
+    }
+
+    static findContextualMatch(
+        searchValue: string,
+        ocrLines: Line[],
+        contextValue: string,
+        fieldType: string,
+    ): { line: Line; confidence: number; matchType: string } | null {
+        if (!contextValue?.trim()) {
+            const matches = this.findBestMatches(searchValue, ocrLines, fieldType, 3);
+            return matches.length > 0 ? matches[0] : null;
+        }
+
+        // Optimized handling for location_name field type
+        if (fieldType === 'location_name') {
+            const combinedMatches = this.findBestMatches(contextValue, ocrLines, fieldType, 5);
+
+            // Find matches that contain the search value (company name)
+            const relevantMatches = combinedMatches.filter((match) => {
+                const normalizedLine = this.normalizeText(match.line.text);
+                const normalizedSearch = this.normalizeText(searchValue);
+                return normalizedLine.includes(normalizedSearch);
+            });
+
+            if (relevantMatches.length > 0) {
+                return relevantMatches[0];
+            }
+        }
+
+        // Find context matches with limited results for performance
+        const contextMatches = this.findBestMatches(contextValue, ocrLines, 'context', 3);
+        if (contextMatches.length === 0) {
+            const matches = this.findBestMatches(searchValue, ocrLines, fieldType, 3);
+            return matches.length > 0 ? matches[0] : null;
+        }
+
+        // Optimized proximity matching
+        let bestMatch: { line: Line; confidence: number; matchType: string } | null = null;
+        let bestScore = 0;
+
+        // Use smaller proximity threshold for better performance
+        const proximityThreshold = fieldType.includes('_reference') || fieldType.includes('Numbers') ? 2 : 3;
+
+        for (const contextMatch of contextMatches) {
+            const contextLine = contextMatch.line;
+
+            // Get potential matches near this context
+            const nearbyMatches = this.findBestMatches(searchValue, ocrLines, fieldType, 3).filter((match) => {
+                const pageDistance = Math.abs(match.line.pageNumber - contextLine.pageNumber);
+                if (pageDistance > 1) return false; // Only same or adjacent pages
+
+                const spatialDistance = this.calculateSpatialDistance(match.line, contextLine);
+                return spatialDistance < proximityThreshold;
+            });
+
+            for (const match of nearbyMatches) {
+                const distance = this.calculateSpatialDistance(match.line, contextLine);
+                let score = match.confidence * (1 - distance * 0.05); // Reduced penalty for better matches
+
+                // Boost for reference numbers very close to location
+                if ((fieldType.includes('_reference') || fieldType.includes('Numbers')) && distance < 1.0) {
+                    score *= 1.3;
+                }
+
+                if (score > bestScore) {
+                    bestMatch = { ...match, confidence: score };
+                    bestScore = score;
+                }
+            }
+        }
+
+        return bestMatch || this.findBestMatches(searchValue, ocrLines, fieldType)[0] || null;
+    }
+
+    public static calculateSpatialDistance(line1: Line, line2: Line): number {
+        if (line1.pageNumber !== line2.pageNumber) {
+            return Math.abs(line1.pageNumber - line2.pageNumber) * 10; // Heavy penalty for different pages
+        }
+
+        // Calculate center points of bounding boxes
+        const center1 = this.getBoundingBoxCenter(line1.boundingPoly.normalizedVertices);
+        const center2 = this.getBoundingBoxCenter(line2.boundingPoly.normalizedVertices);
+
+        // Euclidean distance
+        return Math.sqrt(Math.pow(center1.x - center2.x, 2) + Math.pow(center1.y - center2.y, 2));
+    }
+
+    private static getBoundingBoxCenter(vertices: { x: number; y: number }[]): { x: number; y: number } {
+        const x = vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length;
+        const y = vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length;
+        return { x, y };
+    }
+}
+
+// Date and Time Format Matching Utilities
+class DateTimeFormatter {
+    // Generate all possible date format variations for a given date
+    static generateDateVariations(dateValue: Date): string[] {
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        const year = dateValue.getFullYear();
+        const year2Digit = String(year).slice(-2);
+
+        // Month and day without leading zeros
+        const monthNoZero = String(dateValue.getMonth() + 1);
+        const dayNoZero = String(dateValue.getDate());
+
+        // Month names
+        const monthNames = [
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December',
+        ];
+        const monthAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        const fullMonthName = monthNames[dateValue.getMonth()];
+        const abbrevMonthName = monthAbbrev[dateValue.getMonth()];
+
+        // Generate ordinal suffixes
+        const getOrdinal = (num: number) => {
+            const lastDigit = num % 10;
+            const lastTwoDigits = num % 100;
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return num + 'th';
+            switch (lastDigit) {
+                case 1:
+                    return num + 'st';
+                case 2:
+                    return num + 'nd';
+                case 3:
+                    return num + 'rd';
+                default:
+                    return num + 'th';
+            }
+        };
+
+        const dayOrdinal = getOrdinal(dateValue.getDate());
+
+        const variations = [
+            // Standard separator formats
+            // MM/DD/YYYY variations
+            `${month}/${day}/${year}`,
+            `${monthNoZero}/${dayNoZero}/${year}`,
+            `${month}/${dayNoZero}/${year}`,
+            `${monthNoZero}/${day}/${year}`,
+
+            // MM/DD/YY variations
+            `${month}/${day}/${year2Digit}`,
+            `${monthNoZero}/${dayNoZero}/${year2Digit}`,
+            `${month}/${dayNoZero}/${year2Digit}`,
+            `${monthNoZero}/${day}/${year2Digit}`,
+
+            // MM-DD-YYYY variations
+            `${month}-${day}-${year}`,
+            `${monthNoZero}-${dayNoZero}-${year}`,
+            `${month}-${dayNoZero}-${year}`,
+            `${monthNoZero}-${day}-${year}`,
+
+            // MM-DD-YY variations
+            `${month}-${day}-${year2Digit}`,
+            `${monthNoZero}-${dayNoZero}-${year2Digit}`,
+            `${month}-${dayNoZero}-${year2Digit}`,
+            `${monthNoZero}-${day}-${year2Digit}`,
+
+            // MM.DD.YYYY variations (European style)
+            `${month}.${day}.${year}`,
+            `${monthNoZero}.${dayNoZero}.${year}`,
+            `${month}.${dayNoZero}.${year}`,
+            `${monthNoZero}.${day}.${year}`,
+
+            // MM.DD.YY variations
+            `${month}.${day}.${year2Digit}`,
+            `${monthNoZero}.${dayNoZero}.${year2Digit}`,
+            `${month}.${dayNoZero}.${year2Digit}`,
+            `${monthNoZero}.${day}.${year2Digit}`,
+
+            // Space-separated formats
+            `${month} ${day} ${year}`,
+            `${monthNoZero} ${dayNoZero} ${year}`,
+            `${month} ${dayNoZero} ${year}`,
+            `${monthNoZero} ${day} ${year}`,
+            `${month} ${day} ${year2Digit}`,
+            `${monthNoZero} ${dayNoZero} ${year2Digit}`,
+
+            // Comma-separated formats
+            `${month}, ${day}, ${year}`,
+            `${monthNoZero}, ${dayNoZero}, ${year}`,
+            `${month}, ${day}, ${year2Digit}`,
+            `${monthNoZero}, ${dayNoZero}, ${year2Digit}`,
+
+            // No separator formats
+            `${month}${day}${year}`,
+            `${month}${day}${year2Digit}`,
+            `${year}${month}${day}`,
+            `${year2Digit}${month}${day}`,
+
+            // YYYY/MM/DD formats (ISO-like)
+            `${year}/${month}/${day}`,
+            `${year}/${monthNoZero}/${dayNoZero}`,
+            `${year}-${month}-${day}`,
+            `${year}-${monthNoZero}-${dayNoZero}`,
+            `${year}.${month}.${day}`,
+            `${year}.${monthNoZero}.${dayNoZero}`,
+            `${year} ${month} ${day}`,
+            `${year} ${monthNoZero} ${dayNoZero}`,
+
+            // DD/MM/YYYY formats (European)
+            `${day}/${month}/${year}`,
+            `${dayNoZero}/${monthNoZero}/${year}`,
+            `${day}/${month}/${year2Digit}`,
+            `${dayNoZero}/${monthNoZero}/${year2Digit}`,
+            `${day}-${month}-${year}`,
+            `${dayNoZero}-${monthNoZero}-${year}`,
+            `${day}.${month}.${year}`,
+            `${dayNoZero}.${monthNoZero}.${year}`,
+
+            // Written month formats (full names)
+            `${fullMonthName} ${dayNoZero}, ${year}`,
+            `${fullMonthName} ${day}, ${year}`,
+            `${fullMonthName} ${dayOrdinal}, ${year}`,
+            `${dayNoZero} ${fullMonthName} ${year}`,
+            `${day} ${fullMonthName} ${year}`,
+            `${dayOrdinal} ${fullMonthName} ${year}`,
+            `${year} ${fullMonthName} ${dayNoZero}`,
+            `${year} ${fullMonthName} ${day}`,
+
+            // Abbreviated month formats
+            `${abbrevMonthName} ${dayNoZero}, ${year}`,
+            `${abbrevMonthName} ${day}, ${year}`,
+            `${abbrevMonthName} ${dayOrdinal}, ${year}`,
+            `${abbrevMonthName} ${dayNoZero} ${year}`,
+            `${abbrevMonthName} ${day} ${year}`,
+            `${abbrevMonthName}. ${dayNoZero}, ${year}`,
+            `${abbrevMonthName}. ${day}, ${year}`,
+            `${dayNoZero} ${abbrevMonthName} ${year}`,
+            `${day} ${abbrevMonthName} ${year}`,
+            `${dayOrdinal} ${abbrevMonthName} ${year}`,
+            `${dayNoZero} ${abbrevMonthName}, ${year}`,
+            `${day} ${abbrevMonthName}, ${year}`,
+            `${year} ${abbrevMonthName} ${dayNoZero}`,
+            `${year} ${abbrevMonthName} ${day}`,
+
+            // Short abbreviated with 2-digit year
+            `${abbrevMonthName} ${dayNoZero}, ${year2Digit}`,
+            `${abbrevMonthName} ${day}, ${year2Digit}`,
+            `${abbrevMonthName} ${dayNoZero} ${year2Digit}`,
+            `${abbrevMonthName} ${day} ${year2Digit}`,
+            `${dayNoZero} ${abbrevMonthName} ${year2Digit}`,
+            `${day} ${abbrevMonthName} ${year2Digit}`,
+
+            // Lowercase variations (common in PDFs)
+            `${fullMonthName.toLowerCase()} ${dayNoZero}, ${year}`,
+            `${abbrevMonthName.toLowerCase()} ${dayNoZero}, ${year}`,
+            `${abbrevMonthName.toLowerCase()} ${day}, ${year}`,
+            `${dayNoZero} ${abbrevMonthName.toLowerCase()} ${year}`,
+            `${day} ${abbrevMonthName.toLowerCase()} ${year}`,
+
+            // Uppercase variations
+            `${fullMonthName.toUpperCase()} ${dayNoZero}, ${year}`,
+            `${abbrevMonthName.toUpperCase()} ${dayNoZero}, ${year}`,
+            `${abbrevMonthName.toUpperCase()} ${day}, ${year}`,
+
+            // Mixed case and punctuation variations
+            `${abbrevMonthName}. ${dayNoZero}, ${year}`,
+            `${abbrevMonthName}. ${day}, ${year}`,
+            `${abbrevMonthName}. ${dayNoZero} ${year}`,
+            `${abbrevMonthName}. ${day} ${year}`,
+        ];
+
+        return Array.from(new Set(variations)); // Remove duplicates
+    }
+
+    // Generate all possible time format variations
+    static generateTimeVariations(timeValue: string): string[] {
+        if (!timeValue) return [];
+
+        const variations = [timeValue];
+
+        // Handle different time formats
+        const timeMatch = timeValue.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/);
+        if (timeMatch) {
+            const hours = parseInt(timeMatch[1]);
+            const minutes = timeMatch[2];
+            const ampm = timeMatch[3]?.toLowerCase();
+
+            // Add variations with/without leading zero
+            const hoursNoZero = String(hours);
+            const hoursWithZero = String(hours).padStart(2, '0');
+
+            variations.push(`${hoursNoZero}:${minutes}`, `${hoursWithZero}:${minutes}`);
+
+            if (ampm) {
+                variations.push(
+                    `${hoursNoZero}:${minutes}${ampm.replace(/\s/g, '')}`,
+                    `${hoursWithZero}:${minutes}${ampm.replace(/\s/g, '')}`,
+                    `${hoursNoZero}:${minutes} ${ampm.replace(/\s/g, '')}`,
+                    `${hoursWithZero}:${minutes} ${ampm.replace(/\s/g, '')}`,
+                );
+            }
+
+            // Military time conversion (for AM/PM to 24-hour)
+            if (ampm) {
+                let militaryHours = hours;
+                if (ampm.includes('pm') && hours !== 12) {
+                    militaryHours += 12;
+                } else if (ampm.includes('am') && hours === 12) {
+                    militaryHours = 0;
+                }
+
+                const militaryTime = `${String(militaryHours).padStart(2, '0')}:${minutes}`;
+                const militaryTimeNoColon = `${String(militaryHours).padStart(2, '0')}${minutes}`;
+
+                variations.push(militaryTime, militaryTimeNoColon);
+            }
+        }
+
+        return Array.from(new Set(variations)); // Remove duplicates
+    }
+
+    // Check if a line contains any of the date variations
+    static containsDateVariation(lineText: string, dateVariations: string[]): boolean {
+        return dateVariations.some((variation) => lineText.includes(variation));
+    }
+
+    // Check if a line contains any of the time variations
+    static containsTimeVariation(lineText: string, timeVariations: string[]): boolean {
+        return timeVariations.some((variation) => lineText.includes(variation));
+    }
+
+    // Advanced date pattern matching that handles ALL possible date formats
+    static matchesDatePattern(lineText: string, searchDate?: Date): { match: boolean; confidence: number } {
+        if (!lineText || typeof lineText !== 'string') {
+            return { match: false, confidence: 0 };
+        }
+
+        // If no target date provided, just check if line contains any date pattern
+        if (!searchDate) {
+            const hasAnyDatePattern =
+                /\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})\b|\b(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b/.test(
+                    lineText,
+                );
+            return { match: hasAnyDatePattern, confidence: hasAnyDatePattern ? 0.7 : 0 };
+        }
+
+        const variations = this.generateDateVariations(searchDate);
+
+        // Direct match - highest confidence
+        for (const variation of variations) {
+            if (lineText.includes(variation)) {
+                return { match: true, confidence: 1.0 };
+            }
+        }
+
+        // Comprehensive pattern-based matching with extraction and validation
+        const datePatterns = [
+            // Numeric date patterns with separators
+            /\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b/g, // MM/DD/YYYY, DD/MM/YYYY
+            /\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2})\b/g, // MM/DD/YY, DD/MM/YY
+            /\b(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b/g, // YYYY/MM/DD, YYYY/DD/MM
+
+            // No separator formats
+            /\b(\d{1,2})(\d{2})(\d{4})\b/g, // MMDDYYYY, DDMMYYYY
+            /\b(\d{1,2})(\d{2})(\d{2})\b/g, // MMDDYY, DDMMYY
+            /\b(\d{4})(\d{2})(\d{2})\b/g, // YYYYMMDD
+            /\b(\d{2})(\d{2})(\d{4})\b/g, // MMDDYYYY, DDMMYYYY
+            /\b(\d{2})(\d{2})(\d{2})\b/g, // MMDDYY, DDMMYY, YYMMDD
+        ];
+
+        const targetMonth = searchDate.getMonth() + 1;
+        const targetDay = searchDate.getDate();
+        const targetYear = searchDate.getFullYear();
+        const targetYear2Digit = targetYear % 100;
+
+        for (const pattern of datePatterns) {
+            let match;
+            while ((match = pattern.exec(lineText)) !== null) {
+                let month, day, year;
+                let confidence = 0.8; // Base confidence for pattern matches
+
+                // Numeric patterns
+                const [, part1, part2, part3] = match.map((p) => parseInt(p) || p);
+
+                // Determine format based on pattern and values
+                if (part1 > 31 || (part1 > 12 && part1 <= 31)) {
+                    // First part is year or day
+                    if (part1 > 31) {
+                        // YYYY/MM/DD or YYYY/DD/MM
+                        year = part1;
+                        if (part2 <= 12 && part3 <= 31) {
+                            month = part2;
+                            day = part3;
+                        } else if (part3 <= 12 && part2 <= 31) {
+                            month = part3;
+                            day = part2;
+                        }
+                    } else {
+                        // DD/MM/YYYY format (day first)
+                        day = part1;
+                        month = part2;
+                        year = part3;
+                    }
+                } else {
+                    // MM/DD/YYYY or DD/MM/YYYY format
+                    // Try both interpretations and see which makes more sense
+                    const interpretations = [
+                        { month: part1, day: part2, year: part3 }, // MM/DD/YYYY
+                        { month: part2, day: part1, year: part3 }, // DD/MM/YYYY
+                    ];
+
+                    // Choose interpretation based on validity and likelihood
+                    for (const interp of interpretations) {
+                        if (interp.month >= 1 && interp.month <= 12 && interp.day >= 1 && interp.day <= 31) {
+                            month = interp.month;
+                            day = interp.day;
+                            year = interp.year;
+                            break;
+                        }
+                    }
+                }
+
+                // Handle 2-digit year conversion
+                if (year < 100) {
+                    // Smart year conversion: 00-30 = 2000s, 31-99 = 1900s
+                    year = year <= 30 ? 2000 + year : 1900 + year;
+                }
+
+                // Validate date components
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year > 1900 && year < 2100) {
+                    // Check if this matches our target date
+                    if (month === targetMonth && day === targetDay) {
+                        if (year === targetYear) {
+                            return { match: true, confidence: Math.min(confidence + 0.05, 1.0) }; // Boost for exact year match
+                        } else if (year % 100 === targetYear2Digit || year === targetYear2Digit) {
+                            return { match: true, confidence: Math.max(confidence - 0.1, 0.7) }; // Slight penalty for 2-digit year match
+                        }
+                    }
+                }
+
+                // Reset pattern lastIndex to prevent infinite loops
+                if (!pattern.global) break;
+            }
+        }
+
+        return { match: false, confidence: 0 };
+    }
+
+    // Advanced time pattern matching
+    static matchesTimePattern(lineText: string, searchTime: string): { match: boolean; confidence: number } {
+        if (!searchTime) return { match: false, confidence: 0 };
+
+        const variations = this.generateTimeVariations(searchTime);
+
+        // Direct match - highest confidence
+        for (const variation of variations) {
+            if (lineText.includes(variation)) {
+                return { match: true, confidence: 1.0 };
+            }
+        }
+
+        // Pattern-based time matching
+        const timePatterns = [/\b(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?\b/g, /\b(\d{3,4})\s*(hours?|hrs?|h)\b/gi];
+
+        const searchMatch = searchTime.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/i);
+        if (!searchMatch) return { match: false, confidence: 0 };
+
+        const searchHours = parseInt(searchMatch[1]);
+        const searchMinutes = parseInt(searchMatch[2]);
+        const searchAmPm = searchMatch[3]?.toLowerCase();
+
+        for (const pattern of timePatterns) {
+            let match;
+            while ((match = pattern.exec(lineText)) !== null) {
+                if (pattern.source.includes('hours')) {
+                    // Military time format
+                    const militaryTime = parseInt(match[1]);
+                    const hours = Math.floor(militaryTime / 100);
+                    const minutes = militaryTime % 100;
+
+                    if (hours === searchHours && minutes === searchMinutes) {
+                        return { match: true, confidence: 0.9 };
+                    }
+                } else {
+                    // Regular time format
+                    const hours = parseInt(match[1]);
+                    const minutes = parseInt(match[2]);
+                    const ampm = match[3]?.toLowerCase();
+
+                    if (hours === searchHours && minutes === searchMinutes) {
+                        if (searchAmPm && ampm) {
+                            if (searchAmPm.includes(ampm.replace(/\s/g, ''))) {
+                                return { match: true, confidence: 0.95 };
+                            }
+                        } else {
+                            return { match: true, confidence: 0.8 };
+                        }
+                    }
+                }
+            }
+        }
+
+        return { match: false, confidence: 0 };
+    }
+}
+
 function updateProgress(foundProperties: Set<string>) {
     return (foundProperties.size / (expectedProperties.size + 1)) * 100;
 }
@@ -83,6 +982,91 @@ function checkForProperties(chunk: string, foundProperties: Set<string>) {
     });
 
     return updateProgress(foundProperties);
+}
+
+// Progress tracking helper for more realistic progress updates
+class ProgressTracker {
+    private stages: { name: string; progress: number; duration: number }[] = [];
+    private currentStageIndex = 0;
+    private stageStartTime = 0;
+    private progressCallback: (progress: number, stage: string) => void;
+    private isManuallyOverridden = false;
+
+    constructor(progressCallback: (progress: number, stage: string) => void) {
+        this.progressCallback = progressCallback;
+    }
+
+    setStages(stages: { name: string; progress: number; duration: number }[]) {
+        this.stages = stages;
+        this.currentStageIndex = 0;
+        this.stageStartTime = Date.now();
+        this.isManuallyOverridden = false;
+    }
+
+    updateProgress(forceStageIndex?: number) {
+        if (this.stages.length === 0) return;
+
+        const stageIndex = forceStageIndex !== undefined ? forceStageIndex : this.currentStageIndex;
+        if (stageIndex >= this.stages.length) return;
+
+        const currentStage = this.stages[stageIndex];
+        const prevStagesProgress = this.stages.slice(0, stageIndex).reduce((sum, stage) => sum + stage.progress, 0);
+
+        if (forceStageIndex !== undefined) {
+            // Jump to specific stage
+            this.currentStageIndex = stageIndex;
+            this.stageStartTime = Date.now();
+            this.isManuallyOverridden = true;
+            this.progressCallback(prevStagesProgress, currentStage.name);
+            return;
+        }
+
+        // Skip automatic updates if manually overridden (e.g., during streaming)
+        if (this.isManuallyOverridden) {
+            return;
+        }
+
+        const elapsedTime = Date.now() - this.stageStartTime;
+        const stageProgress = Math.min(1, elapsedTime / currentStage.duration);
+        const totalProgress = prevStagesProgress + currentStage.progress * stageProgress;
+
+        this.progressCallback(Math.min(99, totalProgress), currentStage.name);
+
+        // Auto advance to next stage when current is complete
+        if (stageProgress >= 1 && this.currentStageIndex < this.stages.length - 1) {
+            this.nextStage();
+        }
+    }
+
+    nextStage() {
+        if (this.currentStageIndex < this.stages.length - 1) {
+            this.currentStageIndex++;
+            this.stageStartTime = Date.now();
+            this.isManuallyOverridden = false; // Reset override when moving to next stage
+            this.updateProgress();
+        }
+    }
+
+    complete() {
+        this.isManuallyOverridden = false;
+        this.progressCallback(100, this.stages[this.stages.length - 1]?.name || 'Complete');
+    }
+
+    getCurrentStageName(): string {
+        return this.stages[this.currentStageIndex]?.name || '';
+    }
+
+    // Allow manual progress override (for streaming responses)
+    setManualProgress(progress: number, stageName?: string) {
+        this.isManuallyOverridden = true;
+        this.progressCallback(progress, stageName || this.getCurrentStageName());
+    }
+
+    // Reset manual override and resume automatic progress
+    resumeAutoProgress() {
+        this.isManuallyOverridden = false;
+        this.stageStartTime = Date.now(); // Reset timer for current stage
+    }
 }
 
 const CreateLoad: PageWithAuth = () => {
@@ -103,6 +1087,7 @@ const CreateLoad: PageWithAuth = () => {
     const [isEditMode, setIsEditMode] = useState(false);
 
     const [aiProgress, setAiProgress] = useState(0);
+    const [aiProgressStage, setAiProgressStage] = useState('');
     const [isRetrying, setIsRetrying] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isProcessingText, setIsProcessingText] = useState(false);
@@ -111,6 +1096,34 @@ const CreateLoad: PageWithAuth = () => {
     const [ocrLines, setOcrLines] = useState<OCRLines>(null);
     const [ocrVertices, setOcrVertices] = useState<{ x: number; y: number }[][]>(null);
     const [ocrVerticesPage, setOcrVerticesPage] = useState<number>(null);
+
+    // Progress tracker instance
+    const progressTracker = useRef<ProgressTracker | null>(null);
+
+    // Initialize progress tracker
+    useEffect(() => {
+        progressTracker.current = new ProgressTracker((progress, stage) => {
+            setAiProgress(progress);
+            setAiProgressStage(stage);
+        });
+    }, []);
+
+    // Progress update interval for smoother visual feedback
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+
+        if (isProcessing || isProcessingText || isProcessingImages) {
+            interval = setInterval(() => {
+                progressTracker.current?.updateProgress();
+            }, 100); // Update every 100ms for smooth animation
+        }
+
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [isProcessing, isProcessingText, isProcessingImages]);
 
     const stopsFieldArray = useFieldArray({ name: 'stops', control: formHook.control });
 
@@ -327,17 +1340,22 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         setIsProcessingImages(true);
-        setAiProgress(0);
+
+        // Set up progress stages for image processing
+        progressTracker.current?.setStages([
+            { name: 'Initializing PDF creation', progress: 10, duration: 500 },
+            { name: 'Processing images', progress: 60, duration: 2000 },
+            { name: 'Creating PDF document', progress: 15, duration: 1000 },
+            { name: 'Extracting document data', progress: 15, duration: 2000 },
+        ]);
 
         try {
             // Create a new PDF document
+            progressTracker.current?.updateProgress(0);
             const pdfDoc = await PDFDocument.create();
 
-            // Update progress
-            setAiProgress(10);
-
-            // Update progress
-            setAiProgress(10);
+            // Move to next stage
+            progressTracker.current?.nextStage();
 
             // Process each image
             for (let i = 0; i < selectedImages.length; i++) {
@@ -389,12 +1407,17 @@ const CreateLoad: PageWithAuth = () => {
                     height: scaledHeight,
                 });
 
-                // Update progress
-                setAiProgress(10 + ((i + 1) / selectedImages.length) * 60);
+                // Update progress within the current stage
+                const imageProgress = ((i + 1) / selectedImages.length) * 100;
+                const currentStageProgress = 10 + imageProgress * 0.6;
+                progressTracker.current?.setManualProgress(currentStageProgress, 'Processing images');
             }
 
+            // Move to PDF creation stage - resume automatic progress
+            progressTracker.current?.resumeAutoProgress();
+            progressTracker.current?.nextStage();
+
             // Serialize the PDF
-            setAiProgress(80);
             const pdfBytes = await pdfDoc.save();
 
             // Create a File object from the PDF bytes with standardized naming
@@ -402,7 +1425,8 @@ const CreateLoad: PageWithAuth = () => {
             const fileName = generateRateconFilename();
             const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-            setAiProgress(90);
+            // Move to final processing stage
+            progressTracker.current?.nextStage();
 
             // Process the stitched PDF
             await handleFileUpload(pdfFile);
@@ -411,7 +1435,7 @@ const CreateLoad: PageWithAuth = () => {
             setSelectedImages([]);
             setCanProcessImages(false);
 
-            setAiProgress(100);
+            progressTracker.current?.complete();
 
             notify({
                 title: 'Images processed',
@@ -422,6 +1446,10 @@ const CreateLoad: PageWithAuth = () => {
             console.error('Error processing images:', error);
             setIsProcessingImages(false);
             setAiProgress(0);
+            setAiProgressStage('');
+
+            // Reset progress tracker state
+            progressTracker.current?.resumeAutoProgress();
 
             notify({
                 title: 'Processing failed',
@@ -505,12 +1533,19 @@ const CreateLoad: PageWithAuth = () => {
 
         setLoading(true);
         setIsRetrying(false);
-        setAiProgress(0);
         setIsProcessing(true);
         setIsProcessingText(true);
 
+        // Set up progress stages for text processing
+        progressTracker.current?.setStages([
+            { name: 'Connecting to AI service', progress: 15, duration: 1000 },
+            { name: 'Analyzing text content', progress: 50, duration: 3000 },
+            { name: 'Extracting load information', progress: 25, duration: 2000 },
+            { name: 'Finalizing results', progress: 10, duration: 500 },
+        ]);
+
         try {
-            setAiProgress(10);
+            progressTracker.current?.updateProgress(0);
 
             // Call the text processing API endpoint with timeout
             const controller = new AbortController();
@@ -546,7 +1581,8 @@ const CreateLoad: PageWithAuth = () => {
                 throw new Error(errorMessage);
             }
 
-            setAiProgress(30);
+            // Move to analysis stage
+            progressTracker.current?.nextStage();
 
             // Read the streaming response with better error handling
             const reader = response.body?.getReader();
@@ -572,15 +1608,19 @@ const CreateLoad: PageWithAuth = () => {
 
                 // Update progress based on found properties
                 const progress = checkForProperties(chunk, foundProperties);
-                setAiProgress(Math.max(30, Math.min(90, 30 + progress * 0.6)));
+                // Use manual progress override during streaming to prevent flickering
+                const streamingProgress = 15 + Math.min(50, progress * 0.5);
+                progressTracker.current?.setManualProgress(streamingProgress, 'Analyzing text content');
             }
+
+            // Move to extraction stage - resume automatic progress after streaming
+            progressTracker.current?.resumeAutoProgress();
+            progressTracker.current?.nextStage();
 
             // Validate we received some response
             if (!aiResponse.trim()) {
                 throw new Error('Empty response received from AI service');
             }
-
-            setAiProgress(95);
 
             // Parse the AI response with improved error handling
             let aiLoad: AILoad;
@@ -621,10 +1661,14 @@ const CreateLoad: PageWithAuth = () => {
             // Process the extracted data (reusing existing logic)
             await processExtractedData(aiLoad);
 
-            setAiProgress(100);
+            // Move to finalization stage
+            progressTracker.current?.nextStage();
+
             setIsProcessing(false);
             setIsProcessingText(false);
             setLoading(false);
+
+            progressTracker.current?.complete();
 
             notify({
                 title: 'Text processing complete',
@@ -637,6 +1681,10 @@ const CreateLoad: PageWithAuth = () => {
             setIsProcessingText(false);
             setLoading(false);
             setAiProgress(0);
+            setAiProgressStage('');
+
+            // Reset progress tracker state
+            progressTracker.current?.resumeAutoProgress();
 
             let errorMessage = 'Failed to process the pasted text. Please try again.';
             let errorTitle = 'Processing failed';
@@ -839,6 +1887,7 @@ const CreateLoad: PageWithAuth = () => {
         setLoadSubmitting(false);
         setIsRetrying(false);
         setAiProgress(0);
+        setAiProgressStage('');
         setIsProcessing(false);
     };
 
@@ -894,8 +1943,18 @@ const CreateLoad: PageWithAuth = () => {
         setCurrentRateconFile(processedFile);
         setLoading(true);
         setIsRetrying(false);
-        setAiProgress(0);
         setIsProcessing(true);
+
+        // Set up progress stages for PDF processing
+        progressTracker.current?.setStages([
+            { name: 'Validating PDF structure', progress: 5, duration: 500 },
+            { name: 'Converting document to images', progress: 10, duration: 1500 },
+            { name: 'Performing OCR analysis', progress: 25, duration: 3000 },
+            { name: 'Loading customer data', progress: 5, duration: 500 },
+            { name: 'Processing with AI', progress: 40, duration: 4000 },
+            { name: 'Extracting form data', progress: 10, duration: 1000 },
+            { name: 'Finalizing results', progress: 5, duration: 500 },
+        ]);
 
         // Validate PDF metadata
         let metadata: {
@@ -909,9 +1968,11 @@ const CreateLoad: PageWithAuth = () => {
         } = null;
         let numOfPages = 0;
         try {
+            progressTracker.current?.updateProgress(0);
             const result = await validatePDFFile(file);
             metadata = result.metadata;
             numOfPages = result.numOfPages;
+            progressTracker.current?.nextStage();
         } catch (e) {
             handleAIError();
             return;
@@ -921,6 +1982,7 @@ const CreateLoad: PageWithAuth = () => {
         let base64File: string;
         try {
             base64File = await getBase64FromFile(file);
+            progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error encoding file', type: 'error' });
             handleAIError();
@@ -930,7 +1992,6 @@ const CreateLoad: PageWithAuth = () => {
         // Call OCR API
         let ocrResult;
         try {
-            setAiProgress(5);
             const ocrResponse = await fetch(`${apiUrl}/ai/ocr`, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -944,7 +2005,7 @@ const CreateLoad: PageWithAuth = () => {
             }
 
             ocrResult = await ocrResponse.json();
-            setAiProgress(10);
+            progressTracker.current?.nextStage();
 
             if (ocrResult?.annotations?.lines) {
                 setOcrLines({
@@ -974,7 +2035,9 @@ const CreateLoad: PageWithAuth = () => {
         // Get customers list
         let customersList: Customer[] = [];
         try {
+            progressTracker.current?.nextStage();
             customersList = (await getAllCustomers({ limit: 999, offset: 0 }))?.customers;
+            progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error loading customers', type: 'error' });
             handleAIError();
@@ -1016,12 +2079,18 @@ const CreateLoad: PageWithAuth = () => {
             const aiLoad = await getAILoad(documentsInBlocks, documentsInLines, false, customersList);
             const logisticsCompany = aiLoad?.logistics_company;
 
+            // Move to extraction stage
+            progressTracker.current?.nextStage();
+
             // Only apply AI output if not in edit mode or user confirms
             if (!isEditMode || confirm('Do you want to replace your current data with the extracted information?')) {
                 applyAIOutputToForm(aiLoad);
                 // Handle customer matching
                 handleCustomerMatching(logisticsCompany, customersList, aiLoad);
             }
+
+            // Move to finalization stage
+            progressTracker.current?.nextStage();
         } catch (e) {
             notify({ title: 'Error', message: e?.message || 'Error processing document', type: 'error' });
             handleAIError();
@@ -1029,9 +2098,9 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         setLoading(false);
-        setAiProgress(0);
         setIsRetrying(false);
         setIsProcessing(false);
+        progressTracker.current?.complete();
     };
 
     const validatePDFFile = async (file: File): Promise<{ metadata: any; numOfPages: number }> => {
@@ -1151,6 +2220,7 @@ const CreateLoad: PageWithAuth = () => {
 
         if (!aiLoad?.logistics_company || !aiLoad?.load_number || needRetryOnStops) {
             setIsRetrying(true);
+            setAiProgressStage('Fine tuning results');
             setAiProgress(10);
             // Retry with line-by-line data
             return getAILoad(documentsInBlocks, documentsInLines, true, customersList);
@@ -1317,241 +2387,422 @@ const CreateLoad: PageWithAuth = () => {
     };
 
     const mouseHoverOverField = (event: React.MouseEvent<HTMLInputElement>) => {
-        // Replace comma between word characters with space
-        let value = (event.target as HTMLInputElement).value.replace(/(\w),(\w)/g, '$1 $2');
-        // Remove special characters and convert to lowercase
-        const replaceExp = /[^a-zA-Z0-9 ]/g;
-        value = value.replace(replaceExp, '').toLowerCase();
-
-        // Get the field name
         const fieldName = (event.target as HTMLInputElement).name;
+        const fieldValue = (event.target as HTMLInputElement).value;
 
-        if ((fieldName.includes('date') || fieldName.includes('time')) && !value) {
-            // Get stop name field to search against OCR response
+        // Early return for no OCR data
+        if (!ocrLines?.lines || ocrLines.lines.length === 0) {
+            return;
+        }
+
+        // Highlight field on hover
+        event.currentTarget.style.backgroundColor = '#f0f9ff';
+        event.currentTarget.style.borderColor = '#3b82f6';
+
+        const searchValue = fieldValue.trim();
+        const isDateField = fieldName.includes('date');
+        const isTimeField = fieldName.includes('time');
+
+        // Determine field context
+        const getFieldContext = (fieldName: string) => {
+            if (fieldName.includes('shipper')) {
+                return { stopType: 'pickup', locationKey: 'shipper' };
+            }
+            if (fieldName.includes('receiver')) {
+                return { stopType: 'dropoff', locationKey: 'receiver' };
+            }
+            const stopMatch = fieldName.match(/stops\[(\d+)\]/);
+            if (stopMatch) {
+                return { stopType: 'stop', locationKey: `stops[${stopMatch[1]}]`, stopIndex: parseInt(stopMatch[1]) };
+            }
+            return { stopType: 'unknown', locationKey: null };
+        };
+
+        const { stopType, locationKey, stopIndex } = getFieldContext(fieldName);
+
+        // Handle date/time fields without values
+        if ((isDateField || isTimeField) && !searchValue) {
             const lastDotIndex = fieldName.lastIndexOf('.');
-            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+            const fieldPrefix = fieldName.substring(0, lastDotIndex);
 
-            // Get name or street value to search against OCR response
-            value =
-                formHook
-                    .getValues(`${firstPartOfFieldName}.name` as keyof ExpandedLoad)
-                    ?.toString()
-                    .replace(replaceExp, '')
-                    .toLowerCase() ||
-                formHook
-                    .getValues(`${firstPartOfFieldName}.street` as keyof ExpandedLoad)
-                    ?.toString()
-                    .replace(replaceExp, '')
-                    .toLowerCase();
+            // Build location context
+            let locationContext = '';
+            let stopTypeContext = '';
 
-            // Find in lines data for value
-            const matchingLine = ocrLines?.blocks?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
+            if (stopType === 'pickup' || stopType === 'dropoff') {
+                const getValue = (field: string) =>
+                    formHook.getValues(`${fieldPrefix}.${field}` as keyof ExpandedLoad)?.toString() || '';
 
-            // if line is found, find the closest date
-            if (matchingLine) {
-                const result = findClosestDate(ocrLines?.lines, matchingLine?.boundingPoly);
-                if (result) {
-                    setOcrVertices([result.boundingPoly.normalizedVertices]);
-                    setOcrVerticesPage(result.pageNumber);
-                    return;
+                const locationData = {
+                    name: getValue('name'),
+                    street: getValue('street'),
+                    city: getValue('city'),
+                    state: getValue('state'),
+                    zip: getValue('zip'),
+                };
+
+                const cityStateZip = [locationData.city, locationData.state, locationData.zip]
+                    .filter(Boolean)
+                    .join(' ');
+                locationContext = [locationData.name, locationData.street, cityStateZip].filter(Boolean).join(' ');
+
+                stopTypeContext =
+                    stopType === 'pickup'
+                        ? 'pickup pick up shipper origin'
+                        : 'delivery drop off receiver destination consignee';
+            } else if (stopType === 'stop' && stopIndex !== undefined) {
+                const stops = (formHook.getValues('stops') as any[]) || [];
+                if (stops[stopIndex]) {
+                    const stopData = stops[stopIndex];
+                    const cityStateZip = [stopData.city, stopData.state, stopData.zip].filter(Boolean).join(' ');
+                    locationContext = [stopData.name, stopData.street, cityStateZip].filter(Boolean).join(' ');
+                    stopTypeContext = 'stop intermediate';
+                }
+            }
+
+            if (locationContext) {
+                const contextValue = `${locationContext} ${stopTypeContext}`.trim();
+
+                if (isDateField) {
+                    console.log('🔍 Debug: Date field without value - looking for dates near location context');
+                    console.log('Location context:', locationContext);
+
+                    // Find location context lines first
+                    const locationMatches = OCRMatcher.findBestMatches(locationContext, ocrLines.lines, 'location', 3);
+                    console.log('Location matches found:', locationMatches.length);
+
+                    if (locationMatches.length > 0) {
+                        // Look for date patterns near the location
+                        let bestDateMatch = null;
+                        let minDistance = Infinity;
+
+                        for (const locationMatch of locationMatches) {
+                            // Find all lines with date patterns
+                            const dateLines = ocrLines.lines.filter((line) =>
+                                OCRMatcher.hasDatePatternPublic(line.text),
+                            );
+
+                            console.log('Date pattern lines found:', dateLines.length);
+
+                            // Find closest date to this location
+                            for (const dateLine of dateLines) {
+                                const distance = OCRMatcher.calculateSpatialDistance(dateLine, locationMatch.line);
+                                console.log(`Date line: "${dateLine.text}" - distance: ${distance}`);
+
+                                if (distance < minDistance && distance < 5) {
+                                    // Within reasonable distance
+                                    minDistance = distance;
+                                    bestDateMatch = dateLine;
+                                }
+                            }
+                        }
+
+                        if (bestDateMatch) {
+                            console.log('🎯 Best contextual date match:', bestDateMatch.text);
+                            setOcrVertices([bestDateMatch.boundingPoly.normalizedVertices]);
+                            setOcrVerticesPage(bestDateMatch.pageNumber);
+                            return;
+                        }
+                    }
+                }
+
+                if (isTimeField) {
+                    console.log('🔍 Debug: Time field without value - looking for times near location context');
+                    const timeMatch = OCRMatcher.findContextualMatch('', ocrLines.lines, locationContext, 'time');
+                    if (timeMatch && timeMatch.confidence > 0.3) {
+                        console.log('🎯 Best contextual time match:', timeMatch.line.text);
+                        setOcrVertices([timeMatch.line.boundingPoly.normalizedVertices]);
+                        setOcrVerticesPage(timeMatch.line.pageNumber);
+                        return;
+                    }
                 }
             }
         }
 
-        // If value is empty, return
-        if (!value || !ocrLines?.lines) {
+        // Exit if no search value
+        if (!searchValue) {
             return;
         }
 
-        if (fieldName.includes('date') && Number(value)) {
-            // Extract year, month, and day from the input
-            const year = value.slice(0, 4);
-            const month = value.slice(4, 6);
-            const day = value.slice(6, 8);
+        // Build context value for other fields
+        let contextValue = '';
 
-            // Return in the desired format
-            value = `${month}${day}${year}`;
-        }
-
-        // Highlight the field border on hover
-        event.currentTarget.style.backgroundColor = '#f0f9ff';
-        event.currentTarget.style.borderColor = '#3b82f6';
-
-        // Check if the field is an address field
-        const isAddressField = ['city', 'state', 'zip'].find((name) => fieldName.includes(name));
-
-        // If the field is an address field, build city state zip string to search against OCR response
-        if (isAddressField) {
+        // Enhanced address field handling
+        if (['city', 'state', 'zip', 'street'].some((name) => fieldName.includes(name))) {
             const lastDotIndex = fieldName.lastIndexOf('.');
-            const firstPartOfFieldName = fieldName.substring(0, lastDotIndex);
+            const fieldPrefix = fieldName.substring(0, lastDotIndex);
 
-            const addCity = formHook
-                .getValues(`${firstPartOfFieldName}.city` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            const addState = formHook
-                .getValues(`${firstPartOfFieldName}.state` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            const addZip = formHook
-                .getValues(`${firstPartOfFieldName}.zip` as keyof ExpandedLoad)
-                ?.toString()
-                .replace(replaceExp, '')
-                .toLowerCase();
-            value = `${addCity} ${addState} ${addZip}`;
+            const getValue = (field: string) =>
+                formHook.getValues(`${fieldPrefix}.${field}` as keyof ExpandedLoad)?.toString() || '';
+
+            const addressComponents = {
+                name: getValue('name'),
+                street: getValue('street'),
+                city: getValue('city'),
+                state: getValue('state'),
+                zip: getValue('zip'),
+            };
+
+            const cityStateZip = [addressComponents.city, addressComponents.state, addressComponents.zip]
+                .filter(Boolean)
+                .join(' ');
+
+            if (fieldName.includes('city') || fieldName.includes('state') || fieldName.includes('zip')) {
+                contextValue = [addressComponents.name, addressComponents.street].filter(Boolean).join(' ');
+            } else if (fieldName.includes('street')) {
+                contextValue = [addressComponents.name, cityStateZip].filter(Boolean).join(' ');
+            }
+
+            // Add stop type context
+            if (stopType !== 'unknown') {
+                const stopTypeKeywords =
+                    stopType === 'pickup'
+                        ? 'pickup origin shipper'
+                        : stopType === 'dropoff'
+                        ? 'delivery destination receiver consignee'
+                        : 'stop';
+                contextValue = `${contextValue} ${stopTypeKeywords}`.trim();
+            }
         }
 
-        // Variable to hold the best matching line
-        let matchingLine: Line = null;
+        // Enhanced reference field handling
+        if (['poNumbers', 'pickUpNumbers', 'referenceNumbers'].some((name) => fieldName.includes(name))) {
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const fieldPrefix = fieldName.substring(0, lastDotIndex);
 
-        // Find the matching line in the OCR response
-        matchingLine = ocrLines?.lines?.find((line) =>
-            looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-        );
+            const getValue = (field: string) =>
+                formHook.getValues(`${fieldPrefix}.${field}` as keyof ExpandedLoad)?.toString() || '';
 
-        // If no matching line found, search in the blocks
-        if (!matchingLine) {
-            value = fieldName.includes('state') ? ` ${value} ` : value;
-            // Fuzzy search for the value in the OCR response
-            matchingLine = ocrLines?.blocks?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
+            const locationData = {
+                name: getValue('name'),
+                street: getValue('street'),
+                city: getValue('city'),
+                state: getValue('state'),
+                zip: getValue('zip'),
+            };
+
+            const cityStateZip = [locationData.city, locationData.state, locationData.zip].filter(Boolean).join(' ');
+            const locationContext = [locationData.name, locationData.street, cityStateZip].filter(Boolean).join(' ');
+
+            let stopTypeContext = '';
+            if (stopType === 'pickup') {
+                stopTypeContext = 'pickup pick up shipper origin PU';
+            } else if (stopType === 'dropoff') {
+                stopTypeContext = 'delivery drop off receiver destination consignee SO';
+            } else if (stopType === 'stop') {
+                stopTypeContext = 'stop';
+            }
+
+            contextValue = `${locationContext} ${stopTypeContext}`.trim();
         }
 
-        if (!matchingLine && fieldName.includes('date')) {
-            let value = (event.target as HTMLInputElement).value.replace(replaceExp, '').toLowerCase();
+        // Enhanced company name handling
+        if (fieldName.includes('name')) {
+            const lastDotIndex = fieldName.lastIndexOf('.');
+            const fieldPrefix = fieldName.substring(0, lastDotIndex);
 
-            // Extract year, month, and day from the input
-            const year = value.slice(2, 4);
-            const month = value.slice(4, 6);
-            const day = value.slice(6, 8);
+            const getValue = (field: string) =>
+                formHook.getValues(`${fieldPrefix}.${field}` as keyof ExpandedLoad)?.toString() || '';
 
-            // Return in the desired format
-            value = `${month}${day}${year}`;
+            const locationData = {
+                street: getValue('street'),
+                city: getValue('city'),
+                state: getValue('state'),
+                zip: getValue('zip'),
+            };
 
-            // Find in lines data for value
-            matchingLine = ocrLines?.lines?.find((line) =>
-                looselyCompareAddresses(value, line.text.trim().replace(replaceExp, '').toLocaleLowerCase()),
-            );
+            const cityStateZip = [locationData.city, locationData.state, locationData.zip].filter(Boolean).join(' ');
+            contextValue = [locationData.street, cityStateZip].filter(Boolean).join(' ');
+
+            // Add stop type context
+            if (stopType === 'pickup') {
+                contextValue += ' pickup origin shipper';
+            } else if (stopType === 'dropoff') {
+                contextValue += ' delivery destination receiver consignee';
+            } else if (stopType === 'stop') {
+                contextValue += ' stop';
+            }
         }
 
-        // Update matching vertices if matching line is found
-        if (matchingLine) {
-            setOcrVertices([matchingLine.boundingPoly.normalizedVertices]);
-            setOcrVerticesPage(matchingLine.pageNumber);
+        // Find the best match using optimized OCRMatcher
+        let bestMatch = null;
+
+        // Use enhanced date/time pattern matching
+        if (isDateField && searchValue) {
+            // Enhanced date format detection - handle multiple formats
+            let searchDate = null;
+
+            // Try MM/DD/YYYY format
+            let dateMatch = searchValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (dateMatch) {
+                const [, month, day, year] = dateMatch.map((p) => parseInt(p));
+                searchDate = new Date(year, month - 1, day);
+            } else {
+                // Try DD/MM/YYYY format
+                dateMatch = searchValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (dateMatch) {
+                    const [, day, month, year] = dateMatch.map((p) => parseInt(p));
+                    searchDate = new Date(year, month - 1, day);
+                }
+            }
+
+            // Try MM-DD-YYYY format
+            if (!searchDate) {
+                dateMatch = searchValue.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (dateMatch) {
+                    const [, month, day, year] = dateMatch.map((p) => parseInt(p));
+                    searchDate = new Date(year, month - 1, day);
+                }
+            }
+
+            // Try YYYY-MM-DD format (ISO)
+            if (!searchDate) {
+                dateMatch = searchValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if (dateMatch) {
+                    const [, year, month, day] = dateMatch.map((p) => parseInt(p));
+                    searchDate = new Date(year, month - 1, day);
+                }
+            }
+
+            // Try parsing as Date object if it's a valid date string
+            if (!searchDate) {
+                const testDate = new Date(searchValue);
+                if (!isNaN(testDate.getTime())) {
+                    searchDate = testDate;
+                }
+            }
+
+            if (searchDate && !isNaN(searchDate.getTime())) {
+                const dateMatches = ocrLines.lines
+                    .map((line, index) => {
+                        const result = DateTimeFormatter.matchesDatePattern(line.text, searchDate);
+                        return {
+                            line,
+                            ...result,
+                        };
+                    })
+                    .filter((result) => {
+                        return result.match && result.confidence > 0.5;
+                    })
+                    .sort((a, b) => b.confidence - a.confidence);
+
+                if (dateMatches.length > 0) {
+                    bestMatch = {
+                        line: dateMatches[0].line,
+                        confidence: dateMatches[0].confidence,
+                        matchType: 'date_pattern',
+                    };
+                }
+            }
+        }
+
+        if (!bestMatch && isTimeField && searchValue) {
+            const timeMatches = ocrLines.lines
+                .map((line) => ({
+                    line,
+                    ...DateTimeFormatter.matchesTimePattern(line.text, searchValue),
+                }))
+                .filter((result) => result.match && result.confidence > 0.5)
+                .sort((a, b) => b.confidence - a.confidence);
+
+            if (timeMatches.length > 0) {
+                bestMatch = {
+                    line: timeMatches[0].line,
+                    confidence: timeMatches[0].confidence,
+                    matchType: 'time_pattern',
+                };
+            }
+        }
+
+        // Use contextual matching with optimized OCRMatcher
+        if (!bestMatch) {
+            console.log('🔍 Debug: Using contextual matching');
+            console.log('Search value:', searchValue);
+            console.log('Context value:', contextValue);
+            console.log('Field name:', fieldName);
+
+            bestMatch = OCRMatcher.findContextualMatch(searchValue, ocrLines.lines, contextValue, fieldName);
+
+            if (bestMatch) {
+                console.log('🎯 Contextual match found:', bestMatch.line.text, 'confidence:', bestMatch.confidence);
+            } else {
+                console.log('❌ No contextual match found');
+            }
+        }
+
+        // Enhanced fallback for company names
+        if (!bestMatch && fieldName.includes('name') && searchValue) {
+            const enhancedLocationMatches = ocrLines.lines
+                .filter((line) => {
+                    const normalizedLine = line.text
+                        .replace(/[^a-zA-Z0-9\s]/g, '')
+                        .toLowerCase()
+                        .trim();
+                    const normalizedSearch = searchValue
+                        .replace(/[^a-zA-Z0-9\s]/g, '')
+                        .toLowerCase()
+                        .trim();
+
+                    if (!normalizedLine.includes(normalizedSearch)) return false;
+
+                    const hasAddressInfo =
+                        /\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)\b/i.test(
+                            line.text,
+                        ) ||
+                        /\b\d{5}(-\d{4})?\b/.test(line.text) ||
+                        /\b[A-Z]{2}\s+\d{5}\b/.test(line.text) ||
+                        (/\b[A-Z]{2}\b/.test(line.text) && /\b\d+\b/.test(line.text));
+
+                    return hasAddressInfo;
+                })
+                .map((line) => ({
+                    line,
+                    confidence: 0.85,
+                    matchType: 'enhanced_location',
+                }));
+
+            if (enhancedLocationMatches.length > 0) {
+                bestMatch = enhancedLocationMatches[0];
+            }
+        }
+
+        // Display result
+        if (bestMatch && bestMatch.confidence > 0.2) {
+            setOcrVertices([bestMatch.line.boundingPoly.normalizedVertices]);
+            setOcrVerticesPage(bestMatch.line.pageNumber);
+        } else {
+            // Fallback to legacy matching
+            const legacyMatch = findLegacyMatch(searchValue);
+            if (legacyMatch) {
+                setOcrVertices([legacyMatch.boundingPoly.normalizedVertices]);
+                setOcrVerticesPage(legacyMatch.pageNumber);
+            }
         }
     };
 
+    // Simplified legacy matching fallback
+    const findLegacyMatch = (searchValue: string): Line | null => {
+        if (!searchValue || !ocrLines?.lines) return null;
+
+        const normalizedSearch = searchValue.toLowerCase().trim();
+
+        for (const line of ocrLines.lines) {
+            const normalizedLine = line.text.toLowerCase();
+            if (normalizedLine.includes(normalizedSearch)) {
+                return line;
+            }
+        }
+
+        return null;
+    };
     const mouseHoverOverFieldExited = (event: React.MouseEvent<HTMLInputElement>) => {
         // Reset the field styling
         event.currentTarget.style.backgroundColor = '';
         event.currentTarget.style.borderColor = '';
 
-        // Reset the vertices
+        // Reset the vertices and page number
         setOcrVertices(null);
-        // Reset the page number
         setOcrVerticesPage(null);
-    };
-
-    const twoStringWindowSearch = (s1: string, s2: string, windowSize: number) => {
-        // Edge case: If window size is greater than either string's length
-        if (s1.length < windowSize || s2.length < windowSize) {
-            return false;
-        }
-
-        // Slide the window over s1
-        for (let i = 0; i <= s1.length - windowSize; i++) {
-            const s1Window = s1.slice(i, i + windowSize);
-            if (s2.includes(s1Window)) {
-                return true; // If match found, return true
-            }
-        }
-
-        return false; // If no match found, return false
-    };
-
-    const looselyCompareAddresses = (str1: string, str2: string) => {
-        if (!str1 || !str2) {
-            return false;
-        }
-
-        if (str1 === str2) {
-            return true;
-        }
-
-        // Normalize strings: remove special characters and convert to lowercase
-        const normalize = (str) =>
-            str
-                .replace(/[^a-zA-Z0-9\s]/g, '') // Remove punctuation
-                .toLowerCase()
-                .split(/\s+/) // Split into words
-                .filter(Boolean); // Remove empty strings
-
-        const tokens1 = normalize(str1);
-        const tokens2 = normalize(str2);
-
-        // Count matches
-        const matches = tokens1.filter((token) => {
-            const result = tokens2.find((token2) => {
-                return twoStringWindowSearch(token, token2, Math.round(token.length * 0.9));
-            });
-            return result;
-        }).length;
-
-        // Determine similarity based on the proportion of matching tokens
-        return matches >= Math.min(tokens1.length, tokens2.length * 0.8);
-    };
-
-    const findClosestDate = (
-        ocrData: Line[],
-        targetBoundary: { vertices: { x: number; y: number }[] },
-    ): Line | null => {
-        const dateRegex = /\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\/\d{2}\/\d{4}\b/g;
-
-        let closestMatch: Line | null = null;
-        let minDistance = Number.POSITIVE_INFINITY;
-
-        const getBoundingBoxCenter = (vertices: { x: number; y: number }[]) => {
-            const x = (vertices[0].x + vertices[2].x) / 2;
-            const y = (vertices[0].y + vertices[2].y) / 2;
-
-            return { x, y };
-        };
-
-        ocrData.forEach((item) => {
-            const { text, pageNumber, boundingPoly } = item;
-
-            // Check if the text matches the date format
-            const match = text.match(dateRegex);
-            if (!match) return;
-
-            // Compute the center of the current bounding box
-            const currentCenter = getBoundingBoxCenter(boundingPoly.vertices);
-
-            // Compute the center of the target boundary
-            const targetCenter = getBoundingBoxCenter(targetBoundary.vertices);
-
-            // Calculate Euclidean distance
-            const distance = Math.sqrt(
-                Math.pow(currentCenter.x - targetCenter.x, 2) + Math.pow(currentCenter.y - targetCenter.y, 2),
-            );
-
-            // Update the closest match if the distance is smaller
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestMatch = {
-                    text: match[0],
-                    pageNumber,
-                    boundingPoly,
-                };
-            }
-        });
-
-        return closestMatch;
     };
 
     const resetForm = () => {
@@ -1595,6 +2846,7 @@ const CreateLoad: PageWithAuth = () => {
         setOcrVertices(null);
         setOcrVerticesPage(null);
         setAiProgress(0);
+        setAiProgressStage('');
         setIsProcessing(false);
         setIsProcessingText(false);
         setIsProcessingImages(false);
@@ -1670,7 +2922,7 @@ const CreateLoad: PageWithAuth = () => {
                                         <path
                                             className="opacity-75"
                                             fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                            d="M4 12a8 8 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                                         ></path>
                                     </svg>
                                     {isEditMode ? 'Updating...' : 'Creating...'}
@@ -1723,7 +2975,7 @@ const CreateLoad: PageWithAuth = () => {
                     {/* Left side - PDF upload/viewer */}
                     <div
                         className={`${
-                            currentRateconFile ? 'w-full xl:w-[55%] 2xl:w-[60%]' : 'w-full xl:w-1/3 2xl:w-1/4'
+                            currentRateconFile ? 'w-full xl:w-[55%] 2xl:w-[55%]' : 'w-full xl:w-1/3 2xl:w-1/4'
                         } transition-all duration-300`}
                     >
                         {aiProgress > 0 && (
@@ -1738,11 +2990,13 @@ const CreateLoad: PageWithAuth = () => {
                                                 isRetrying ? 'text-amber-700' : 'text-blue-700'
                                             }`}
                                         >
-                                            {isRetrying ? 'Fine tuning results' : 'Reading Document'}
+                                            {isRetrying ? 'Fine tuning results' : aiProgressStage || 'Reading Document'}
                                         </h3>
                                         <p className="text-xs text-gray-500 truncate">
                                             {isRetrying
                                                 ? 'Enhancing data extraction accuracy...'
+                                                : aiProgressStage
+                                                ? `${aiProgressStage}...`
                                                 : 'Extracting load information from your document...'}
                                         </p>
                                     </div>
@@ -2128,7 +3382,7 @@ const CreateLoad: PageWithAuth = () => {
                     {/* Right side - Form */}
                     <div
                         className={`${
-                            currentRateconFile ? 'w-full xl:w-[45%] 2xl:w-[40%]' : 'w-full xl:w-2/3 2xl:w-3/4'
+                            currentRateconFile ? 'w-full xl:w-[45%] 2xl:w-[45%]' : 'w-full xl:w-2/3 2xl:w-3/4'
                         } transition-all duration-300 flex-shrink-0`}
                     >
                         {/* This div makes the form panel sticky and defines its adaptive height. */}
