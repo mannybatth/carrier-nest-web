@@ -553,7 +553,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
 
                                                                 // Always align menu to the right of the button
                                                                 let top = rect.bottom + window.scrollY + 4;
-                                                                let left = rect.right + window.scrollX - menuWidth;
+                                                                const left = rect.right + window.scrollX - menuWidth;
 
                                                                 // Adjust if menu would go below viewport
                                                                 if (rect.bottom + menuHeight > viewportHeight) {
