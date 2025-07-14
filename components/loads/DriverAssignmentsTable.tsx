@@ -164,7 +164,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                         <tr>
                             <th
                                 scope="col"
-                                className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[15%]"
                             >
                                 <div className="flex items-center gap-0">
                                     <TruckIcon className="w-4 h-4 mr-1.5 text-gray-400" />
@@ -173,7 +173,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                             </th>
                             <th
                                 scope="col"
-                                className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[15%]"
                             >
                                 <div className="flex items-center gap-0">
                                     <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-400" />
@@ -182,7 +182,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                             </th>
                             <th
                                 scope="col"
-                                className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[35%]"
                             >
                                 <div className="flex items-center gap-0">
                                     <MapPinIcon className="w-4 h-4 mr-1.5 text-gray-400" />
@@ -191,7 +191,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                             </th>
                             <th
                                 scope="col"
-                                className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[20%]"
                             >
                                 <div className="flex items-center gap-0">
                                     <CurrencyDollarIcon className="w-4 h-4 mr-1.5 text-gray-400" />
@@ -200,14 +200,14 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                             </th>
                             <th
                                 scope="col"
-                                className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[10%]"
                             >
                                 <div className="flex items-center gap-0">
                                     <StopIcon className="w-4 h-4 mr-1.5 text-gray-400" />
                                     Status
                                 </div>
                             </th>
-                            <th scope="col" className="relative px-8 py-4 w-10">
+                            <th scope="col" className="relative px-4 py-4 w-[5%]">
                                 <span className="sr-only">Actions</span>
                             </th>
                         </tr>
@@ -215,7 +215,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                     <tbody className="bg-white divide-y divide-gray-50">
                         {assignments.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-8 py-16 text-center">
+                                <td colSpan={6} className="px-4 py-16 text-center">
                                     <div className="flex flex-col items-center justify-center">
                                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                             <DocumentTextIcon className="w-8 h-8 text-gray-300" />
@@ -267,48 +267,48 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             onClick={() => toggleRow(assignment.id)}
                                         >
                                             {/* Load Column */}
-                                            <td className="px-8 py-6">
+                                            <td className="px-4 py-4">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center mb-1">
                                                         <Link
                                                             href={`/loads/${assignment.load.id}`}
                                                             target="_blank"
-                                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 truncate"
                                                         >
                                                             Order# {assignment.load.refNum}
                                                         </Link>
                                                     </div>
-                                                    <div className="flex items-center text-xs text-gray-500">
+                                                    <div className="flex items-center text-xs text-gray-500 truncate">
                                                         Load# <span className="ml-1">{assignment.load.loadNum}</span>
                                                     </div>
                                                 </div>
                                             </td>
 
                                             {/* Schedule Column */}
-                                            <td className="px-8 py-6">
+                                            <td className="px-4 py-4">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center text-sm font-medium text-gray-900">
-                                                        <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
-                                                        <span>
+                                                        <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-400 flex-shrink-0" />
+                                                        <span className="truncate">
                                                             {formatDate(assignment.routeLeg.scheduledDate.toString())}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center mt-1 text-xs text-gray-500">
-                                                        <ClockIcon className="w-3 h-3 mr-1.5 text-gray-400" />
+                                                        <ClockIcon className="w-3 h-3 mr-1.5 text-gray-400 flex-shrink-0" />
                                                         <span>{formatTime(assignment.routeLeg.scheduledTime)}</span>
                                                     </div>
                                                 </div>
                                             </td>
 
                                             {/* Locations Column */}
-                                            <td className="px-8 py-6">
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-start">
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <div className="flex items-start min-w-0">
                                                         {assignment.routeLeg.locations.length > 0 && (
                                                             <>
                                                                 {/* First location (pickup) */}
-                                                                <div className="flex-1 min-w-0 pr-3">
-                                                                    <div className="flex items-center">
+                                                                <div className="flex-1 min-w-0 pr-2">
+                                                                    <div className="flex items-center min-w-0">
                                                                         <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2 flex-shrink-0"></div>
                                                                         <span
                                                                             className="text-sm font-medium text-gray-900 truncate uppercase"
@@ -351,12 +351,12 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                     </p>
                                                                 </div>
 
-                                                                <ArrowLongRightIcon className="w-4 h-4 mx-2 text-gray-300 flex-shrink-0 mt-0.5" />
+                                                                <ArrowLongRightIcon className="w-4 h-4 mx-1 text-gray-300 flex-shrink-0 mt-0.5" />
 
                                                                 {/* Last location (delivery) */}
                                                                 {assignment.routeLeg.locations.length > 1 && (
-                                                                    <div className="flex-1 min-w-0 pl-3">
-                                                                        <div className="flex items-center">
+                                                                    <div className="flex-1 min-w-0 pl-2">
+                                                                        <div className="flex items-center min-w-0">
                                                                             <div className="h-2.5 w-2.5 rounded-full bg-red-500 mr-2 flex-shrink-0"></div>
                                                                             <span
                                                                                 className="text-sm font-medium text-gray-900 truncate uppercase"
@@ -426,17 +426,17 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                         )}
                                                     </div>
 
-                                                    <div className="flex items-center mt-3 text-xs text-gray-500">
+                                                    <div className="flex items-center mt-2 text-xs text-gray-500 flex-wrap gap-x-2 gap-y-1">
                                                         <div className="flex items-center">
-                                                            <MapPinIcon className="w-3 h-3 mr-1.5 text-gray-400" />
+                                                            <MapPinIcon className="w-3 h-3 mr-1 text-gray-400" />
                                                             <span>
                                                                 {Math.round(Number(assignment.routeLeg.distanceMiles))}{' '}
                                                                 mi
                                                             </span>
                                                         </div>
-                                                        <span className="mx-3 text-gray-300">•</span>
+                                                        <span className="text-gray-300">•</span>
                                                         <div className="flex items-center">
-                                                            <ClockIcon className="w-3 h-3 mr-1.5 text-gray-400" />
+                                                            <ClockIcon className="w-3 h-3 mr-1 text-gray-400" />
                                                             <span>
                                                                 {Math.round(Number(assignment.routeLeg.durationHours))}{' '}
                                                                 hrs
@@ -444,9 +444,9 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                         </div>
                                                         {assignment.routeLeg.locations.length > 2 && (
                                                             <>
-                                                                <span className="mx-3 text-gray-300">•</span>
+                                                                <span className="text-gray-300">•</span>
                                                                 <div className="flex items-center">
-                                                                    <StopIcon className="w-3 h-3 mr-1.5 text-gray-400" />
+                                                                    <StopIcon className="w-3 h-3 mr-1 text-gray-400" />
                                                                     <span>
                                                                         {assignment.routeLeg.locations.length} stops
                                                                     </span>
@@ -458,13 +458,14 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             </td>
 
                                             {/* Charge Column */}
-                                            <td className="px-8 py-6">
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center text-sm font-semibold text-gray-900">
-                                                        <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center mr-3">
-                                                            <CurrencyDollarIcon className="w-4 h-4 text-green-600" />
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col space-y-2">
+                                                    {/* Main charge amount */}
+                                                    <div className="flex items-center">
+                                                        <div className="w-6 h-6 bg-green-50 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                                                            <CurrencyDollarIcon className="w-3 h-3 text-green-600" />
                                                         </div>
-                                                        <span>
+                                                        <span className="text-sm font-semibold text-gray-900 truncate">
                                                             {assignment.chargeType === 'PER_HOUR'
                                                                 ? `$${assignment.chargeValue}/hr`
                                                                 : assignment.chargeType === 'PER_MILE'
@@ -474,21 +475,23 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                 : `$${assignment.chargeValue}`}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center justify-between mt-2 ml-11">
-                                                        <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+                                                    
+                                                    {/* Charge type and invoiced status */}
+                                                    <div className="flex items-center gap-2 ml-8">
+                                                        <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
                                                             {assignment.chargeType === 'PER_HOUR'
                                                                 ? 'Per Hour'
                                                                 : assignment.chargeType === 'PER_MILE'
                                                                 ? 'Per Mile'
                                                                 : assignment.chargeType === 'PERCENTAGE_OF_LOAD'
-                                                                ? 'Percentage of Load'
+                                                                ? 'Percentage'
                                                                 : assignment.chargeType === 'FIXED_PAY'
                                                                 ? 'Fixed Pay'
                                                                 : 'Fixed Amount'}
                                                         </span>
                                                         {isInvoiced && (
-                                                            <span className="flex w-fit items-center px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 shadow-sm">
-                                                                <ReceiptRefundIcon className="w-3 h-3 mr-1.5" />
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                                <ReceiptRefundIcon className="w-3 h-3 mr-1" />
                                                                 Invoiced
                                                             </span>
                                                         )}
@@ -497,11 +500,11 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             </td>
 
                                             {/* Status Column */}
-                                            <td className="px-8 py-6">
+                                            <td className="px-4 py-4">
                                                 <div className="flex items-center">
                                                     {updatingStatus[assignment.routeLeg.id] ? (
-                                                        <div className="flex items-center px-3 py-1.5 rounded-xl text-xs font-medium border border-gray-200 bg-gray-50">
-                                                            <div className="w-4 h-4 mr-2">
+                                                        <div className="flex items-center px-2 py-1 rounded-lg text-xs font-medium border border-gray-200 bg-gray-50">
+                                                            <div className="w-4 h-4 mr-1">
                                                                 <svg
                                                                     className="w-4 h-4 animate-spin text-gray-500"
                                                                     fill="none"
@@ -526,7 +529,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                         </div>
                                                     ) : (
                                                         <span
-                                                            className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-medium border shadow-sm ${statusInfo.color}`}
+                                                            className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium border shadow-sm ${statusInfo.color}`}
                                                         >
                                                             {statusInfo.label}
                                                         </span>
@@ -535,7 +538,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                             </td>
 
                                             {/* Actions Column */}
-                                            <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+                                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <Menu as="div" className="relative inline-block text-left">
                                                     {({ open }) => {
                                                         const buttonRef = useRef<HTMLButtonElement>(null);
@@ -582,7 +585,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                 <Menu.Button
                                                                     ref={buttonRef}
                                                                     disabled={updatingStatus[assignment.routeLeg.id]}
-                                                                    className={`inline-flex items-center justify-center w-10 h-10 bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 shadow-sm ${
+                                                                    className={`inline-flex items-center justify-center w-8 h-8 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 shadow-sm ${
                                                                         updatingStatus[assignment.routeLeg.id]
                                                                             ? 'text-gray-300 cursor-not-allowed'
                                                                             : 'text-gray-400 hover:bg-gray-50 hover:text-gray-500'
@@ -590,7 +593,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                 >
                                                                     <span className="sr-only">Open options</span>
                                                                     <EllipsisHorizontalIcon
-                                                                        className="w-5 h-5"
+                                                                        className="w-4 h-4"
                                                                         aria-hidden="true"
                                                                     />
                                                                 </Menu.Button>
@@ -786,7 +789,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                         {/* Expanded Row */}
                                         {isExpanded && (
                                             <tr className="bg-gray-50/50 border-t border-gray-100">
-                                                <td colSpan={6} className="px-8 py-5">
+                                                <td colSpan={6} className="px-4 py-5">
                                                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                                                         {/* Compact Header */}
                                                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
