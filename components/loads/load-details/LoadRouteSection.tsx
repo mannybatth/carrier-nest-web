@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { Disclosure, Transition } from '@headlessui/react';
 import { Prisma } from '@prisma/client';
 import { useLoadContext } from 'components/context/LoadContext';
@@ -13,8 +12,8 @@ import {
     ChevronDownIcon,
     CalendarIcon,
     ClockIcon,
-    ArrowLongRightIcon,
 } from '@heroicons/react/24/outline';
+import LoadRouteMap from './LoadRouteMap';
 
 type LoadRouteSectionProps = {
     openRouteInGoogleMaps: () => void;
@@ -24,76 +23,99 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
     const [load] = useLoadContext();
 
     // Calculate rate per mile
-    const ratePerMile = Number(Number(load.rate) / Number(load.routeDistanceMiles)).toFixed(2);
+    const ratePerMile =
+        load.rate && load.routeDistanceMiles && Number(load.routeDistanceMiles) > 0
+            ? (Number(load.rate) / Number(load.routeDistanceMiles)).toFixed(2)
+            : '0.00';
 
     // Combine all locations in sequence
     const allLocations = [
-        { ...load.shipper, type: 'origin' },
-        ...load.stops.map((stop) => ({ ...stop, type: 'stop' })),
-        { ...load.receiver, type: 'destination' },
+        {
+            ...load.shipper,
+            type: 'origin' as const,
+            id: 'origin-location',
+            latitude: load.shipper?.latitude,
+            longitude: load.shipper?.longitude,
+            name: load.shipper?.name || 'Pickup Location',
+            stopType: 'shipper',
+        },
+        ...load.stops.map((stop, index) => ({
+            ...stop,
+            type: 'stop' as const,
+            id: `stop-${index}`,
+            latitude: stop.latitude,
+            longitude: stop.longitude,
+            name: stop.name || `Stop ${index + 1}`,
+            stopType: stop.type || 'stop', // Use the actual stop type from data
+        })),
+        {
+            ...load.receiver,
+            type: 'destination' as const,
+            id: 'destination-location',
+            latitude: load.receiver?.latitude,
+            longitude: load.receiver?.longitude,
+            name: load.receiver?.name || 'Delivery Location',
+            stopType: 'receiver',
+        },
     ];
 
     return (
-        <div className="bg-white rounded-xl  overflow-hidden border border-gray-100">
-            {/* Header with map */}
-            <div className="relative min-h-28 md:min-h-36">
-                {load && load.routeEncoded && (
-                    <div className="relative">
-                        <Image
-                            src={`https://api.mapbox.com/styles/v1/mapbox/light-v9/static/path-4+007AFF-0.99(${encodeURIComponent(
-                                load.routeEncoded,
-                            )})/auto/1275x180?padding=25,25,25,25&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
-                            width={1200}
-                            height={180}
-                            alt="Route Map"
-                            loading="lazy"
-                            className="w-full h-auto"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent" />
-                    </div>
-                )}
+        <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-200/60">
+            {/* Interactive Map Section */}
+            <div className="relative">
+                <LoadRouteMap locations={allLocations} routeEncoded={load.routeEncoded} className="w-full" />
+            </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <h2 className="text-xl font-medium text-gray-900">Route</h2>
-                            <p className="text-sm text-gray-500">
-                                {new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(0)} miles ·{' '}
-                                {hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())} · $
-                                {ratePerMile}/mile
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={openRouteInGoogleMaps}
-                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Directions
-                            <ArrowTopRightOnSquareIcon className="ml-1.5 h-4 w-4" />
-                        </button>
+            {/* Route Info Header */}
+            <div className="px-6 py-4 border-b border-gray-100">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Route</h2>
+                        <p className="text-sm text-gray-600 font-medium mt-1">
+                            {load.routeDistanceMiles
+                                ? new Prisma.Decimal(load.routeDistanceMiles).toNumber().toFixed(0)
+                                : '0'}{' '}
+                            miles ·{' '}
+                            {load.routeDurationHours
+                                ? hoursToReadable(new Prisma.Decimal(load.routeDurationHours).toNumber())
+                                : '0h'}{' '}
+                            · ${ratePerMile}/mile
+                        </p>
                     </div>
+                    <button
+                        type="button"
+                        onClick={openRouteInGoogleMaps}
+                        className="inline-flex items-center px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-xl"
+                    >
+                        Directions
+                        <ArrowTopRightOnSquareIcon className="ml-2 h-4 w-4" />
+                    </button>
                 </div>
             </div>
 
-            {/* Locations sequence */}
-            <div className="px-6 py-4">
-                <div className="space-y-4">
-                    {allLocations.map((location, index) => (
-                        <React.Fragment key={index}>
-                            <LocationItem
-                                location={location}
-                                index={index}
-                                isLast={index === allLocations.length - 1}
-                            />
-
-                            {/* Connector line between locations */}
-                            {index < allLocations.length - 1 && (
-                                <div className="pl-3.5 ml-3.5">
-                                    <ArrowLongRightIcon className="h-5 w-5 text-gray-300 rotate-90" />
+            {/* Locations Timeline */}
+            <div className="p-6">
+                <div className="flow-root">
+                    <ul className="-mb-8">
+                        {allLocations.map((location, index) => (
+                            <li key={location.id || `location-${index}`}>
+                                <div className="relative pb-8">
+                                    {/* Connecting line */}
+                                    {index !== allLocations.length - 1 && (
+                                        <span
+                                            className="absolute left-5 top-10 -ml-px h-full w-0.5 bg-gray-200"
+                                            aria-hidden="true"
+                                        />
+                                    )}
+                                    <LocationItem
+                                        location={location}
+                                        index={index}
+                                        isLast={index === allLocations.length - 1}
+                                    />
                                 </div>
-                            )}
-                        </React.Fragment>
-                    ))}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         </div>
@@ -108,11 +130,13 @@ type LocationItemProps = {
 
 const LocationItem: React.FC<LocationItemProps> = ({ location, index, isLast }) => {
     // Format date
-    const formattedDate = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    }).format(new Date(location.date));
+    const formattedDate = location.date
+        ? new Intl.DateTimeFormat('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+          }).format(new Date(location.date))
+        : '';
 
     // Determine icon and colors based on location type
     const getLocationStyles = () => {
@@ -121,102 +145,156 @@ const LocationItem: React.FC<LocationItemProps> = ({ location, index, isLast }) 
                 return {
                     icon: <TruckIcon className="h-5 w-5 text-white" />,
                     bgColor: 'bg-green-500',
-                    label: 'Pickup',
+                    ringColor: 'ring-green-100',
+                    label: 'Shipper',
                 };
             case 'destination':
                 return {
                     icon: <MapPinIcon className="h-5 w-5 text-white" />,
                     bgColor: 'bg-red-500',
-                    label: 'Delivery',
+                    ringColor: 'ring-red-100',
+                    label: 'Receiver',
                 };
             default:
+                // For stops, check if there's a specific type or use generic 'Stop'
+                const stopLabel = location.stopType || 'Stop';
                 return {
                     icon: <MapPinIcon className="h-5 w-5 text-white" />,
                     bgColor: 'bg-blue-500',
-                    label: `Stop ${index}`,
+                    ringColor: 'ring-blue-100',
+                    label: stopLabel === 'custom' ? 'Custom' : stopLabel.charAt(0).toUpperCase() + stopLabel.slice(1),
                 };
         }
     };
 
-    const { icon, bgColor, label } = getLocationStyles();
+    const { icon, bgColor, ringColor, label } = getLocationStyles();
 
     return (
-        <div className="flex">
+        <div className="relative flex items-start space-x-4">
             {/* Icon */}
-            <div className="flex-shrink-0 mr-4">
-                <div className={`h-8 w-8 rounded-full ${bgColor} flex items-center justify-center`}>{icon}</div>
+            <div className="relative flex-shrink-0">
+                <div
+                    className={`h-10 w-10 rounded-full ${bgColor} ${ringColor} ring-4 flex items-center justify-center shadow-sm`}
+                >
+                    {icon}
+                </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1 pt-1">
                 <Disclosure>
                     {({ open }) => (
                         <>
-                            <div className="flex flex-col">
-                                <div className="flex-col-reverse sm:flex sm:flex-row justify-between items-start">
-                                    <div>
-                                        <span className="text-xs font-medium text-gray-500">{label}</span>
-                                        <h3 className="text-base font-semibold text-gray-900">{location.name}</h3>
-                                    </div>
-                                    <div className="flex items-center text-xs text-gray-500 mt-1 whitespace-nowrap">
-                                        <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                                        {formattedDate}
-                                        {location.time && (
-                                            <span className="ml-2 flex items-center whitespace-nowrap">
-                                                <ClockIcon className="mr-1 h-3.5 w-3.5" />
-                                                {location.time}
+                            <div className="space-y-2">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center space-x-2 mb-1">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                {label}
                                             </span>
-                                        )}
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-900 leading-6">
+                                            {location.name}
+                                        </h3>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {location.street}, {location.city}, {location.state} {location.zip}
+                                        </p>
                                     </div>
+
+                                    {formattedDate && (
+                                        <div className="flex items-center mt-2 sm:mt-0 sm:ml-4">
+                                            <div className="text-right">
+                                                <div className="flex items-center text-sm font-medium text-gray-900">
+                                                    <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                                                    {formattedDate}
+                                                </div>
+                                                {location.time && (
+                                                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                                                        <ClockIcon className="mr-2 h-4 w-4 text-gray-400" />
+                                                        {location.time}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {location.street}, {location.city}, {location.state} {location.zip}
-                                </p>
-
                                 {(location.poNumbers || location.pickUpNumbers || location.referenceNumbers) && (
-                                    <Disclosure.Button className="mt-2 flex items-center text-xs font-medium text-blue-600 hover:text-blue-800">
-                                        {open ? 'Hide details' : 'Show details'}
+                                    <Disclosure.Button className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                                         <ChevronDownIcon
-                                            className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 ml-1`}
+                                            className={`${
+                                                open ? 'rotate-180' : ''
+                                            } h-4 w-4 mr-2 transition-transform duration-200`}
                                         />
+                                        {open ? 'Hide details' : 'Show details'}
                                     </Disclosure.Button>
                                 )}
                             </div>
 
                             <Transition
                                 show={open}
-                                enter="transition duration-100 ease-out"
+                                enter="transition duration-200 ease-out"
                                 enterFrom="transform scale-95 opacity-0"
                                 enterTo="transform scale-100 opacity-100"
-                                leave="transition duration-75 ease-out"
+                                leave="transition duration-150 ease-out"
                                 leaveFrom="transform scale-100 opacity-100"
                                 leaveTo="transform scale-95 opacity-0"
                             >
-                                <Disclosure.Panel className="mt-2">
-                                    <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
+                                <Disclosure.Panel className="mt-4">
+                                    <div className="space-y-4 pl-4 border-l-2 border-gray-100">
                                         {location.poNumbers && (
-                                            <div>
-                                                <span className="text-xs font-medium text-gray-500">PO Numbers</span>
-                                                <p className="text-gray-900">{location.poNumbers}</p>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                                        PO Numbers
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {location.poNumbers}
+                                                </p>
                                             </div>
                                         )}
                                         {location.pickUpNumbers && (
-                                            <div>
-                                                <span className="text-xs font-medium text-gray-500">
-                                                    {location.type === 'destination'
-                                                        ? 'Delivery Numbers'
-                                                        : 'Pick Up Numbers'}
-                                                </span>
-                                                <p className="text-gray-900">{location.pickUpNumbers}</p>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center space-x-2">
+                                                    <div
+                                                        className={`w-1.5 h-1.5 rounded-full ${
+                                                            location.type === 'destination' ||
+                                                            location.stopType === 'receiver'
+                                                                ? 'bg-red-500'
+                                                                : location.stopType === 'shipper' ||
+                                                                  location.type === 'origin'
+                                                                ? 'bg-green-500'
+                                                                : 'bg-gray-400'
+                                                        }`}
+                                                    ></div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                                        {location.type === 'destination' ||
+                                                        location.stopType === 'receiver'
+                                                            ? 'Delivery Numbers'
+                                                            : location.stopType === 'shipper' ||
+                                                              location.type === 'origin'
+                                                            ? 'Pickup Numbers'
+                                                            : 'Reference Numbers'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {location.pickUpNumbers}
+                                                </p>
                                             </div>
                                         )}
                                         {location.referenceNumbers && (
-                                            <div>
-                                                <span className="text-xs font-medium text-gray-500">
-                                                    Reference Numbers
-                                                </span>
-                                                <p className="text-gray-900">{location.referenceNumbers}</p>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                                        Reference Numbers
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {location.referenceNumbers}
+                                                </p>
                                             </div>
                                         )}
                                     </div>

@@ -102,7 +102,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
     ) => {
         if (driverAssignment.chargeType === 'FIXED_PAY') {
             return driverAssignment.chargeValue;
-        } else if (driverAssignment.chargeType === 'PERCENTAGE') {
+        } else if (driverAssignment.chargeType === 'PERCENTAGE_OF_LOAD') {
             return loadRate * (driverAssignment.chargeValue / 100);
         } else if (driverAssignment.chargeType === 'PER_MILE') {
             return driverAssignment.chargeValue * legDistance;

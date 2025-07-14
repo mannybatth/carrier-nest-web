@@ -5,7 +5,7 @@ interface LoadingOverlayProps {
 }
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message = 'Loading...' }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-1 animate-in fade-in duration-300">
         <div className="flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-500 ease-out">
             <div role="status" className="relative">
                 {/* Outer ring */}
