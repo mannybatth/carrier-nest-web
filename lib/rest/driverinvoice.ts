@@ -139,3 +139,14 @@ export const updateDriverInvoiceStatus = async (id: string, status: DriverInvoic
     if (errors) throw new Error(errors.map((e) => e.message).join(', '));
     return data.message;
 };
+
+export const approveDriverInvoice = async (id: string): Promise<string> => {
+    const response = await fetch(`${apiUrl}/driverinvoices/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    });
+    const { data, errors }: JSONResponse<{ message: string }> = await response.json();
+
+    if (errors) throw new Error(errors.map((e) => e.message).join(', '));
+    return data.message;
+};

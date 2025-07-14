@@ -523,6 +523,10 @@ const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>(
                         durationHours: true,
                         startedAt: true,
                         endedAt: true,
+                        startLatitude: true,
+                        startLongitude: true,
+                        endLatitude: true,
+                        endLongitude: true,
                         locations: {
                             include: {
                                 loadStop: true,

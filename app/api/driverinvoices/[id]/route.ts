@@ -93,6 +93,10 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                                 durationHours: true,
                                 startedAt: true,
                                 endedAt: true,
+                                startLatitude: true,
+                                startLongitude: true,
+                                endLatitude: true,
+                                endLongitude: true,
                                 locations: {
                                     include: {
                                         loadStop: true,
