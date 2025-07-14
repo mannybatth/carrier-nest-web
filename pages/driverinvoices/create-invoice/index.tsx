@@ -30,9 +30,11 @@ import { createDriverInvoice, getNextDriverInvoiceNum } from 'lib/rest/driverinv
 import AssignmentChargeTypeChangeDialog from 'components/driverinvoices/AssignmentChargeChange';
 import { useRouter } from 'next/navigation';
 import { PageWithAuth } from 'interfaces/auth';
+import { useUserContext } from 'components/context/UserContext';
 
 const CreateDriverInvoicePage: PageWithAuth = () => {
     const router = useRouter();
+    const { defaultCarrier } = useUserContext();
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<NewDriverInvoice>({
         notes: '',
@@ -53,6 +55,7 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
     const [showAssignmentChargeChangeDialog, setShowAssignmentChargeChangeDialog] = useState(false);
     const [currentAssEditCharge, setCurrentAssEditCharge] = useState<ExpandedDriverAssignment | null>(null);
     const [creatingInvoice, setCreatingInvoice] = useState(false);
+    const [notifyDriver, setNotifyDriver] = useState(true);
 
     useEffect(() => {
         // Load drivers when the component mounts
@@ -229,9 +232,16 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
             const invoiceId = await createDriverInvoice(invoice);
             if (invoiceId) {
                 notify({ title: 'Invoice created successfully!', type: 'success' });
+
+                // Send notification to driver if enabled
+                if (notifyDriver) {
+                    await sendDriverNotification(invoiceId.toString());
+                }
+
+                // Navigate to the created invoice page
+                router.push(`/driverinvoices/${invoiceId}`);
             }
             console.log('Invoice created successfully:', invoiceId);
-            router.push(`/driverinvoices/${invoiceId}`);
         } catch (error) {
             notify({ title: 'Error creating invoice', message: `${error}`, type: 'error' });
             console.error('Error creating invoice:', error);
@@ -240,6 +250,74 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
         setTimeout(() => {
             setCreatingInvoice(false);
         }, 2500);
+    };
+
+    const sendDriverNotification = async (invoiceId: string) => {
+        try {
+            const selectedDriver = allDrivers.find((d) => d.id === invoice.driverId);
+            if (!selectedDriver) {
+                console.error('Driver not found for notification');
+                return;
+            }
+
+            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+
+            // Prefer email if available, otherwise use SMS
+            if (selectedDriver.email && selectedDriver.email.trim() !== '') {
+                await fetch('/api/notifications/driver-invoice-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        driverEmail: selectedDriver.email,
+                        driverName: selectedDriver.name,
+                        invoiceNum: invoice.invoiceNum,
+                        approvalUrl: approvalUrl,
+                        invoiceAmount: formatCurrency(totalAmount),
+                        carrierName: defaultCarrier?.name || 'CarrierNest',
+                    }),
+                });
+                notify({
+                    title: 'Driver notified via email',
+                    message: `Notification sent to ${selectedDriver.email}`,
+                    type: 'success',
+                });
+            } else if (selectedDriver.phone && selectedDriver.phone.trim() !== '') {
+                await fetch('/api/notifications/driver-invoice-sms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        driverPhone: selectedDriver.phone,
+                        driverName: selectedDriver.name,
+                        invoiceNum: invoice.invoiceNum,
+                        approvalUrl: approvalUrl,
+                        invoiceAmount: formatCurrency(totalAmount),
+                        carrierName: defaultCarrier?.name || 'CarrierNest',
+                    }),
+                });
+                notify({
+                    title: 'Driver notified via SMS',
+                    message: `Text message sent to ${selectedDriver.phone}`,
+                    type: 'success',
+                });
+            } else {
+                notify({
+                    title: 'No contact method available',
+                    message: 'Driver has no email or phone number for notifications',
+                    type: 'error',
+                });
+            }
+        } catch (error) {
+            console.error('Error sending driver notification:', error);
+            notify({
+                title: 'Notification failed',
+                message: 'Failed to notify driver, but invoice was created successfully',
+                type: 'error',
+            });
+        }
     };
 
     const nextStep = () => {
@@ -1121,6 +1199,43 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                                                         No additional line items
                                                     </p>
                                                 )}
+                                            </div>
+                                        </div>
+
+                                        {/* Driver Notification Toggle */}
+                                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium text-blue-900 mb-1">
+                                                        Driver Notification
+                                                    </h4>
+                                                    <p className="text-sm text-blue-700">
+                                                        Automatically notify the driver about this invoice for approval.
+                                                        {(() => {
+                                                            const selectedDriver = allDrivers.find(
+                                                                (d) => d.id === invoice.driverId,
+                                                            );
+                                                            if (selectedDriver?.email) {
+                                                                return ` Email will be sent to ${selectedDriver.email}.`;
+                                                            } else if (selectedDriver?.phone) {
+                                                                return ` SMS will be sent to ${selectedDriver.phone}.`;
+                                                            } else {
+                                                                return ' No contact method available for this driver.';
+                                                            }
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                                <div className="flex-shrink-0 ml-4">
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={notifyDriver}
+                                                            onChange={(e) => setNotifyDriver(e.target.checked)}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
 
