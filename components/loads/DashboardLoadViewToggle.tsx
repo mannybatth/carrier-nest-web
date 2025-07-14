@@ -713,37 +713,31 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                 assignment={modalAssignment}
                 loading={loadingAssignment}
             />
-            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 px-0">
+            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center lg:justify-between mb-6 px-0">
                 <div className="flex flex-col flex-1">
-                    <h3 className="text-xl font-semibold text-[#1D1D1F]">Upcoming Load Runs</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Load Runs</h3>
                     {showTodayOnly && (
-                        <p className="font-light text-gray-500 text-xs">
-                            Showing today&apos;s pick-ups and deliveries, along with any undelivered loads
+                        <p className="text-sm text-gray-600 mt-1">
+                            Today's pick-ups and deliveries, plus undelivered loads
                         </p>
                     )}
                     {!showTodayOnly && (
-                        <p className="font-light text-gray-500 text-xs">
-                            Showing load runs for next 7 days & past undelivered loads{' '}
-                        </p>
+                        <p className="text-sm text-gray-600 mt-1">Next 7 days & past undelivered loads</p>
                     )}
                 </div>
 
-                <div className="flex flex-row gap-3">
-                    <SwitchWithLabel
-                        checked={showTodayOnly}
-                        label="Show Today's Runs Only"
-                        onChange={todayDataOnlyClicked}
-                    />
+                <div className="flex flex-row gap-4 items-center">
+                    <SwitchWithLabel checked={showTodayOnly} label="Today Only" onChange={todayDataOnlyClicked} />
 
                     <Tab.Group selectedIndex={selectedIndex} onChange={changeViewMode}>
-                        <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-lg">
+                        <Tab.List className="flex p-1 space-x-1 bg-gray-100 rounded-xl shadow-sm">
                             <Tab
                                 className={({ selected }) =>
-                                    `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                                    `flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200
                 ${
                     selected
-                        ? 'bg-white shadow text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/[0.12]'
+                        ? 'bg-white shadow-sm text-gray-900 ring-1 ring-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`
                                 }
                             >
@@ -752,11 +746,11 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                             </Tab>
                             <Tab
                                 className={({ selected }) =>
-                                    `flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                                    `flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200
                 ${
                     selected
-                        ? 'bg-white shadow text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/[0.12]'
+                        ? 'bg-white shadow-sm text-gray-900 ring-1 ring-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`
                                 }
                             >
@@ -772,51 +766,68 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                 (loadsList?.length === 0 ? (
                     <LoadingLoadViewTableSkeleton />
                 ) : (
-                    <div className="mx-0 md:mx-0 md:px-0 overflow-x-auto pb-0 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="inline-block min-w-full align-middle">
-                            <table className="min-w-full divide-y divide-gray-200 border-collapse">
-                                <thead>
-                                    <tr className="bg-gray-100 text-gray-600">
+                    <div className="overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50/80">
+                                    <tr>
                                         <th
                                             scope="col"
-                                            className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase"
+                                            className="py-4 pl-6 pr-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                                         >
-                                            Load
+                                            <div className="flex items-center">
+                                                <TruckIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Load
+                                            </div>
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
+                                            className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                                         >
-                                            Status
+                                            <div className="flex items-center">
+                                                <CircleStackIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Status
+                                            </div>
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
+                                            className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                                         >
-                                            Pickup
+                                            <div className="flex items-center">
+                                                <TruckIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Pickup
+                                            </div>
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
+                                            className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                                         >
-                                            Delivery
-                                        </th>
-
-                                        <th
-                                            scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
-                                        >
-                                            Distance
+                                            <div className="flex items-center">
+                                                <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Delivery
+                                            </div>
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-3.5 text-left text-xs font-semibold uppercase"
+                                            className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                                         >
-                                            Driver
+                                            <div className="flex items-center">
+                                                <MapIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Distance
+                                            </div>
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                        >
+                                            <div className="flex items-center">
+                                                <UserIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                                Driver
+                                            </div>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
+                                <tbody className="bg-white divide-y divide-gray-50">
                                     {loadsList?.map((load, index) => {
                                         // Calculate if shipper/receiver/loadstop dates are in the past
                                         const allDates = [
@@ -841,112 +852,132 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                         return (
                                             <React.Fragment key={index}>
                                                 <tr
-                                                    className={`hover:bg-gray-50 cursor-pointer ${
+                                                    className={`hover:bg-gray-50/70 cursor-pointer transition-all duration-200 ${
                                                         load.driverAssignments?.length === 0 && !allDatesInPast
-                                                            ? 'bg-red-50'
+                                                            ? 'bg-red-50/80 hover:bg-red-50'
                                                             : ''
-                                                    } ${allDatesInPast ? 'bg-red-100 animate-none' : ''} ${
-                                                        isExpanded ? 'bg-gray-50' : ''
+                                                    } ${allDatesInPast ? 'bg-red-50/90 hover:bg-red-100/50' : ''} ${
+                                                        isExpanded ? 'bg-blue-50/50' : ''
                                                     }`}
                                                     onClick={() => toggleExpandRow(load.id)}
                                                 >
-                                                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                                                        <div className="flex flex-col">
-                                                            <div className="text-sm text-gray-500">
-                                                                <Link
-                                                                    href={`/loads/${load.id}`}
-                                                                    className="font-semibold cursor-pointer hover:underline"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                    }}
-                                                                >
-                                                                    Order# {load.refNum}
-                                                                </Link>
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">
+                                                    <td className="py-5 pl-6 pr-4 text-sm">
+                                                        <div className="flex flex-col space-y-1">
+                                                            <Link
+                                                                href={`/loads/${load.id}`}
+                                                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                }}
+                                                            >
+                                                                Order# {load.refNum}
+                                                            </Link>
+                                                            <div className="text-xs text-gray-500 font-medium">
                                                                 Load# {load.loadNum}
                                                             </div>
-                                                            <div className="font-base text-gray-900 font-semibold">
-                                                                {load.customer?.name?.toUpperCase() ||
-                                                                    'No Customer Assigned'}
+                                                            <div
+                                                                className="text-sm font-semibold text-gray-900 truncate max-w-36"
+                                                                title={load.customer?.name || 'No Customer'}
+                                                            >
+                                                                {load.customer?.name || 'No Customer'}
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <td className="px-4 py-5 text-sm">
                                                         <LoadStatusBadge load={load} />
                                                     </td>
-                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                        <div className="flex items-start space-x-2">
-                                                            <div className="flex-shrink-0 mt-0.5">
-                                                                <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                                                    <td className="px-4 py-5 text-sm">
+                                                        <div className="flex items-start space-x-3">
+                                                            <div className="flex-shrink-0 mt-1">
+                                                                <div className="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center ring-1 ring-green-200">
                                                                     <TruckIcon
-                                                                        className="w-3 h-3 text-green-800"
+                                                                        className="w-4 h-4 text-green-600"
                                                                         aria-hidden="true"
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div>
-                                                                <div className="font-medium text-gray-900">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm font-semibold text-gray-900">
                                                                     {formatDate(load.shipper.date.toString())}
                                                                 </div>
-                                                                <div className="text-gray-500">{load.shipper.time}</div>
-                                                                <div className="text-gray-500 truncate">
-                                                                    {load.shipper.name.toUpperCase()}
+                                                                <div className="text-xs text-gray-500 font-medium mt-0.5">
+                                                                    {load.shipper.time}
                                                                 </div>
-                                                                <div className="text-gray-500 capitalize">
-                                                                    {load.shipper.city.toLowerCase()},{' '}
-                                                                    {load.shipper.state.toUpperCase()}
+                                                                <div
+                                                                    className="text-xs text-gray-700 font-medium truncate mt-1"
+                                                                    title={load.shipper.name}
+                                                                >
+                                                                    {load.shipper.name}
+                                                                </div>
+                                                                <div
+                                                                    className="text-xs text-gray-500 truncate uppercase"
+                                                                    title={`${load.shipper.city}, ${load.shipper.state}`}
+                                                                >
+                                                                    {load.shipper.city}, {load.shipper.state}
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                        <div className="flex items-start space-x-2">
-                                                            <div className="flex-shrink-0 mt-0.5">
-                                                                <div className="flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
+                                                    <td className="px-4 py-5 text-sm">
+                                                        <div className="flex items-start space-x-3">
+                                                            <div className="flex-shrink-0 mt-1">
+                                                                <div className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center ring-1 ring-red-200">
                                                                     <MapPinIcon
-                                                                        className="w-3 h-3 text-red-800"
+                                                                        className="w-4 h-4 text-red-600"
                                                                         aria-hidden="true"
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div>
-                                                                <div className="font-medium text-gray-900">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm font-semibold text-gray-900">
                                                                     {formatDate(load.receiver.date.toString())}
                                                                 </div>
-                                                                <div className="text-gray-500">
+                                                                <div className="text-xs text-gray-500 font-medium mt-0.5">
                                                                     {load.receiver.time}
                                                                 </div>
-                                                                <div className="text-gray-500 truncate">
-                                                                    {load.receiver.name.toUpperCase()}
+                                                                <div
+                                                                    className="text-xs text-gray-700 font-medium truncate mt-1"
+                                                                    title={load.receiver.name}
+                                                                >
+                                                                    {load.receiver.name}
                                                                 </div>
-                                                                <div className="text-gray-500 capitalize">
-                                                                    {load.receiver.city.toLowerCase()},{' '}
-                                                                    {load.receiver.state.toUpperCase()}
+                                                                <div
+                                                                    className="text-xs text-gray-500 truncate uppercase"
+                                                                    title={`${load.receiver.city}, ${load.receiver.state}`}
+                                                                >
+                                                                    {load.receiver.city}, {load.receiver.state}
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </td>
 
-                                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                        {load.routeDistanceMiles
-                                                            ? `${
-                                                                  isNaN(Number(load.routeDistanceMiles))
-                                                                      ? '0'
-                                                                      : Number(load.routeDistanceMiles).toFixed(0)
-                                                              } mi`
-                                                            : 'N/A'}
-                                                        {load.routeDurationHours && (
-                                                            <div className="text-xs text-gray-400">
-                                                                {Math.floor(Number(load.routeDurationHours))}h{' '}
-                                                                {Math.round((Number(load.routeDurationHours) % 1) * 60)}
-                                                                m
-                                                            </div>
-                                                        )}
+                                                    <td className="px-4 py-5 text-sm">
+                                                        <div className="flex flex-col space-y-1">
+                                                            <span className="text-sm font-semibold text-gray-900">
+                                                                {load.routeDistanceMiles
+                                                                    ? `${
+                                                                          isNaN(Number(load.routeDistanceMiles))
+                                                                              ? '0'
+                                                                              : Number(load.routeDistanceMiles).toFixed(
+                                                                                    0,
+                                                                                )
+                                                                      } mi`
+                                                                    : 'N/A'}
+                                                            </span>
+                                                            {load.routeDurationHours && (
+                                                                <div className="text-xs text-gray-500 font-medium">
+                                                                    {Math.floor(Number(load.routeDurationHours))}h{' '}
+                                                                    {Math.round(
+                                                                        (Number(load.routeDurationHours) % 1) * 60,
+                                                                    )}
+                                                                    m
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
-                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <td className="px-4 py-5 text-sm">
                                                         {load.driverAssignments?.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-1">
+                                                            <div className="flex flex-col space-y-1">
                                                                 {Array.from(
                                                                     new Map(
                                                                         load.driverAssignments.map((assignment) => [
@@ -954,24 +985,49 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                             assignment,
                                                                         ]),
                                                                     ).values(),
-                                                                ).map((assignment, index, uniqueAssignments) => (
-                                                                    <Link
-                                                                        key={`${assignment.driver.id}-${index}`}
-                                                                        href={`/drivers/${assignment.driver.id}`}
-                                                                        className="font-medium cursor-pointer hover:underline"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                        }}
-                                                                    >
-                                                                        {assignment.driver?.name}
-                                                                        {index < uniqueAssignments.length - 1
-                                                                            ? ', '
-                                                                            : ''}
-                                                                    </Link>
-                                                                ))}
+                                                                )
+                                                                    .slice(0, 2)
+                                                                    .map((assignment, index, uniqueAssignments) => (
+                                                                        <Link
+                                                                            key={`${assignment.driver.id}-${index}`}
+                                                                            href={`/drivers/${assignment.driver.id}`}
+                                                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 truncate"
+                                                                            title={assignment.driver?.name}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                            }}
+                                                                        >
+                                                                            {assignment.driver?.name}
+                                                                        </Link>
+                                                                    ))}
+                                                                {Array.from(
+                                                                    new Map(
+                                                                        load.driverAssignments.map((assignment) => [
+                                                                            assignment.driver.id,
+                                                                            assignment,
+                                                                        ]),
+                                                                    ).values(),
+                                                                ).length > 2 && (
+                                                                    <span className="text-xs text-gray-500 font-medium">
+                                                                        +
+                                                                        {Array.from(
+                                                                            new Map(
+                                                                                load.driverAssignments.map(
+                                                                                    (assignment) => [
+                                                                                        assignment.driver.id,
+                                                                                        assignment,
+                                                                                    ],
+                                                                                ),
+                                                                            ).values(),
+                                                                        ).length - 2}{' '}
+                                                                        more
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-gray-400">No driver assigned</span>
+                                                            <span className="text-sm text-gray-500 font-medium">
+                                                                No driver
+                                                            </span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -981,29 +1037,35 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                     <tr>
                                                         <td
                                                             colSpan={6}
-                                                            className="p-0 bg-blue-50 border-t border-gray-100"
+                                                            className="p-0 bg-gray-50/50 border-t border-gray-100"
                                                         >
-                                                            <div className="p-4">
+                                                            <div className="p-6">
                                                                 <Tab.Group>
-                                                                    <Tab.List className="flex space-x-1 rounded-xl bg-blue-100 p-1 mb-4">
+                                                                    <Tab.List className="flex space-x-1 rounded-2xl bg-white p-1 mb-6 shadow-sm border border-gray-100">
                                                                         {routeLegs.map((routeLegData, idx) => (
                                                                             <Tab
                                                                                 key={idx}
                                                                                 className={({ selected }) =>
-                                                                                    `w-full rounded-lg py-2 text-sm font-medium leading-5
+                                                                                    `w-full rounded-xl py-3 px-4 text-sm font-semibold leading-5 transition-all duration-200
                                           ${
                                               selected
-                                                  ? 'bg-white shadow text-blue-700'
-                                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                                                  ? 'bg-blue-600 text-white shadow-sm'
+                                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                           }`
                                                                                 }
                                                                             >
                                                                                 Assignment {idx + 1}
-                                                                                <span className="text-gray-400 text-xs">
-                                                                                    {routeLegData.assignments.length >
-                                                                                        1 &&
-                                                                                        ` (${routeLegData.assignments.length} drivers)`}
-                                                                                </span>
+                                                                                {routeLegData.assignments.length >
+                                                                                    1 && (
+                                                                                    <span className="ml-2 text-xs opacity-75">
+                                                                                        (
+                                                                                        {
+                                                                                            routeLegData.assignments
+                                                                                                .length
+                                                                                        }{' '}
+                                                                                        drivers)
+                                                                                    </span>
+                                                                                )}
                                                                             </Tab>
                                                                         ))}
                                                                     </Tab.List>
@@ -1016,18 +1078,18 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                             return (
                                                                                 <Tab.Panel
                                                                                     key={idx}
-                                                                                    className="rounded-xl bg-white p-4 shadow-sm border border-gray-100"
+                                                                                    className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
                                                                                 >
-                                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                                                                         {/* Route Details */}
-                                                                                        <div className="md:col-span-2">
-                                                                                            {/* Assignment Status - Moved to the top */}
-                                                                                            <div className="mb-4">
-                                                                                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                                                        <div className="md:col-span-2 space-y-6">
+                                                                                            {/* Assignment Status */}
+                                                                                            <div>
+                                                                                                <h4 className="text-sm font-semibold text-gray-900 mb-4">
                                                                                                     Assignment Status
                                                                                                 </h4>
-                                                                                                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                                                                                                    <div className="flex items-center">
+                                                                                                <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                                                                    <div className="flex items-center space-x-3">
                                                                                                         <div className="flex items-center">
                                                                                                             {currentStatus ===
                                                                                                             'COMPLETED' ? (
@@ -1213,8 +1275,8 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                 </div>
                                                                                             </div>
 
-                                                                                            <div className="flex justify-between items-center mb-3">
-                                                                                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <h4 className="text-sm font-semibold text-gray-900">
                                                                                                     Route Details
                                                                                                 </h4>
                                                                                                 {routeLegData.routeLeg
@@ -1232,17 +1294,18 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                             )}
                                                                                                             target="_blank"
                                                                                                             rel="noopener noreferrer"
-                                                                                                            className="flex items-center text-blue-600 hover:text-blue-800 text-xs bg-blue-50 px-2 py-1 rounded-md"
+                                                                                                            className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 transition-colors duration-200"
                                                                                                             onClick={(
                                                                                                                 e,
                                                                                                             ) =>
                                                                                                                 e.stopPropagation()
                                                                                                             }
                                                                                                         >
-                                                                                                            <MapIcon className="w-3.5 h-3.5 mr-1" />
-                                                                                                            Get
-                                                                                                            Directions
-                                                                                                            <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-0.5" />
+                                                                                                            <MapIcon className="w-4 h-4" />
+                                                                                                            <span>
+                                                                                                                Directions
+                                                                                                            </span>
+                                                                                                            <ArrowTopRightOnSquareIcon className="w-3 h-3" />
                                                                                                         </a>
                                                                                                     )}
                                                                                             </div>
@@ -1772,15 +1835,35 @@ const LoadViewToggle: React.FC<LoadViewToggleProps> = ({ loadsList = [], todayDa
                                                                                                             </div>
                                                                                                             <div className="flex items-center">
                                                                                                                 <CurrencyDollarIcon className="h-4 w-4 text-gray-400 mr-2" />
-                                                                                                                <span className="text-sm text-gray-700">
-                                                                                                                    {assignment.chargeType ===
-                                                                                                                    'PER_HOUR'
-                                                                                                                        ? `$${assignment.chargeValue}/hr`
-                                                                                                                        : assignment.chargeType ===
-                                                                                                                          'PER_MILE'
-                                                                                                                        ? `$${assignment.chargeValue}/mi`
-                                                                                                                        : `$${assignment.chargeValue} (fixed)`}
-                                                                                                                </span>
+                                                                                                                <div className="flex flex-col">
+                                                                                                                    <span className="text-sm font-semibold text-gray-900">
+                                                                                                                        {assignment.chargeType ===
+                                                                                                                        'PER_HOUR'
+                                                                                                                            ? `$${assignment.chargeValue}/hr`
+                                                                                                                            : assignment.chargeType ===
+                                                                                                                              'PER_MILE'
+                                                                                                                            ? `$${assignment.chargeValue}/mi`
+                                                                                                                            : assignment.chargeType ===
+                                                                                                                              'PERCENTAGE_OF_LOAD'
+                                                                                                                            ? `${assignment.chargeValue}%`
+                                                                                                                            : `$${assignment.chargeValue}`}
+                                                                                                                    </span>
+                                                                                                                    <span className="text-xs text-gray-500">
+                                                                                                                        {assignment.chargeType ===
+                                                                                                                        'PER_HOUR'
+                                                                                                                            ? 'Per Hour'
+                                                                                                                            : assignment.chargeType ===
+                                                                                                                              'PER_MILE'
+                                                                                                                            ? 'Per Mile'
+                                                                                                                            : assignment.chargeType ===
+                                                                                                                              'PERCENTAGE_OF_LOAD'
+                                                                                                                            ? 'Percentage of Load'
+                                                                                                                            : assignment.chargeType ===
+                                                                                                                              'FIXED_PAY'
+                                                                                                                            ? 'Fixed Pay'
+                                                                                                                            : 'Fixed Amount'}
+                                                                                                                    </span>
+                                                                                                                </div>
                                                                                                             </div>
                                                                                                         </div>
                                                                                                     ),
