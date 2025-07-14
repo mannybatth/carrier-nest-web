@@ -475,7 +475,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                 : `$${assignment.chargeValue}`}
                                                         </span>
                                                     </div>
-                                                    
+
                                                     {/* Charge type and invoiced status */}
                                                     <div className="flex items-center gap-2 ml-8">
                                                         <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
