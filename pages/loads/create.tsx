@@ -1889,6 +1889,16 @@ const CreateLoad: PageWithAuth = () => {
         setIsProcessing(false);
     };
 
+    // Separate error handler for PDF processing that doesn't affect load submission state
+    const handlePDFProcessingError = () => {
+        setCurrentRateconFile(null);
+        setLoading(false);
+        setIsRetrying(false);
+        setAiProgress(0);
+        setAiProgressStage('');
+        setIsProcessing(false);
+    };
+
     // Helper function to generate standardized filename for PDFs
     const generateRateconFilename = () => {
         const now = new Date();
@@ -1972,7 +1982,7 @@ const CreateLoad: PageWithAuth = () => {
             numOfPages = result.numOfPages;
             progressTracker.current?.nextStage();
         } catch (e) {
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -1983,7 +1993,7 @@ const CreateLoad: PageWithAuth = () => {
             progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error encoding file', type: 'error' });
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -2038,7 +2048,7 @@ const CreateLoad: PageWithAuth = () => {
             progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error loading customers', type: 'error' });
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -2106,29 +2116,48 @@ const CreateLoad: PageWithAuth = () => {
             const reader = new FileReader();
             reader.readAsArrayBuffer(file);
             reader.onload = async () => {
-                const arrayBuffer = reader.result as ArrayBuffer;
-                const byteArray = new Uint8Array(arrayBuffer);
-                const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
+                try {
+                    const arrayBuffer = reader.result as ArrayBuffer;
+                    const byteArray = new Uint8Array(arrayBuffer);
+                    const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
 
-                if (totalPages < 1) {
+                    if (totalPages < 1) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain at least 1 page',
+                            type: 'error',
+                        });
+                        reject(new Error('Invalid page count'));
+                        return;
+                    } else if (totalPages > 8) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain no more than 8 pages',
+                            type: 'error',
+                        });
+                        reject(new Error('Too many pages'));
+                        return;
+                    }
+
+                    resolve({ metadata: pdfMetaData, numOfPages: totalPages });
+                } catch (error) {
+                    console.error('PDF validation error:', error);
                     notify({
-                        title: 'Error',
-                        message: 'PDF file must contain at least 1 page',
+                        title: 'PDF Error',
+                        message: error.message || 'Unable to process PDF file',
                         type: 'error',
                     });
-                    reject(new Error('Invalid page count'));
-                    return;
-                } else if (totalPages > 8) {
-                    notify({
-                        title: 'Error',
-                        message: 'PDF file must contain no more than 8 pages',
-                        type: 'error',
-                    });
-                    reject(new Error('Too many pages'));
-                    return;
+                    reject(error);
                 }
-
-                resolve({ metadata: pdfMetaData, numOfPages: totalPages });
+            };
+            reader.onerror = (error) => {
+                console.error('FileReader error:', error);
+                notify({
+                    title: 'File Error',
+                    message: 'Unable to read PDF file',
+                    type: 'error',
+                });
+                reject(new Error('Failed to read file'));
             };
         });
     };

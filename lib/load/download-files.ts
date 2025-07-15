@@ -68,10 +68,27 @@ const addBlobToCombinedPdf = async (blob: Blob, combinedPDFDoc: PDFDocument) => 
     const drawableWidth = pdfWidth - 2 * margin;
 
     if (contentType === 'application/pdf') {
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const pages = await combinedPDFDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
-        for (const page of pages) {
-            combinedPDFDoc.addPage(page);
+        try {
+            // First try to load without ignoring encryption
+            let pdfDoc: PDFDocument;
+            try {
+                pdfDoc = await PDFDocument.load(arrayBuffer);
+            } catch (encryptionError) {
+                // If it fails due to encryption, try with ignoreEncryption
+                if (encryptionError.message?.includes('encrypted')) {
+                    pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+                } else {
+                    throw encryptionError;
+                }
+            }
+
+            const pages = await combinedPDFDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+            for (const page of pages) {
+                combinedPDFDoc.addPage(page);
+            }
+        } catch (error) {
+            console.error('Error loading PDF for combining:', error);
+            throw new Error(`Failed to process PDF document: ${error.message}`);
         }
     } else if (isContentTypeImage(contentType)) {
         try {
