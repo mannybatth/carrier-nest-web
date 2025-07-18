@@ -551,6 +551,7 @@ model DriverAssignment {
     billedDistanceMiles Decimal?
     billedDurationHours Decimal?
     billedLoadRate      Decimal?
+    emptyMiles          Decimal? // Empty miles to next assignment for compensation
     assignmentPayments  AssignmentPayment[]
     invoiceId           String? // each assignment can only belong to one invoice
     invoice             DriverInvoice?      @relation("InvoiceAssignments", fields: [invoiceId], references: [id])
