@@ -129,6 +129,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                     billedDistanceMiles: true,
                     billedDurationHours: true,
                     billedLoadRate: true,
+                    emptyMiles: true,
                 },
             },
         },
@@ -249,6 +250,11 @@ export const POST = auth(async (req: NextAuthRequest) => {
                     assignment.billedLoadRate === undefined ? null : new Prisma.Decimal(assignment.billedLoadRate);
             }
 
+            // Always update emptyMiles if provided
+            if (assignment.emptyMiles !== undefined) {
+                data.emptyMiles = assignment.emptyMiles === null ? null : new Prisma.Decimal(assignment.emptyMiles);
+            }
+
             return prisma.driverAssignment.update({
                 where: { id: assignment.id },
                 data,
@@ -270,7 +276,11 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 return acc.add(loadRate.mul(percentage));
             }
             if (a.chargeType === 'PER_MILE') {
-                return acc.add(a.billedDistanceMiles.mul(a.chargeValue));
+                // Calculate total miles including empty miles
+                const baseMiles = a.billedDistanceMiles || new Prisma.Decimal(0);
+                const emptyMiles = a.emptyMiles || new Prisma.Decimal(0);
+                const totalMiles = baseMiles.add(emptyMiles);
+                return acc.add(totalMiles.mul(a.chargeValue));
             }
             if (a.chargeType === 'PER_HOUR') {
                 return acc.add(a.billedDurationHours.mul(a.chargeValue));
