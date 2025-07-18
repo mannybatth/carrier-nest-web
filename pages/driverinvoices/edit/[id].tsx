@@ -1,53 +1,78 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-    UserIcon,
-    ClipboardDocumentListIcon,
-    CurrencyDollarIcon,
-    DocumentCheckIcon,
-    PlusIcon,
-    MinusIcon,
-    TrashIcon,
-    ArrowPathIcon,
-    PencilSquareIcon,
-} from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
 import { getAllDrivers } from 'lib/rest/driver';
 import type { Driver } from '@prisma/client';
 import { getAllAssignments } from 'lib/rest/assignment';
-import type {
-    DriverInvoiceLineItem,
-    ExpandedDriverAssignment,
-    ExpandedDriverInvoice,
-    NewDriverInvoice,
-} from 'interfaces/models';
+import type { DriverInvoiceLineItem, ExpandedDriverAssignment, ExpandedDriverInvoice } from 'interfaces/models';
 import Spinner from 'components/Spinner';
 import Link from 'next/link';
 import { notify } from 'components/Notification';
 import { getDriverInvoiceById, updateDriverInvoice } from 'lib/rest/driverinvoice';
 import AssignmentChargeTypeChangeDialog from 'components/driverinvoices/AssignmentChargeChange';
 import { useRouter } from 'next/router';
+import { useUserContext } from 'components/context/UserContext';
 import Decimal from 'decimal.js';
-
-import dayjs from 'dayjs';
+import { Prisma } from '@prisma/client';
+import MileCalculation from 'components/driverinvoices/MileCalculation';
+import CompensationSummary from 'components/driverinvoices/CompensationSummary';
+import { calculateHaversineDistance } from 'lib/helpers/distance';
+import { useMileCalculation } from 'hooks/useMileCalculation';
 import { PageWithAuth } from 'interfaces/auth';
+import InvoiceStepper from 'components/InvoiceStepper';
+import { editInvoiceSteps } from 'lib/constants/stepper';
+import { InvoiceReview } from 'components/driverinvoices/InvoiceReview';
+import AdditionalItems from 'components/driverinvoices/AdditionalItems';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
+import dayjs from 'dayjs';
 
 const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } }) => {
     const router = useRouter();
+    const { defaultCarrier } = useUserContext();
+
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<ExpandedDriverInvoice>(undefined);
     const [newLineItem, setNewLineItem] = useState<DriverInvoiceLineItem>({ description: '', amount: '' });
     const [totalAmount, setTotalAmount] = useState('0.00');
+    const [notifyDriver, setNotifyDriver] = useState(false);
+
+    // Memoize assignments to prevent infinite re-renders in useMileCalculation
+    const memoizedAssignments = useMemo(() => {
+        return invoice?.assignments || [];
+    }, [invoice?.assignments]);
+
+    // Mile calculation state using shared hook
+    const {
+        emptyMiles,
+        setEmptyMiles,
+        emptyMilesInput,
+        setEmptyMilesInput,
+        totalEmptyMiles,
+        selectedAssignmentId,
+        setSelectedAssignmentId,
+        handleEmptyMilesUpdate,
+        restoreEmptyMilesFromAssignments,
+    } = useMileCalculation({
+        assignments: memoizedAssignments as any,
+        calculateHaversineDistance,
+    });
+
+    const [showMileCalculationStep, setShowMileCalculationStep] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [loadingAssignments, setLoadingAssignments] = useState(false);
     const [driver, setDriver] = useState<Driver | null>(null);
+    const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
     const [allAssignments, setAllAssignments] = useState<ExpandedDriverAssignment[]>([]);
 
     const [showAssignmentChargeChangeDialog, setShowAssignmentChargeChangeDialog] = useState(false);
     const [currentAssEditCharge, setCurrentAssEditCharge] = useState<ExpandedDriverAssignment | null>(null);
     const [updatingInvoice, setUpdatingInvoice] = useState(false);
+    const [fromDate, setFromDate] = useState<Date>(new Date());
+    const [toDate, setToDate] = useState<Date>(new Date());
     const invoiceId = router.query.id as string;
 
     useEffect(() => {
@@ -66,9 +91,25 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
             let amount = 0;
             switch (assignment.chargeType) {
                 case 'PER_MILE':
-                    amount =
-                        Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles) *
-                        Number(assignment.chargeValue);
+                    // Get base miles
+                    const baseMiles = Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles);
+
+                    // Get empty miles for this assignment
+                    let emptyMilesForAssignment = 0;
+                    if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                        // Use the emptyMiles from the assignment object if available
+                        emptyMilesForAssignment = Number(assignment.emptyMiles);
+                    } else {
+                        // Find empty miles for this assignment from state
+                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                            key.startsWith(`${assignment.id}-to-`),
+                        );
+                        emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+                    }
+
+                    // Total miles including empty miles
+                    const totalMiles = baseMiles + emptyMilesForAssignment;
+                    amount = totalMiles * Number(assignment.chargeValue);
                     break;
                 case 'PER_HOUR':
                     amount =
@@ -93,17 +134,58 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         });
 
         setTotalAmount(total.toFixed(2));
-    }, [invoice, invoice?.assignments, invoice?.lineItems]);
+    }, [invoice, invoice?.assignments, invoice?.lineItems, emptyMiles]);
+
+    // Set mile calculation step visibility based on invoice assignments
+    useEffect(() => {
+        if (!invoice) return;
+
+        // Check if there are mile-based assignments
+        const hasMileBasedAssignments = invoice.assignments.some((assignment) => assignment.chargeType === 'PER_MILE');
+        setShowMileCalculationStep(hasMileBasedAssignments);
+    }, [invoice?.assignments]);
 
     const loadInvoiceData = async () => {
         setLoading(true);
         try {
+            // Load all drivers first
+            const { drivers } = await getAllDrivers({ limit: 999, offset: 0 });
+            setAllDrivers(drivers);
+
             const invoiceData = await getDriverInvoiceById(invoiceId);
 
             if (invoiceData) {
+                // Initialize date range state with invoice period using proper parsing to avoid timezone issues
+                const parseDate = (date: string | Date | null | undefined) => {
+                    if (!date) return new Date();
+                    if (typeof date === 'string') {
+                        const parts = date.split('-');
+                        if (parts.length === 3) {
+                            const year = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                            const day = parseInt(parts[2], 10);
+                            return new Date(year, month, day);
+                        }
+                        return new Date(date);
+                    }
+                    return new Date(date);
+                };
+
+                const parsedFromDate = invoiceData.fromDate ? parseDate(invoiceData.fromDate) : null;
+                const parsedToDate = invoiceData.toDate ? parseDate(invoiceData.toDate) : null;
+
                 setInvoice({
                     ...invoiceData,
+                    fromDate: parsedFromDate,
+                    toDate: parsedToDate,
                 });
+
+                if (parsedFromDate) {
+                    setFromDate(parsedFromDate);
+                }
+                if (parsedToDate) {
+                    setToDate(parsedToDate);
+                }
 
                 // Load all assignments for this driver
                 await loadAssignments(invoiceData.driverId);
@@ -115,7 +197,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setLoading(false);
     };
 
-    const loadAssignments = async (driverId: string) => {
+    const loadAssignments = async (driverId: string, fromDate?: string, toDate?: string) => {
         setLoadingAssignments(true);
 
         try {
@@ -127,6 +209,11 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                 showNotInvoicedOnly: true,
                 driverIds: [driverId],
                 invoiceId: invoiceId,
+                ...(fromDate &&
+                    toDate && {
+                        fromDate,
+                        toDate,
+                    }),
             });
             setAllAssignments(assignments);
         } catch (error) {
@@ -158,32 +245,44 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setInvoice((prev) => ({ ...prev, assignments: updatedSelectedAssignments }));
     };
 
+    // Custom empty miles update handler that also updates invoice assignments
+    const handleEmptyMilesUpdateWithInvoice = useCallback(
+        (updatedEmptyMiles: { [key: string]: number }) => {
+            handleEmptyMilesUpdate(updatedEmptyMiles);
+
+            // Update assignment objects with empty miles
+            setInvoice((prev) => {
+                const updatedAssignments = prev.assignments.map((assignment) => {
+                    // Find matching empty miles for this assignment
+                    const emptyMilesKey = Object.keys(updatedEmptyMiles).find((key) =>
+                        key.startsWith(`${assignment.id}-to-`),
+                    );
+                    const assignmentEmptyMiles = emptyMilesKey ? updatedEmptyMiles[emptyMilesKey] : 0;
+
+                    return {
+                        ...assignment,
+                        emptyMiles: assignmentEmptyMiles > 0 ? new Prisma.Decimal(assignmentEmptyMiles) : null,
+                    };
+                });
+
+                return { ...prev, assignments: updatedAssignments };
+            });
+        },
+        [handleEmptyMilesUpdate],
+    );
+
     const handleConfirmAssignments = () => {
-        if (invoice.assignments.length === 0) {
-            return notify({ title: 'Please select at least one assignment', type: 'error' });
+        // Check if there are mile-based assignments
+        const hasMileBasedAssignments = invoice.assignments.some((assignment) => assignment.chargeType === 'PER_MILE');
+
+        // If there are mile-based assignments, show mile calculation step
+        if (hasMileBasedAssignments) {
+            setShowMileCalculationStep(true);
+            setCurrentStep(2.5); // Mile calculation step
+        } else {
+            setShowMileCalculationStep(false);
+            setCurrentStep(3); // Skip to additional items
         }
-
-        // Update the billed amounts for the selected chargetype
-        const updatedAssignments = invoice.assignments.map((assignment) => {
-            return {
-                ...assignment,
-                billedDistanceMiles:
-                    assignment.chargeType === 'PER_MILE'
-                        ? assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles
-                        : undefined,
-                billedDurationHours:
-                    assignment.chargeType === 'PER_HOUR'
-                        ? assignment.billedDurationHours || assignment.routeLeg.durationHours
-                        : undefined,
-                billedLoadRate:
-                    assignment.chargeType === 'PERCENTAGE_OF_LOAD'
-                        ? assignment.billedLoadRate || assignment.load.rate
-                        : undefined,
-            };
-        });
-        setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
-
-        setCurrentStep(2);
     };
 
     // Adds a new line item to the invoice.
@@ -231,7 +330,23 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         try {
             const result = await updateDriverInvoice(invoiceId, invoice);
             if (result) {
-                notify({ title: 'Invoice updated successfully!', type: 'success' });
+                // Update local state to reflect status change
+                setInvoice((prev) => ({
+                    ...prev,
+                    status: 'PENDING',
+                }));
+
+                notify({
+                    title: 'Invoice updated successfully!',
+                    message: 'Invoice status has been reset to Pending for driver review.',
+                    type: 'success',
+                });
+
+                // Send notification to driver if enabled
+                if (notifyDriver) {
+                    await sendDriverNotification(invoiceId);
+                }
+
                 router.push(`/driverinvoices/${invoiceId}`);
             }
         } catch (error) {
@@ -242,12 +357,106 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setUpdatingInvoice(false);
     };
 
+    const sendDriverNotification = async (invoiceId: string) => {
+        try {
+            const selectedDriver = allDrivers.find((d) => d.id === invoice.driverId);
+            if (!selectedDriver) {
+                console.error('Driver not found for notification');
+                return;
+            }
+
+            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+
+            // Prefer email if available, otherwise use SMS
+            if (selectedDriver.email && selectedDriver.email.trim() !== '') {
+                await fetch('/api/notifications/driver-invoice-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        driverEmail: selectedDriver.email,
+                        driverName: selectedDriver.name,
+                        invoiceNum: invoice.invoiceNum,
+                        approvalUrl: approvalUrl,
+                        invoiceAmount: formatCurrency(totalAmount),
+                        carrierName: defaultCarrier?.name || 'CarrierNest',
+                    }),
+                });
+                notify({
+                    title: 'Driver notified via email',
+                    message: `Notification sent to ${selectedDriver.email}`,
+                    type: 'success',
+                });
+            } else if (selectedDriver.phone && selectedDriver.phone.trim() !== '') {
+                await fetch('/api/notifications/driver-invoice-sms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        driverPhone: selectedDriver.phone,
+                        driverName: selectedDriver.name,
+                        invoiceNum: invoice.invoiceNum,
+                        approvalUrl: approvalUrl,
+                        invoiceAmount: formatCurrency(totalAmount),
+                        carrierName: defaultCarrier?.name || 'CarrierNest',
+                    }),
+                });
+                notify({
+                    title: 'Driver notified via SMS',
+                    message: `Text message sent to ${selectedDriver.phone}`,
+                    type: 'success',
+                });
+            } else {
+                notify({
+                    title: 'No contact method available',
+                    message: 'Driver has no email or phone number for notifications',
+                    type: 'error',
+                });
+            }
+        } catch (error) {
+            console.error('Error sending driver notification:', error);
+            notify({
+                title: 'Notification failed',
+                message: 'Failed to notify driver, but invoice was updated successfully',
+                type: 'error',
+            });
+        }
+    };
+
     const nextStep = () => {
-        setCurrentStep((prev) => prev + 1);
+        if (currentStep === 1) {
+            handleConfirmAssignments();
+        } else if (currentStep === 2.5 && showMileCalculationStep) {
+            // Update assignments with latest empty miles data before proceeding
+            const updatedAssignments = invoice.assignments.map((assignment) => {
+                const emptyMilesKey = Object.keys(emptyMiles).find((key) => key.startsWith(`${assignment.id}-to-`));
+                const assignmentEmptyMiles = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+
+                return {
+                    ...assignment,
+                    emptyMiles: assignmentEmptyMiles > 0 ? new Prisma.Decimal(assignmentEmptyMiles) : null,
+                };
+            });
+
+            setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
+            setCurrentStep(showMileCalculationStep ? 3 : 2);
+        } else {
+            setCurrentStep((prev) => prev + 1);
+        }
     };
 
     const prevStep = () => {
-        setCurrentStep((prev) => prev - 1);
+        if (currentStep === 2.5 && showMileCalculationStep) {
+            setCurrentStep(1);
+        } else if (currentStep === (showMileCalculationStep ? 3 : 2)) {
+            setCurrentStep(showMileCalculationStep ? 2.5 : 1);
+        } else if (currentStep === (showMileCalculationStep ? 4 : 3)) {
+            setCurrentStep(showMileCalculationStep ? 3 : 2);
+        } else {
+            setCurrentStep((prev) => prev - 1);
+        }
     };
 
     const formatCurrency = (amount: string) => {
@@ -280,8 +489,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                 </div>
             }
         >
-            <>
-                <div className="py-2 mx-auto max-w-7xl">
+            <div className="min-h-screen bg-gray-50/30 relative">
+                <div className="max-w-7xl mx-auto p-3 sm:p-6 bg-transparent">
                     {showAssignmentChargeChangeDialog && (
                         <AssignmentChargeTypeChangeDialog
                             onConfirm={onChargeTypeChange}
@@ -290,805 +499,276 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         />
                     )}
 
-                    <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-none mt-4 ">
-                        <div className="mb-8 static top-0 bg-white py-2 z-0 ">
-                            <nav className="flex" aria-label="Breadcrumb">
-                                <ol className="flex items-center space-x-2">
-                                    <li>
-                                        <Link href="/driverinvoices" className="text-gray-500 hover:text-gray-700">
-                                            Driver Invoices
-                                        </Link>
-                                    </li>
-                                    <li className="flex items-center">
-                                        <svg
-                                            className="h-5 w-5 text-gray-400"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                        <span className="ml-2 text-gray-700 font-medium">Edit Driver Invoice</span>
-                                    </li>
-                                    <li className="flex items-center">
-                                        <svg
-                                            className="h-5 w-5 text-gray-400"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                        <span className="ml-2 text-gray-700 font-medium">
-                                            Invoice #{invoice.invoiceNum}
-                                        </span>
-                                    </li>
-                                </ol>
-                            </nav>
+                    {/* Apple-style Breadcrumb */}
+                    <div className="mb-4 sm:mb-8 bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-200/30">
+                        <nav className="flex" aria-label="Breadcrumb">
+                            <ol className="flex items-center space-x-1 sm:space-x-2">
+                                <li>
+                                    <Link
+                                        href="/driverinvoices"
+                                        className="text-gray-500 hover:text-gray-700 text-sm sm:text-base transition-colors"
+                                    >
+                                        Driver Invoices
+                                    </Link>
+                                </li>
+                                <li className="flex items-center">
+                                    <svg
+                                        className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                    <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
+                                        Edit Invoice #{invoice?.invoiceNum}
+                                    </span>
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+
+                    <div className="space-y-4 sm:space-y-6">
+                        {/* Header Card */}
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
+                            <div className="text-center">
+                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                                    Edit Driver Invoice
+                                </h1>
+                                <p className="text-gray-600">Modify invoice details, assignments, and line items</p>
+                            </div>
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center bg-white p-4 rounded-lg">
-                            Edit Driver Invoice
-                        </h1>
 
-                        {/* Stepper */}
-                        <div className="mb-10 mx-6">
-                            <div className="flex items-center">
-                                {/* Step 1 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <ClipboardDocumentListIcon className="w-5 h-5" />
+                        {/* Invoice Stepper Component */}
+                        <InvoiceStepper
+                            currentStep={currentStep}
+                            steps={editInvoiceSteps}
+                            showMileCalculationStep={showMileCalculationStep}
+                            mode="edit"
+                        />
+
+                        {/* Driver Information */}
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    <div className="bg-blue-100 rounded-xl p-3">
+                                        <UserIcon className="w-6 h-6 text-blue-600" />
                                     </div>
-                                    <span
-                                        className={`mt-4 text-sm px-1 ${
-                                            currentStep == 1
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        1. Edit Assignments
-                                    </span>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                                            {invoice.driver.name.toLowerCase()}
+                                        </h3>
+                                        <p className="text-sm text-gray-600">{invoice.driver.email}</p>
+                                        <p className="text-sm text-gray-600">{invoice.driver.phone}</p>
+                                    </div>
                                 </div>
-                                <div className={`flex-1 h-1 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-
-                                {/* Step 2 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <CurrencyDollarIcon className="w-5 h-5" />
+                                <div className="text-right">
+                                    <div className="bg-blue-50/50 px-4 py-2 rounded-xl border border-blue-200/40">
+                                        <p className="text-sm font-medium text-blue-700">
+                                            Invoice #{invoice.invoiceNum}
+                                        </p>
                                     </div>
-                                    <span
-                                        className={`mt-4 text-sm px-1 ${
-                                            currentStep == 2
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        2. Edit Additional Items
-                                    </span>
-                                </div>
-                                <div className={`flex-1 h-1 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-
-                                {/* Step 3 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <DocumentCheckIcon className="w-5 h-5" />
-                                    </div>
-                                    <span
-                                        className={`mt-4 text-sm px-1 ${
-                                            currentStep == 3
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        3. Review & Update
-                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Driver Information */}
-                        <div className="mb-8 bg-whtie p-5 rounded-lg border border-slate-100">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-2">Driver Information</h2>
-                            {invoice && (
-                                <div className="flex items-center">
-                                    <div className="bg-blue-100 rounded-full p-2 mr-3">
-                                        <UserIcon className="w-6 h-6 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-800 capitalize">
-                                            {invoice.driver.name.toLowerCase()}
-                                        </h3>
-                                        <p className="text-sm text-gray-500">{invoice.driver.email}</p>
-                                        <p className="text-sm text-gray-500">{invoice.driver.phone}</p>
-                                    </div>
-                                    <div className="ml-auto text-right font-semibold text-gray-900">
-                                        <p className="text-sm text-gray-500">Invoice #{invoice.invoiceNum}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="border border-gray-100 rounded-lg shadow-sm">
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm relative">
                             {/* Step 1: Edit Assignments */}
                             {currentStep === 1 && (
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <div className="flex flex-row justify-between items-center mb-6">
-                                        <div className="flex flex-1 flex-col items-start">
-                                            <h2 className="text-xl font-semibold text-gray-800 mb-1">
-                                                Edit Assignments
-                                            </h2>
-                                            <p className="text-gray-400 text-sm font-normal">
-                                                Select or deselect assignments for this invoice.
-                                            </p>
-                                        </div>
-                                        <div className="flex flex-1 w-full justify-end">
-                                            <button
-                                                onClick={() => loadAssignments(invoice.driverId)}
-                                                className="flex flex-row items-center justify-center px-2 py-2 border hover:bg-slate-200 border-gray-300 text-gray-700 rounded-lg text-sm transition-colors"
-                                            >
-                                                <ArrowPathIcon className="w-3 h-3 mr-2" />
-                                                Reload Assignments
-                                            </button>
-                                        </div>
-                                    </div>
+                                <AssignmentSelector
+                                    driverId={invoice.driverId}
+                                    selectedAssignments={invoice.assignments as any}
+                                    allAssignments={allAssignments}
+                                    loadingAssignments={loadingAssignments}
+                                    mode="edit"
+                                    invoice={invoice}
+                                    setInvoice={setInvoice}
+                                    fromDate={fromDate}
+                                    toDate={toDate}
+                                    navigation={{
+                                        showCancelButton: true,
+                                        onCancel: () => router.push(`/driverinvoices/${invoiceId}`),
+                                        onNext: handleConfirmAssignments,
+                                        nextButtonText: 'Next Step',
+                                        cancelButtonText: 'Cancel',
+                                    }}
+                                    onAssignmentToggle={handleAssignmentToggle}
+                                    onReloadAssignments={() => loadAssignments(invoice.driverId)}
+                                    onAssignmentEdit={(assignment) => {
+                                        setShowAssignmentChargeChangeDialog(true);
+                                        setCurrentAssEditCharge(assignment);
+                                    }}
+                                    onPeriodChange={(fromDate, toDate) => {
+                                        // Update the invoice period state using proper parsing to avoid timezone issues
+                                        const parseDate = (date: string | Date | null | undefined) => {
+                                            if (!date) return new Date();
+                                            if (typeof date === 'string') {
+                                                const parts = date.split('-');
+                                                if (parts.length === 3) {
+                                                    const year = parseInt(parts[0], 10);
+                                                    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                                                    const day = parseInt(parts[2], 10);
+                                                    return new Date(year, month, day);
+                                                }
+                                                return new Date(date);
+                                            }
+                                            return new Date(date);
+                                        };
 
-                                    {loadingAssignments ? (
-                                        <div className="flex items-center justify-center w-full p-4">
-                                            <Spinner /> Loading Assignments
-                                        </div>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                <thead>
-                                                    <tr className="bg-gray-100">
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Select
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Order #
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Route
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                                            Charge Type
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Amount
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Status
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200">
-                                                    {allAssignments.map((assignment) => {
-                                                        let calculatedAmount = 0;
-                                                        switch (assignment.chargeType) {
-                                                            case 'PER_MILE':
-                                                                calculatedAmount =
-                                                                    Number(
-                                                                        assignment.billedDistanceMiles ||
-                                                                            assignment.routeLeg.distanceMiles,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PER_HOUR':
-                                                                calculatedAmount =
-                                                                    Number(
-                                                                        assignment.billedDurationHours ||
-                                                                            assignment.routeLeg.durationHours,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PERCENTAGE_OF_LOAD':
-                                                                calculatedAmount =
-                                                                    (Number(
-                                                                        assignment.billedLoadRate ||
-                                                                            assignment.load.rate,
-                                                                    ) *
-                                                                        Number(assignment.chargeValue)) /
-                                                                    100;
-                                                                break;
-                                                            case 'FIXED_PAY':
-                                                                calculatedAmount = Number(assignment.chargeValue);
-                                                                break;
-                                                        }
+                                        setFromDate(parseDate(fromDate));
+                                        setToDate(parseDate(toDate));
 
-                                                        // Format the locations
-                                                        const formattedLocations = assignment.routeLeg.locations
-                                                            .map((loc) => {
-                                                                if (loc.loadStop) {
-                                                                    return `${loc.loadStop.name.toUpperCase()} (${
-                                                                        loc.loadStop.city
-                                                                    }, ${loc.loadStop.state.toLocaleUpperCase()})`;
-                                                                } else if (loc.location) {
-                                                                    return `${loc.location.name.toLocaleUpperCase()} (${
-                                                                        loc.location.city
-                                                                    }, ${loc.location.state.toLocaleUpperCase()})`;
-                                                                }
-                                                                return '';
-                                                            })
-                                                            .join(' -> \n');
-
-                                                        const isSelected = invoice.assignments.some(
-                                                            (a) => a.id === assignment.id,
-                                                        );
-
-                                                        return (
-                                                            <tr
-                                                                key={assignment.id}
-                                                                className={`hover:bg-gray-50 cursor-pointer ${
-                                                                    isSelected ? 'bg-blue-50' : 'bg-white'
-                                                                }`}
-                                                                onClick={() => handleAssignmentToggle(assignment.id)}
-                                                            >
-                                                                <td className="py-3 px-4">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={isSelected}
-                                                                        onChange={() =>
-                                                                            handleAssignmentToggle(assignment.id)
-                                                                        }
-                                                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                                                    />
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800">
-                                                                    <Link
-                                                                        href={`/loads/${assignment.load.id}#load-assignments`}
-                                                                        target="_blank"
-                                                                    >
-                                                                        <span className="underline">
-                                                                            {assignment.load.refNum}
-                                                                        </span>
-                                                                    </Link>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800 whitespace-break-spaces capitalize">
-                                                                    {formattedLocations}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800">
-                                                                    {assignment.chargeType === 'PER_MILE' &&
-                                                                        `$${assignment.chargeValue}/mile`}
-                                                                    {assignment.chargeType === 'PER_HOUR' &&
-                                                                        `$${assignment.chargeValue}/hour`}
-                                                                    {assignment.chargeType === 'PERCENTAGE_OF_LOAD' &&
-                                                                        `${assignment.chargeValue}% of load`}
-                                                                    {assignment.chargeType === 'FIXED_PAY' &&
-                                                                        'Fixed Pay'}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800 pointer-events-none">
-                                                                    <button
-                                                                        className="pointer-events-auto"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setShowAssignmentChargeChangeDialog(true);
-                                                                            setCurrentAssEditCharge(assignment);
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex flex-row items-center justify-start h-full gap-1 cursor-pointer">
-                                                                            {formatCurrency(
-                                                                                calculatedAmount.toFixed(2),
-                                                                            )}
-                                                                            <PencilSquareIcon
-                                                                                className="w-4 h-4 ml-1 text-blue-600"
-                                                                                color="blue"
-                                                                            />
-                                                                        </div>
-                                                                    </button>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800 capitalize">
-                                                                    {assignment.routeLeg.status.toLowerCase()}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                    <div className="mt-6 flex justify-between">
-                                        <Link href={`/driverinvoices/${invoiceId}`}>
-                                            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                                                Cancel
-                                            </button>
-                                        </Link>
-                                        <button
-                                            onClick={handleConfirmAssignments}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
+                                        // Update the invoice object directly
+                                        setInvoice((prev) => ({
+                                            ...prev,
+                                            fromDate: parseDate(fromDate),
+                                            toDate: parseDate(toDate),
+                                        }));
+                                    }}
+                                    formatCurrency={formatCurrency}
+                                />
                             )}
 
-                            {/* Step 2: Edit Additional Items */}
-                            {currentStep === 2 && (
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Edit Additional Items</h2>
-
-                                    <div className="mb-6">
-                                        <h3 className="font-medium text-gray-700 mb-2">Invoice Details</h3>
-                                        <div className="flex flex-col gap-4 w-full ">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Invoice #{' '}
-                                                    <span className="text-gray-400">{invoice.invoiceNum}</span>
-                                                </label>
+                            {/* Step 2.5: Mile Calculation (conditional) */}
+                            {currentStep === 2.5 && showMileCalculationStep && (
+                                <div>
+                                    {/* Header */}
+                                    <div className="px-4 py-4 sm:px-6 bg-blue-100/50 backdrop-blur-2xl border-b border-blue-100/40 rounded-tl-xl rounded-tr-xl">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                                                <svg
+                                                    className="w-4 h-4 text-white"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                                                    />
+                                                </svg>
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 bg">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        From Date
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={
-                                                            invoice.fromDate
-                                                                ? dayjs(invoice.fromDate).format('YYYY-MM-DD')
-                                                                : ''
-                                                        }
-                                                        onChange={(e) => {
-                                                            // Parse the input as a local date
-                                                            const localDate = dayjs(
-                                                                e.target.value,
-                                                                'YYYY-MM-DD',
-                                                            ).toDate();
-                                                            setInvoice((prev) => ({
-                                                                ...prev,
-                                                                fromDate: localDate,
-                                                            }));
-                                                        }}
-                                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        To Date
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={
-                                                            invoice.toDate
-                                                                ? dayjs(invoice.toDate).format('YYYY-MM-DD')
-                                                                : ''
-                                                        }
-                                                        onChange={(e) => {
-                                                            // Parse the input as a local date
-                                                            const localDate = dayjs(
-                                                                e.target.value,
-                                                                'YYYY-MM-DD',
-                                                            ).toDate();
-                                                            setInvoice((prev) => ({
-                                                                ...prev,
-                                                                toDate: localDate,
-                                                            }));
-                                                        }}
-                                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                    />
-                                                </div>
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-gray-900">
+                                                    Mile Calculation
+                                                </h3>
+                                                <p className="text-xs text-gray-600">
+                                                    Calculate empty miles between assignments
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Notes
-                                            </label>
-                                            <textarea
-                                                value={invoice.notes}
-                                                onChange={(e) =>
-                                                    setInvoice((prev) => ({ ...prev, notes: e.target.value }))
-                                                }
-                                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                rows={3}
-                                                placeholder="Add any notes about this invoice..."
+                                    </div>
+
+                                    {/* Content - Full screen breaking container */}
+                                    <div className="p-4 sm:p-6 relative">
+                                        <div className="relative z-0">
+                                            <MileCalculation
+                                                assignments={invoice.assignments as any}
+                                                emptyMiles={emptyMiles}
+                                                emptyMilesInput={emptyMilesInput}
+                                                selectedAssignmentId={selectedAssignmentId}
+                                                onAssignmentSelect={setSelectedAssignmentId}
+                                                onEmptyMilesUpdate={handleEmptyMilesUpdateWithInvoice}
+                                                setEmptyMilesInput={setEmptyMilesInput}
+                                                setEmptyMiles={setEmptyMiles}
+                                                calculateHaversineDistance={calculateHaversineDistance}
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="mb-6">
-                                        <h3 className="font-medium text-gray-700 mb-1">Line Items</h3>
-                                        <p className="text-sm mb-2 text-gray-500">
-                                            Add, edit or remove line items on this invoice.
-                                        </p>
-
-                                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Description
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Amount
-                                                        </th>
-                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Action
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
-                                                    {invoice.lineItems.map((item) => (
-                                                        <tr key={item.id}>
-                                                            <td className="px-4 py-3 text-sm text-gray-800">
-                                                                {item.description}
-                                                            </td>
-                                                            <td
-                                                                className={`px-4 py-3 text-sm ${
-                                                                    Number(item.amount) >= 0
-                                                                        ? 'text-gray-800'
-                                                                        : 'text-red-600'
-                                                                } `}
-                                                            >
-                                                                {Number(item.amount) >= 0
-                                                                    ? formatCurrency(item.amount.toString())
-                                                                    : `(${formatCurrency(
-                                                                          Math.abs(Number(item.amount)).toString(),
-                                                                      )})`}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right">
-                                                                <button
-                                                                    onClick={() => handleRemoveLineItem(item.id!)}
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <TrashIcon className="w-4 h-4" />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    <tr>
-                                                        <td className="px-4 py-3">
-                                                            <input
-                                                                type="text"
-                                                                value={newLineItem.description}
-                                                                onChange={(e) =>
-                                                                    setNewLineItem((prev) => ({
-                                                                        ...prev,
-                                                                        description: e.target.value,
-                                                                    }))
-                                                                }
-                                                                autoFocus
-                                                                placeholder="Description"
-                                                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                            />
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex items-center">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        setNewLineItem((prev) => ({
-                                                                            ...prev,
-                                                                            amount: prev.amount.startsWith('-')
-                                                                                ? prev.amount.substring(1)
-                                                                                : `-${prev.amount}`,
-                                                                        }))
-                                                                    }
-                                                                    className="p-2 text-gray-500 hover:text-gray-700"
-                                                                >
-                                                                    {newLineItem.amount.startsWith('-') ? (
-                                                                        <MinusIcon className="w-4 h-4" />
-                                                                    ) : (
-                                                                        <PlusIcon className="w-4 h-4" />
-                                                                    )}
-                                                                </button>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        newLineItem.amount.startsWith('-')
-                                                                            ? newLineItem.amount.substring(1)
-                                                                            : newLineItem.amount
-                                                                    }
-                                                                    onChange={(e) =>
-                                                                        setNewLineItem((prev) => ({
-                                                                            ...prev,
-                                                                            amount: prev.amount.startsWith('-')
-                                                                                ? `-${e.target.value}`
-                                                                                : e.target.value,
-                                                                        }))
-                                                                    }
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            handleAddLineItem();
-                                                                            e.preventDefault();
-                                                                        }
-                                                                    }}
-                                                                    placeholder="Amount"
-                                                                    step="0.01"
-                                                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                                />
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <button
-                                                                onClick={handleAddLineItem}
-                                                                disabled={
-                                                                    !newLineItem.description || !newLineItem.amount
-                                                                }
-                                                                className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                                            >
-                                                                Add
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6 flex justify-between">
-                                        <button
-                                            onClick={prevStep}
-                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            Back
-                                        </button>
-                                        <button
-                                            onClick={nextStep}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                        >
-                                            Review Changes
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 3: Review & Update */}
-                            {currentStep === 3 && (
-                                <div className="relative">
-                                    {updatingInvoice && (
-                                        <div className="absolute flex flex-col h-full bg-slate-100/60 items-center justify-center w-full font-semibold ">
-                                            <>
-                                                <Spinner /> Updating Invoice...
-                                            </>
-                                        </div>
-                                    )}
-                                    <div className="bg-gray-50 p-6 rounded-lg ">
-                                        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                                            Review Invoice Changes
-                                        </h2>
-
-                                        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                                            <div className="flex justify-between items-start mb-6">
-                                                <div>
-                                                    <h3 className="text-lg font-medium text-gray-800">
-                                                        Invoice Summary
-                                                    </h3>
-                                                    <p className="text-sm text-gray-500">
-                                                        Period: {new Date(invoice.fromDate).toLocaleDateString()} -{' '}
-                                                        {new Date(invoice.toDate).toLocaleDateString()}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        Invoice #{invoice.invoiceNum}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-2xl font-bold text-green-600">
-                                                        {formatCurrency(totalAmount)}
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">Total Amount</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">Driver Information</h4>
-                                                <div className="bg-gray-50 p-3 rounded-md">
-                                                    {invoice && (
-                                                        <>
-                                                            <p className="text-sm font-semibold text-gray-800 capitalize">
-                                                                {invoice.driver.name.toLowerCase()}
-                                                            </p>
-                                                            <p className="text-sm text-gray-500">
-                                                                {invoice.driver.email}
-                                                            </p>
-                                                            <p className="text-sm text-gray-500">
-                                                                {invoice.driver.phone}
-                                                            </p>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {invoice.notes && (
-                                                <div className="mb-6">
-                                                    <h4 className="font-medium text-gray-700 mb-2">Notes</h4>
-                                                    <div className="bg-gray-50 p-3 rounded-md">
-                                                        <p className="text-sm text-gray-800">{invoice.notes}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">
-                                                    Assignments ({invoice.assignments.length})
-                                                </h4>
-                                                <div className="overflow-x-auto">
-                                                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                        <thead>
-                                                            <tr className="bg-gray-100">
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Order #
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Route
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 whitespace-nowrap uppercase tracking-wider">
-                                                                    Charge Type
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Amount
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Status
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-200">
-                                                            {invoice.assignments.map((assignment) => {
-                                                                let calculatedAmount = 0;
-                                                                switch (assignment.chargeType) {
-                                                                    case 'PER_MILE':
-                                                                        calculatedAmount =
-                                                                            Number(
-                                                                                assignment.billedDistanceMiles ||
-                                                                                    assignment.routeLeg.distanceMiles,
-                                                                            ) * Number(assignment.chargeValue);
-                                                                        break;
-                                                                    case 'PER_HOUR':
-                                                                        calculatedAmount =
-                                                                            Number(
-                                                                                assignment.billedDurationHours ||
-                                                                                    assignment.routeLeg.durationHours,
-                                                                            ) * Number(assignment.chargeValue);
-                                                                        break;
-                                                                    case 'PERCENTAGE_OF_LOAD':
-                                                                        calculatedAmount =
-                                                                            (Number(
-                                                                                assignment.billedLoadRate ||
-                                                                                    assignment.load.rate,
-                                                                            ) *
-                                                                                Number(assignment.chargeValue)) /
-                                                                            100;
-                                                                        break;
-                                                                    case 'FIXED_PAY':
-                                                                        calculatedAmount = Number(
-                                                                            assignment.chargeValue,
-                                                                        );
-                                                                        break;
-                                                                }
-
-                                                                // Format the locations
-                                                                const formattedLocations = assignment.routeLeg.locations
-                                                                    .map((loc) => {
-                                                                        if (loc.loadStop) {
-                                                                            return `${loc.loadStop.name} (${loc.loadStop.city}, ${loc.loadStop.state})`;
-                                                                        } else if (loc.location) {
-                                                                            return `${loc.location.name} (${loc.location.city}, ${loc.location.state})`;
-                                                                        }
-                                                                        return '';
-                                                                    })
-                                                                    .join(' -> \n');
-
-                                                                return (
-                                                                    <tr
-                                                                        key={assignment.id}
-                                                                        className="hover:bg-gray-50"
-                                                                    >
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {assignment.load.refNum}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm font-medium text-gray-800 whitespace-break-spaces capitalize">
-                                                                            {formattedLocations}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {assignment.chargeType === 'PER_MILE' &&
-                                                                                `$${assignment.chargeValue}/mile`}
-                                                                            {assignment.chargeType === 'PER_HOUR' &&
-                                                                                `$${assignment.chargeValue}/hour`}
-                                                                            {assignment.chargeType ===
-                                                                                'PERCENTAGE_OF_LOAD' &&
-                                                                                `${assignment.chargeValue}% of load`}
-                                                                            {assignment.chargeType === 'FIXED_PAY' &&
-                                                                                'Fixed Pay'}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm font-medium text-gray-800">
-                                                                            {formatCurrency(
-                                                                                calculatedAmount.toFixed(2),
-                                                                            )}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {'Completed'}
-                                                                        </td>
-                                                                    </tr>
-                                                                );
-                                                            })}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">
-                                                    Additional Line Items ({invoice.lineItems.length})
-                                                </h4>
-                                                {invoice.lineItems.length > 0 ? (
-                                                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                        <thead>
-                                                            <tr className="bg-gray-100">
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Description
-                                                                </th>
-                                                                <th className="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Amount
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-200">
-                                                            {invoice.lineItems.map((item) => (
-                                                                <tr key={item.id}>
-                                                                    <td className="py-3 px-4 text-sm text-gray-800">
-                                                                        {item.description}
-                                                                    </td>
-                                                                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-800">
-                                                                        {Number(item.amount) >= 0
-                                                                            ? formatCurrency(item.amount.toString())
-                                                                            : `(${formatCurrency(
-                                                                                  Math.abs(
-                                                                                      Number(item.amount),
-                                                                                  ).toString(),
-                                                                              )})`}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                ) : (
-                                                    <p className="text-sm text-gray-500 italic">
-                                                        No additional line items
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <CompensationSummary
+                                            assignments={invoice.assignments as any}
+                                            emptyMiles={emptyMiles}
+                                        />
 
                                         <div className="mt-6 flex justify-between">
                                             <button
-                                                onClick={prevStep}
+                                                onClick={() => setCurrentStep(1)}
                                                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                             >
-                                                Back
+                                                Back to Assignments
                                             </button>
                                             <button
-                                                onClick={handleUpdateInvoice}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                onClick={() => {
+                                                    // Update assignments with latest empty miles data
+                                                    const updatedAssignments = invoice.assignments.map((assignment) => {
+                                                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                                            key.startsWith(`${assignment.id}-to-`),
+                                                        );
+                                                        const assignmentEmptyMiles = emptyMilesKey
+                                                            ? emptyMiles[emptyMilesKey]
+                                                            : 0;
+
+                                                        return {
+                                                            ...assignment,
+                                                            emptyMiles:
+                                                                assignmentEmptyMiles > 0
+                                                                    ? new Prisma.Decimal(assignmentEmptyMiles)
+                                                                    : null,
+                                                        };
+                                                    });
+
+                                                    setInvoice((prev) => ({
+                                                        ...prev,
+                                                        assignments: updatedAssignments,
+                                                    }));
+                                                    setCurrentStep(3);
+                                                }}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                             >
-                                                Update Invoice
+                                                Continue to Additional Items
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                            )}
+
+                            {/* Step 2/3: Edit Additional Items */}
+                            {currentStep === (showMileCalculationStep ? 3 : 2) && (
+                                <AdditionalItems
+                                    invoice={invoice}
+                                    setInvoice={setInvoice}
+                                    newLineItem={newLineItem}
+                                    setNewLineItem={setNewLineItem}
+                                    handleAddLineItem={handleAddLineItem}
+                                    handleRemoveLineItem={handleRemoveLineItem}
+                                    formatCurrency={formatCurrency}
+                                    onPrevStep={prevStep}
+                                    onNextStep={nextStep}
+                                    mode="edit"
+                                    nextButtonText="Review Changes"
+                                />
+                            )}
+
+                            {/* Step 3/4: Review & Update */}
+                            {currentStep === (showMileCalculationStep ? 4 : 3) && (
+                                <InvoiceReview
+                                    invoice={invoice}
+                                    allDrivers={allDrivers}
+                                    emptyMiles={emptyMiles}
+                                    totalAmount={totalAmount}
+                                    notifyDriver={notifyDriver}
+                                    setNotifyDriver={setNotifyDriver}
+                                    isLoading={updatingInvoice}
+                                    loadingText="Updating Invoice..."
+                                    onPrevStep={prevStep}
+                                    onSubmit={handleUpdateInvoice}
+                                    submitButtonText="Update Invoice"
+                                    mode="edit"
+                                    formatCurrency={formatCurrency}
+                                />
                             )}
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
+            {updatingInvoice && <LoadingOverlay message="Updating Invoice..." />}
         </Layout>
     );
 };
@@ -1099,95 +779,164 @@ const InvoiceSkeleton = () => {
             smHeaderComponent={
                 <div className="flex items-center">
                     {/* Skeleton for header title */}
-                    <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-6 w-48 bg-gray-200/80 rounded-lg animate-pulse" />
                 </div>
             }
         >
-            <div className="py-2 mx-auto max-w-7xl">
-                <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-none mt-4">
-                    {/* Breadcrumb Skeleton */}
-                    <div className="mb-8 static top-0 bg-white py-2 z-0">
-                        <nav className="flex space-x-2" aria-label="Breadcrumb">
-                            {/** Render three skeleton items for breadcrumb */}
-                            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                            <div className="h-4 w-6 bg-gray-200 rounded animate-pulse" />
-                            <div className="h-4 w-36 bg-gray-200 rounded animate-pulse" />
-                        </nav>
-                    </div>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/20">
+                <div className="py-4 sm:py-6 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+                        {/* Breadcrumb Skeleton */}
+                        <div className="bg-white/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4">
+                            <nav className="flex items-center space-x-2" aria-label="Breadcrumb">
+                                <div className="h-4 w-20 bg-gray-200/80 rounded animate-pulse" />
+                                <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
+                                <div className="h-4 w-24 bg-gray-200/80 rounded animate-pulse" />
+                                <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
+                                <div className="h-4 w-32 bg-gray-200/80 rounded animate-pulse" />
+                            </nav>
+                        </div>
 
-                    {/* Page Title Skeleton */}
-                    <div className="animate-pulse">
-                        <div className="h-8 w-64 bg-gray-200 rounded-lg mx-auto mb-6" />
-                    </div>
+                        {/* Header Card Skeleton */}
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 animate-pulse">
+                            <div className="text-center">
+                                <div className="h-8 w-64 bg-gray-200/80 rounded-lg mx-auto mb-2" />
+                                <div className="h-4 w-48 bg-gray-200/60 rounded mx-auto" />
+                            </div>
+                        </div>
 
-                    {/* Stepper Skeleton */}
-                    <div className="mb-10 mx-6 animate-pulse">
-                        <div className="flex items-center space-x-2">
-                            {/* Three step circles */}
-                            <div className="h-10 w-10 bg-gray-200 rounded-full" />
-                            <div className="flex-1 h-1 bg-gray-200 rounded" />
-                            <div className="h-10 w-10 bg-gray-200 rounded-full" />
-                            <div className="flex-1 h-1 bg-gray-200 rounded" />
-                            <div className="h-10 w-10 bg-gray-200 rounded-full" />
-                        </div>
-                        <div className="flex justify-around mt-4">
-                            <div className="h-4 w-24 bg-gray-200 rounded" />
-                            <div className="h-4 w-24 bg-gray-200 rounded" />
-                            <div className="h-4 w-24 bg-gray-200 rounded" />
-                        </div>
-                    </div>
+                        {/* Stepper Skeleton */}
+                        <div className="mb-4 sm:mb-8 mx-2 sm:mx-4 lg:mx-6">
+                            {/* Mobile Progress Bar Skeleton */}
+                            <div className="sm:hidden mb-4 animate-pulse">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="h-4 w-16 bg-gray-200/80 rounded" />
+                                    <div className="h-4 w-24 bg-gray-200/80 rounded" />
+                                </div>
+                                <div className="w-full bg-gray-200/60 rounded-full h-2">
+                                    <div className="bg-blue-300/60 h-2 rounded-full w-1/3" />
+                                </div>
+                            </div>
 
-                    {/* Driver Information Skeleton */}
-                    <div className="mb-8 p-5 rounded-lg border border-slate-100 flex items-center animate-pulse">
-                        <div className="bg-blue-100 rounded-full p-2 mr-3">
-                            <div className="h-6 w-6 bg-gray-200 rounded-full" />
-                        </div>
-                        <div className="flex flex-col space-y-2">
-                            <div className="h-4 w-48 bg-gray-200 rounded" />
-                            <div className="h-3 w-32 bg-gray-200 rounded" />
-                            <div className="h-3 w-24 bg-gray-200 rounded" />
-                        </div>
-                        <div className="ml-auto">
-                            <div className="h-3 w-20 bg-gray-200 rounded" />
-                        </div>
-                    </div>
+                            {/* Desktop Stepper Skeleton */}
+                            <div className="hidden sm:flex items-center justify-center animate-pulse">
+                                {/* Step 1 */}
+                                <div className="flex flex-col items-center">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
+                                    <div className="mt-3 text-center">
+                                        <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
+                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
 
-                    {/* Table Skeleton for Assignments */}
-                    <div className="mb-6">
-                        <div className="h-6 w-40 bg-gray-200 rounded mb-4 animate-pulse" />
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                <thead>
-                                    <tr className="bg-gray-100">
-                                        {['Select', 'Order #', 'Route', 'Charge Type', 'Amount', 'Status'].map(
-                                            (header) => (
-                                                <th key={header} className="py-3 px-4">
-                                                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
-                                                </th>
-                                            ),
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {[1, 2, 3, 4, 5].map((row) => (
-                                        <tr key={row} className="animate-pulse">
-                                            {Array.from({ length: 6 }).map((_, colIndex) => (
-                                                <td key={colIndex} className="py-3 px-4">
-                                                    <div className="h-4 w-full bg-gray-200 rounded" />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                {/* Connector 1 */}
+                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60 relative">
+                                    <div className="absolute left-0 top-0 h-full bg-blue-300/60 w-full" />
+                                </div>
 
-                    {/* Additional Skeleton Sections */}
-                    <div className="mb-6 space-y-4">
-                        {[1, 2].map((item) => (
-                            <div key={item} className="h-6 w-full bg-gray-200 rounded animate-pulse" />
-                        ))}
+                                {/* Mile Calculation Step Skeleton */}
+                                <div className="flex flex-col items-center">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
+                                    <div className="mt-3 text-center">
+                                        <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
+                                        <div className="h-3 w-20 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
+
+                                {/* Connector 2 */}
+                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
+
+                                {/* Step 3 */}
+                                <div className="flex flex-col items-center">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
+                                    <div className="mt-3 text-center">
+                                        <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
+                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
+
+                                {/* Connector 3 */}
+                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
+
+                                {/* Step 4 */}
+                                <div className="flex flex-col items-center">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
+                                    <div className="mt-3 text-center">
+                                        <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
+                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Driver Information Skeleton */}
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 animate-pulse">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    <div className="bg-blue-100/80 rounded-xl p-3">
+                                        <div className="h-6 w-6 bg-gray-200/80 rounded" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="h-5 w-36 bg-gray-200/80 rounded" />
+                                        <div className="h-3 w-28 bg-gray-200/60 rounded" />
+                                        <div className="h-3 w-32 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
+                                <div className="hidden sm:block">
+                                    <div className="h-4 w-20 bg-gray-200/60 rounded" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Main Content Skeleton */}
+                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm animate-pulse">
+                            {/* Header */}
+                            <div className="px-4 py-4 sm:px-6 bg-blue-50/30 backdrop-blur-2xl border-b border-blue-100/40 rounded-tl-xl rounded-tr-xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-blue-200/80 rounded-xl" />
+                                    <div className="space-y-1">
+                                        <div className="h-4 w-32 bg-gray-200/80 rounded" />
+                                        <div className="h-3 w-40 bg-gray-200/60 rounded" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-4 sm:p-6 space-y-6">
+                                {/* Assignment Cards Skeleton */}
+                                {[1, 2, 3].map((item) => (
+                                    <div
+                                        key={item}
+                                        className="bg-gray-50/80 backdrop-blur-sm p-4 rounded-xl border border-gray-200/40"
+                                    >
+                                        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 items-center">
+                                            <div className="lg:col-span-2 space-y-2">
+                                                <div className="h-4 w-20 bg-gray-200/80 rounded" />
+                                                <div className="h-5 w-32 bg-gray-200/80 rounded" />
+                                                <div className="h-3 w-28 bg-gray-200/60 rounded" />
+                                            </div>
+                                            <div className="lg:col-span-2 space-y-2">
+                                                <div className="h-4 w-24 bg-gray-200/80 rounded" />
+                                                <div className="h-5 w-36 bg-gray-200/80 rounded" />
+                                            </div>
+                                            <div className="lg:col-span-1 space-y-2">
+                                                <div className="h-4 w-16 bg-gray-200/80 rounded" />
+                                                <div className="h-5 w-20 bg-gray-200/80 rounded" />
+                                            </div>
+                                            <div className="lg:col-span-1">
+                                                <div className="h-6 w-16 bg-green-200/80 rounded ml-auto" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Navigation Buttons Skeleton */}
+                                <div className="mt-6 flex justify-between">
+                                    <div className="h-10 w-20 bg-gray-200/80 rounded-lg" />
+                                    <div className="h-10 w-24 bg-blue-200/80 rounded-lg" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

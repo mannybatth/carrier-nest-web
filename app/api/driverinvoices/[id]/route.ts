@@ -70,6 +70,7 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                         billedDistanceMiles: true,
                         billedDurationHours: true,
                         billedLoadRate: true,
+                        emptyMiles: true,
                         assignedAt: true,
                         load: {
                             select: {
@@ -190,7 +191,8 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
         if (fromDate) updatedInvoiceData.fromDate = new Date(fromDate);
         if (toDate) updatedInvoiceData.toDate = new Date(toDate);
         if (notes !== undefined) updatedInvoiceData.notes = notes;
-        if (status) updatedInvoiceData.status = status;
+        // Always set status back to PENDING when invoice is updated
+        updatedInvoiceData.status = 'PENDING';
         if (invoiceNum) updatedInvoiceData.invoiceNum = invoiceNum;
 
         // When assignments are provided, we can use the nested write to update the invoice’s connection.
@@ -230,6 +232,11 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
                     assignment.billedLoadRate === undefined ? null : new Prisma.Decimal(assignment.billedLoadRate);
             }
 
+            // Always update emptyMiles if provided
+            if (assignment.emptyMiles !== undefined) {
+                data.emptyMiles = assignment.emptyMiles === null ? null : new Prisma.Decimal(assignment.emptyMiles);
+            }
+
             return prisma.driverAssignment.update({
                 where: { id: assignment.id },
                 data,
@@ -252,7 +259,11 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
                 return acc.add(loadRate.mul(percentage));
             }
             if (a.chargeType === 'PER_MILE') {
-                return acc.add(a.billedDistanceMiles.mul(a.chargeValue));
+                // Calculate total miles including empty miles
+                const baseMiles = a.billedDistanceMiles || new Prisma.Decimal(0);
+                const emptyMiles = a.emptyMiles || new Prisma.Decimal(0);
+                const totalMiles = baseMiles.add(emptyMiles);
+                return acc.add(totalMiles.mul(a.chargeValue));
             }
             if (a.chargeType === 'PER_HOUR') {
                 return acc.add(a.billedDurationHours.mul(a.chargeValue));
@@ -356,6 +367,7 @@ async function deleteDriverInvoice(req: NextAuthRequest, { params }: { params: {
                     billedLoadRate: null,
                     billedDistanceMiles: null,
                     billedDurationHours: null,
+                    emptyMiles: null, // Clear empty miles as if they were never set
                 },
             }),
             // Disconnect any assignments from the invoice

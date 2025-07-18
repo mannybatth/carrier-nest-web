@@ -1650,7 +1650,7 @@ const CreateLoad: PageWithAuth = () => {
                 }
             } catch (parseError) {
                 console.error('JSON parsing error:', parseError);
-                console.log('Raw AI response:', aiResponse);
+                // console.log('Raw AI response:', aiResponse);
                 throw new Error(
                     'Failed to parse AI response. The service may be experiencing issues. Please try again.',
                 );
@@ -1889,6 +1889,16 @@ const CreateLoad: PageWithAuth = () => {
         setIsProcessing(false);
     };
 
+    // Separate error handler for PDF processing that doesn't affect load submission state
+    const handlePDFProcessingError = () => {
+        setCurrentRateconFile(null);
+        setLoading(false);
+        setIsRetrying(false);
+        setAiProgress(0);
+        setAiProgressStage('');
+        setIsProcessing(false);
+    };
+
     // Helper function to generate standardized filename for PDFs
     const generateRateconFilename = () => {
         const now = new Date();
@@ -1972,7 +1982,7 @@ const CreateLoad: PageWithAuth = () => {
             numOfPages = result.numOfPages;
             progressTracker.current?.nextStage();
         } catch (e) {
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -1983,7 +1993,7 @@ const CreateLoad: PageWithAuth = () => {
             progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error encoding file', type: 'error' });
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -2038,7 +2048,7 @@ const CreateLoad: PageWithAuth = () => {
             progressTracker.current?.nextStage();
         } catch (error) {
             notify({ title: 'Error', message: 'Error loading customers', type: 'error' });
-            handleAIError();
+            handlePDFProcessingError();
             return;
         }
 
@@ -2106,29 +2116,48 @@ const CreateLoad: PageWithAuth = () => {
             const reader = new FileReader();
             reader.readAsArrayBuffer(file);
             reader.onload = async () => {
-                const arrayBuffer = reader.result as ArrayBuffer;
-                const byteArray = new Uint8Array(arrayBuffer);
-                const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
+                try {
+                    const arrayBuffer = reader.result as ArrayBuffer;
+                    const byteArray = new Uint8Array(arrayBuffer);
+                    const { totalPages, metadata: pdfMetaData } = await calcPdfPageCount(byteArray);
 
-                if (totalPages < 1) {
+                    if (totalPages < 1) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain at least 1 page',
+                            type: 'error',
+                        });
+                        reject(new Error('Invalid page count'));
+                        return;
+                    } else if (totalPages > 8) {
+                        notify({
+                            title: 'Error',
+                            message: 'PDF file must contain no more than 8 pages',
+                            type: 'error',
+                        });
+                        reject(new Error('Too many pages'));
+                        return;
+                    }
+
+                    resolve({ metadata: pdfMetaData, numOfPages: totalPages });
+                } catch (error) {
+                    console.error('PDF validation error:', error);
                     notify({
-                        title: 'Error',
-                        message: 'PDF file must contain at least 1 page',
+                        title: 'PDF Error',
+                        message: error.message || 'Unable to process PDF file',
                         type: 'error',
                     });
-                    reject(new Error('Invalid page count'));
-                    return;
-                } else if (totalPages > 8) {
-                    notify({
-                        title: 'Error',
-                        message: 'PDF file must contain no more than 8 pages',
-                        type: 'error',
-                    });
-                    reject(new Error('Too many pages'));
-                    return;
+                    reject(error);
                 }
-
-                resolve({ metadata: pdfMetaData, numOfPages: totalPages });
+            };
+            reader.onerror = (error) => {
+                console.error('FileReader error:', error);
+                notify({
+                    title: 'File Error',
+                    message: 'Unable to read PDF file',
+                    type: 'error',
+                });
+                reject(new Error('Failed to read file'));
             };
         });
     };
@@ -2462,12 +2491,12 @@ const CreateLoad: PageWithAuth = () => {
                 const contextValue = `${locationContext} ${stopTypeContext}`.trim();
 
                 if (isDateField) {
-                    console.log('🔍 Debug: Date field without value - looking for dates near location context');
-                    console.log('Location context:', locationContext);
+                    // console.log('🔍 Debug: Date field without value - looking for dates near location context');
+                    // console.log('Location context:', locationContext);
 
                     // Find location context lines first
                     const locationMatches = OCRMatcher.findBestMatches(locationContext, ocrLines.lines, 'location', 3);
-                    console.log('Location matches found:', locationMatches.length);
+                    // console.log('Location matches found:', locationMatches.length);
 
                     if (locationMatches.length > 0) {
                         // Look for date patterns near the location
@@ -2480,12 +2509,12 @@ const CreateLoad: PageWithAuth = () => {
                                 OCRMatcher.hasDatePatternPublic(line.text),
                             );
 
-                            console.log('Date pattern lines found:', dateLines.length);
+                            // console.log('Date pattern lines found:', dateLines.length);
 
                             // Find closest date to this location
                             for (const dateLine of dateLines) {
                                 const distance = OCRMatcher.calculateSpatialDistance(dateLine, locationMatch.line);
-                                console.log(`Date line: "${dateLine.text}" - distance: ${distance}`);
+                                // console.log(`Date line: "${dateLine.text}" - distance: ${distance}`);
 
                                 if (distance < minDistance && distance < 5) {
                                     // Within reasonable distance
@@ -2496,7 +2525,7 @@ const CreateLoad: PageWithAuth = () => {
                         }
 
                         if (bestDateMatch) {
-                            console.log('🎯 Best contextual date match:', bestDateMatch.text);
+                            // console.log('🎯 Best contextual date match:', bestDateMatch.text);
                             setOcrVertices([bestDateMatch.boundingPoly.normalizedVertices]);
                             setOcrVerticesPage(bestDateMatch.pageNumber);
                             return;
@@ -2505,10 +2534,10 @@ const CreateLoad: PageWithAuth = () => {
                 }
 
                 if (isTimeField) {
-                    console.log('🔍 Debug: Time field without value - looking for times near location context');
+                    // console.log('🔍 Debug: Time field without value - looking for times near location context');
                     const timeMatch = OCRMatcher.findContextualMatch('', ocrLines.lines, locationContext, 'time');
                     if (timeMatch && timeMatch.confidence > 0.3) {
-                        console.log('🎯 Best contextual time match:', timeMatch.line.text);
+                        // console.log('🎯 Best contextual time match:', timeMatch.line.text);
                         setOcrVertices([timeMatch.line.boundingPoly.normalizedVertices]);
                         setOcrVerticesPage(timeMatch.line.pageNumber);
                         return;
@@ -2714,17 +2743,17 @@ const CreateLoad: PageWithAuth = () => {
 
         // Use contextual matching with optimized OCRMatcher
         if (!bestMatch) {
-            console.log('🔍 Debug: Using contextual matching');
-            console.log('Search value:', searchValue);
-            console.log('Context value:', contextValue);
-            console.log('Field name:', fieldName);
+            // console.log('🔍 Debug: Using contextual matching');
+            // console.log('Search value:', searchValue);
+            // console.log('Context value:', contextValue);
+            // console.log('Field name:', fieldName);
 
             bestMatch = OCRMatcher.findContextualMatch(searchValue, ocrLines.lines, contextValue, fieldName);
 
             if (bestMatch) {
-                console.log('🎯 Contextual match found:', bestMatch.line.text, 'confidence:', bestMatch.confidence);
+                // console.log('🎯 Contextual match found:', bestMatch.line.text, 'confidence:', bestMatch.confidence);
             } else {
-                console.log('❌ No contextual match found');
+                // console.log('❌ No contextual match found');
             }
         }
 

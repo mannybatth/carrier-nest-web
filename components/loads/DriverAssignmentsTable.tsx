@@ -226,10 +226,11 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                         <p className="text-sm text-gray-500 mb-6 max-w-sm">
                                             Get started by creating a new load assignment for your drivers.
                                         </p>
-                                        <Link href="/loads/create">
-                                            <a className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                                                + Create Load
-                                            </a>
+                                        <Link
+                                            href="/loads/create"
+                                            className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+                                        >
+                                            + Create Load
                                         </Link>
                                     </div>
                                 </td>

@@ -314,7 +314,10 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
         let amt = 0;
         switch (a.chargeType) {
             case 'PER_MILE':
-                amt = Number(a.billedDistanceMiles ?? a.routeLeg.distanceMiles) * Number(a.chargeValue);
+                const baseMiles = Number(a.billedDistanceMiles ?? a.routeLeg.distanceMiles);
+                const emptyMiles = Number(a.emptyMiles || 0);
+                const totalMiles = baseMiles + emptyMiles;
+                amt = totalMiles * Number(a.chargeValue);
                 break;
             case 'PER_HOUR':
                 amt = Number(a.billedDurationHours ?? a.routeLeg.durationHours) * Number(a.chargeValue);
@@ -447,8 +450,28 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>{symbols.calendar} Period:</Text>
                             <Text style={styles.detailValue}>
-                                {new Date(invoice.fromDate).toLocaleDateString()} –{' '}
-                                {new Date(invoice.toDate).toLocaleDateString()}
+                                {(() => {
+                                    // Parse date correctly to avoid timezone issues
+                                    const parseDate = (date: string | Date | null | undefined) => {
+                                        if (!date) return null;
+                                        if (typeof date === 'string') {
+                                            const parts = date.split('-');
+                                            if (parts.length === 3) {
+                                                const year = parseInt(parts[0], 10);
+                                                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                                                const day = parseInt(parts[2], 10);
+                                                return new Date(year, month, day);
+                                            }
+                                            return new Date(date);
+                                        }
+                                        return date;
+                                    };
+
+                                    const fromDate = parseDate(invoice.fromDate);
+                                    const toDate = parseDate(invoice.toDate);
+
+                                    return `${fromDate?.toLocaleDateString()} – ${toDate?.toLocaleDateString()}`;
+                                })()}
                             </Text>
                         </View>
                     </View>
@@ -471,8 +494,10 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         let amount = 0;
                         switch (a.chargeType) {
                             case 'PER_MILE':
-                                amount =
-                                    Number(a.billedDistanceMiles ?? a.routeLeg.distanceMiles) * Number(a.chargeValue);
+                                const baseMiles = Number(a.billedDistanceMiles ?? a.routeLeg.distanceMiles);
+                                const emptyMiles = Number(a.emptyMiles || 0);
+                                const totalMiles = baseMiles + emptyMiles;
+                                amount = totalMiles * Number(a.chargeValue);
                                 break;
                             case 'PER_HOUR':
                                 amount =
@@ -497,17 +522,30 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                             )
                             .join(' > ');
 
+                        const baseMiles = Number(a.billedDistanceMiles ?? a.routeLeg?.distanceMiles);
+                        const emptyMiles = Number(a.emptyMiles || 0);
+                        const totalMiles = baseMiles + emptyMiles;
+
                         const trip = [
-                            safeFixed(a.billedDistanceMiles ?? a.routeLeg?.distanceMiles, 0) + ' mi',
+                            `${safeFixed(baseMiles, 0)} mi${
+                                emptyMiles > 0
+                                    ? ` + ${safeFixed(emptyMiles, 0)} empty = ${safeFixed(totalMiles, 0)} total mi`
+                                    : ''
+                            }`,
                             safeFixed(a.billedDurationHours ?? a.routeLeg?.durationHours, 1) + ' hr',
                         ].join(' / ');
 
                         let chargeLabel = '';
                         switch (a.chargeType) {
                             case 'PER_MILE':
-                                chargeLabel = `${a.chargeValue}/mi for ${
-                                    a.billedDistanceMiles ?? a.routeLeg.distanceMiles
-                                } miles`;
+                                const baseMilesForLabel = Number(a.billedDistanceMiles ?? a.routeLeg.distanceMiles);
+                                const emptyMilesForLabel = Number(a.emptyMiles || 0);
+                                const totalMilesForLabel = baseMilesForLabel + emptyMilesForLabel;
+                                chargeLabel = `${a.chargeValue}/mi for ${totalMilesForLabel} miles${
+                                    emptyMilesForLabel > 0
+                                        ? ` (${baseMilesForLabel} loaded + ${emptyMilesForLabel} empty)`
+                                        : ''
+                                }`;
                                 break;
                             case 'PER_HOUR':
                                 chargeLabel = `${a.chargeValue}/hr for ${
@@ -542,6 +580,14 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                                         <Text style={styles.cardLabel}>{symbols.truck} Trip Details</Text>
                                         <Text style={styles.cardValue}>{trip}</Text>
                                     </View>
+                                    {a.chargeType === 'PER_MILE' && Number(a.emptyMiles || 0) > 0 && (
+                                        <View style={styles.cardRow}>
+                                            <Text style={styles.cardLabel}>🛣️ Empty Miles</Text>
+                                            <Text style={styles.cardValue}>
+                                                {safeFixed(Number(a.emptyMiles), 1)} miles (deadhead/repositioning)
+                                            </Text>
+                                        </View>
+                                    )}
                                     <View style={styles.cardRow}>
                                         <Text style={styles.cardLabel}>{symbols.money} Charge Type</Text>
                                         <Text style={styles.cardValue}>{chargeLabel}</Text>

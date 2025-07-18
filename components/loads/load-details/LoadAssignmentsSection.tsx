@@ -535,7 +535,6 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-start sm:space-x-4">
                                                 {leg.startedAt && (
                                                     <div className="flex items-center">
-                                                        <ClockIcon className="h-4 w-4 text-gray-500 mr-2" />
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-500">Started</p>
                                                             <p className="text-sm text-gray-900">
@@ -569,7 +568,6 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
 
                                                 {leg.endedAt && (
                                                     <div className="flex items-center">
-                                                        <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-500">
                                                                 Completed

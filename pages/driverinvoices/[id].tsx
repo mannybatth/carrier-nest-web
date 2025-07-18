@@ -1,8 +1,7 @@
 'use client';
 
-import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, TrashIcon, PencilIcon, ArrowDownTrayIcon, PhoneIcon } from '@heroicons/react/24/outline';
-import classNames from 'classnames';
+import { createPortal } from 'react-dom';
+import { TrashIcon, PencilIcon, ArrowDownTrayIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline';
 import Layout from '../../components/layout/Layout';
 import { notify } from 'components/Notification';
 import Spinner from 'components/Spinner';
@@ -16,107 +15,12 @@ import {
 } from 'lib/rest/driverinvoice';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { Fragment, useEffect, useState } from 'react';
-import { add, set } from 'date-fns';
+import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { PageWithAuth } from 'interfaces/auth';
 import { de } from 'date-fns/locale';
 import { downloadDriverInvoice } from 'components/driverinvoices/driverInvoicePdf';
 import { formatPhoneNumber } from 'lib/helpers/format';
-
-type ActionsDropdownProps = {
-    invoice: ExpandedDriverInvoice;
-    disabled?: boolean;
-    downloadInvoice: () => void;
-    deleteInvoice: (id: string) => void;
-};
-
-const ActionsDropdown: React.FC<ActionsDropdownProps> = ({ invoice, disabled, downloadInvoice, deleteInvoice }) => {
-    const router = useRouter();
-
-    return (
-        <Menu as="div" className="relative inline-block text-left">
-            <div>
-                <Menu.Button
-                    className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
-                    disabled={disabled}
-                >
-                    Actions
-                    <ChevronDownIcon className="w-5 h-5 ml-2 -mr-1" aria-hidden="true" />
-                </Menu.Button>
-            </div>
-
-            <Transition
-                as={Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
-            >
-                <Menu.Items className="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        router.push(`/driverinvoices/edit/${invoice.id}`);
-                                    }}
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm flex items-center',
-                                    )}
-                                >
-                                    <PencilIcon className="w-5 h-5 mr-2" />
-                                    Edit
-                                </a>
-                            )}
-                        </Menu.Item>
-
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        downloadInvoice();
-                                    }}
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm flex items-center',
-                                    )}
-                                >
-                                    <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                                    Download Invoice
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div>
-                    <div className="py-1">
-                        <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteInvoice(invoice.id);
-                                    }}
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-red-700' : 'text-red-600',
-                                        'block px-4 py-2 text-sm flex items-center',
-                                    )}
-                                >
-                                    <TrashIcon className="w-5 h-5 mr-2" />
-                                    Delete
-                                </a>
-                            )}
-                        </Menu.Item>
-                    </div>
-                </Menu.Items>
-            </Transition>
-        </Menu>
-    );
-};
 
 const InvoiceDetailsPage: PageWithAuth = () => {
     const router = useRouter();
@@ -124,6 +28,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     const [showDeleteInvoiceDialog, setShowDeleteInvoiceDialog] = useState(false);
     const [showDeletePaymentDialog, setShowDeletePaymentDialog] = useState(false);
     const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false);
+    const [showConfirmApprovalDialog, setShowConfirmApprovalDialog] = useState(false);
     const [paymentIdToDelete, setPaymentIdToDelete] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState('');
@@ -151,7 +56,10 @@ const InvoiceDetailsPage: PageWithAuth = () => {
             let amount = 0;
             switch (assignment.chargeType) {
                 case 'PER_MILE':
-                    amount = Number(assignment.billedDistanceMiles) * Number(assignment.chargeValue);
+                    const baseMiles = Number(assignment.billedDistanceMiles);
+                    const emptyMiles = Number(assignment.emptyMiles || 0);
+                    const totalMiles = baseMiles + emptyMiles;
+                    amount = totalMiles * Number(assignment.chargeValue);
                     break;
                 case 'PER_HOUR':
                     amount = Number(assignment.billedDurationHours) * Number(assignment.chargeValue);
@@ -178,11 +86,23 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     }, [invoice]);
 
     // Get invoice data on mount
-    const getInvoiceData = async () => {
+    const getInvoiceData = async (retryCount = 0) => {
         try {
             const invoiceData = await getDriverInvoiceById(invoiceId);
             setInvoice(invoiceData);
         } catch (error) {
+            console.error('Error fetching invoice data:', error);
+
+            // Retry up to 3 times with increasing delays for newly created invoices
+            if (retryCount < 3) {
+                console.log(`Retrying invoice fetch... attempt ${retryCount + 1}`);
+                setTimeout(() => {
+                    getInvoiceData(retryCount + 1);
+                }, (retryCount + 1) * 1000); // 1s, 2s, 3s delays
+                return;
+            }
+
+            // If all retries failed, show error and redirect
             notify({
                 type: 'error',
                 title: 'Error fetching invoice data',
@@ -196,7 +116,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
         if (invoiceId) {
             getInvoiceData();
         }
-    }, [router.query]);
+    }, [invoiceId]);
 
     const handleDeleteInvoice = async () => {
         setDeletingInvoice(true);
@@ -341,6 +261,17 @@ const InvoiceDetailsPage: PageWithAuth = () => {
     };
 
     const handleStatusChange = async () => {
+        // If we're about to approve, show confirmation dialog
+        if (invoice.status === 'PENDING') {
+            setShowConfirmApprovalDialog(true);
+            return;
+        }
+
+        // For marking as pending, no confirmation needed
+        await performStatusUpdate();
+    };
+
+    const performStatusUpdate = async () => {
         setUpdatingStatus(true);
         try {
             const response = await updateDriverInvoiceStatus(
@@ -366,6 +297,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
             });
         }
         setUpdatingStatus(false);
+        setShowConfirmApprovalDialog(false);
     };
 
     const invoiceStatusBadge = (status: string) => {
@@ -412,10 +344,42 @@ const InvoiceDetailsPage: PageWithAuth = () => {
             }
         >
             <>
-                <div className="min-h-screen bg-white">
+                <div className="min-h-screen bg-gray-50/30">
                     {invoice ? (
-                        <div>
-                            {/* Delete Invoice Dialog */}
+                        <div className="max-w-7xl mx-auto p-3 sm:p-6 bg-transparent">
+                            {/* Apple-style Breadcrumb */}
+                            <div className="mb-4 sm:mb-8 bg-white/80 backdrop-blur-sm rounded-xl ">
+                                <nav className="flex" aria-label="Breadcrumb">
+                                    <ol className="flex items-center space-x-1 sm:space-x-2">
+                                        <li>
+                                            <Link
+                                                href="/driverinvoices"
+                                                className="text-gray-500 hover:text-gray-700 text-sm sm:text-base transition-colors"
+                                            >
+                                                Driver Invoices
+                                            </Link>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <svg
+                                                className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                            <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
+                                                Invoice #{invoice?.invoiceNum}
+                                            </span>
+                                        </li>
+                                    </ol>
+                                </nav>
+                            </div>
                             {showDeleteInvoiceDialog && (
                                 <div className="fixed inset-0 z-50 overflow-y-auto">
                                     <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -710,501 +674,1340 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                 </div>
                             )}
 
-                            {invoice && (
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <div className="mb-8">
-                                        <nav className="flex" aria-label="Breadcrumb">
-                                            <ol className="flex items-center space-x-2">
-                                                <li>
-                                                    <Link
-                                                        href="/driverinvoices"
-                                                        className="text-gray-500 hover:text-gray-700"
-                                                    >
-                                                        Driver Invoices
-                                                    </Link>
-                                                </li>
-                                                <li className="flex items-center">
+                            {/* Confirm Approval Dialog */}
+                            {showConfirmApprovalDialog && (
+                                <div className="fixed inset-0 z-50 overflow-y-auto">
+                                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                                        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                                            <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                                        </div>
+                                        <span
+                                            className="hidden sm:inline-block sm:align-middle sm:h-screen"
+                                            aria-hidden="true"
+                                        >
+                                            &#8203;
+                                        </span>
+                                        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                                            <div>
+                                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
                                                     <svg
-                                                        className="h-5 w-5 text-gray-400"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        viewBox="0 0 20 20"
-                                                        fill="currentColor"
-                                                        aria-hidden="true"
+                                                        className="h-6 w-6 text-green-600"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
                                                     >
                                                         <path
-                                                            fillRule="evenodd"
-                                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                                            clipRule="evenodd"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M9 12l2 2 4-4"
                                                         />
                                                     </svg>
-                                                    <span className="ml-2 text-gray-700 font-medium">
-                                                        Invoice #{invoice?.invoiceNum}
-                                                    </span>
-                                                </li>
-                                            </ol>
-                                        </nav>
-                                    </div>
-
-                                    {/* Invoice Header */}
-                                    <div className="bg-white shadow-none border border-slate-200 px-4 py-5 sm:rounded-lg sm:p-6">
-                                        <div className="flex flex-col justify-center lg:flex-row md:items-center md:justify-between">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate capitalize">
-                                                    {invoice.driver.name.toLocaleLowerCase()}{' '}
-                                                </p>
-                                                <span className="text-sm font-light flex flex-row gap-1 items-center">
-                                                    <PhoneIcon className="w-4 h-4 text-blue-600" />{' '}
-                                                    {formatPhoneNumber(invoice.driver.phone)}
-                                                </span>
-                                            </div>
-                                            <div className=" mt-6 flex flex-col items-center justify-center lg:items-end lg:mt-0 md:ml-4 gap-3">
-                                                <div className="flex flex-row items-center  gap-1">
-                                                    <h2 className="text-xl font-semibold leading-7 text-gray-800 sm:truncate">
-                                                        Invoice #{invoice.invoiceNum}
-                                                    </h2>
-                                                    {'-'}
-                                                    <div className="text-sm   font-semibold  rounded-full">
-                                                        {invoiceStatusBadge(invoice.status)}
+                                                </div>
+                                                <div className="mt-3 text-center sm:mt-5">
+                                                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                                        Approve Invoice
+                                                    </h3>
+                                                    <div className="mt-2">
+                                                        <p className="text-sm text-gray-500">
+                                                            Are you sure you want to approve this invoice? This will
+                                                            mark it as approved and ready for payment processing.
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center space-x-3">
+                                            </div>
+                                            {updatingStatus ? (
+                                                <div className="flex items-center justify-center w-full p-3 text-green-600">
+                                                    <Spinner /> Approving Invoice
+                                                </div>
+                                            ) : (
+                                                <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                                                     <button
                                                         type="button"
-                                                        onClick={() => setShowAddPaymentDialog(true)}
-                                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:col-start-2 sm:text-sm"
+                                                        onClick={performStatusUpdate}
                                                     >
-                                                        + Add Payment
+                                                        Approve Invoice
                                                     </button>
-                                                    {(invoice.status == 'APPROVED' || invoice.status == 'PENDING') && (
-                                                        <button
-                                                            type="button"
-                                                            disabled={updatingStatus}
-                                                            onClick={handleStatusChange}
-                                                            className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium  ${
-                                                                invoice.status !== 'APPROVED'
-                                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                                                                    : 'bg-yellow-200 hover:bg-yellow-300 text-gray-800'
-                                                            }  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                                            aria-label={`Change status to ${
-                                                                invoice.status === 'APPROVED' ? 'Pending' : 'Approved'
-                                                            }`}
-                                                        >
-                                                            {invoice.status === 'APPROVED'
-                                                                ? 'Mark as Pending'
-                                                                : 'Mark as Approved'}
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                                                        onClick={() => setShowConfirmApprovalDialog(false)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                                                    <ActionsDropdown
-                                                        invoice={invoice}
-                                                        disabled={isDownloading}
-                                                        downloadInvoice={handleDownloadInvoice}
-                                                        deleteInvoice={() => setShowDeleteInvoiceDialog(true)}
+                            {invoice && (
+                                <div className="space-y-4 sm:space-y-6">
+                                    {/* Action Toolbar */}
+                                    <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-6">
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">
+                                                Quick Actions
+                                            </h3>
+                                            <div className="text-right">
+                                                <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                                    {formatCurrency(Number(invoice.totalAmount))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons - Reordered: Delete, Edit, Download PDF, Approve, Add Payment */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end gap-2 sm:gap-3">
+                                            {/* Delete - First */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDeleteInvoiceDialog(true)}
+                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                            >
+                                                <TrashIcon className="w-4 h-4 mr-2" />
+                                                <span className="truncate">Delete</span>
+                                            </button>
+
+                                            {/* Edit Invoice - Second */}
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/driverinvoices/edit/${invoice.id}`)}
+                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                            >
+                                                <PencilIcon className="w-4 h-4 mr-2" />
+                                                <span className="truncate">Edit Invoice</span>
+                                            </button>
+
+                                            {/* Download PDF - Third */}
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadInvoice}
+                                                disabled={isDownloading}
+                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {isDownloading ? (
+                                                    <svg
+                                                        className="w-4 h-4 mr-2 animate-spin"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <circle
+                                                            className="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"
+                                                        ></circle>
+                                                        <path
+                                                            className="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                        ></path>
+                                                    </svg>
+                                                ) : (
+                                                    <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
+                                                )}
+                                                <span className="truncate">
+                                                    {isDownloading ? 'Downloading...' : 'Download PDF'}
+                                                </span>
+                                            </button>
+
+                                            {/* Approve/Pending Toggle - Fourth */}
+                                            {(invoice.status === 'APPROVED' || invoice.status === 'PENDING') && (
+                                                <button
+                                                    type="button"
+                                                    disabled={updatingStatus}
+                                                    onClick={handleStatusChange}
+                                                    className={`inline-flex items-center justify-center px-3 py-2 sm:px-4 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1 ${
+                                                        invoice.status === 'PENDING'
+                                                            ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+                                                            : 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500'
+                                                    }`}
+                                                >
+                                                    {updatingStatus ? (
+                                                        <svg
+                                                            className="w-4 h-4 mr-2 animate-spin"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <circle
+                                                                className="opacity-25"
+                                                                cx="12"
+                                                                cy="12"
+                                                                r="10"
+                                                                stroke="currentColor"
+                                                                strokeWidth="4"
+                                                            ></circle>
+                                                            <path
+                                                                className="opacity-75"
+                                                                fill="currentColor"
+                                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                            ></path>
+                                                        </svg>
+                                                    ) : (
+                                                        <svg
+                                                            className="w-4 h-4 mr-2"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M9 12l2 2 4-4"
+                                                            />
+                                                        </svg>
+                                                    )}
+                                                    <span className="truncate">
+                                                        {updatingStatus
+                                                            ? 'Updating...'
+                                                            : invoice.status === 'APPROVED'
+                                                            ? 'Mark as Pending'
+                                                            : 'Approve Invoice'}
+                                                    </span>
+                                                </button>
+                                            )}
+
+                                            {/* Add Payment - Fifth (Primary Action) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddPaymentDialog(true)}
+                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
+                                            >
+                                                <svg
+                                                    className="w-4 h-4 mr-2"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                                                     />
+                                                </svg>
+                                                <span className="truncate">Add Payment</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Invoice Header Card */}
+                                    <div className="rounded-xl sm:rounded-2xl bg-white/95 backdrop-blur-xl border border-gray-200/30 shadow-sm overflow-visible">
+                                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 sm:p-6">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center space-x-3 mb-2">
+                                                    <div className="bg-blue-100 rounded-full p-2">
+                                                        <UserIcon className="w-5 h-5 text-blue-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-lg sm:text-xl font-semibold text-gray-900 capitalize">
+                                                            {invoice.driver.name.toLowerCase()}
+                                                        </p>
+                                                        <div className="flex items-center space-x-1 text-sm text-gray-500">
+                                                            <PhoneIcon className="w-4 h-4 text-blue-600" />
+                                                            <span>{formatPhoneNumber(invoice.driver.phone)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 lg:mt-0 lg:ml-4 space-y-3">
+                                                <div className="flex items-center justify-between lg:justify-end space-x-3">
+                                                    <h2 className="text-lg font-semibold text-gray-800">
+                                                        Invoice #{invoice.invoiceNum}
+                                                    </h2>
+                                                    {invoiceStatusBadge(invoice.status)}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="relative mt-8 bg-white shadow-none overflow-hidden border border-gray-200 rounded-lg">
-                                        {/* Invoice Details */}
-                                        <div className="border-b border-gray-200">
-                                            <dl>
-                                                <div className="bg-slate-50 px-4 py-5 items-end sm:grid sm:grid-cols-2 sm:gap-4 sm:px-6">
-                                                    <div className="space-y-2">
-                                                        <dt className=" font-medium text-md text-gray-400">Bill To:</dt>
-                                                        <dd className="mt-1 text-sm text-gray-500">
-                                                            <div className="font-bold text-gray-900">
-                                                                {invoice.carrier?.name}
-                                                            </div>
-                                                            <div>{invoice.carrier?.street}</div>
-                                                            <div>
-                                                                {invoice.carrier?.city}, {invoice.carrier?.state}{' '}
-                                                                {invoice.carrier?.zip}
-                                                            </div>
-                                                            <div>
-                                                                {invoice.carrier?.phone}
-                                                                {' / '}
-                                                                {invoice.carrier?.email}
-                                                            </div>
-                                                        </dd>
+                                    {/* Invoice Details Card */}
+                                    <div className="overflow-hidden rounded-xl sm:rounded-2xl bg-white/95 backdrop-blur-xl border border-gray-200/30 shadow-sm">
+                                        {/* Key Invoice Period - Highlighted */}
+                                        <div className="px-4 py-4 sm:px-6 bg-blue-100/50 backdrop-blur-2xl border-b border-blue-100/40">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                                                        <svg
+                                                            className="w-4 h-4 text-white"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                            />
+                                                        </svg>
                                                     </div>
-                                                    <div className="mt-4 sm:mt-0 space-y-0 ">
-                                                        <div className="flex justify-between">
-                                                            <dt className="text-sm font-base text-gray-500">
-                                                                Created At
-                                                            </dt>
-                                                            <dd className="mt-1 text-sm font-semibold text-gray-900">
-                                                                {new Date(invoice.createdAt).toLocaleString('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: '2-digit',
-                                                                    hour: 'numeric',
-                                                                    minute: 'numeric',
-                                                                    second: 'numeric',
-                                                                    hour12: true,
-                                                                })}
-                                                            </dd>
-                                                        </div>
-
-                                                        <div className="flex justify-between">
-                                                            <dt className="text-sm font-base text-gray-500">
-                                                                Updated At
-                                                            </dt>
-                                                            <dd className="mt-1 text-sm text-gray-700">
-                                                                {new Date(invoice.updatedAt).toLocaleString('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: '2-digit',
-                                                                    hour: 'numeric',
-                                                                    minute: 'numeric',
-                                                                    second: 'numeric',
-                                                                    hour12: true,
-                                                                })}
-                                                            </dd>
-                                                        </div>
-
-                                                        <div className="flex justify-between">
-                                                            <dt className="text-sm font-base text-gray-500">Period</dt>
-                                                            <dd className="mt-1 text-sm font-semibold text-gray-900">
-                                                                {new Date(invoice.fromDate).toLocaleDateString()} -{' '}
-                                                                {new Date(invoice.toDate).toLocaleDateString()}
-                                                            </dd>
-                                                        </div>
-                                                        {/*  <div className="flex justify-between">
-                                                    <dt className="text-sm font-medium text-gray-500">Status</dt>
-                                                    <dd className="mt-1 text-sm text-gray-900">
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            {invoice.status}
-                                                        </span>
-                                                    </dd>
-                                                </div> */}
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-900">
+                                                            Invoice Period
+                                                        </h3>
+                                                        <p className="text-xs text-gray-600">Billing duration</p>
                                                     </div>
                                                 </div>
-                                            </dl>
+                                                <div className="text-right">
+                                                    <div className="text-lg font-bold text-gray-900">
+                                                        {(() => {
+                                                            // Parse date correctly to avoid timezone issues
+                                                            const parseDate = (
+                                                                date: string | Date | null | undefined,
+                                                            ) => {
+                                                                if (!date) return null;
+                                                                if (typeof date === 'string') {
+                                                                    const parts = date.split('-');
+                                                                    if (parts.length === 3) {
+                                                                        const year = parseInt(parts[0], 10);
+                                                                        const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                                                                        const day = parseInt(parts[2], 10);
+                                                                        return new Date(year, month, day);
+                                                                    }
+                                                                    return new Date(date);
+                                                                }
+                                                                return date;
+                                                            };
+
+                                                            const fromDate = parseDate(invoice.fromDate);
+                                                            const toDate = parseDate(invoice.toDate);
+
+                                                            const fromDateStr = fromDate?.toLocaleDateString('en-US', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                            });
+                                                            const toDateStr = toDate?.toLocaleDateString('en-US', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                year: 'numeric',
+                                                            });
+
+                                                            return `${fromDateStr} - ${toDateStr}`;
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Invoice Details */}
+                                        <div className="border-b border-gray-200/50">
+                                            <div className="p-4 sm:p-6">
+                                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                                    {/* Bill To Section */}
+                                                    <div className="lg:col-span-2">
+                                                        <div className="bg-white/50 backdrop-blur-xl rounded-2xl p-4 border border-gray-200/30 shadow-sm">
+                                                            <div className="flex items-center gap-3 mb-3">
+                                                                <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center">
+                                                                    <svg
+                                                                        className="w-3 h-3 text-gray-600"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={2}
+                                                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                                                        />
+                                                                    </svg>
+                                                                </div>
+                                                                <h4 className="text-sm font-semibold text-gray-900">
+                                                                    Bill To
+                                                                </h4>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <div className="font-semibold text-gray-900 text-base">
+                                                                    {invoice.carrier?.name}
+                                                                </div>
+                                                                <div className="text-gray-700 text-sm space-y-1">
+                                                                    <div>{invoice.carrier?.street}</div>
+                                                                    <div>
+                                                                        {invoice.carrier?.city},{' '}
+                                                                        {invoice.carrier?.state} {invoice.carrier?.zip}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-wrap items-center gap-3 pt-2 text-sm">
+                                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                                        <svg
+                                                                            className="w-4 h-4"
+                                                                            fill="none"
+                                                                            stroke="currentColor"
+                                                                            viewBox="0 0 24 24"
+                                                                        >
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth={2}
+                                                                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                                                                            />
+                                                                        </svg>
+                                                                        <span>{invoice.carrier?.phone}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                                        <svg
+                                                                            className="w-4 h-4"
+                                                                            fill="none"
+                                                                            stroke="currentColor"
+                                                                            viewBox="0 0 24 24"
+                                                                        >
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth={2}
+                                                                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                                                            />
+                                                                        </svg>
+                                                                        <span>{invoice.carrier?.email}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Timestamps Section */}
+                                                    <div className="space-y-3">
+                                                        <div className="bg-white/50 backdrop-blur-xl rounded-xl p-3 border border-gray-200/30 shadow-sm">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <div className="w-4 h-4 bg-gray-100 rounded flex items-center justify-center">
+                                                                    <div className="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
+                                                                </div>
+                                                                <span className="text-xs font-medium text-gray-600">
+                                                                    Created
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-sm font-semibold text-gray-900">
+                                                                {new Date(invoice.createdAt).toLocaleDateString(
+                                                                    'en-US',
+                                                                    {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        year: '2-digit',
+                                                                    },
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {new Date(invoice.createdAt).toLocaleTimeString(
+                                                                    'en-US',
+                                                                    {
+                                                                        hour: 'numeric',
+                                                                        minute: 'numeric',
+                                                                        hour12: true,
+                                                                    },
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-white/50 backdrop-blur-xl rounded-xl p-3 border border-gray-200/30 shadow-sm">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <div className="w-4 h-4 bg-gray-100 rounded flex items-center justify-center">
+                                                                    <div className="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
+                                                                </div>
+                                                                <span className="text-xs font-medium text-gray-600">
+                                                                    Updated
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-sm font-semibold text-gray-900">
+                                                                {new Date(invoice.updatedAt).toLocaleDateString(
+                                                                    'en-US',
+                                                                    {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        year: '2-digit',
+                                                                    },
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {new Date(invoice.updatedAt).toLocaleTimeString(
+                                                                    'en-US',
+                                                                    {
+                                                                        hour: 'numeric',
+                                                                        minute: 'numeric',
+                                                                        hour12: true,
+                                                                    },
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         {invoice.notes && (
-                                            <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
-                                                <h6 className="text-md font-medium leading-6 text-gray-900">
+                                            <div className="px-4 py-5 sm:px-6 border-t border-gray-200/50">
+                                                <h6 className="text-sm font-medium text-gray-500 mb-2">
                                                     Invoice Notes
                                                 </h6>
-                                                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                                                <p className="text-sm text-gray-700 leading-relaxed">
                                                     {invoice.notes || 'No notes added.'}
                                                 </p>
                                             </div>
                                         )}
 
-                                        <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
-                                            <h3 className="text-lg font-medium leading-6 text-gray-900">
-                                                Assignments ({invoice.assignments.length})
-                                            </h3>
+                                        {/* Assignments Section */}
+                                        <div className="px-4 py-4 sm:px-6 bg-gray-100/60 backdrop-blur-2xl border-b border-gray-200/40">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                                                        <svg
+                                                            className="w-4 h-4 text-white"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-900">
+                                                            Assignments ({invoice.assignments.length})
+                                                        </h3>
+                                                        <p className="text-xs text-gray-600">
+                                                            Route assignments & earnings
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-600 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-200/40">
+                                                    <span className="font-medium">Total: </span>
+                                                    <span className="font-bold text-gray-900">
+                                                        {formatCurrency(
+                                                            invoice.assignments.reduce((total, assignment) => {
+                                                                let amount = 0;
+                                                                switch (assignment.chargeType) {
+                                                                    case 'PER_MILE':
+                                                                        const baseMiles = Number(
+                                                                            assignment.billedDistanceMiles ||
+                                                                                assignment.routeLeg.distanceMiles,
+                                                                        );
+                                                                        const emptyMiles = Number(
+                                                                            assignment.emptyMiles || 0,
+                                                                        );
+                                                                        const totalMiles = baseMiles + emptyMiles;
+                                                                        amount =
+                                                                            totalMiles * Number(assignment.chargeValue);
+                                                                        break;
+                                                                    case 'PER_HOUR':
+                                                                        amount =
+                                                                            Number(
+                                                                                assignment.billedDurationHours ||
+                                                                                    assignment.routeLeg.durationHours,
+                                                                            ) * Number(assignment.chargeValue);
+                                                                        break;
+                                                                    case 'PERCENTAGE_OF_LOAD':
+                                                                        amount =
+                                                                            (Number(
+                                                                                assignment.billedLoadRate ||
+                                                                                    assignment.load.rate,
+                                                                            ) *
+                                                                                Number(assignment.chargeValue)) /
+                                                                            100;
+                                                                        break;
+                                                                    case 'FIXED_PAY':
+                                                                        amount = Number(assignment.chargeValue);
+                                                                        break;
+                                                                }
+                                                                return total + amount;
+                                                            }, 0),
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="overflow-x-auto">
-                                            <table className="min-w-full bg-white rounded-lg">
-                                                <thead>
-                                                    <tr className="bg-gray-100">
-                                                        <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Order #
-                                                        </th>
+                                        {/* Mobile Assignment Cards */}
+                                        <div className="block lg:hidden px-4 pt-4 pb-4 space-y-3">
+                                            {invoice.assignments.map((assignment, index) => {
+                                                let calculatedAmount = 0;
+                                                switch (assignment.chargeType) {
+                                                    case 'PER_MILE':
+                                                        const baseMiles = Number(
+                                                            assignment.billedDistanceMiles ||
+                                                                assignment.routeLeg.distanceMiles,
+                                                        );
+                                                        const emptyMiles = Number(assignment.emptyMiles || 0);
+                                                        const totalMiles = baseMiles + emptyMiles;
+                                                        calculatedAmount = totalMiles * Number(assignment.chargeValue);
+                                                        break;
+                                                    case 'PER_HOUR':
+                                                        calculatedAmount =
+                                                            Number(
+                                                                assignment.billedDurationHours ||
+                                                                    assignment.routeLeg.durationHours,
+                                                            ) * Number(assignment.chargeValue);
+                                                        break;
+                                                    case 'PERCENTAGE_OF_LOAD':
+                                                        calculatedAmount =
+                                                            (Number(assignment.billedLoadRate || assignment.load.rate) *
+                                                                Number(assignment.chargeValue)) /
+                                                            100;
+                                                        break;
+                                                    case 'FIXED_PAY':
+                                                        calculatedAmount = Number(assignment.chargeValue);
+                                                        break;
+                                                }
 
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Route
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Trip Details
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 whitespace-nowrap uppercase tracking-wider">
-                                                            Charge Type
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Amount
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Status
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200">
-                                                    {invoice.assignments.map((assignment) => {
-                                                        let calculatedAmount = 0;
-                                                        switch (assignment.chargeType) {
-                                                            case 'PER_MILE':
-                                                                calculatedAmount =
-                                                                    Number(
+                                                const assignmentColors = [
+                                                    '#3b82f6',
+                                                    '#10b981',
+                                                    '#f59e0b',
+                                                    '#ef4444',
+                                                    '#8b5cf6',
+                                                    '#06b6d4',
+                                                    '#84cc16',
+                                                    '#f97316',
+                                                    '#ec4899',
+                                                    '#6366f1',
+                                                ];
+                                                const color = assignmentColors[index % assignmentColors.length];
+
+                                                return (
+                                                    <div
+                                                        key={assignment.id}
+                                                        className="bg-white/95 backdrop-blur-xl rounded-2xl p-4 border border-gray-200/30 shadow-sm hover:shadow-md transition-all duration-200"
+                                                    >
+                                                        {/* Assignment Header - Compact */}
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <div
+                                                                    className="w-7 h-7 rounded-xl flex items-center justify-center shadow-sm"
+                                                                    style={{ backgroundColor: color }}
+                                                                >
+                                                                    <span className="text-white text-xs font-bold">
+                                                                        {index + 1}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="font-semibold text-gray-900 text-sm leading-tight">
+                                                                        Order #{assignment.load.refNum}
+                                                                    </h4>
+                                                                    <p className="text-xs text-gray-500 leading-tight">
+                                                                        Assignment #{index + 1}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-xs text-gray-600 mb-0.5">
+                                                                    Total
+                                                                </div>
+                                                                <div className="text-sm font-bold text-green-600">
+                                                                    {formatCurrency(calculatedAmount)}
+                                                                </div>
+                                                            </div>
+                                                        </div>{' '}
+                                                        {/* Compact Info Grid */}
+                                                        <div className="grid grid-cols-3 gap-3 mb-3 text-center">
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-0.5">
+                                                                    Distance
+                                                                </div>
+                                                                <div className="text-sm font-semibold text-gray-900">
+                                                                    {Number(
                                                                         assignment.billedDistanceMiles ||
                                                                             assignment.routeLeg.distanceMiles,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PER_HOUR':
-                                                                calculatedAmount =
-                                                                    Number(
-                                                                        assignment.billedDurationHours ||
-                                                                            assignment.routeLeg.durationHours,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PERCENTAGE_OF_LOAD':
-                                                                calculatedAmount =
-                                                                    (Number(
-                                                                        assignment.billedLoadRate ||
-                                                                            assignment.load.rate,
-                                                                    ) *
-                                                                        Number(assignment.chargeValue)) /
-                                                                    100;
-                                                                break;
-                                                            case 'FIXED_PAY':
-                                                                calculatedAmount = Number(assignment.chargeValue);
-                                                                break;
-                                                        }
-
-                                                        // Format the locations. For each location in the routeLeg, we check if loadStop exists;
-                                                        // if not, we use the nested location object.
-                                                        const formattedLocations = assignment.routeLeg.locations
-                                                            .map((loc) => {
-                                                                if (loc.loadStop) {
-                                                                    return `${loc.loadStop.name} (${loc.loadStop.city}, ${loc.loadStop.state})`;
-                                                                } else if (loc.location) {
-                                                                    return `${loc.location.name} (${loc.location.city}, ${loc.location.state})`;
-                                                                }
-                                                                return '';
-                                                            })
-                                                            .join(' -> \n');
-
-                                                        return (
-                                                            <tr
-                                                                key={assignment.routeLeg.id}
-                                                                className={`hover:bg-gray-50 cursor-default  `}
-                                                            >
-                                                                <td className="py-3 px-6 text-sm text-gray-800">
-                                                                    <Link
-                                                                        href={`/loads/${assignment.load.id}#load-assignments`}
-                                                                        target="_blank"
-                                                                    >
-                                                                        <span className="font-semibold">
-                                                                            {assignment.load.refNum}
-                                                                        </span>
-                                                                    </Link>
-                                                                </td>
-
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800 whitespace-break-spaces capitalize">
-                                                                    {formattedLocations}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm items-start text-left font-base text-gray-800 whitespace-break-spaces capitalize">
-                                                                    <span className="">{`${
-                                                                        assignment.billedDistanceMiles ||
-                                                                        assignment.routeLeg.distanceMiles
-                                                                    } miles`}</span>
-                                                                    <span className="">{` \n${
-                                                                        assignment.billedDurationHours ||
-                                                                        assignment.routeLeg.durationHours
-                                                                    } hours`}</span>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800">
+                                                                    ).toFixed(1)}
+                                                                    mi
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-0.5">
+                                                                    Empty
+                                                                </div>
+                                                                <div className="text-sm font-semibold text-gray-700">
+                                                                    {Number(assignment.emptyMiles || 0).toFixed(1)}mi
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-0.5">Rate</div>
+                                                                <div className="text-sm font-semibold text-gray-900">
                                                                     {assignment.chargeType === 'PER_MILE' &&
-                                                                        `$${assignment.chargeValue}/mile`}
+                                                                        `$${assignment.chargeValue}/mi`}
                                                                     {assignment.chargeType === 'PER_HOUR' &&
-                                                                        `$${assignment.chargeValue}/hour`}
+                                                                        `$${assignment.chargeValue}/hr`}
                                                                     {assignment.chargeType === 'PERCENTAGE_OF_LOAD' &&
-                                                                        `${assignment.chargeValue}% of load`}
+                                                                        `${assignment.chargeValue}%`}
                                                                     {assignment.chargeType === 'FIXED_PAY' &&
-                                                                        'Fixed Pay'}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800">
-                                                                    {formatCurrency(calculatedAmount.toFixed(2))}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800 whitespace-break-spaces">
-                                                                    {/* <span className="text-xs font-semibold text-gray-600">
-                                                                Started @
-                                                            </span>
-                                                            {'\n'}
-                                                            <span className="text-gray-600 font-semibold">
-                                                                {new Date(
-                                                                    assignment.routeLeg.startedAt,
-                                                                ).toLocaleTimeString('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: '2-digit',
-                                                                })}
-                                                            </span>
+                                                                        formatCurrency(Number(assignment.chargeValue))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {/* Route - Compact Horizontal Layout */}
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between text-xs">
+                                                                <span className="font-medium text-gray-700">Route</span>
+                                                                <span
+                                                                    className="text-gray-500 cursor-help"
+                                                                    title={
+                                                                        assignment.routeLeg.endedAt
+                                                                            ? `Completed: ${new Date(
+                                                                                  assignment.routeLeg.endedAt,
+                                                                              ).toLocaleString()}`
+                                                                            : assignment.routeLeg.startedAt
+                                                                            ? `Started: ${new Date(
+                                                                                  assignment.routeLeg.startedAt,
+                                                                              ).toLocaleString()}`
+                                                                            : 'Start time not available'
+                                                                    }
+                                                                >
+                                                                    {assignment.routeLeg.endedAt
+                                                                        ? 'Completed'
+                                                                        : 'In Progress'}
+                                                                </span>
+                                                            </div>{' '}
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                                <div className="flex-1 bg-green-50/40 p-2 rounded-lg">
+                                                                    <div className="flex items-center gap-1 mb-1">
+                                                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                                        <span className="font-medium text-green-800">
+                                                                            Pickup
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-green-700 font-medium text-xs leading-tight truncate">
+                                                                        {assignment.routeLeg.locations[0].loadStop
+                                                                            ?.name ||
+                                                                            assignment.routeLeg.locations[0].location
+                                                                                ?.name}
+                                                                    </p>
+                                                                    <p className="text-green-600 text-xs leading-tight">
+                                                                        {assignment.routeLeg.locations[0].loadStop
+                                                                            ?.city ||
+                                                                            assignment.routeLeg.locations[0].location
+                                                                                ?.city}
+                                                                        ,{' '}
+                                                                        {assignment.routeLeg.locations[0].loadStop
+                                                                            ?.state ||
+                                                                            assignment.routeLeg.locations[0].location
+                                                                                ?.state}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="w-4 h-0.5 bg-gray-300 rounded-full"></div>
+                                                                <div className="flex-1 bg-red-50/40 p-2 rounded-lg">
+                                                                    <div className="flex items-center gap-1 mb-1">
+                                                                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                                        <span className="font-medium text-red-800">
+                                                                            Delivery
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-red-700 font-medium text-xs leading-tight truncate">
+                                                                        {assignment.routeLeg.locations[
+                                                                            assignment.routeLeg.locations.length - 1
+                                                                        ].loadStop?.name ||
+                                                                            assignment.routeLeg.locations[
+                                                                                assignment.routeLeg.locations.length - 1
+                                                                            ].location?.name}
+                                                                    </p>
+                                                                    <p className="text-red-600 text-xs leading-tight">
+                                                                        {assignment.routeLeg.locations[
+                                                                            assignment.routeLeg.locations.length - 1
+                                                                        ].loadStop?.city ||
+                                                                            assignment.routeLeg.locations[
+                                                                                assignment.routeLeg.locations.length - 1
+                                                                            ].location?.city}
+                                                                        ,{' '}
+                                                                        {assignment.routeLeg.locations[
+                                                                            assignment.routeLeg.locations.length - 1
+                                                                        ].loadStop?.state ||
+                                                                            assignment.routeLeg.locations[
+                                                                                assignment.routeLeg.locations.length - 1
+                                                                            ].location?.state}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
 
-                                                            {'\n'} */}
-                                                                    <span className="text-xs text-gray-800 font-bold uppercase">
-                                                                        Completed @
-                                                                    </span>
-                                                                    {'\n'}
-                                                                    <span className="text-gray-800 font-base">
-                                                                        {new Date(
-                                                                            assignment.routeLeg.endedAt,
-                                                                        ).toLocaleTimeString('en-US', {
-                                                                            year: 'numeric',
-                                                                            month: 'short',
-                                                                            day: '2-digit',
-                                                                        })}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                        {/* Desktop Grid - Improved Compact Design */}
+                                        <div className="hidden lg:block px-4 pb-4 pt-4">
+                                            <div className="grid gap-3">
+                                                {invoice.assignments.map((assignment, index) => {
+                                                    let calculatedAmount = 0;
+                                                    switch (assignment.chargeType) {
+                                                        case 'PER_MILE':
+                                                            const baseMiles = Number(
+                                                                assignment.billedDistanceMiles ||
+                                                                    assignment.routeLeg.distanceMiles,
+                                                            );
+                                                            const emptyMiles = Number(assignment.emptyMiles || 0);
+                                                            const totalMiles = baseMiles + emptyMiles;
+                                                            calculatedAmount =
+                                                                totalMiles * Number(assignment.chargeValue);
+                                                            break;
+                                                        case 'PER_HOUR':
+                                                            calculatedAmount =
+                                                                Number(
+                                                                    assignment.billedDurationHours ||
+                                                                        assignment.routeLeg.durationHours,
+                                                                ) * Number(assignment.chargeValue);
+                                                            break;
+                                                        case 'PERCENTAGE_OF_LOAD':
+                                                            calculatedAmount =
+                                                                (Number(
+                                                                    assignment.billedLoadRate || assignment.load.rate,
+                                                                ) *
+                                                                    Number(assignment.chargeValue)) /
+                                                                100;
+                                                            break;
+                                                        case 'FIXED_PAY':
+                                                            calculatedAmount = Number(assignment.chargeValue);
+                                                            break;
+                                                    }
+
+                                                    const assignmentColors = [
+                                                        '#3b82f6',
+                                                        '#10b981',
+                                                        '#f59e0b',
+                                                        '#ef4444',
+                                                        '#8b5cf6',
+                                                        '#06b6d4',
+                                                        '#84cc16',
+                                                        '#f97316',
+                                                        '#ec4899',
+                                                        '#6366f1',
+                                                    ];
+                                                    const color = assignmentColors[index % assignmentColors.length];
+
+                                                    return (
+                                                        <div
+                                                            key={assignment.id}
+                                                            className="bg-white/95 backdrop-blur-xl  rounded-2xl p-4 border border-gray-200/30 shadow-sm hover:shadow-md transition-all duration-200"
+                                                        >
+                                                            <div className="grid grid-cols-12 gap-4 items-center">
+                                                                {/* Assignment Number & Order */}
+                                                                <div className="col-span-2 flex items-center gap-3">
+                                                                    <div>
+                                                                        <div className="font-semibold text-gray-900 text-sm">
+                                                                            #{assignment.load.refNum}
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-500">
+                                                                            Assignment {index + 1}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>{' '}
+                                                                {/* Route Information */}
+                                                                <div className="col-span-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex-1 bg-green-50/40 p-2 rounded-lg">
+                                                                            <div className="flex items-center gap-1 mb-1">
+                                                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                                                <span className="text-xs font-medium text-green-800">
+                                                                                    Pickup
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-green-700 font-medium text-xs leading-tight truncate">
+                                                                                {assignment.routeLeg.locations[0]
+                                                                                    .loadStop?.name ||
+                                                                                    assignment.routeLeg.locations[0]
+                                                                                        .location?.name}
+                                                                            </p>
+                                                                            <p className="text-green-600 text-xs">
+                                                                                {assignment.routeLeg.locations[0]
+                                                                                    .loadStop?.city ||
+                                                                                    assignment.routeLeg.locations[0]
+                                                                                        .location?.city}
+                                                                                ,{' '}
+                                                                                {assignment.routeLeg.locations[0]
+                                                                                    .loadStop?.state ||
+                                                                                    assignment.routeLeg.locations[0]
+                                                                                        .location?.state}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="w-3 h-0.5 bg-gray-300 rounded-full"></div>
+                                                                        <div className="flex-1 bg-red-50/40 p-2 rounded-lg">
+                                                                            <div className="flex items-center gap-1 mb-1">
+                                                                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                                                <span className="text-xs font-medium text-red-800">
+                                                                                    Delivery
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-red-700 font-medium text-xs leading-tight truncate">
+                                                                                {assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].loadStop?.name ||
+                                                                                    assignment.routeLeg.locations[
+                                                                                        assignment.routeLeg.locations
+                                                                                            .length - 1
+                                                                                    ].location?.name}
+                                                                            </p>
+                                                                            <p className="text-red-600 text-xs">
+                                                                                {assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].loadStop?.city ||
+                                                                                    assignment.routeLeg.locations[
+                                                                                        assignment.routeLeg.locations
+                                                                                            .length - 1
+                                                                                    ].location?.city}
+                                                                                ,{' '}
+                                                                                {assignment.routeLeg.locations[
+                                                                                    assignment.routeLeg.locations
+                                                                                        .length - 1
+                                                                                ].loadStop?.state ||
+                                                                                    assignment.routeLeg.locations[
+                                                                                        assignment.routeLeg.locations
+                                                                                            .length - 1
+                                                                                    ].location?.state}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {/* Trip Details */}
+                                                                <div className="col-span-3">
+                                                                    <div className="grid grid-cols-2 gap-3 text-center">
+                                                                        <div>
+                                                                            <div className="text-xs text-gray-500 mb-0.5">
+                                                                                Distance
+                                                                            </div>
+                                                                            <div className="text-sm font-semibold text-gray-900">
+                                                                                {Number(
+                                                                                    assignment.billedDistanceMiles ||
+                                                                                        assignment.routeLeg
+                                                                                            .distanceMiles,
+                                                                                ).toFixed(1)}
+                                                                                mi
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="text-xs text-gray-500 mb-0.5">
+                                                                                Empty
+                                                                            </div>
+                                                                            <div className="text-sm font-semibold text-gray-700">
+                                                                                {Number(
+                                                                                    assignment.emptyMiles || 0,
+                                                                                ).toFixed(1)}
+                                                                                mi
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {/* Charge Type & Rate */}
+                                                                <div className="col-span-2 text-center">
+                                                                    <div className="text-xs text-gray-500 mb-0.5">
+                                                                        Charge Type
+                                                                    </div>
+                                                                    <div className="text-sm font-semibold text-gray-900 leading-tight">
+                                                                        {assignment.chargeType.replace(/_/g, ' ')}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-600 mt-1">
+                                                                        {assignment.chargeType === 'PER_MILE' &&
+                                                                            `$${assignment.chargeValue}/mi`}
+                                                                        {assignment.chargeType === 'PER_HOUR' &&
+                                                                            `$${assignment.chargeValue}/hr`}
+                                                                        {assignment.chargeType ===
+                                                                            'PERCENTAGE_OF_LOAD' &&
+                                                                            `${assignment.chargeValue}%`}
+                                                                        {assignment.chargeType === 'FIXED_PAY' &&
+                                                                            formatCurrency(
+                                                                                Number(assignment.chargeValue),
+                                                                            )}
+                                                                    </div>
+                                                                </div>
+                                                                {/* Status & Amount */}
+                                                                <div className="col-span-1 text-right">
+                                                                    <div
+                                                                        className="text-xs text-gray-500 mb-1 cursor-help"
+                                                                        title={
+                                                                            assignment.routeLeg.endedAt
+                                                                                ? `Completed: ${new Date(
+                                                                                      assignment.routeLeg.endedAt,
+                                                                                  ).toLocaleString()}`
+                                                                                : assignment.routeLeg.startedAt
+                                                                                ? `Started: ${new Date(
+                                                                                      assignment.routeLeg.startedAt,
+                                                                                  ).toLocaleString()}`
+                                                                                : 'Start time not available'
+                                                                        }
+                                                                    >
+                                                                        {assignment.routeLeg.endedAt
+                                                                            ? 'Completed'
+                                                                            : 'In Progress'}
+                                                                    </div>
+                                                                    <div className="text-sm font-bold text-green-600">
+                                                                        {formatCurrency(calculatedAmount)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
 
                                         {/* Line Items */}
                                         {invoice.lineItems.length > 0 && (
-                                            <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
-                                                <h3 className="text-lg font-medium leading-6 text-gray-900">
-                                                    Line Items
-                                                </h3>
+                                            <div className="px-4 py-4 sm:px-6 bg-gray-100/60 backdrop-blur-2xl border-b border-gray-200/40">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                                                        <svg
+                                                            className="w-4 h-4 text-white"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-900">
+                                                            Line Items
+                                                        </h3>
+                                                        <p className="text-xs text-gray-600">
+                                                            Additional charges & deductions
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                         {invoice.lineItems.length > 0 && (
-                                            <div>
-                                                <div className="overflow-x-auto">
-                                                    <table className="min-w-full divide-y divide-gray-200">
-                                                        <thead className="bg-gray-50">
-                                                            <tr>
-                                                                <th
-                                                                    scope="col"
-                                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                                >
-                                                                    Description
-                                                                </th>
-                                                                <th
-                                                                    scope="col"
-                                                                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                                >
-                                                                    Amount
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="bg-white divide-y divide-gray-200">
-                                                            {invoice.lineItems.map((item) => (
-                                                                <tr key={item.id}>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                                        {item.description}
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                                            <div className="px-4 py-5 sm:px-6">
+                                                {/* Mobile Line Item Cards */}
+                                                <div className="block md:hidden space-y-3">
+                                                    {invoice.lineItems.map((item) => (
+                                                        <div
+                                                            key={item.id}
+                                                            className="bg-white/30 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-sm hover:shadow-md transition-all duration-200"
+                                                        >
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                                                        <h4 className="font-semibold text-gray-900 text-sm">
+                                                                            {item.description}
+                                                                        </h4>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right ml-3">
+                                                                    <div className="text-xs text-gray-600 mb-0.5">
+                                                                        Amount
+                                                                    </div>
+                                                                    <div
+                                                                        className={`text-lg font-bold ${
+                                                                            Number(item.amount) >= 0
+                                                                                ? 'text-green-600'
+                                                                                : 'text-red-600'
+                                                                        }`}
+                                                                    >
                                                                         {formatCurrency(Number(item.amount))}
-                                                                    </td>
-                                                                </tr>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Desktop Table */}
+                                                <div className="hidden md:block">
+                                                    <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/20 shadow-sm overflow-hidden">
+                                                        <div className="bg-white/40 backdrop-blur-2xl px-6 py-3 border-b border-white/30">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Description
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Amount
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="divide-y divide-white/20">
+                                                            {invoice.lineItems.map((item) => (
+                                                                <div
+                                                                    key={item.id}
+                                                                    className="px-6 py-4 hover:bg-white/20 transition-all duration-200"
+                                                                >
+                                                                    <div className="grid grid-cols-2 gap-4 items-center">
+                                                                        <div className="text-sm font-medium text-gray-900">
+                                                                            {item.description}
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <span
+                                                                                className={`text-sm font-bold ${
+                                                                                    Number(item.amount) >= 0
+                                                                                        ? 'text-green-600'
+                                                                                        : 'text-red-600'
+                                                                                }`}
+                                                                            >
+                                                                                {formatCurrency(Number(item.amount))}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             ))}
-                                                        </tbody>
-                                                    </table>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
 
-                                        <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
-                                            <h3 className="text-lg font-medium leading-6 text-gray-900">
-                                                Invoice Total
-                                            </h3>
+                                        {/* Invoice Total Section */}
+                                        <div className="px-4 py-4 sm:px-6 bg-green-100/50 backdrop-blur-2xl border-b border-green-100/40">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center shadow-sm">
+                                                    <svg
+                                                        className="w-4 h-4 text-white"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-gray-900">
+                                                        Invoice Summary
+                                                    </h3>
+                                                    <p className="text-xs text-gray-600">Financial breakdown</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="border-t border-gray-200 px-6 py-4">
+                                        <div className="px-4 py-6 sm:px-6">
                                             <div className="flex justify-end">
-                                                <div className="w-full sm:w-1/2 lg:w-1/3">
-                                                    <div className="flex justify-between font-light mb-2">
-                                                        <span>Assignment(s) Total</span>
-                                                        <span>{formatCurrency(assignmentsTotal)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between font-light mb-4 border-b-2 border-gray-200">
-                                                        <span>Line Item(s) Total</span>
-                                                        <span
-                                                            className={`${
-                                                                Number(lineItemsTotal) >= 0
-                                                                    ? 'text-gray-800'
-                                                                    : 'text-red-600'
-                                                            }`}
-                                                        >
-                                                            {formatCurrency(Number(lineItemsTotal))}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between font-semibold text-lg">
-                                                        <span>Total</span>
-                                                        <span
-                                                            className={` ${
-                                                                Number(invoice.totalAmount) < 0
-                                                                    ? 'text-red-600'
-                                                                    : 'text-green-600'
-                                                            }`}
-                                                        >
-                                                            {formatCurrency(Number(invoice.totalAmount))}
-                                                        </span>
+                                                <div className="w-full sm:w-2/3 lg:w-1/2">
+                                                    <div className="bg-white/30 backdrop-blur-xl rounded-2xl p-5 border border-white/20 shadow-sm space-y-4">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                                <span className="text-gray-700 font-medium">
+                                                                    Assignment(s) Total
+                                                                </span>
+                                                            </div>
+                                                            <span className="font-semibold text-gray-900">
+                                                                {formatCurrency(assignmentsTotal)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm pb-4 border-b border-white/30">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                                <span className="text-gray-700 font-medium">
+                                                                    Line Item(s) Total
+                                                                </span>
+                                                            </div>
+                                                            <span
+                                                                className={`font-semibold ${
+                                                                    Number(lineItemsTotal) >= 0
+                                                                        ? 'text-gray-900'
+                                                                        : 'text-red-600'
+                                                                }`}
+                                                            >
+                                                                {formatCurrency(Number(lineItemsTotal))}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pt-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-5 h-5 bg-green-100 rounded flex items-center justify-center">
+                                                                    <svg
+                                                                        className="w-3 h-3 text-green-600"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={2}
+                                                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                                                                        />
+                                                                    </svg>
+                                                                </div>
+                                                                <span className="text-lg font-bold text-gray-900">
+                                                                    Final Total
+                                                                </span>
+                                                            </div>
+                                                            <span
+                                                                className={`text-xl font-bold ${
+                                                                    Number(invoice.totalAmount) < 0
+                                                                        ? 'text-red-600'
+                                                                        : 'text-green-600'
+                                                                }`}
+                                                            >
+                                                                {formatCurrency(Number(invoice.totalAmount))}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="mt-8 bg-gray-50 shadow-none overflow-hidden border border-gray-200 rounded-lg">
+                                    {/* Payment History Card */}
+                                    <div className="overflow-hidden rounded-xl sm:rounded-2xl bg-white/95 backdrop-blur-xl border border-gray-200/30 shadow-sm">
                                         {/* Payment History */}
-                                        <div className="px-4 py-5 sm:px-6  ">
-                                            <h3 className="text-lg font-bold leading-6 text-gray-900">
-                                                Payment History
-                                            </h3>
+                                        {/* Payment History Section */}
+                                        <div className="px-4 py-4 sm:px-6 bg-white/40 backdrop-blur-2xl border-b border-white/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm shadow-amber-500/25">
+                                                    <svg
+                                                        className="w-4 h-4 text-white"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-gray-900">
+                                                        Payment History
+                                                    </h3>
+                                                    <p className="text-xs text-gray-600">
+                                                        Payment records & transactions
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
                                         {invoice.payments.length === 0 ? (
-                                            <div className="px-6 py-4 text-sm text-gray-500">
-                                                No payments recorded yet.
+                                            <div className="px-6 py-8 text-center">
+                                                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 border border-white/30">
+                                                    <div className="text-gray-500 text-sm font-medium">
+                                                        No payments recorded yet.
+                                                    </div>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div className="overflow-x-auto">
-                                                <table className="min-w-full divide-y divide-gray-200">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            <th
-                                                                scope="col"
-                                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                            >
-                                                                Payment Date
-                                                            </th>
-                                                            <th
-                                                                scope="col"
-                                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                            >
-                                                                Payment Note
-                                                            </th>
-                                                            <th
-                                                                scope="col"
-                                                                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                            >
-                                                                Amount
-                                                            </th>
-                                                            <th scope="col" className="relative px-6 py-3 w-10">
-                                                                <span className="sr-only">Actions</span>
-                                                            </th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-200">
-                                                        {invoice.payments.map((payment) => (
-                                                            <tr key={payment.id}>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                                    {dayjs(payment.paymentDate).format('MM/DD/YYYY')}
-                                                                </td>
-
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                                    {payment.notes}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                                                    {formatCurrency(payment.amount)}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                    <div className="relative inline-block text-left">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setPaymentIdToDelete(payment.id);
-                                                                                setShowDeletePaymentDialog(true);
-                                                                            }}
-                                                                            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
-                                                                        >
-                                                                            <TrashIcon className="h-5 w-5 text-red-600" />
-                                                                        </button>
+                                            <div className="px-4 py-5 sm:px-6">
+                                                {/* Mobile Payment Cards */}
+                                                <div className="block md:hidden space-y-3">
+                                                    {invoice.payments.map((payment) => (
+                                                        <div
+                                                            key={payment.id}
+                                                            className="bg-white/30 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-sm hover:shadow-md transition-all duration-200"
+                                                        >
+                                                            <div className="flex items-start justify-between mb-3">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                                        <h4 className="font-semibold text-gray-900 text-sm">
+                                                                            {dayjs(payment.paymentDate).format(
+                                                                                'MM/DD/YYYY',
+                                                                            )}
+                                                                        </h4>
                                                                     </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                                    <p className="text-xs text-gray-600 pl-4">
+                                                                        {payment.notes}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right ml-3">
+                                                                    <div className="text-xs text-gray-600 mb-0.5">
+                                                                        Amount
+                                                                    </div>
+                                                                    <div className="text-lg font-bold text-green-600">
+                                                                        {formatCurrency(payment.amount)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-end pt-2 border-t border-white/20">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setPaymentIdToDelete(payment.id);
+                                                                        setShowDeletePaymentDialog(true);
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-700 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-red-50/50 transition-all duration-200"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Desktop Table */}
+                                                <div className="hidden md:block">
+                                                    <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/20 shadow-sm overflow-hidden">
+                                                        <div className="bg-white/40 backdrop-blur-2xl px-6 py-3 border-b border-white/30">
+                                                            <div className="grid grid-cols-4 gap-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Payment Date
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Payment Note
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Amount
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Actions
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="divide-y divide-white/20">
+                                                            {invoice.payments.map((payment) => (
+                                                                <div
+                                                                    key={payment.id}
+                                                                    className="px-6 py-4 hover:bg-white/20 transition-all duration-200"
+                                                                >
+                                                                    <div className="grid grid-cols-4 gap-4 items-center">
+                                                                        <div className="text-sm font-medium text-gray-900">
+                                                                            {dayjs(payment.paymentDate).format(
+                                                                                'MM/DD/YYYY',
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-900">
+                                                                            {payment.notes}
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <span className="text-sm font-bold text-green-600">
+                                                                                {formatCurrency(payment.amount)}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setPaymentIdToDelete(payment.id);
+                                                                                    setShowDeletePaymentDialog(true);
+                                                                                }}
+                                                                                className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-red-50/50 transition-all duration-200"
+                                                                            >
+                                                                                Delete
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

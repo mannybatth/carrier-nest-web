@@ -100,7 +100,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         const file = event.target.files?.[0];
 
         if (!file) {
-            console.log('No file selected.');
+            // // console.log('No file selected.');
             return;
         }
 
@@ -141,7 +141,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         const file = event.target.files?.[0];
 
         if (!file) {
-            console.log('No file selected.');
+            // console.log('No file selected.');
             return;
         }
 
