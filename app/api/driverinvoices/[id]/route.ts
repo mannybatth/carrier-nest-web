@@ -191,7 +191,8 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
         if (fromDate) updatedInvoiceData.fromDate = new Date(fromDate);
         if (toDate) updatedInvoiceData.toDate = new Date(toDate);
         if (notes !== undefined) updatedInvoiceData.notes = notes;
-        if (status) updatedInvoiceData.status = status;
+        // Always set status back to PENDING when invoice is updated
+        updatedInvoiceData.status = 'PENDING';
         if (invoiceNum) updatedInvoiceData.invoiceNum = invoiceNum;
 
         // When assignments are provided, we can use the nested write to update the invoice’s connection.
