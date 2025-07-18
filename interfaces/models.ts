@@ -363,6 +363,7 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                         billedDistanceMiles: true,
                         billedDurationHours: true,
                         billedLoadRate: true,
+                        emptyMiles: true,
                     },
                 },
             },
@@ -500,6 +501,7 @@ const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>(
                 billedDistanceMiles: true,
                 billedDurationHours: true,
                 billedLoadRate: true,
+                emptyMiles: true,
                 assignedAt: true,
                 load: {
                     select: {
@@ -631,8 +633,8 @@ export type NewDriverInvoice = {
     updatedAt?: string;
     status?: 'PENDING' | 'APPROVED' | 'PAID' | 'PARTIALLY_PAID';
     notes: string;
-    fromDate: string;
-    toDate: string;
+    fromDate: string | null;
+    toDate: string | null;
     totalAmount?: string;
     driverId: string;
     assignments: ExpandedDriverAssignment[];
