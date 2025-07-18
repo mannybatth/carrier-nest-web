@@ -1,51 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-    CheckCircleIcon,
-    ChevronRightIcon,
-    UserIcon,
-    ClipboardDocumentListIcon,
-    CurrencyDollarIcon,
-    DocumentCheckIcon,
-    PlusIcon,
-    MinusIcon,
-    TrashIcon,
-    ArrowPathIcon,
-    PencilIcon,
-    PencilSquareIcon,
-} from '@heroicons/react/24/outline';
+import { useState, useEffect, useCallback } from 'react';
+import { CheckCircleIcon, ChevronRightIcon, UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
 import { getAllDrivers } from 'lib/rest/driver';
 import React from 'react';
-import { Driver } from '@prisma/client';
+import { Driver, Prisma } from '@prisma/client';
 import { getAllAssignments } from 'lib/rest/assignment';
-import { set } from 'date-fns';
 import { DriverInvoiceLineItem, ExpandedDriverAssignment, NewDriverInvoice } from 'interfaces/models';
 import Spinner from 'components/Spinner';
 import Link from 'next/link';
 import { notify } from 'components/Notification';
-import { ta } from 'date-fns/locale';
 import { createDriverInvoice, getNextDriverInvoiceNum } from 'lib/rest/driverinvoice';
 import AssignmentChargeTypeChangeDialog from 'components/driverinvoices/AssignmentChargeChange';
+import DriverRouteMap from 'components/DriverRouteMap';
 import { useRouter } from 'next/navigation';
-import { PageWithAuth } from 'interfaces/auth';
 import { useUserContext } from 'components/context/UserContext';
+import { calculateHaversineDistance } from 'lib/helpers/distance';
+import { useMileCalculation } from 'hooks/useMileCalculation';
+import InvoiceStepper from 'components/InvoiceStepper';
+import { createInvoiceSteps } from 'lib/constants/stepper';
+import { InvoiceReview } from 'components/driverinvoices/InvoiceReview';
+import AdditionalItems from 'components/driverinvoices/AdditionalItems';
+import { LoadingOverlay } from 'components/LoadingOverlay';
+import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
 
-const CreateDriverInvoicePage: PageWithAuth = () => {
+const CreateDriverInvoicePage = () => {
     const router = useRouter();
     const { defaultCarrier } = useUserContext();
+
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<NewDriverInvoice>({
         notes: '',
-        fromDate: new Date().toISOString().split('T')[0],
-        toDate: new Date().toISOString().split('T')[0],
+        fromDate: null,
+        toDate: null,
         driverId: '',
         assignments: [],
         lineItems: [],
     });
     const [newLineItem, setNewLineItem] = useState<DriverInvoiceLineItem>({ description: '', amount: '' });
     const [totalAmount, setTotalAmount] = useState('0.00');
+
+    // Mile calculation state using shared hook
+    const {
+        emptyMiles,
+        setEmptyMiles,
+        emptyMilesInput,
+        setEmptyMilesInput,
+        totalEmptyMiles,
+        selectedAssignmentId,
+        setSelectedAssignmentId,
+        handleEmptyMilesUpdate,
+        restoreEmptyMilesFromAssignments,
+    } = useMileCalculation({
+        assignments: invoice.assignments,
+        calculateHaversineDistance,
+    });
+
+    const [showMileCalculationStep, setShowMileCalculationStep] = useState(false);
 
     const [loadingAllDrivers, setLoadingAllDrivers] = useState(true);
     const [loadingAssignments, setLoadingAssignments] = useState(false);
@@ -57,12 +69,38 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
     const [creatingInvoice, setCreatingInvoice] = useState(false);
     const [notifyDriver, setNotifyDriver] = useState(true);
 
+    // Custom empty miles update handler that also updates invoice assignments
+    const handleEmptyMilesUpdateWithInvoice = useCallback(
+        (updatedEmptyMiles: { [key: string]: number }) => {
+            handleEmptyMilesUpdate(updatedEmptyMiles);
+
+            // Update assignment objects with empty miles
+            setInvoice((prev) => {
+                const updatedAssignments = prev.assignments.map((assignment) => {
+                    // Find matching empty miles for this assignment
+                    const emptyMilesKey = Object.keys(updatedEmptyMiles).find((key) =>
+                        key.startsWith(`${assignment.id}-to-`),
+                    );
+                    const assignmentEmptyMiles = emptyMilesKey ? updatedEmptyMiles[emptyMilesKey] : 0;
+
+                    return {
+                        ...assignment,
+                        emptyMiles: assignmentEmptyMiles > 0 ? new Prisma.Decimal(assignmentEmptyMiles) : null,
+                    };
+                });
+
+                return { ...prev, assignments: updatedAssignments };
+            });
+        },
+        [handleEmptyMilesUpdate],
+    );
+
     useEffect(() => {
         // Load drivers when the component mounts
         loadDrivers();
     }, []);
 
-    // Calculate total amount whenever assignments or line items change
+    // Calculate total amount whenever assignments, line items, or empty miles change
     useEffect(() => {
         let total = 0;
 
@@ -71,9 +109,25 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
             let amount = 0;
             switch (assignment.chargeType) {
                 case 'PER_MILE':
-                    amount =
-                        Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles) *
-                        Number(assignment.chargeValue);
+                    // Get base miles
+                    const baseMiles = Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles);
+
+                    // Get empty miles for this assignment
+                    let emptyMilesForAssignment = 0;
+                    if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                        // Use the emptyMiles from the assignment object if available
+                        emptyMilesForAssignment = Number(assignment.emptyMiles);
+                    } else {
+                        // Find empty miles for this assignment from state
+                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                            key.startsWith(`${assignment.id}-to-`),
+                        );
+                        emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+                    }
+
+                    // Total miles including empty miles
+                    const totalMiles = baseMiles + emptyMilesForAssignment;
+                    amount = totalMiles * Number(assignment.chargeValue);
                     break;
                 case 'PER_HOUR':
                     amount =
@@ -98,7 +152,60 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
         });
 
         setTotalAmount(total.toFixed(2));
-    }, [invoice.assignments, invoice.lineItems]);
+    }, [invoice.assignments, invoice.lineItems, emptyMiles]);
+
+    // Calculate empty miles when mile-based assignments change
+    useEffect(() => {
+        const mileBasedAssignments = invoice.assignments.filter((a) => a.chargeType === 'PER_MILE');
+        if (mileBasedAssignments.length < 1) {
+            setEmptyMiles({});
+            return;
+        }
+
+        // Sort assignments by date
+        const sortedAssignments = mileBasedAssignments.sort((a, b) => {
+            const dateA = new Date(a.routeLeg.startedAt || a.routeLeg.createdAt);
+            const dateB = new Date(b.routeLeg.startedAt || b.routeLeg.createdAt);
+            return dateA.getTime() - dateB.getTime();
+        });
+
+        const newEmptyMiles: { [key: string]: number } = {};
+        let totalEmpty = 0;
+
+        // Calculate empty miles between assignments
+        for (let i = 0; i < sortedAssignments.length - 1; i++) {
+            const currentAssignment = sortedAssignments[i];
+            const nextAssignment = sortedAssignments[i + 1];
+
+            // Get end location of current assignment
+            const currentEndLocation =
+                currentAssignment.routeLeg.locations[currentAssignment.routeLeg.locations.length - 1];
+            const currentEndLat = currentEndLocation.loadStop?.latitude || currentEndLocation.location?.latitude;
+            const currentEndLng = currentEndLocation.loadStop?.longitude || currentEndLocation.location?.longitude;
+
+            // Get start location of next assignment
+            const nextStartLocation = nextAssignment.routeLeg.locations[0];
+            const nextStartLat = nextStartLocation.loadStop?.latitude || nextStartLocation.location?.latitude;
+            const nextStartLng = nextStartLocation.loadStop?.longitude || nextStartLocation.location?.longitude;
+
+            if (currentEndLat && currentEndLng && nextStartLat && nextStartLng) {
+                const distance = calculateHaversineDistance(currentEndLat, currentEndLng, nextStartLat, nextStartLng);
+                const emptyMilesKey = `${currentAssignment.id}-to-${nextAssignment.id}`;
+                newEmptyMiles[emptyMilesKey] = Math.round(distance * 100) / 100;
+                totalEmpty += newEmptyMiles[emptyMilesKey];
+            }
+        }
+
+        // Add empty miles entry for the last assignment (return to base/deadhead)
+        if (sortedAssignments.length > 0) {
+            const lastAssignment = sortedAssignments[sortedAssignments.length - 1];
+            const emptyMilesKey = `${lastAssignment.id}-to-end`;
+            // Initialize with 0 miles - user can modify this as needed
+            newEmptyMiles[emptyMilesKey] = 0;
+        }
+
+        setEmptyMiles(newEmptyMiles);
+    }, [invoice.assignments]);
 
     const loadDrivers = async () => {
         setLoadingAllDrivers(true);
@@ -113,21 +220,30 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
     const getNextInvoiceNum = async () => {
         await getNextDriverInvoiceNum().then((num) => {
             setInvoice((prev) => ({ ...prev, invoiceNum: num }));
-            console.log('Next invoice number:', num);
+            // console.log('Next invoice number:', num);
         });
     };
 
-    const loadAssignments = async (driverId: string) => {
+    const loadAssignments = async (driverId: string, fromDate?: string, toDate?: string) => {
         setLoadingAssignments(true);
 
-        const { assignments, metadata: metadataResponse } = await getAllAssignments({
+        const requestParams: any = {
             limit: 999,
             offset: 0,
             sort: { key: 'routeLeg.endedAt', order: 'asc' },
             showCompletedOnly: true,
             showNotInvoicedOnly: true,
             driverIds: [driverId],
-        });
+        };
+
+        // Add date filters if provided (for period-based loading)
+        if (fromDate && toDate) {
+            requestParams.fromDate = fromDate;
+            requestParams.toDate = toDate;
+        }
+
+        const { assignments, metadata: metadataResponse } = await getAllAssignments(requestParams);
+
         setInvoice((prev) => ({
             ...prev,
             assignments: [],
@@ -173,12 +289,19 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
             return notify({ title: 'Please select at least one assignment', type: 'error' });
         }
         if (invoice.invoiceNum === undefined) {
-            console.log('Getting next invoice number');
+            // console.log('Getting next invoice number');
             getNextInvoiceNum();
         }
 
+        // Check if any assignment has PER_MILE charge type
+        const hasMileBasedAssignments = invoice.assignments.some((assignment) => assignment.chargeType === 'PER_MILE');
+
         // Update the billed amounts for the selected chargetype
         const updatedAssignments = invoice.assignments.map((assignment) => {
+            // Find matching empty miles for this assignment
+            const emptyMilesKey = Object.keys(emptyMiles).find((key) => key.startsWith(`${assignment.id}-to-`));
+            const assignmentEmptyMiles = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+
             return {
                 ...assignment,
                 billedDistanceMiles:
@@ -193,11 +316,19 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                     assignment.chargeType === 'PERCENTAGE_OF_LOAD'
                         ? assignment.billedLoadRate || assignment.load.rate
                         : undefined,
+                emptyMiles: assignmentEmptyMiles > 0 ? new Prisma.Decimal(assignmentEmptyMiles) : null, // Include empty miles data
             };
         });
         setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
 
-        setCurrentStep(3);
+        // If there are mile-based assignments, show mile calculation step
+        if (hasMileBasedAssignments) {
+            setShowMileCalculationStep(true);
+            setCurrentStep(2.5); // Mile calculation step
+        } else {
+            setShowMileCalculationStep(false);
+            setCurrentStep(3); // Skip to additional items
+        }
     };
 
     const handleAddLineItem = () => {
@@ -226,7 +357,6 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
 
     const handleCreateInvoice = async () => {
         setCreatingInvoice(true);
-        // In a real app, you would send the invoice data to your backend
 
         try {
             const invoiceId = await createDriverInvoice(invoice);
@@ -238,18 +368,21 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                     await sendDriverNotification(invoiceId.toString());
                 }
 
+                // Small delay to ensure invoice is properly saved in database
+                await new Promise((resolve) => setTimeout(resolve, 500));
+
+                // Reset creating state before navigation
+                setCreatingInvoice(false);
+
                 // Navigate to the created invoice page
                 router.push(`/driverinvoices/${invoiceId}`);
             }
-            console.log('Invoice created successfully:', invoiceId);
+            // console.log('Invoice created successfully:', invoiceId);
         } catch (error) {
             notify({ title: 'Error creating invoice', message: `${error}`, type: 'error' });
             console.error('Error creating invoice:', error);
-        }
-
-        setTimeout(() => {
             setCreatingInvoice(false);
-        }, 2500);
+        }
     };
 
     const sendDriverNotification = async (invoiceId: string) => {
@@ -330,11 +463,33 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
             loadAssignments(invoice.driverId);
         }
 
-        setCurrentStep((prev) => prev + 1);
+        // Handle step progression with mile calculation step
+        if (currentStep === 2.5) {
+            setCurrentStep(3);
+        } else if (currentStep === 1) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            setCurrentStep(3);
+        } else if (currentStep === 3) {
+            setCurrentStep(4);
+        }
     };
 
     const prevStep = () => {
-        setCurrentStep((prev) => prev - 1);
+        if (currentStep === 3 && showMileCalculationStep) {
+            // When going back from additional items to mile calculation, restore user-entered empty miles
+            restoreEmptyMilesFromAssignments();
+            setCurrentStep(2.5);
+        } else if (currentStep === 2.5) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            setCurrentStep(1);
+        } else if (currentStep === 3) {
+            setCurrentStep(2);
+        } else if (currentStep === 4) {
+            // When going back from review, always go to additional items step
+            setCurrentStep(3);
+        }
     };
 
     const formatCurrency = (amount: string) => {
@@ -363,27 +518,35 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
             }
         >
             <>
-                <div className="py-2 mx-auto max-w-7xl">
+                <div className="py-1 sm:py-2 mx-auto max-w-full px-2 sm:px-4">
+                    {' '}
+                    {/* Changed from max-w-7xl to max-w-full for wider layout */}
                     {showAssignmentChargeChangeDialog && (
-                        <AssignmentChargeTypeChangeDialog
-                            onConfirm={onChargeTypeChange}
-                            onClose={() => setShowAssignmentChargeChangeDialog(false)}
-                            assignmentDetails={currentAssEditCharge}
-                        />
+                        <div className="fixed inset-0 z-50">
+                            <AssignmentChargeTypeChangeDialog
+                                onConfirm={onChargeTypeChange}
+                                onClose={() => setShowAssignmentChargeChangeDialog(false)}
+                                assignmentDetails={currentAssEditCharge}
+                            />
+                        </div>
                     )}
-
-                    <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-none mt-4 ">
-                        <div className="mb-8 static top-0 bg-white py-2 z-0 ">
+                    <div className="max-w-full mx-auto p-3 sm:p-6 bg-white rounded-lg shadow-none mt-2 sm:mt-4">
+                        {' '}
+                        {/* Changed from max-w-6xl to max-w-full */}
+                        <div className="mb-4 sm:mb-8 static top-0 bg-white py-1 sm:py-2">
                             <nav className="flex" aria-label="Breadcrumb">
-                                <ol className="flex items-center space-x-2">
+                                <ol className="flex items-center space-x-1 sm:space-x-2">
                                     <li>
-                                        <Link href="/driverinvoices" className="text-gray-500 hover:text-gray-700">
+                                        <Link
+                                            href="/driverinvoices"
+                                            className="text-gray-500 hover:text-gray-700 text-sm sm:text-base"
+                                        >
                                             Driver Invoices
                                         </Link>
                                     </li>
                                     <li className="flex items-center">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
                                             xmlns="http://www.w3.org/2000/svg"
                                             viewBox="0 0 20 20"
                                             fill="currentColor"
@@ -395,118 +558,41 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                                                 clipRule="evenodd"
                                             />
                                         </svg>
-                                        <span className="ml-2 text-gray-700 font-medium">Create Driver Invoice</span>
+                                        <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
+                                            Create Driver Invoice
+                                        </span>
                                     </li>
                                 </ol>
                             </nav>
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-800 mb-10 text-center bg-white p-4 rounded-lg">
+                        <h1 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-10 text-center bg-white p-2 sm:p-4 rounded-lg">
                             Create Driver Invoice
                         </h1>
-
-                        {/* Stepper */}
-                        <div className="mb-8 mx-6">
-                            <div className="flex items-center">
-                                {/* Step 1 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <UserIcon className="w-5 h-5" />
-                                    </div>
-                                    <span
-                                        className={`mt-4 text-sm  px-1 ${
-                                            currentStep == 1
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        1. Select Driver
-                                    </span>
-                                </div>
-                                <div className={`flex-1 h-1 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-
-                                {/* Step 2 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <ClipboardDocumentListIcon className="w-5 h-5" />
-                                    </div>
-                                    <span
-                                        className={`mt-4 text-sm  px-1 ${
-                                            currentStep == 2
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        2. Select Assignments
-                                    </span>
-                                </div>
-                                <div className={`flex-1 h-1 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-
-                                {/* Step 3 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <CurrencyDollarIcon className="w-5 h-5" />
-                                    </div>
-                                    <span
-                                        className={`mt-4 text-sm  px-1 ${
-                                            currentStep == 3
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        3. Additional Items
-                                    </span>
-                                </div>
-                                <div className={`flex-1 h-1 ${currentStep >= 4 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-
-                                {/* Step 4 */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                                            currentStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`}
-                                    >
-                                        <DocumentCheckIcon className="w-5 h-5" />
-                                    </div>
-                                    <span
-                                        className={`mt-4 text-sm  px-1 ${
-                                            currentStep == 4
-                                                ? 'border border-blue-200 rounded-md bg-slate-100 font-semibold text-gray-800'
-                                                : 'font-medium text-gray-400'
-                                        }`}
-                                    >
-                                        4. Review & Create
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Invoice Stepper Component */}
+                        <InvoiceStepper
+                            currentStep={currentStep}
+                            steps={createInvoiceSteps}
+                            showMileCalculationStep={showMileCalculationStep}
+                            mode="create"
+                        />
                         <div className="border border-gray-100 rounded-lg shadow-sm">
                             {/* Step 1: Select Driver */}
                             {currentStep === 1 && (
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Driver</h2>
+                                <div className="bg-gray-50 p-3 sm:p-6 rounded-lg">
+                                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
+                                        Select Driver
+                                    </h2>
 
                                     {loadingAllDrivers ? (
-                                        <div className="flex items-center justify-center w-full p-4 font-bold">
+                                        <div className="flex items-center justify-center w-full p-2 sm:p-4 font-bold text-sm sm:text-base">
                                             <Spinner /> Loading Drivers
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                             {allDrivers.map((driver) => (
                                                 <div
                                                     key={driver.id}
-                                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                                                    className={`p-3 sm:p-4 border rounded-lg cursor-pointer transition-all ${
                                                         invoice.driverId === driver.id
                                                             ? 'border-blue-400 bg-blue-50 shadow-md'
                                                             : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
@@ -514,752 +600,769 @@ const CreateDriverInvoicePage: PageWithAuth = () => {
                                                     onClick={() => handleDriverSelect(driver.id)}
                                                 >
                                                     <div className="flex items-center">
-                                                        <div className="bg-gray-200 rounded-full p-2 mr-3">
-                                                            <UserIcon className="w-5 h-5 text-gray-600" />
+                                                        <div className="bg-gray-200 rounded-full p-1.5 sm:p-2 mr-2 sm:mr-3">
+                                                            <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                                                         </div>
-                                                        <div>
-                                                            <h3 className="font-medium text-gray-800 capitalize">
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="font-medium text-gray-800 capitalize text-sm sm:text-base truncate">
                                                                 {driver.name.toLowerCase()}
                                                             </h3>
-                                                            <p className="text-sm text-gray-500">{driver.email}</p>
-                                                            <p className="text-sm text-gray-500">{driver.phone}</p>
+                                                            <p className="text-xs sm:text-sm text-gray-500 truncate">
+                                                                {driver.email}
+                                                            </p>
+                                                            <p className="text-xs sm:text-sm text-gray-500">
+                                                                {driver.phone}
+                                                            </p>
                                                         </div>
                                                         {invoice.driverId === driver.id && (
-                                                            <CheckCircleIcon className="w-6 h-6 text-blue-600 ml-auto" />
+                                                            <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 ml-auto flex-shrink-0" />
                                                         )}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
-                                    <div className="mt-6 flex justify-end">
+                                    <div className="mt-4 sm:mt-6 flex justify-end">
                                         <button
                                             onClick={nextStep}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                                            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm sm:text-base"
                                         >
-                                            Next <ChevronRightIcon className="w-4 h-4 ml-1" />
+                                            Next <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                                         </button>
                                     </div>
                                 </div>
                             )}
-
                             {/* Step 2: Select Assignments */}
                             {currentStep === 2 && (
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <div className="flex flex-row justify-between items-center mb-6">
+                                <div className=" relative">
+                                    <AssignmentSelector
+                                        driverId={invoice.driverId}
+                                        selectedAssignments={invoice.assignments}
+                                        allAssignments={allAssignments}
+                                        loadingAssignments={loadingAssignments}
+                                        driverName={
+                                            allAssignments.length > 0
+                                                ? allAssignments.find((ass) => ass.driverId == invoice.driverId)?.driver
+                                                      .name
+                                                : undefined
+                                        }
+                                        mode="create"
+                                        invoice={invoice}
+                                        setInvoice={setInvoice}
+                                        navigation={{
+                                            showBackButton: true,
+                                            onBack: prevStep,
+                                            onNext: handleConfirmAssignments,
+                                            nextButtonText: 'Next',
+                                            backButtonText: 'Back',
+                                        }}
+                                        onAssignmentToggle={handleAssignmentToggle}
+                                        onReloadAssignments={() => {
+                                            if (invoice.fromDate && invoice.toDate) {
+                                                loadAssignments(invoice.driverId, invoice.fromDate, invoice.toDate);
+                                            } else {
+                                                loadAssignments(invoice.driverId);
+                                            }
+                                        }}
+                                        onAssignmentEdit={(assignment) => {
+                                            setShowAssignmentChargeChangeDialog(true);
+                                            setCurrentAssEditCharge(assignment);
+                                        }}
+                                        onPeriodChange={(fromDate, toDate) => {
+                                            if (fromDate && toDate) {
+                                                loadAssignments(invoice.driverId, fromDate, toDate);
+                                            }
+                                        }}
+                                        formatCurrency={formatCurrency}
+                                    />
+                                </div>
+                            )}
+                            {/* Step 2.5: Mile Calculation (conditional) */}
+                            {(currentStep as number) === 2.5 && showMileCalculationStep && (
+                                <div className="bg-gray-50 p-3 sm:p-6 rounded-lg">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-6 gap-3 sm:gap-0">
                                         <div className="flex flex-1 flex-col items-start">
-                                            <h2 className="text-xl font-semibold text-gray-800 mb-1">
-                                                Select Completed Assignments
+                                            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1">
+                                                Calculate Mile-Based Compensation
                                             </h2>
-                                            <p className="text-gray-400 text-sm font-normal ">
-                                                Showing completed assignments only. Visit{' '}
-                                                <Link href={`/drivers/${invoice.driverId}`} target="_blank">
-                                                    <span className="text-blue-600 hover:underline text-sm cursor-pointer">
-                                                        Driver Page
-                                                    </span>
-                                                </Link>{' '}
-                                                to view/edit all assignments for{' '}
-                                                {allAssignments.length > 0 && (
-                                                    <span className="font-semibold text-gray-800 capitalize">
-                                                        {
-                                                            allAssignments.find(
-                                                                (ass) => ass.driverId == invoice.driverId,
-                                                            ).driver.name
-                                                        }
-                                                    </span>
-                                                )}
-                                                .
+                                            <p className="text-gray-400 text-xs sm:text-sm font-normal">
+                                                Review assignment routes and calculate empty miles between assignments
+                                                for accurate compensation.
                                             </p>
                                         </div>
-                                        <div className="flex flex-1 w-full justify-end">
-                                            <button
-                                                onClick={() => loadAssignments(invoice.driverId)}
-                                                className="flex flex-row items-center justify-center px-2 py-2 border hover:bg-slate-200 border-gray-300 text-gray-700 rounded-lg text-sm transition-colors"
-                                            >
-                                                <ArrowPathIcon className="w-3 h-3 mr-2" />
-                                                Reload Assignments
-                                            </button>
-                                        </div>
                                     </div>
-
-                                    {loadingAssignments ? (
-                                        <div className="flex items-center justify-center w-full p-4">
-                                            <Spinner /> Loading Assignments
-                                        </div>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                <thead>
-                                                    <tr className="bg-gray-100">
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Select
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Order #
-                                                        </th>
-
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Route
-                                                        </th>
-
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                                            Charge Type
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Amount
-                                                        </th>
-                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Status
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200">
-                                                    {allAssignments.map((assignment) => {
-                                                        let calculatedAmount = 0;
-                                                        switch (assignment.chargeType) {
-                                                            case 'PER_MILE':
-                                                                calculatedAmount =
-                                                                    Number(
-                                                                        assignment.billedDistanceMiles ||
-                                                                            assignment.routeLeg.distanceMiles,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PER_HOUR':
-                                                                calculatedAmount =
-                                                                    Number(
-                                                                        assignment.billedDurationHours ||
-                                                                            assignment.routeLeg.durationHours,
-                                                                    ) * Number(assignment.chargeValue);
-                                                                break;
-                                                            case 'PERCENTAGE_OF_LOAD':
-                                                                calculatedAmount =
-                                                                    (Number(
-                                                                        assignment.billedLoadRate ||
-                                                                            assignment.load.rate,
-                                                                    ) *
-                                                                        Number(assignment.chargeValue)) /
-                                                                    100;
-                                                                break;
-                                                            case 'FIXED_PAY':
-                                                                calculatedAmount = Number(assignment.chargeValue);
-                                                                break;
-                                                        }
-
-                                                        // Format the locations. For each location in the routeLeg, we check if loadStop exists;
-                                                        // if not, we use the nested location object.
-                                                        const formattedLocations = assignment.routeLeg.locations
-                                                            .map((loc) => {
-                                                                if (loc.loadStop) {
-                                                                    return `${loc.loadStop.name.toUpperCase()} (${
-                                                                        loc.loadStop.city
-                                                                    }, ${loc.loadStop.state.toLocaleUpperCase()})`;
-                                                                } else if (loc.location) {
-                                                                    return `${loc.location.name.toLocaleUpperCase()} (${
-                                                                        loc.location.city
-                                                                    }, ${loc.location.state.toLocaleUpperCase()})`;
-                                                                }
-                                                                return '';
-                                                            })
-                                                            .join(' -> \n');
-
-                                                        return (
-                                                            <tr
-                                                                key={assignment.id}
-                                                                className={`hover:bg-gray-50 cursor-pointer ${
-                                                                    invoice.assignments.find(
-                                                                        (ass) => ass.id == assignment.id,
-                                                                    )
-                                                                        ? 'bg-blue-50'
-                                                                        : 'bg-white'
-                                                                }`}
-                                                                onClick={() => handleAssignmentToggle(assignment.id)}
-                                                            >
-                                                                <td className="py-3 px-4">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={invoice.assignments.some(
-                                                                            (a) => a.id === assignment.id,
-                                                                        )}
-                                                                        onChange={() =>
-                                                                            handleAssignmentToggle(assignment.id)
-                                                                        }
-                                                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                                                    />
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800">
-                                                                    <Link
-                                                                        href={`/loads/${assignment.load.id}#load-assignments`}
-                                                                        target="_blank"
-                                                                    >
-                                                                        <span className="underline">
-                                                                            {assignment.load.refNum}
-                                                                        </span>
-                                                                    </Link>
-                                                                </td>
-
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800 whitespace-break-spaces capitalize">
-                                                                    {formattedLocations}
-                                                                </td>
-
-                                                                <td className="py-3 px-4 text-sm text-gray-800">
-                                                                    {assignment.chargeType === 'PER_MILE' &&
-                                                                        `$${assignment.chargeValue}/mile`}
-                                                                    {assignment.chargeType === 'PER_HOUR' &&
-                                                                        `$${assignment.chargeValue}/hour`}
-                                                                    {assignment.chargeType === 'PERCENTAGE_OF_LOAD' &&
-                                                                        `${assignment.chargeValue}% of load`}
-                                                                    {assignment.chargeType === 'FIXED_PAY' &&
-                                                                        'Fixed Pay'}
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm font-medium text-gray-800 pointer-events-none">
-                                                                    <button
-                                                                        className="pointer-events-auto"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setShowAssignmentChargeChangeDialog(true);
-                                                                            setCurrentAssEditCharge(assignment);
-                                                                            console.log('Edit amount');
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex flex-row items-center justify-start h-full gap-1 cursor-pointer">
-                                                                            {formatCurrency(
-                                                                                calculatedAmount.toFixed(2),
-                                                                            )}
-                                                                            <PencilSquareIcon
-                                                                                className="w-4 h-4 ml-1 text-blue-600"
-                                                                                color="blue"
-                                                                            />
-                                                                        </div>
-                                                                    </button>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm text-gray-800 capitalize">
-                                                                    {assignment.routeLeg.status.toLowerCase()}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                    <div className="mt-6 flex justify-between">
-                                        <button
-                                            onClick={prevStep}
-                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            Back
-                                        </button>
-                                        <button
-                                            onClick={handleConfirmAssignments}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 3: Additional Items */}
-                            {currentStep === 3 && (
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Additional Items</h2>
-
-                                    <div className="mb-6">
-                                        <h3 className="font-medium text-gray-700 mb-2">Invoice Details</h3>
-                                        <div className="flex flex-col gap-4 w-full ">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Invoice #{' '}
-                                                    <span className="text-gray-400 font-light">{`(Auto incrementing, you may enter invoice# to start your driver invoices at different counter.)`}</span>
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={invoice.invoiceNum}
-                                                    min={1}
-                                                    step={1}
-                                                    onChange={(e) =>
-                                                        setInvoice((prev) => ({
-                                                            ...prev,
-                                                            invoiceNum: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    className=" p-2 border w-fit border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-4 bg">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        From Date
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={invoice.fromDate.split('T')[0]}
-                                                        onChange={(e) =>
-                                                            setInvoice((prev) => ({
-                                                                ...prev,
-                                                                fromDate: e.target.value,
-                                                            }))
-                                                        }
-                                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        To Date
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={invoice.toDate.split('T')[0]}
-                                                        onChange={(e) =>
-                                                            setInvoice((prev) => ({ ...prev, toDate: e.target.value }))
-                                                        }
-                                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Notes
-                                            </label>
-                                            <textarea
-                                                value={invoice.notes}
-                                                onChange={(e) =>
-                                                    setInvoice((prev) => ({ ...prev, notes: e.target.value }))
-                                                }
-                                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                rows={3}
-                                                placeholder="Add any notes about this invoice..."
+                                    {/* Split layout: Map on left, Details on right */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 mb-3 sm:mb-6">
+                                        {/* Interactive Mapbox Route Map - Left Side */}
+                                        <div className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl min-h-[400px] lg:min-h-[600px]">
+                                            <DriverRouteMap
+                                                assignments={invoice.assignments.filter(
+                                                    (a) => a.chargeType === 'PER_MILE',
+                                                )}
+                                                emptyMiles={emptyMiles}
+                                                selectedAssignmentId={selectedAssignmentId}
+                                                onAssignmentSelect={setSelectedAssignmentId}
+                                                onEmptyMilesUpdate={handleEmptyMilesUpdateWithInvoice}
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="mb-6">
-                                        <h3 className="font-medium text-gray-700 mb-1">Line Items</h3>
-                                        <p className="text-sm mb-2 text-gray-500">
-                                            Add any additional line items to this invoice to credit/debit the driver.
-                                        </p>
-
-                                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Description
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Amount
-                                                        </th>
-                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Action
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
-                                                    {invoice.lineItems.map((item) => (
-                                                        <tr key={item.id}>
-                                                            <td className="px-4 py-3 text-sm text-gray-800">
-                                                                {item.description}
-                                                            </td>
-                                                            <td
-                                                                className={`px-4 py-3 text-sm ${
-                                                                    Number.parseFloat(item.amount) >= 0
-                                                                        ? 'text-gray-800'
-                                                                        : 'text-red-600'
-                                                                } `}
-                                                            >
-                                                                {Number.parseFloat(item.amount) >= 0
-                                                                    ? formatCurrency(item.amount)
-                                                                    : `(${formatCurrency(
-                                                                          Math.abs(
-                                                                              Number.parseFloat(item.amount),
-                                                                          ).toString(),
-                                                                      )})`}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right">
-                                                                <button
-                                                                    onClick={() => handleRemoveLineItem(item.id!)}
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <TrashIcon className="w-4 h-4" />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    <tr>
-                                                        <td className="px-4 py-3">
-                                                            <input
-                                                                type="text"
-                                                                value={newLineItem.description}
-                                                                onChange={(e) =>
-                                                                    setNewLineItem((prev) => ({
-                                                                        ...prev,
-                                                                        description: e.target.value,
-                                                                    }))
-                                                                }
-                                                                autoFocus
-                                                                placeholder="Description"
-                                                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                            />
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex items-center">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        setNewLineItem((prev) => ({
-                                                                            ...prev,
-                                                                            amount: prev.amount.startsWith('-')
-                                                                                ? prev.amount.substring(1)
-                                                                                : `-${prev.amount}`,
-                                                                        }))
-                                                                    }
-                                                                    className="p-2 text-gray-500 hover:text-gray-700"
-                                                                >
-                                                                    {newLineItem.amount.startsWith('-') ? (
-                                                                        <MinusIcon className="w-4 h-4" />
-                                                                    ) : (
-                                                                        <PlusIcon className="w-4 h-4" />
-                                                                    )}
-                                                                </button>
-                                                                <input
-                                                                    type="number"
-                                                                    value={
-                                                                        newLineItem.amount.startsWith('-')
-                                                                            ? newLineItem.amount.substring(1)
-                                                                            : newLineItem.amount
-                                                                    }
-                                                                    onChange={(e) =>
-                                                                        setNewLineItem((prev) => ({
-                                                                            ...prev,
-                                                                            amount: prev.amount.startsWith('-')
-                                                                                ? `-${e.target.value}`
-                                                                                : e.target.value,
-                                                                        }))
-                                                                    }
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            handleAddLineItem();
-                                                                            e.preventDefault();
-                                                                        }
-                                                                    }}
-                                                                    placeholder="Amount"
-                                                                    step="0.01"
-                                                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                                                />
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <button
-                                                                onClick={handleAddLineItem}
-                                                                disabled={
-                                                                    !newLineItem.description || !newLineItem.amount
-                                                                }
-                                                                className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                                            >
-                                                                Add
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6 flex justify-between">
-                                        <button
-                                            onClick={prevStep}
-                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            Back
-                                        </button>
-                                        <button
-                                            onClick={nextStep}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                        >
-                                            Review Invoice
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 4: Review & Create */}
-                            {currentStep === 4 && (
-                                <div className="relative">
-                                    {creatingInvoice && (
-                                        <div className="absolute flex flex-col h-full bg-slate-100/60 items-center justify-center w-full p-4 font-semibold z-50">
-                                            <>
-                                                <Spinner /> Creating Invoice...
-                                            </>
-                                        </div>
-                                    )}
-                                    <div className="bg-gray-50 p-6 rounded-lg">
-                                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Review Invoice</h2>
-
-                                        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                                            <div className="flex justify-between items-start mb-6">
-                                                <div>
-                                                    <h3 className="text-lg font-medium text-gray-800">
-                                                        Invoice Summary
+                                        {/* Assignment Details - Right Side */}
+                                        <div className="space-y-3 sm:space-y-4">
+                                            {/* Assignment Route Summary */}
+                                            <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm lg:min-h-[600px]">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+                                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                        Assignment Routes Summary
+                                                        {selectedAssignmentId && (
+                                                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                                                Filtered
+                                                            </span>
+                                                        )}
                                                     </h3>
-                                                    <p className="text-sm text-gray-500">
-                                                        Period: {new Date(invoice.fromDate).toLocaleDateString()} -{' '}
-                                                        {new Date(invoice.toDate).toLocaleDateString()}
-                                                    </p>
+                                                    {selectedAssignmentId && (
+                                                        <button
+                                                            onClick={() => setSelectedAssignmentId(null)}
+                                                            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors whitespace-nowrap"
+                                                        >
+                                                            Show All
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="text-2xl font-bold text-green-600">
-                                                        {formatCurrency(totalAmount)}
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">Total Amount</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">Driver Information</h4>
-                                                <div className="bg-gray-50 p-3 rounded-md">
-                                                    <p className="text-sm font-semibold text-gray-800 capitalize">
-                                                        {allDrivers
-                                                            .find((d) => d.id === invoice.driverId)
-                                                            ?.name.toLocaleLowerCase()}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {allDrivers.find((d) => d.id === invoice.driverId)?.email}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {allDrivers.find((d) => d.id === invoice.driverId)?.phone}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {invoice.notes && (
-                                                <div className="mb-6">
-                                                    <h4 className="font-medium text-gray-700 mb-2">Notes</h4>
-                                                    <div className="bg-gray-50 p-3 rounded-md">
-                                                        <p className="text-sm text-gray-800">{invoice.notes}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">
-                                                    Assignments ({invoice.assignments.length})
-                                                </h4>
-                                                <div className="overflow-x-auto">
-                                                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                        <thead>
-                                                            <tr className="bg-gray-100">
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Order #
-                                                                </th>
-
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Route
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 whitespace-nowrap uppercase tracking-wider">
-                                                                    Charge Type
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Amount
-                                                                </th>
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Status
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-200">
-                                                            {invoice.assignments.map((assignment) => {
-                                                                let calculatedAmount = 0;
-                                                                switch (assignment.chargeType) {
-                                                                    case 'PER_MILE':
-                                                                        calculatedAmount =
-                                                                            Number(
-                                                                                assignment.billedDistanceMiles ||
-                                                                                    assignment.routeLeg.distanceMiles,
-                                                                            ) * Number(assignment.chargeValue);
-                                                                        break;
-                                                                    case 'PER_HOUR':
-                                                                        calculatedAmount =
-                                                                            Number(
-                                                                                assignment.billedDurationHours ||
-                                                                                    assignment.routeLeg.durationHours,
-                                                                            ) * Number(assignment.chargeValue);
-                                                                        break;
-                                                                    case 'PERCENTAGE_OF_LOAD':
-                                                                        calculatedAmount =
-                                                                            (Number(
-                                                                                assignment.billedLoadRate ||
-                                                                                    assignment.load.rate,
-                                                                            ) *
-                                                                                Number(assignment.chargeValue)) /
-                                                                            100;
-                                                                        break;
-                                                                    case 'FIXED_PAY':
-                                                                        calculatedAmount = Number(
-                                                                            assignment.chargeValue,
-                                                                        );
-                                                                        break;
-                                                                }
-
-                                                                // Format the locations. For each location in the routeLeg, we check if loadStop exists;
-                                                                // if not, we use the nested location object.
-                                                                const formattedLocations = assignment.routeLeg.locations
-                                                                    .map((loc) => {
-                                                                        if (loc.loadStop) {
-                                                                            return `${loc.loadStop.name} (${loc.loadStop.city}, ${loc.loadStop.state})`;
-                                                                        } else if (loc.location) {
-                                                                            return `${loc.location.name} (${loc.location.city}, ${loc.location.state})`;
-                                                                        }
-                                                                        return '';
-                                                                    })
-                                                                    .join(' -> \n');
-
-                                                                return (
-                                                                    <tr
-                                                                        key={assignment.id}
-                                                                        className={`hover:bg-gray-50 cursor-pointer ${
-                                                                            invoice.assignments.find(
-                                                                                (assignment) =>
-                                                                                    assignment.id == assignment.id,
-                                                                            )
-                                                                                ? 'bg-blue-50'
-                                                                                : ''
-                                                                        }`}
-                                                                    >
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {assignment.load.refNum}
-                                                                        </td>
-
-                                                                        <td className="py-3 px-4 text-sm font-medium text-gray-800 whitespace-break-spaces capitalize">
-                                                                            {formattedLocations}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {assignment.chargeType === 'PER_MILE' &&
-                                                                                `$${assignment.chargeValue}/mile`}
-                                                                            {assignment.chargeType === 'PER_HOUR' &&
-                                                                                `$${assignment.chargeValue}/hour`}
-                                                                            {assignment.chargeType ===
-                                                                                'PERCENTAGE_OF_LOAD' &&
-                                                                                `${assignment.chargeValue}% of load`}
-                                                                            {assignment.chargeType === 'FIXED_PAY' &&
-                                                                                'Fixed Pay'}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm font-medium text-gray-800">
-                                                                            {formatCurrency(
-                                                                                calculatedAmount.toFixed(2),
-                                                                            )}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-800">
-                                                                            {'Completed'}
-                                                                        </td>
-                                                                    </tr>
-                                                                );
-                                                            })}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <h4 className="font-medium text-gray-700 mb-2">
-                                                    Additional Line Items ({invoice.lineItems.length})
-                                                </h4>
-                                                {invoice.lineItems.length > 0 ? (
-                                                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                                                        <thead>
-                                                            <tr className="bg-gray-100">
-                                                                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Description
-                                                                </th>
-                                                                <th className="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                    Amount
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-200">
-                                                            {invoice.lineItems.map((item) => (
-                                                                <tr key={item.id}>
-                                                                    <td className="py-3 px-4 text-sm text-gray-800">
-                                                                        {item.description}
-                                                                    </td>
-                                                                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-800">
-                                                                        {Number.parseFloat(item.amount) >= 0
-                                                                            ? formatCurrency(item.amount)
-                                                                            : `(${formatCurrency(
-                                                                                  Math.abs(
-                                                                                      Number.parseFloat(item.amount),
-                                                                                  ).toString(),
-                                                                              )})`}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                ) : (
-                                                    <p className="text-sm text-gray-500 italic">
-                                                        No additional line items
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Driver Notification Toggle */}
-                                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1">
-                                                    <h4 className="font-medium text-blue-900 mb-1">
-                                                        Driver Notification
-                                                    </h4>
-                                                    <p className="text-sm text-blue-700">
-                                                        Automatically notify the driver about this invoice for approval.
-                                                        {(() => {
-                                                            const selectedDriver = allDrivers.find(
-                                                                (d) => d.id === invoice.driverId,
+                                                <div className="space-y-3 lg:overflow-y-auto lg:max-h-[480px]">
+                                                    {/* Sort assignments by date/time */}
+                                                    {invoice.assignments
+                                                        .filter((assignment) => assignment.chargeType === 'PER_MILE')
+                                                        .sort((a, b) => {
+                                                            const dateA = new Date(
+                                                                a.routeLeg.startedAt || a.routeLeg.createdAt,
                                                             );
-                                                            if (selectedDriver?.email) {
-                                                                return ` Email will be sent to ${selectedDriver.email}.`;
-                                                            } else if (selectedDriver?.phone) {
-                                                                return ` SMS will be sent to ${selectedDriver.phone}.`;
-                                                            } else {
-                                                                return ' No contact method available for this driver.';
+                                                            const dateB = new Date(
+                                                                b.routeLeg.startedAt || b.routeLeg.createdAt,
+                                                            );
+                                                            return dateA.getTime() - dateB.getTime();
+                                                        })
+                                                        .map((assignment, index, sortedAssignments) => {
+                                                            const routeLocations = assignment.routeLeg.locations;
+                                                            const startLocation = routeLocations[0];
+                                                            const endLocation =
+                                                                routeLocations[routeLocations.length - 1];
+
+                                                            // Calculate empty miles to next assignment
+                                                            let emptyMilesToNext = 0;
+                                                            let nextAssignment = null;
+
+                                                            if (index < sortedAssignments.length - 1) {
+                                                                nextAssignment = sortedAssignments[index + 1];
+                                                                const nextStartLocation =
+                                                                    nextAssignment.routeLeg.locations[0];
+
+                                                                // Calculate distance between current end and next start
+                                                                const endLat =
+                                                                    endLocation.loadStop?.latitude ||
+                                                                    endLocation.location?.latitude;
+                                                                const endLon =
+                                                                    endLocation.loadStop?.longitude ||
+                                                                    endLocation.location?.longitude;
+                                                                const nextStartLat =
+                                                                    nextStartLocation.loadStop?.latitude ||
+                                                                    nextStartLocation.location?.latitude;
+                                                                const nextStartLon =
+                                                                    nextStartLocation.loadStop?.longitude ||
+                                                                    nextStartLocation.location?.longitude;
+
+                                                                if (endLat && endLon && nextStartLat && nextStartLon) {
+                                                                    const distance = calculateHaversineDistance(
+                                                                        endLat,
+                                                                        endLon,
+                                                                        nextStartLat,
+                                                                        nextStartLon,
+                                                                    );
+                                                                    emptyMilesToNext = Math.round(distance * 100) / 100;
+                                                                }
                                                             }
+
+                                                            const assignmentMiles = Number(
+                                                                assignment.billedDistanceMiles ||
+                                                                    assignment.routeLeg.distanceMiles,
+                                                            );
+                                                            const emptyMilesKey = `${assignment.id}-to-${
+                                                                nextAssignment?.id || 'end'
+                                                            }`;
+
+                                                            // Assignment colors (same as map)
+                                                            const assignmentColors = [
+                                                                '#3b82f6',
+                                                                '#10b981',
+                                                                '#f59e0b',
+                                                                '#ef4444',
+                                                                '#8b5cf6',
+                                                                '#06b6d4',
+                                                                '#84cc16',
+                                                                '#f97316',
+                                                                '#ec4899',
+                                                                '#6366f1',
+                                                            ];
+                                                            const color =
+                                                                assignmentColors[index % assignmentColors.length];
+
+                                                            return (
+                                                                <div key={`assignment-${assignment.id}`}>
+                                                                    {/* Assignment Card */}
+                                                                    <div
+                                                                        className={`bg-white/90 backdrop-blur-sm rounded-xl p-3 sm:p-4 border transition-all duration-200 cursor-pointer ${
+                                                                            selectedAssignmentId === assignment.id
+                                                                                ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
+                                                                                : 'border-gray-200/40 hover:border-blue-200/60'
+                                                                        }`}
+                                                                        onClick={() => {
+                                                                            if (
+                                                                                selectedAssignmentId === assignment.id
+                                                                            ) {
+                                                                                // If clicking the same assignment, deselect it
+                                                                                setSelectedAssignmentId(null);
+                                                                            } else {
+                                                                                // Select this assignment
+                                                                                setSelectedAssignmentId(assignment.id);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {/* Assignment Header with Total Earnings */}
+                                                                        <div className="flex items-start justify-between mb-3">
+                                                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                                                <div
+                                                                                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-sm"
+                                                                                    style={{ backgroundColor: color }}
+                                                                                >
+                                                                                    <span className="text-white text-xs sm:text-sm font-bold">
+                                                                                        {index + 1}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm">
+                                                                                        Assignment #{index + 1}
+                                                                                    </h4>
+                                                                                    <p className="text-xs text-gray-500 truncate">
+                                                                                        {assignment.load.refNum}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                            {/* Total Earnings - Moved to Top Right */}
+                                                                            <div className="text-right">
+                                                                                <div className="text-xs text-gray-600 mb-1">
+                                                                                    Total
+                                                                                </div>
+                                                                                <div className="text-sm font-bold text-green-600">
+                                                                                    $
+                                                                                    {(() => {
+                                                                                        const emptyMilesForThisAssignment =
+                                                                                            emptyMiles[emptyMilesKey] ||
+                                                                                            0;
+                                                                                        const totalMiles =
+                                                                                            assignmentMiles +
+                                                                                            emptyMilesForThisAssignment;
+                                                                                        return (
+                                                                                            totalMiles *
+                                                                                            Number(
+                                                                                                assignment.chargeValue,
+                                                                                            )
+                                                                                        ).toFixed(2);
+                                                                                    })()}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Route Information */}
+                                                                        <div className="space-y-2 sm:space-y-3">
+                                                                            {/* Distance & Rate */}
+                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                                                                <div className="bg-gray-50/80 rounded-xl p-2 sm:p-3">
+                                                                                    <div className="text-xs text-gray-600 mb-1">
+                                                                                        Distance
+                                                                                    </div>
+                                                                                    <div className="text-xs sm:text-sm font-semibold text-gray-900">
+                                                                                        {assignmentMiles.toFixed(2)}{' '}
+                                                                                        miles
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="bg-gray-50/80 rounded-xl p-2 sm:p-3">
+                                                                                    <div className="text-xs text-gray-600 mb-1">
+                                                                                        Rate
+                                                                                    </div>
+                                                                                    <div className="text-xs sm:text-sm font-semibold text-green-600">
+                                                                                        $
+                                                                                        {String(assignment.chargeValue)}
+                                                                                        /mile
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Route Details */}
+                                                                            <div className="space-y-2">
+                                                                                <div className="text-xs font-medium text-gray-700">
+                                                                                    Route
+                                                                                </div>
+                                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                                                    <div className="bg-green-50/80 p-2 rounded-lg">
+                                                                                        <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                                                                                            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500 flex items-center justify-center">
+                                                                                                <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-white rounded-full"></div>
+                                                                                            </div>
+                                                                                            <span className="font-medium text-green-800">
+                                                                                                Pickup
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className="text-green-700 truncate font-medium text-xs sm:text-sm">
+                                                                                            {startLocation.loadStop
+                                                                                                ?.name ||
+                                                                                                startLocation.location
+                                                                                                    ?.name}
+                                                                                        </p>
+                                                                                        <p className="text-green-600 text-xs">
+                                                                                            {startLocation.loadStop
+                                                                                                ?.city ||
+                                                                                                startLocation.location
+                                                                                                    ?.city}
+                                                                                            ,{' '}
+                                                                                            {startLocation.loadStop
+                                                                                                ?.state ||
+                                                                                                startLocation.location
+                                                                                                    ?.state}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div className="bg-red-50/80 p-2 rounded-lg">
+                                                                                        <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                                                                                            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500 flex items-center justify-center">
+                                                                                                <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-white rounded-full"></div>
+                                                                                            </div>
+                                                                                            <span className="font-medium text-red-800">
+                                                                                                Delivery
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className="text-red-700 truncate font-medium text-xs sm:text-sm">
+                                                                                            {endLocation.loadStop
+                                                                                                ?.name ||
+                                                                                                endLocation.location
+                                                                                                    ?.name}
+                                                                                        </p>
+                                                                                        <p className="text-red-600 text-xs">
+                                                                                            {endLocation.loadStop
+                                                                                                ?.city ||
+                                                                                                endLocation.location
+                                                                                                    ?.city}
+                                                                                            ,{' '}
+                                                                                            {endLocation.loadStop
+                                                                                                ?.state ||
+                                                                                                endLocation.location
+                                                                                                    ?.state}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Start Time */}
+                                                                            <div className="bg-blue-50/80 rounded-xl p-2">
+                                                                                <div className="text-xs text-blue-600 mb-1">
+                                                                                    Started
+                                                                                </div>
+                                                                                <div className="text-xs font-medium text-blue-800">
+                                                                                    {new Date(
+                                                                                        assignment.routeLeg.startedAt ||
+                                                                                            assignment.routeLeg
+                                                                                                .createdAt,
+                                                                                    ).toLocaleString()}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Empty Miles Card (positioned between assignments) */}
+                                                                    {index < sortedAssignments.length - 1 && (
+                                                                        <div className="my-3">
+                                                                            <div className="bg-amber-50/80 backdrop-blur-sm rounded-xl p-4 border border-amber-200/30">
+                                                                                <div className="flex items-center gap-3 mb-2">
+                                                                                    <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                                                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                                                    </div>
+                                                                                    <h4 className="text-sm font-medium text-amber-800">
+                                                                                        Empty Miles to Next Assignment
+                                                                                    </h4>
+                                                                                </div>
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <span className="text-amber-700 text-sm">
+                                                                                        Distance:
+                                                                                    </span>
+                                                                                    <div className="flex items-center space-x-2">
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            step="0.01"
+                                                                                            min="0"
+                                                                                            value={
+                                                                                                emptyMilesInput[
+                                                                                                    emptyMilesKey
+                                                                                                ] !== undefined
+                                                                                                    ? emptyMilesInput[
+                                                                                                          emptyMilesKey
+                                                                                                      ]
+                                                                                                    : (emptyMiles[
+                                                                                                          emptyMilesKey
+                                                                                                      ] !== undefined
+                                                                                                          ? emptyMiles[
+                                                                                                                emptyMilesKey
+                                                                                                            ]
+                                                                                                          : emptyMilesToNext ||
+                                                                                                            0
+                                                                                                      ).toString()
+                                                                                            }
+                                                                                            onChange={(e) => {
+                                                                                                // Store the raw input value as string
+                                                                                                setEmptyMilesInput(
+                                                                                                    (prev) => ({
+                                                                                                        ...prev,
+                                                                                                        [emptyMilesKey]:
+                                                                                                            e.target
+                                                                                                                .value,
+                                                                                                    }),
+                                                                                                );
+                                                                                            }}
+                                                                                            onBlur={(e) => {
+                                                                                                // Convert to number when input loses focus
+                                                                                                const inputValue =
+                                                                                                    e.target.value.trim();
+                                                                                                const value =
+                                                                                                    inputValue === ''
+                                                                                                        ? 0
+                                                                                                        : parseFloat(
+                                                                                                              inputValue,
+                                                                                                          );
+
+                                                                                                // Only update if it's a valid number
+                                                                                                if (!isNaN(value)) {
+                                                                                                    setEmptyMiles(
+                                                                                                        (prev) => ({
+                                                                                                            ...prev,
+                                                                                                            [emptyMilesKey]:
+                                                                                                                value,
+                                                                                                        }),
+                                                                                                    );
+                                                                                                }
+
+                                                                                                // Clear the string input state
+                                                                                                setEmptyMilesInput(
+                                                                                                    (prev) => {
+                                                                                                        const updated =
+                                                                                                            { ...prev };
+                                                                                                        delete updated[
+                                                                                                            emptyMilesKey
+                                                                                                        ];
+                                                                                                        return updated;
+                                                                                                    },
+                                                                                                );
+                                                                                            }}
+                                                                                            onKeyDown={(e) => {
+                                                                                                // Handle Enter key to trigger blur
+                                                                                                if (e.key === 'Enter') {
+                                                                                                    e.currentTarget.blur();
+                                                                                                }
+                                                                                            }}
+                                                                                            className="w-20 px-2 py-1 border border-amber-300 rounded-lg text-sm bg-white/80 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                                                                        />
+                                                                                        <span className="text-amber-700 text-sm font-medium">
+                                                                                            miles
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <p className="text-xs text-amber-600 mt-2 truncate">
+                                                                                    To:{' '}
+                                                                                    {nextAssignment?.routeLeg
+                                                                                        .locations[0].loadStop?.name ||
+                                                                                        nextAssignment?.routeLeg
+                                                                                            .locations[0].location
+                                                                                            ?.name}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                    {/* Empty Miles Card for Last Assignment (Return to Base) */}
+                                                    {invoice.assignments.filter((a) => a.chargeType === 'PER_MILE')
+                                                        .length > 0 &&
+                                                        (() => {
+                                                            const mileBasedAssignments = invoice.assignments.filter(
+                                                                (a) => a.chargeType === 'PER_MILE',
+                                                            );
+                                                            const sortedAssignments = mileBasedAssignments.sort(
+                                                                (a, b) => {
+                                                                    const dateA = new Date(
+                                                                        a.routeLeg.startedAt || a.routeLeg.createdAt,
+                                                                    );
+                                                                    const dateB = new Date(
+                                                                        b.routeLeg.startedAt || b.routeLeg.createdAt,
+                                                                    );
+                                                                    return dateA.getTime() - dateB.getTime();
+                                                                },
+                                                            );
+                                                            const lastAssignment =
+                                                                sortedAssignments[sortedAssignments.length - 1];
+                                                            const emptyMilesKey = `${lastAssignment.id}-to-end`;
+
+                                                            return (
+                                                                <div className="mt-3">
+                                                                    <div className="bg-orange-50/80 backdrop-blur-sm rounded-xl p-4 border border-orange-200/30">
+                                                                        <div className="flex items-center gap-3 mb-2">
+                                                                            <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
+                                                                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                                            </div>
+                                                                            <h4 className="text-sm font-medium text-orange-800">
+                                                                                Empty Miles After Last Assignment
+                                                                            </h4>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-orange-700 text-sm">
+                                                                                Distance (Return/Deadhead):
+                                                                            </span>
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    step="0.01"
+                                                                                    min="0"
+                                                                                    value={
+                                                                                        emptyMilesInput[
+                                                                                            emptyMilesKey
+                                                                                        ] !== undefined
+                                                                                            ? emptyMilesInput[
+                                                                                                  emptyMilesKey
+                                                                                              ]
+                                                                                            : (emptyMiles[
+                                                                                                  emptyMilesKey
+                                                                                              ] !== undefined
+                                                                                                  ? emptyMiles[
+                                                                                                        emptyMilesKey
+                                                                                                    ]
+                                                                                                  : 0
+                                                                                              ).toString()
+                                                                                    }
+                                                                                    onChange={(e) => {
+                                                                                        setEmptyMilesInput((prev) => ({
+                                                                                            ...prev,
+                                                                                            [emptyMilesKey]:
+                                                                                                e.target.value,
+                                                                                        }));
+                                                                                    }}
+                                                                                    onBlur={(e) => {
+                                                                                        const inputValue =
+                                                                                            e.target.value.trim();
+                                                                                        const value =
+                                                                                            inputValue === ''
+                                                                                                ? 0
+                                                                                                : parseFloat(
+                                                                                                      inputValue,
+                                                                                                  );
+
+                                                                                        if (!isNaN(value)) {
+                                                                                            setEmptyMiles((prev) => ({
+                                                                                                ...prev,
+                                                                                                [emptyMilesKey]: value,
+                                                                                            }));
+                                                                                        }
+
+                                                                                        setEmptyMilesInput((prev) => {
+                                                                                            const updated = { ...prev };
+                                                                                            delete updated[
+                                                                                                emptyMilesKey
+                                                                                            ];
+                                                                                            return updated;
+                                                                                        });
+                                                                                    }}
+                                                                                    onKeyDown={(e) => {
+                                                                                        if (e.key === 'Enter') {
+                                                                                            e.currentTarget.blur();
+                                                                                        }
+                                                                                    }}
+                                                                                    className="w-20 px-2 py-1 border border-orange-300 rounded-lg text-sm bg-white/80 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                                                                />
+                                                                                <span className="text-orange-700 text-sm font-medium">
+                                                                                    miles
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-xs text-orange-600 mt-2">
+                                                                            Empty miles after completing final
+                                                                            assignment (return to base, deadhead, etc.)
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            );
                                                         })()}
-                                                    </p>
-                                                </div>
-                                                <div className="flex-shrink-0 ml-4">
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={notifyDriver}
-                                                            onChange={(e) => setNotifyDriver(e.target.checked)}
-                                                            className="sr-only peer"
-                                                        />
-                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                                    </label>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>{' '}
+                                    {/* Compensation Summary - Moved to Bottom */}
+                                    <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-2xl p-6 shadow-sm mt-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            Compensation Summary
+                                        </h3>
 
-                                        <div className="mt-6 flex justify-between">
-                                            <button
-                                                onClick={prevStep}
-                                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                            >
-                                                Back
-                                            </button>
-                                            <button
-                                                onClick={handleCreateInvoice}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                            >
-                                                Create Invoice
-                                            </button>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                                            <div className="bg-green-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-green-200/30">
+                                                <p className="text-xs sm:text-sm font-semibold text-green-800 mb-2">
+                                                    Assignment Miles
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-bold text-green-900">
+                                                    {invoice.assignments
+                                                        .filter((a) => a.chargeType === 'PER_MILE')
+                                                        .reduce(
+                                                            (total, a) =>
+                                                                total +
+                                                                Number(
+                                                                    a.billedDistanceMiles || a.routeLeg.distanceMiles,
+                                                                ),
+                                                            0,
+                                                        )
+                                                        .toFixed(1)}
+                                                </p>
+                                                <p className="text-xs text-green-600 mt-1">Total Distance</p>
+                                            </div>
+                                            <div className="bg-amber-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-amber-200/30">
+                                                <p className="text-xs sm:text-sm font-semibold text-amber-800 mb-2">
+                                                    Empty Miles
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-bold text-amber-900">
+                                                    {Object.values(emptyMiles)
+                                                        .reduce((total, miles) => total + miles, 0)
+                                                        .toFixed(1)}
+                                                </p>
+                                                <p className="text-xs text-amber-600 mt-1">Total Empty Miles</p>
+                                            </div>
+                                            <div className="bg-blue-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-blue-200/30">
+                                                <p className="text-xs sm:text-sm font-semibold text-blue-800 mb-2">
+                                                    Total Pay
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-bold text-blue-900">
+                                                    $
+                                                    {invoice.assignments
+                                                        .filter((a) => a.chargeType === 'PER_MILE')
+                                                        .reduce((total, a) => {
+                                                            const billedMiles = Number(
+                                                                a.billedDistanceMiles || a.routeLeg.distanceMiles,
+                                                            );
+
+                                                            // Find empty miles that come AFTER this assignment
+                                                            const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                                                key.startsWith(`${a.id}-to-`),
+                                                            );
+                                                            const emptyMilesForAssignment = emptyMilesKey
+                                                                ? emptyMiles[emptyMilesKey]
+                                                                : 0;
+
+                                                            const totalMiles = billedMiles + emptyMilesForAssignment;
+                                                            return total + totalMiles * Number(a.chargeValue);
+                                                        }, 0)
+                                                        .toFixed(2)}
+                                                </p>
+                                                <p className="text-xs text-blue-600 mt-1">Including Empty Miles</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Empty Miles Compensation Options */}
+                                        <div className="bg-gray-50/80 backdrop-blur-sm p-5 rounded-xl border border-gray-200/30">
+                                            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                Empty Miles Information
+                                            </h4>
+
+                                            <div className="space-y-3">
+                                                <div className="text-sm text-gray-700">
+                                                    Empty miles are automatically included in assignment calculations.
+                                                    Each assignment&apos;s compensation now includes both billed miles
+                                                    and empty miles.
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="mt-3 sm:mt-6 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                                        <button
+                                            onClick={() => setCurrentStep(2)}
+                                            className="px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                                        >
+                                            Back to Assignments
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                // Update assignments with latest empty miles data
+                                                const updatedAssignments = invoice.assignments.map((assignment) => {
+                                                    // Find matching empty miles for this assignment
+                                                    // Check both inter-assignment keys and last assignment key
+                                                    const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                                        key.startsWith(`${assignment.id}-to-`),
+                                                    );
+                                                    const assignmentEmptyMiles = emptyMilesKey
+                                                        ? emptyMiles[emptyMilesKey]
+                                                        : 0;
+
+                                                    return {
+                                                        ...assignment,
+                                                        emptyMiles:
+                                                            assignmentEmptyMiles > 0
+                                                                ? new Prisma.Decimal(assignmentEmptyMiles)
+                                                                : null,
+                                                    };
+                                                });
+
+                                                setInvoice((prev) => ({ ...prev, assignments: updatedAssignments }));
+                                                setCurrentStep(3);
+                                            }}
+                                            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                                        >
+                                            Continue to Additional Items
+                                        </button>
+                                    </div>
                                 </div>
+                            )}{' '}
+                            {/* Step 3: Additional Items */}
+                            {(currentStep as number) === 3 && (
+                                <AdditionalItems
+                                    invoice={invoice}
+                                    setInvoice={setInvoice}
+                                    newLineItem={newLineItem}
+                                    setNewLineItem={setNewLineItem}
+                                    handleAddLineItem={handleAddLineItem}
+                                    handleRemoveLineItem={handleRemoveLineItem}
+                                    formatCurrency={formatCurrency}
+                                    onPrevStep={prevStep}
+                                    onNextStep={nextStep}
+                                    mode="create"
+                                    nextButtonText="Review Invoice"
+                                />
+                            )}
+                            {/* Step 4: Review & Create */}
+                            {(currentStep as number) === 4 && (
+                                <InvoiceReview
+                                    invoice={invoice}
+                                    allDrivers={allDrivers}
+                                    emptyMiles={emptyMiles}
+                                    totalAmount={totalAmount}
+                                    notifyDriver={notifyDriver}
+                                    setNotifyDriver={setNotifyDriver}
+                                    isLoading={creatingInvoice}
+                                    loadingText="Creating Invoice..."
+                                    onPrevStep={prevStep}
+                                    onSubmit={handleCreateInvoice}
+                                    submitButtonText="Create Invoice"
+                                    mode="create"
+                                    formatCurrency={formatCurrency}
+                                />
                             )}
                         </div>
                     </div>
                 </div>
             </>
+            {creatingInvoice && <LoadingOverlay message="Creating Invoice..." />}
         </Layout>
     );
 };
