@@ -53,9 +53,9 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
                 setAssignmentDetails({
                     ...assignmentDetails,
                     chargeType: value,
-                    billedDurationHours: new Decimal(0),
-                    billedLoadRate: new Decimal(0),
-
+                    billedDistanceMiles: assignmentDetails.routeLeg.distanceMiles, // Set to actual distance
+                    billedDurationHours: null, // Clear irrelevant fields
+                    billedLoadRate: null, // Clear irrelevant fields
                     chargeValue: new Decimal(getChargeValue(value)),
                 });
                 break;
@@ -63,9 +63,9 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
                 setAssignmentDetails({
                     ...assignmentDetails,
                     chargeType: value,
-                    billedDistanceMiles: new Decimal(0),
-                    billedLoadRate: new Decimal(0),
-
+                    billedDistanceMiles: null, // Clear irrelevant fields
+                    billedDurationHours: assignmentDetails.routeLeg.durationHours, // Set to actual duration
+                    billedLoadRate: null, // Clear irrelevant fields
                     chargeValue: new Decimal(getChargeValue(value)),
                 });
                 break;
@@ -73,10 +73,9 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
                 setAssignmentDetails({
                     ...assignmentDetails,
                     chargeType: value,
-                    billedDistanceMiles: new Decimal(0),
-                    billedDurationHours: new Decimal(0),
-                    billedLoadRate: new Decimal(0),
-
+                    billedDistanceMiles: null, // Clear irrelevant fields
+                    billedDurationHours: null, // Clear irrelevant fields
+                    billedLoadRate: null, // Clear irrelevant fields
                     chargeValue: new Decimal(getChargeValue(value)),
                 });
                 break;
@@ -84,22 +83,16 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
                 setAssignmentDetails({
                     ...assignmentDetails,
                     chargeType: value,
-                    billedDistanceMiles: new Decimal(0),
-                    billedDurationHours: new Decimal(0),
-
+                    billedDistanceMiles: null, // Clear irrelevant fields
+                    billedDurationHours: null, // Clear irrelevant fields
+                    billedLoadRate: assignmentDetails.load.rate, // Set to actual load rate - THIS WAS MISSING!
                     chargeValue: new Decimal(getChargeValue(value)),
                 });
                 break;
             default:
                 break;
         }
-
-        setAssignmentDetails({
-            ...assignmentDetails,
-            chargeType: value,
-
-            chargeValue: new Decimal(getChargeValue(value)),
-        });
+        // REMOVED: The duplicate setAssignmentDetails call that was overwriting the changes above
     };
 
     const handleAssignmentDetailChange = (field: keyof ExpandedDriverAssignment, value: number) => {
