@@ -600,9 +600,17 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 try {
                     const route = await updateRouteLeg(updateRequest);
 
-                    setLoad({
-                        ...load,
-                        route: route as Route,
+                    setLoad((prevLoad) => {
+                        // Collect all driver assignments from all route legs for top-level update
+                        const allDriverAssignments =
+                            route?.routeLegs?.flatMap((leg) => leg.driverAssignments || []) || [];
+
+                        const updatedLoad = {
+                            ...prevLoad,
+                            route: route as any,
+                            driverAssignments: allDriverAssignments as any, // Update top-level driver assignments
+                        };
+                        return updatedLoad;
                     });
 
                     notify({ title: 'Load Assignment', message: 'Assignment updated successfully', type: 'success' });
@@ -622,9 +630,20 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 try {
                     const route = await createRouteLeg(createRequest);
 
-                    setLoad({
-                        ...load,
-                        route: route as Route,
+                    // Update the load context with the new route, preserving all other load data
+                    setLoad((prevLoad) => {
+                        // Collect all driver assignments from all route legs
+                        const allDriverAssignments =
+                            route?.routeLegs?.flatMap((leg) => leg.driverAssignments || []) || [];
+
+                        // Ensure we have the complete route structure
+                        const updatedLoad = {
+                            ...prevLoad,
+                            route: route as any, // Type cast to resolve compatibility issues
+                            driverAssignments: allDriverAssignments as any, // Update top-level driver assignments
+                        };
+
+                        return updatedLoad;
                     });
 
                     notify({ title: 'Load Assignment', message: 'Assignment created successfully', type: 'success' });
@@ -691,7 +710,11 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                     leaveTo="translate-x-full"
                                 >
                                     <Dialog.Panel className="w-screen max-w-md sm:max-w-lg pointer-events-auto">
-                                        {saveLoading && <LoadingOverlay />}
+                                        {saveLoading && (
+                                            <LoadingOverlay
+                                                message={routeLeg ? 'Updating Assignment...' : 'Creating Assignment...'}
+                                            />
+                                        )}
 
                                         {showLegLocationSelection && (
                                             <div className="relative flex flex-col h-full space-y-4 bg-white shadow-xl">
