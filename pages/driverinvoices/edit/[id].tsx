@@ -237,8 +237,18 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
             // If it's already selected, remove it from the selectedAssignments array
             updatedSelectedAssignments = invoice.assignments.filter((a) => a.id !== assignmentId);
         } else {
-            // Otherwise, add it to the selectedAssignments array
-            updatedSelectedAssignments = [...invoice.assignments, assignment];
+            // Otherwise, add it to the selectedAssignments array with proper serialization
+            const serializedAssignment = {
+                ...assignment,
+                // Serialize all decimal fields to prevent JSON serialization issues
+                chargeValue: assignment.chargeValue ? Number(assignment.chargeValue) : 0,
+                billedDistanceMiles: assignment.billedDistanceMiles ? Number(assignment.billedDistanceMiles) : null,
+                billedDurationHours: assignment.billedDurationHours ? Number(assignment.billedDurationHours) : null,
+                billedLoadRate: assignment.billedLoadRate ? Number(assignment.billedLoadRate) : null,
+                emptyMiles: assignment.emptyMiles ? Number(assignment.emptyMiles) : null,
+            } as any; // Type assertion to allow serialization
+            
+            updatedSelectedAssignments = [...invoice.assignments, serializedAssignment];
         }
 
         // Update the state for selectedAssignments
@@ -261,7 +271,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
 
                     return {
                         ...assignment,
-                        emptyMiles: assignmentEmptyMiles > 0 ? new Prisma.Decimal(assignmentEmptyMiles) : null,
+                        // Store as number (will be serialized properly in handleUpdateInvoice)
+                        emptyMiles: assignmentEmptyMiles > 0 ? (assignmentEmptyMiles as any) : null,
                     };
                 });
 
@@ -328,29 +339,44 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setUpdatingInvoice(true);
 
         try {
-            // Sanitize the invoice data before sending to API to prevent serialization issues
+            // Sanitize and serialize the invoice data before sending to API to prevent serialization issues
             const sanitizedInvoice = {
                 ...invoice,
-                assignments: invoice.assignments.map((assignment) => ({
-                    ...assignment,
-                    // Ensure decimal fields are properly null when not relevant to charge type
-                    billedDistanceMiles:
-                        assignment.chargeType === 'PER_MILE' && assignment.billedDistanceMiles !== null
-                            ? assignment.billedDistanceMiles
-                            : null,
-                    billedDurationHours:
-                        assignment.chargeType === 'PER_HOUR' && assignment.billedDurationHours !== null
-                            ? assignment.billedDurationHours
-                            : null,
-                    billedLoadRate:
-                        assignment.chargeType === 'PERCENTAGE_OF_LOAD' && assignment.billedLoadRate !== null
-                            ? assignment.billedLoadRate
-                            : null,
-                    // Ensure emptyMiles is handled properly
-                    emptyMiles:
-                        assignment.emptyMiles && Number(assignment.emptyMiles) > 0 ? assignment.emptyMiles : null,
+                // Serialize totalAmount if it's a Decimal
+                totalAmount: invoice.totalAmount ? Number(invoice.totalAmount) : 0,
+                // Serialize line items
+                lineItems: invoice.lineItems.map((item) => ({
+                    ...item,
+                    amount: item.amount ? Number(item.amount) : 0,
                 })),
-            };
+                assignments: invoice.assignments.map((assignment) => {
+                    // Create a serializable copy of the assignment
+                    const serializedAssignment = {
+                        ...assignment,
+                        // Serialize decimal fields properly
+                        chargeValue: assignment.chargeValue ? Number(assignment.chargeValue) : 0,
+                        // Ensure decimal fields are properly serialized and null when not relevant to charge type
+                        billedDistanceMiles:
+                            assignment.chargeType === 'PER_MILE' && assignment.billedDistanceMiles !== null
+                                ? Number(assignment.billedDistanceMiles)
+                                : null,
+                        billedDurationHours:
+                            assignment.chargeType === 'PER_HOUR' && assignment.billedDurationHours !== null
+                                ? Number(assignment.billedDurationHours)
+                                : null,
+                        billedLoadRate:
+                            assignment.chargeType === 'PERCENTAGE_OF_LOAD' && assignment.billedLoadRate !== null
+                                ? Number(assignment.billedLoadRate)
+                                : null,
+                        // Ensure emptyMiles is handled properly
+                        emptyMiles:
+                            assignment.emptyMiles && Number(assignment.emptyMiles) > 0
+                                ? Number(assignment.emptyMiles)
+                                : null,
+                    };
+                    return serializedAssignment;
+                }),
+            } as any; // Type assertion to allow serialization
 
             const result = await updateDriverInvoice(invoiceId, sanitizedInvoice);
             if (result) {

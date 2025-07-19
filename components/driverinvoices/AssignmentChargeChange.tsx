@@ -114,17 +114,25 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
     };
 
     const handleConfirm = () => {
-        // Sanitize the assignment details before sending to parent
+        // Sanitize and serialize the assignment details before sending to parent
         const sanitizedAssignment = {
             ...assignmentDetails,
-            // Ensure decimal fields are properly null when not relevant to charge type
+            // Serialize the charge value to ensure it's a number
+            chargeValue: assignmentDetails.chargeValue ? Number(assignmentDetails.chargeValue) : 0,
+            // Ensure decimal fields are properly serialized and null when not relevant to charge type
             billedDistanceMiles:
-                assignmentDetails.chargeType === 'PER_MILE' ? assignmentDetails.billedDistanceMiles : null,
+                assignmentDetails.chargeType === 'PER_MILE' && assignmentDetails.billedDistanceMiles !== null
+                    ? Number(assignmentDetails.billedDistanceMiles)
+                    : null,
             billedDurationHours:
-                assignmentDetails.chargeType === 'PER_HOUR' ? assignmentDetails.billedDurationHours : null,
+                assignmentDetails.chargeType === 'PER_HOUR' && assignmentDetails.billedDurationHours !== null
+                    ? Number(assignmentDetails.billedDurationHours)
+                    : null,
             billedLoadRate:
-                assignmentDetails.chargeType === 'PERCENTAGE_OF_LOAD' ? assignmentDetails.billedLoadRate : null,
-        };
+                assignmentDetails.chargeType === 'PERCENTAGE_OF_LOAD' && assignmentDetails.billedLoadRate !== null
+                    ? Number(assignmentDetails.billedLoadRate)
+                    : null,
+        } as any; // Type assertion to allow serialization
 
         onConfirm(sanitizedAssignment);
     };
