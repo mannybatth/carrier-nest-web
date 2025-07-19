@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowPathIcon, PencilSquareIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PencilSquareIcon, EyeIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Spinner from 'components/Spinner';
-import { getAllAssignments } from 'lib/rest/assignment';
+import { getAllAssignments, getAssignmentById } from 'lib/rest/assignment';
 import { notify } from 'components/Notification';
 import DateRangePicker from '../DateRangePicker';
 import dayjs from 'dayjs';
 import type { ExpandedDriverAssignment } from 'interfaces/models';
+import AssignmentPopup from 'components/assignment/AssignmentPopup';
 
 export interface AssignmentSelectorProps {
     /** Current driver ID for filtering assignments */
@@ -44,6 +45,7 @@ export interface AssignmentSelectorProps {
     /** Callbacks */
     onAssignmentToggle: (assignmentId: string) => void;
     onReloadAssignments: () => void;
+    /** @deprecated Assignment details are now shown in a popup instead of this callback */
     onAssignmentEdit?: (assignment: ExpandedDriverAssignment) => void;
     /** Custom formatting function for currency */
     formatCurrency?: (amount: string) => string;
@@ -84,6 +86,11 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
         cancelButtonText = 'Cancel',
     } = navigation;
 
+    // Assignment popup state
+    const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+    const [modalAssignment, setModalAssignment] = useState<ExpandedDriverAssignment | null>(null);
+    const [loadingAssignment, setLoadingAssignment] = useState(false);
+
     // Check if invoice period is valid (for create mode)
     const isInvoicePeriodValid = mode === 'edit' || (invoice?.fromDate && invoice?.toDate);
     const shouldShowAssignments = mode === 'edit' || isInvoicePeriodValid;
@@ -99,6 +106,25 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
             return notify({ title: 'Please select at least one assignment', type: 'error' });
         }
         onNext?.();
+    };
+
+    // Handle viewing assignment in popup
+    const handleViewAssignment = async (assignment: ExpandedDriverAssignment) => {
+        setAssignmentModalOpen(true);
+        setLoadingAssignment(true);
+
+        try {
+            const fullAssignment = await getAssignmentById(assignment.id);
+            setModalAssignment(fullAssignment);
+        } catch (error) {
+            console.error('Error fetching assignment:', error);
+            notify({
+                title: 'Error loading assignment details',
+                type: 'error',
+            });
+        } finally {
+            setLoadingAssignment(false);
+        }
     };
 
     const handlePeriodChange = React.useCallback(
@@ -185,6 +211,12 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
     // Unified enhanced layout for both create and edit modes
     return (
         <div>
+            <AssignmentPopup
+                isOpen={assignmentModalOpen}
+                onClose={() => setAssignmentModalOpen(false)}
+                assignment={modalAssignment}
+                loading={loadingAssignment}
+            />
             {/* Header - Dynamic based on mode */}
             <div className="px-4 py-4 sm:px-6 bg-blue-100/50 backdrop-blur-2xl border-b border-blue-100/40 rounded-tl-xl rounded-tr-xl">
                 <div className="flex items-center justify-between">
@@ -447,14 +479,16 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                     >
                                                         #{assignment.load.refNum}
                                                     </Link>
-                                                    <Link
-                                                        href={`/loads/${assignment.load.id}?routeLegId=${assignment.routeLeg.id}`}
-                                                        target="_blank"
-                                                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded mt-1 hover:bg-gray-200 transition text-center inline-block"
-                                                        onClick={(e) => e.stopPropagation()}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewAssignment(assignment);
+                                                        }}
+                                                        className="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded mt-1 hover:bg-blue-200 transition text-center inline-flex items-center gap-1"
                                                     >
-                                                        Edit
-                                                    </Link>
+                                                        <EyeIcon className="w-3 h-3" />
+                                                        View
+                                                    </button>
                                                 </div>
                                             </div>
                                             {/* Total Amount - Top Right */}
@@ -686,14 +720,16 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                             >
                                                 #{assignment.load.refNum}
                                             </Link>
-                                            <Link
-                                                href={`/loads/${assignment.load.id}?routeLegId=${assignment.routeLeg.id}`}
-                                                target="_blank"
-                                                className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition text-center inline-block"
-                                                onClick={(e) => e.stopPropagation()}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewAssignment(assignment);
+                                                }}
+                                                className="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition text-center inline-flex items-center gap-1"
                                             >
-                                                Edit
-                                            </Link>
+                                                <EyeIcon className="w-3 h-3" />
+                                                View
+                                            </button>
                                         </div>
                                         {/* Route */}
                                         <div className="col-span-5">
