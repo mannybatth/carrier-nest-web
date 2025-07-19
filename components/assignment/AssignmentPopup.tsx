@@ -4,7 +4,14 @@ import React from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import Link from 'next/link';
-import { XMarkIcon, PhoneIcon, ClockIcon, CurrencyDollarIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import {
+    XMarkIcon,
+    PhoneIcon,
+    ClockIcon,
+    CurrencyDollarIcon,
+    UserCircleIcon,
+    MapIcon,
+} from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { ExpandedDriverAssignment } from 'interfaces/models';
 import { formatPhoneNumber, formatTimeTo12Hour } from 'lib/helpers/format';
@@ -59,6 +66,11 @@ const AssignmentPopup: React.FC<AssignmentPopupProps> = ({ isOpen, onClose, assi
             const stop = loc.loadStop || loc.location;
             if (!stop) return null;
             const stopType = loc.loadStop?.type ?? 'CUSTOM STOP';
+
+            // Check if this is first or last stop for timestamp badges
+            const isFirstStop = index === 0;
+            const isLastStop = index === routeLeg.locations.length - 1;
+
             return (
                 <div key={index} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
@@ -77,7 +89,79 @@ const AssignmentPopup: React.FC<AssignmentPopupProps> = ({ isOpen, onClose, assi
                         )}
                     </div>
                     <div className="pb-6">
-                        <div className="text-xs text-gray-500 uppercase font-medium">{stopType}</div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-xs text-gray-500 uppercase font-medium">{stopType}</div>
+                            {/* Started At badge for first stop */}
+                            {isFirstStop &&
+                                routeLeg?.startedAt &&
+                                (routeLeg.startLatitude && routeLeg.startLongitude ? (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${routeLeg.startLatitude},${routeLeg.startLongitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 hover:border-green-200 transition-colors cursor-pointer"
+                                        title={`Open start location (${routeLeg.startLatitude.toFixed(
+                                            4,
+                                        )}, ${routeLeg.startLongitude.toFixed(4)}) in Google Maps`}
+                                    >
+                                        Started @{' '}
+                                        {new Date(routeLeg.startedAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true,
+                                        })}
+                                        <MapIcon className="w-3 h-3 text-green-600 ml-1" />
+                                    </a>
+                                ) : (
+                                    <div className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-100">
+                                        Started @{' '}
+                                        {new Date(routeLeg.startedAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true,
+                                        })}
+                                    </div>
+                                ))}
+                            {/* Ended At badge for last stop */}
+                            {isLastStop &&
+                                routeLeg?.endedAt &&
+                                (routeLeg.endLatitude && routeLeg.endLongitude ? (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${routeLeg.endLatitude},${routeLeg.endLongitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors cursor-pointer"
+                                        title={`Open end location (${routeLeg.endLatitude.toFixed(
+                                            4,
+                                        )}, ${routeLeg.endLongitude.toFixed(4)}) in Google Maps`}
+                                    >
+                                        Completed @{' '}
+                                        {new Date(routeLeg.endedAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true,
+                                        })}
+                                        <MapIcon className="w-3 h-3 text-red-600 ml-1" />
+                                    </a>
+                                ) : (
+                                    <div className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-50 text-red-700 border border-red-100">
+                                        Completed @{' '}
+                                        {new Date(routeLeg.endedAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true,
+                                        })}
+                                    </div>
+                                ))}
+                        </div>
                         <div className="font-semibold text-gray-800">{stop.name}</div>
                         <div className="text-sm text-gray-600">
                             {stop.street}, {stop.city}, {stop.state} {stop.zip}
