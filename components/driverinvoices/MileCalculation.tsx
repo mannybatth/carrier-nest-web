@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { ExpandedDriverAssignment } from 'interfaces/models';
 import DriverRouteMap from 'components/DriverRouteMap';
