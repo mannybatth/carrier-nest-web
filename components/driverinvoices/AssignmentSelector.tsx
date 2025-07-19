@@ -447,6 +447,14 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                     >
                                                         #{assignment.load.refNum}
                                                     </Link>
+                                                    <Link
+                                                        href={`/loads/${assignment.load.id}?routeLegId=${assignment.routeLeg.id}`}
+                                                        target="_blank"
+                                                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded mt-1 hover:bg-gray-200 transition text-center inline-block"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        Edit
+                                                    </Link>
                                                 </div>
                                             </div>
                                             {/* Total Amount - Top Right */}
@@ -487,22 +495,9 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                         {/* Started At Badge */}
                                                         {assignment.routeLeg.startedAt && (
                                                             <div className="mt-2">
-                                                                <div className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                                                    <svg
-                                                                        className="w-3 h-3 mr-1"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                    >
-                                                                        <path
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth={2}
-                                                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                                        />
-                                                                    </svg>
-                                                                    <span className="text-xs">
-                                                                        Pickup Started{' '}
+                                                                <div className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                                                                    <span className="text-xs whitespace-nowrap">
+                                                                        Started @{' '}
                                                                         {new Date(
                                                                             assignment.routeLeg.startedAt,
                                                                         ).toLocaleDateString('en-US', {
@@ -510,7 +505,6 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                                             day: 'numeric',
                                                                             year: '2-digit',
                                                                         })}{' '}
-                                                                        at{' '}
                                                                         {new Date(
                                                                             assignment.routeLeg.startedAt,
                                                                         ).toLocaleTimeString('en-US', {
@@ -564,21 +558,8 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                                             : 'bg-gray-100 text-gray-700 border border-gray-200'
                                                                     }`}
                                                                 >
-                                                                    <svg
-                                                                        className="w-3 h-3 mr-1"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                    >
-                                                                        <path
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth={2}
-                                                                            d="M5 13l4 4L19 7"
-                                                                        />
-                                                                    </svg>
-                                                                    <span className="text-xs">
-                                                                        Delivery Completed{' '}
+                                                                    <span className="text-xs whitespace-nowrap">
+                                                                        Completed @{' '}
                                                                         {new Date(completedDate).toLocaleDateString(
                                                                             'en-US',
                                                                             {
@@ -587,7 +568,6 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                                                 year: '2-digit',
                                                                             },
                                                                         )}{' '}
-                                                                        at{' '}
                                                                         {new Date(completedDate).toLocaleTimeString(
                                                                             'en-US',
                                                                             {
@@ -631,12 +611,53 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                     {assignment.chargeType.replace(/_/g, ' ')}
                                                 </div>
                                                 <div className="text-xs text-gray-600">
-                                                    {assignment.chargeType === 'PER_MILE' &&
-                                                        `$${assignment.chargeValue}/mi`}
-                                                    {assignment.chargeType === 'PER_HOUR' &&
-                                                        `$${assignment.chargeValue}/hr`}
-                                                    {assignment.chargeType === 'PERCENTAGE_OF_LOAD' &&
-                                                        `${assignment.chargeValue}%`}
+                                                    {assignment.chargeType === 'PER_MILE' && (
+                                                        <div>
+                                                            <div>${Number(assignment.chargeValue).toFixed(2)}/mi</div>
+                                                            <div className="text-xs text-gray-500 mt-0.5">
+                                                                Total:{' '}
+                                                                {Number(
+                                                                    assignment.billedDistanceMiles ||
+                                                                        assignment.routeLeg.distanceMiles,
+                                                                ).toFixed(1)}{' '}
+                                                                + {Number(assignment.emptyMiles || 0).toFixed(1)} ={' '}
+                                                                {(
+                                                                    Number(
+                                                                        assignment.billedDistanceMiles ||
+                                                                            assignment.routeLeg.distanceMiles,
+                                                                    ) + Number(assignment.emptyMiles || 0)
+                                                                ).toFixed(1)}{' '}
+                                                                mi
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {assignment.chargeType === 'PER_HOUR' && (
+                                                        <div>
+                                                            <div>${Number(assignment.chargeValue).toFixed(2)}/hr</div>
+                                                            <div className="text-xs text-gray-500 mt-0.5">
+                                                                Hours:{' '}
+                                                                {Number(
+                                                                    assignment.billedDurationHours ||
+                                                                        assignment.routeLeg.durationHours,
+                                                                ).toFixed(1)}{' '}
+                                                                hrs
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {assignment.chargeType === 'PERCENTAGE_OF_LOAD' && (
+                                                        <div>
+                                                            <div>{Number(assignment.chargeValue).toFixed(2)}%</div>
+                                                            <div className="text-xs text-gray-500 mt-0.5">
+                                                                Load Rate:{' '}
+                                                                {formatCurrency(
+                                                                    Number(
+                                                                        assignment.billedLoadRate ||
+                                                                            assignment.load.rate,
+                                                                    ).toFixed(2),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     {assignment.chargeType === 'FIXED_PAY' &&
                                                         formatCurrency(Number(assignment.chargeValue).toFixed(2))}
                                                 </div>
@@ -656,18 +677,26 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                             />
                                         </div>{' '}
                                         {/* Order Number */}
-                                        <div className="col-span-2">
+                                        <div className="col-span-1">
                                             <Link
                                                 href={`/loads/${assignment.load.id}#load-assignments`}
                                                 target="_blank"
-                                                className="text-blue-600 hover:text-blue-800 font-semibold text-sm underline block"
+                                                className="text-blue-600 hover:text-blue-800 font-semibold text-sm underline block mb-1"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 #{assignment.load.refNum}
                                             </Link>
+                                            <Link
+                                                href={`/loads/${assignment.load.id}?routeLegId=${assignment.routeLeg.id}`}
+                                                target="_blank"
+                                                className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition text-center inline-block"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Edit
+                                            </Link>
                                         </div>
                                         {/* Route */}
-                                        <div className="col-span-4">
+                                        <div className="col-span-5">
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 bg-green-50/40 p-2 rounded-lg">
                                                     <div className="flex items-center gap-1 mb-1">
@@ -690,22 +719,9 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                     {/* Started At Badge */}
                                                     {assignment.routeLeg.startedAt && (
                                                         <div className="mt-1">
-                                                            <div className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                                                <svg
-                                                                    className="w-2.5 h-2.5 mr-1"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    viewBox="0 0 24 24"
-                                                                >
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth={2}
-                                                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                                    />
-                                                                </svg>
-                                                                <span className="text-xs">
-                                                                    Pickup Started{' '}
+                                                            <div className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                                                                <span className="text-xs whitespace-nowrap">
+                                                                    Started @{' '}
                                                                     {new Date(
                                                                         assignment.routeLeg.startedAt,
                                                                     ).toLocaleDateString('en-US', {
@@ -765,21 +781,8 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                                         : 'bg-gray-100 text-gray-700 border border-gray-200'
                                                                 }`}
                                                             >
-                                                                <svg
-                                                                    className="w-2.5 h-2.5 mr-1"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    viewBox="0 0 24 24"
-                                                                >
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth={2}
-                                                                        d="M5 13l4 4L19 7"
-                                                                    />
-                                                                </svg>
-                                                                <span className="text-xs">
-                                                                    Delivery Completed{' '}
+                                                                <span className="text-xs whitespace-nowrap">
+                                                                    Completed @{' '}
                                                                     {new Date(completedDate).toLocaleDateString(
                                                                         'en-US',
                                                                         {
@@ -830,12 +833,45 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                 {assignment.chargeType.replace(/_/g, ' ')}
                                             </div>
                                             <div className="text-xs text-gray-600">
-                                                {assignment.chargeType === 'PER_MILE' &&
-                                                    `$${assignment.chargeValue}/mi`}
-                                                {assignment.chargeType === 'PER_HOUR' &&
-                                                    `$${assignment.chargeValue}/hr`}
-                                                {assignment.chargeType === 'PERCENTAGE_OF_LOAD' &&
-                                                    `${assignment.chargeValue}%`}
+                                                {assignment.chargeType === 'PER_MILE' && (
+                                                    <div>
+                                                        <div>${Number(assignment.chargeValue).toFixed(2)}/mi</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                            Total:{' '}
+                                                            {(
+                                                                Number(
+                                                                    assignment.billedDistanceMiles ||
+                                                                        assignment.routeLeg.distanceMiles,
+                                                                ) + Number(assignment.emptyMiles || 0)
+                                                            ).toFixed(1)}{' '}
+                                                            mi
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {assignment.chargeType === 'PER_HOUR' && (
+                                                    <div>
+                                                        <div>${Number(assignment.chargeValue).toFixed(2)}/hr</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                            {Number(
+                                                                assignment.billedDurationHours ||
+                                                                    assignment.routeLeg.durationHours,
+                                                            ).toFixed(1)}{' '}
+                                                            hrs
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {assignment.chargeType === 'PERCENTAGE_OF_LOAD' && (
+                                                    <div>
+                                                        <div>{Number(assignment.chargeValue).toFixed(2)}%</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                            {formatCurrency(
+                                                                Number(
+                                                                    assignment.billedLoadRate || assignment.load.rate,
+                                                                ).toFixed(2),
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {assignment.chargeType === 'FIXED_PAY' &&
                                                     formatCurrency(Number(assignment.chargeValue).toFixed(2))}
                                             </div>
