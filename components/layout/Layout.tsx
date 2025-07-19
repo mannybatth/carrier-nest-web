@@ -34,7 +34,7 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
             />
 
             <Transition.Root show={sidebarOpen} as={Fragment}>
-                <Dialog as="div" className="fixed inset-0 z-60 flex md:hidden" onClose={setSidebarOpen}>
+                <Dialog as="div" className="fixed inset-0 z-[99999] flex md:hidden" onClose={setSidebarOpen}>
                     <Transition.Child
                         as={Fragment}
                         enter="transition-opacity ease-linear duration-300"
