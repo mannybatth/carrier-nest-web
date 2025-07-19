@@ -114,8 +114,19 @@ const AssignmentChargeTypeChangeDialog: React.FC<AssignmentChargeTypeChangeDialo
     };
 
     const handleConfirm = () => {
-        // console.log(assignmentDetails);
-        onConfirm(assignmentDetails);
+        // Sanitize the assignment details before sending to parent
+        const sanitizedAssignment = {
+            ...assignmentDetails,
+            // Ensure decimal fields are properly null when not relevant to charge type
+            billedDistanceMiles:
+                assignmentDetails.chargeType === 'PER_MILE' ? assignmentDetails.billedDistanceMiles : null,
+            billedDurationHours:
+                assignmentDetails.chargeType === 'PER_HOUR' ? assignmentDetails.billedDurationHours : null,
+            billedLoadRate:
+                assignmentDetails.chargeType === 'PERCENTAGE_OF_LOAD' ? assignmentDetails.billedLoadRate : null,
+        };
+
+        onConfirm(sanitizedAssignment);
     };
 
     // Calculate total pay based on charge type

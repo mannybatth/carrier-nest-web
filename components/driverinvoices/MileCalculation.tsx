@@ -318,10 +318,12 @@ const MileCalculation: React.FC<MileCalculationProps> = ({
                                                                                 : parseFloat(inputValue);
 
                                                                         if (!isNaN(value)) {
-                                                                            setEmptyMiles((prev) => ({
-                                                                                ...prev,
+                                                                            const updatedEmptyMiles = {
+                                                                                ...emptyMiles,
                                                                                 [emptyMilesKey]: value,
-                                                                            }));
+                                                                            };
+                                                                            setEmptyMiles(updatedEmptyMiles);
+                                                                            onEmptyMilesUpdate(updatedEmptyMiles);
                                                                         }
 
                                                                         setEmptyMilesInput((prev) => {
@@ -406,10 +408,12 @@ const MileCalculation: React.FC<MileCalculationProps> = ({
                                                                     inputValue === '' ? 0 : parseFloat(inputValue);
 
                                                                 if (!isNaN(value)) {
-                                                                    setEmptyMiles((prev) => ({
-                                                                        ...prev,
+                                                                    const updatedEmptyMiles = {
+                                                                        ...emptyMiles,
                                                                         [emptyMilesKey]: value,
-                                                                    }));
+                                                                    };
+                                                                    setEmptyMiles(updatedEmptyMiles);
+                                                                    onEmptyMilesUpdate(updatedEmptyMiles);
                                                                 }
 
                                                                 setEmptyMilesInput((prev) => {

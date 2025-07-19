@@ -328,7 +328,31 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setUpdatingInvoice(true);
 
         try {
-            const result = await updateDriverInvoice(invoiceId, invoice);
+            // Sanitize the invoice data before sending to API to prevent serialization issues
+            const sanitizedInvoice = {
+                ...invoice,
+                assignments: invoice.assignments.map((assignment) => ({
+                    ...assignment,
+                    // Ensure decimal fields are properly null when not relevant to charge type
+                    billedDistanceMiles:
+                        assignment.chargeType === 'PER_MILE' && assignment.billedDistanceMiles !== null
+                            ? assignment.billedDistanceMiles
+                            : null,
+                    billedDurationHours:
+                        assignment.chargeType === 'PER_HOUR' && assignment.billedDurationHours !== null
+                            ? assignment.billedDurationHours
+                            : null,
+                    billedLoadRate:
+                        assignment.chargeType === 'PERCENTAGE_OF_LOAD' && assignment.billedLoadRate !== null
+                            ? assignment.billedLoadRate
+                            : null,
+                    // Ensure emptyMiles is handled properly
+                    emptyMiles:
+                        assignment.emptyMiles && Number(assignment.emptyMiles) > 0 ? assignment.emptyMiles : null,
+                })),
+            };
+
+            const result = await updateDriverInvoice(invoiceId, sanitizedInvoice);
             if (result) {
                 // Update local state to reflect status change
                 setInvoice((prev) => ({
@@ -469,7 +493,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
     const onChargeTypeChange = (assignment: ExpandedDriverAssignment) => {
         setInvoice((prev) => ({
             ...prev,
-            assignments: prev.assignments.map((a) => (a.id === assignment.id ? { ...a, ...assignment } : a)),
+            assignments: prev.assignments.map((a) => (a.id === assignment.id ? (assignment as any) : a)),
         }));
 
         setAllAssignments((prev) => prev.map((a) => (a.id === assignment.id ? assignment : a)));

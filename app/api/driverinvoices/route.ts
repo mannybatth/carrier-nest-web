@@ -229,30 +229,42 @@ export const POST = auth(async (req: NextAuthRequest) => {
         });
 
         const updates = assignments.map((assignment: any) => {
+            // Helper function to safely convert to Decimal or null
+            const safeDecimal = (value: any): Prisma.Decimal | null => {
+                if (
+                    value === null ||
+                    value === undefined ||
+                    value === 'null' ||
+                    value === 'undefined' ||
+                    value === ''
+                ) {
+                    return null;
+                }
+                try {
+                    return new Prisma.Decimal(value);
+                } catch (error) {
+                    console.warn(`Failed to convert value to Decimal: ${value}`, error);
+                    return null;
+                }
+            };
+
             const data: Prisma.DriverAssignmentUpdateInput = {
                 chargeType: assignment.chargeType,
                 chargeValue: new Prisma.Decimal(assignment.chargeValue),
             };
 
             if (assignment.chargeType === 'PER_MILE') {
-                // Only set to null if the value is undefined (not 0 or empty string)
-                data.billedDistanceMiles =
-                    assignment.billedDistanceMiles === undefined
-                        ? null
-                        : new Prisma.Decimal(assignment.billedDistanceMiles);
+                // Only set to null if the value is undefined, null, or string representations of null
+                data.billedDistanceMiles = safeDecimal(assignment.billedDistanceMiles);
             } else if (assignment.chargeType === 'PER_HOUR') {
-                data.billedDurationHours =
-                    assignment.billedDurationHours === undefined
-                        ? null
-                        : new Prisma.Decimal(assignment.billedDurationHours);
+                data.billedDurationHours = safeDecimal(assignment.billedDurationHours);
             } else if (assignment.chargeType === 'PERCENTAGE_OF_LOAD') {
-                data.billedLoadRate =
-                    assignment.billedLoadRate === undefined ? null : new Prisma.Decimal(assignment.billedLoadRate);
+                data.billedLoadRate = safeDecimal(assignment.billedLoadRate);
             }
 
             // Always update emptyMiles if provided
             if (assignment.emptyMiles !== undefined) {
-                data.emptyMiles = assignment.emptyMiles === null ? null : new Prisma.Decimal(assignment.emptyMiles);
+                data.emptyMiles = safeDecimal(assignment.emptyMiles);
             }
 
             return prisma.driverAssignment.update({
