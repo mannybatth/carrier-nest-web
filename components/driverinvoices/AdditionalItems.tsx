@@ -48,18 +48,25 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
         amount: '',
     });
 
-
-
     // Refs for input fields
     const descriptionInputRef = useRef<HTMLInputElement>(null);
     const amountInputRef = useRef<HTMLInputElement>(null);
 
     const handleAddLineItemWithFocus = () => {
+        // First blur the amount field to remove focus
+        if (amountInputRef.current) {
+            amountInputRef.current.blur();
+        }
+
         handleAddLineItem();
-        // Focus on description field after adding item
+
+        // Focus on description field after adding item with a delay to ensure DOM update
         setTimeout(() => {
-            descriptionInputRef.current?.focus();
-        }, 0);
+            if (descriptionInputRef.current) {
+                descriptionInputRef.current.focus();
+                descriptionInputRef.current.select(); // Also select the text if any
+            }
+        }, 150);
     };
 
     const handleEditLineItem = (item: LineItem, itemIndex: number) => {
@@ -115,6 +122,24 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     const handleCancelEdit = () => {
         setEditingItemIndex(null);
         setEditingItem({ description: '', amount: '' });
+    };
+
+    // Handle deletion by index instead of ID for more reliable deletion
+    const handleDeleteByIndex = (index: number) => {
+        setInvoice((prev) => ({
+            ...prev,
+            lineItems: prev.lineItems.filter((_, i) => i !== index),
+        }));
+
+        // If we're currently editing the item being deleted, cancel the edit
+        if (editingItemIndex === index) {
+            setEditingItemIndex(null);
+            setEditingItem({ description: '', amount: '' });
+        }
+        // If we're editing an item after the deleted one, adjust the index
+        else if (editingItemIndex !== null && editingItemIndex > index) {
+            setEditingItemIndex(editingItemIndex - 1);
+        }
     };
 
     // Debug helper for save button disabled state
@@ -241,7 +266,10 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                             </thead>
                             <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100/60">
                                 {invoice.lineItems.map((item, index) => (
-                                    <tr key={item.id} className="group hover:bg-blue-50/80 transition-all duration-200">
+                                    <tr
+                                        key={`lineItem-${index}`}
+                                        className="group hover:bg-blue-50/80 transition-all duration-200"
+                                    >
                                         <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-medium text-gray-900">
                                             {editingItemIndex === index ? (
                                                 <input
@@ -426,7 +454,7 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                                                         <PencilIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleRemoveLineItem(item.id!)}
+                                                        onClick={() => handleDeleteByIndex(index)}
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all group-hover:scale-105"
                                                         title="Delete item"
                                                     >
@@ -582,7 +610,7 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                         <div className="space-y-3 p-4">
                             {invoice.lineItems.map((item, index) => (
                                 <div
-                                    key={item.id}
+                                    key={`lineItem-${index}`}
                                     className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-4 shadow-sm"
                                 >
                                     <div className="space-y-3">
@@ -783,7 +811,7 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                                                         <PencilIcon className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleRemoveLineItem(item.id!)}
+                                                        onClick={() => handleDeleteByIndex(index)}
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all"
                                                         title="Delete item"
                                                     >
