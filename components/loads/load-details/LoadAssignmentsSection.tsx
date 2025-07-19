@@ -133,8 +133,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                 >
                     Add Assignment
                 </button>
-            </div>
-
+            </div>{' '}
             <div className="px-0 sm:px-6 gap-4 sm:py-5">
                 {load.route && load.route?.routeLegs?.length > 0 ? (
                     <div className="space-y-6">
@@ -153,7 +152,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
 
                             return (
                                 <div
-                                    key={`routelegs-${index}`}
+                                    key={leg.id} // Use leg.id instead of index for better React tracking
                                     className="relative bg-gray-50 sm:border sm:border-gray-100 sm:rounded-lg overflow-hidden"
                                 >
                                     {/* Loading overlay */}
