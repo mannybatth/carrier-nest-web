@@ -247,7 +247,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                 billedLoadRate: assignment.billedLoadRate ? Number(assignment.billedLoadRate) : null,
                 emptyMiles: assignment.emptyMiles ? Number(assignment.emptyMiles) : null,
             } as any; // Type assertion to allow serialization
-            
+
             updatedSelectedAssignments = [...invoice.assignments, serializedAssignment];
         }
 
