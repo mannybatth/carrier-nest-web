@@ -151,7 +151,14 @@ export const deleteLoadById = async (id: string) => {
 export const addLoadDocumentToLoad = async (
     loadId: string,
     loadDocument: Partial<LoadDocument>,
-    extras: { driverId?: string; isPod?: boolean; longitude?: number; latitude?: number } = {},
+    extras: {
+        driverId?: string;
+        isPod?: boolean;
+        isBol?: boolean;
+        isRatecon?: boolean;
+        longitude?: number;
+        latitude?: number;
+    } = {},
 ) => {
     const response = await fetch(apiUrl + '/loads/' + loadId + '/documents', {
         method: 'POST',
