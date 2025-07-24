@@ -30,6 +30,8 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
+import { v4 as uuidv4 } from 'uuid';
+import { generateStandardizedFileName } from '../../lib/helpers/document-naming';
 
 type Props = {
     loadId: string;
@@ -40,6 +42,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const { data: session } = useSession();
     const [openLegAssignment, setOpenLegAssignment] = useState(false);
     const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
+    const [bolDocuments, setBolDocuments] = useState<LoadDocument[]>([]);
     const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
     const [docsLoading, setDocsLoading] = useState(false);
     const [downloadingDocs, setDownloadingDocs] = useState(false);
@@ -49,6 +52,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     const [openDeleteLoadConfirmation, setOpenDeleteLoadConfirmation] = useState(false);
     const [openDeleteDocumentConfirmation, setOpenDeleteDocumentConfirmation] = useState(false);
     const [documentIdToDelete, setDocumentIdToDelete] = useState<string | null>(null);
+    const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
     const [editingRouteLeg, setEditingRouteLeg] = useState<ExpandedRouteLeg | null>(null);
     const [openDeleteLegConfirmation, setOpenDeleteLegConfirmation] = useState(false);
     const [legIdToDelete, setLegIdToDelete] = useState<string | null>(null);
@@ -80,8 +84,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         if (!load) {
             return;
         }
-        setLoadDocuments([load.rateconDocument, ...load.loadDocuments].filter((ld) => ld));
+        // Filter out rateconDocument from loadDocuments since it's displayed separately
+        setLoadDocuments(load.loadDocuments || []);
         setPodDocuments(load.podDocuments || []);
+        setBolDocuments(load.bolDocuments || []);
     }, [load]);
 
     const addAssignmentAction = async () => {
@@ -108,10 +114,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         try {
             const response = await uploadFileToGCS(file);
             if (response?.uniqueFileName) {
+                // Generate standardized filename for general documents
+                const standardizedFileName = generateStandardizedFileName(file, 'DOCUMENT', session);
+
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.uniqueFileName,
                     fileUrl: response.gcsInputUri,
-                    fileName: response.originalFileName,
+                    fileName: standardizedFileName,
                     fileType: file.type,
                     fileSize: BigInt(file.size),
                 };
@@ -149,10 +158,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         try {
             const response = await uploadFileToGCS(file);
             if (response?.uniqueFileName) {
+                // Generate standardized filename for POD documents
+                const standardizedFileName = generateStandardizedFileName(file, 'POD', session);
+
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.uniqueFileName,
                     fileUrl: response.gcsInputUri,
-                    fileName: response.originalFileName,
+                    fileName: standardizedFileName,
                     fileType: file.type,
                     fileSize: BigInt(file.size),
                 };
@@ -180,29 +192,135 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         setDocsLoading(false);
     };
 
-    const deleteLoadDocument = async (id: string) => {
+    const handleUploadBolsChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            // console.log('No file selected.');
+            return;
+        }
+
         setDocsLoading(true);
         try {
+            const response = await uploadFileToGCS(file);
+            if (response?.uniqueFileName) {
+                // Generate standardized filename for BOL documents
+                const standardizedFileName = generateStandardizedFileName(file, 'BOL', session);
+
+                const simpleDoc: Partial<LoadDocument> = {
+                    fileKey: response.uniqueFileName,
+                    fileUrl: response.gcsInputUri,
+                    fileName: standardizedFileName,
+                    fileType: file.type,
+                    fileSize: BigInt(file.size),
+                };
+                const tempDocs = [simpleDoc, ...bolDocuments] as LoadDocument[];
+                setBolDocuments(tempDocs);
+                const newBolDocument = await addLoadDocumentToLoad(load.id, simpleDoc, {
+                    isBol: true,
+                });
+
+                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
+                if (index !== -1) {
+                    const newBolDocuments = [...tempDocs];
+                    newBolDocuments[index] = newBolDocument;
+                    setBolDocuments(newBolDocuments);
+                    setLoad({ ...load, bolDocuments: newBolDocuments });
+                }
+                notify({ title: 'BOL uploaded', message: 'BOL uploaded successfully' });
+            } else {
+                notify({ title: 'Error uploading BOL', message: 'Upload response invalid', type: 'error' });
+            }
+        } catch (e) {
+            notify({ title: 'Error uploading BOL', message: e.message, type: 'error' });
+        }
+        event.target.value = '';
+        setDocsLoading(false);
+    };
+
+    const handleUploadRateconChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        // Check if a rate con document already exists
+        if (load.rateconDocument) {
+            event.target.value = '';
+            return;
+        }
+
+        setDocsLoading(true);
+        try {
+            const response = await uploadFileToGCS(file);
+            if (response?.uniqueFileName) {
+                // Generate standardized filename for rate confirmation documents
+                const standardizedFileName = generateStandardizedFileName(file, 'RATECON', session);
+
+                const simpleDoc: Partial<LoadDocument> = {
+                    fileKey: response.uniqueFileName,
+                    fileUrl: response.gcsInputUri,
+                    fileName: standardizedFileName,
+                    fileType: file.type,
+                    fileSize: BigInt(file.size),
+                };
+
+                // Upload as rate confirmation document (single document, replaces existing)
+                const newRateconDocument = await addLoadDocumentToLoad(load.id, simpleDoc, { isRatecon: true });
+
+                // Update the load with the new rate confirmation document
+                setLoad({ ...load, rateconDocument: newRateconDocument });
+                notify({ title: 'Rate confirmation uploaded', message: 'Rate confirmation uploaded successfully' });
+            } else {
+                notify({
+                    title: 'Error uploading rate confirmation',
+                    message: 'Upload response invalid',
+                    type: 'error',
+                });
+            }
+        } catch (e) {
+            notify({ title: 'Error uploading rate confirmation', message: e.message, type: 'error' });
+        }
+        event.target.value = '';
+        setDocsLoading(false);
+    };
+
+    const deleteLoadDocument = async (id: string) => {
+        setDeletingDocumentId(id);
+        try {
             const isRatecon = load.rateconDocument?.id === id;
+            const isPod = (load.podDocuments || []).some((pod) => pod.id === id);
+            const isBol = (load.bolDocuments || []).some((bol) => bol.id === id);
+
             await deleteLoadDocumentFromLoad(load.id, id, {
-                isPod: load.podDocuments.some((pod) => pod.id === id),
+                isPod,
+                isBol,
                 isRatecon,
             });
+
             if (isRatecon) {
-                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
-                setLoad({ ...load, loadDocuments: newLoadDocuments, rateconDocument: null });
+                // Rate confirmation document is not in loadDocuments array, just clear it
+                setLoad({ ...load, rateconDocument: null });
             } else {
-                const newLoadDocuments = loadDocuments.filter(
-                    (ld) => ld.id !== id && ld.id !== load.rateconDocument?.id,
-                );
+                // Filter out the deleted document from the appropriate arrays
+                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
                 const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
-                setLoad({ ...load, loadDocuments: newLoadDocuments, podDocuments: newPodDocuments });
+                const newBolDocuments = bolDocuments.filter((ld) => ld.id !== id);
+                setLoad({
+                    ...load,
+                    loadDocuments: newLoadDocuments,
+                    podDocuments: newPodDocuments,
+                    bolDocuments: newBolDocuments,
+                });
             }
             notify({ title: 'Document deleted', message: 'Document deleted successfully' });
         } catch (e) {
             notify({ title: 'Error deleting document', message: e.message, type: 'error' });
         }
-        setDocsLoading(false);
+        setDeletingDocumentId(null);
+        setDocumentIdToDelete(null);
+        setOpenDeleteDocumentConfirmation(false);
     };
 
     const openDocument = (document: LoadDocument) => {
@@ -495,13 +613,19 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 <LoadDetailsInfo />
                                 <LoadDetailsDocuments
                                     podDocuments={podDocuments}
+                                    bolDocuments={bolDocuments}
                                     loadDocuments={loadDocuments}
+                                    rateconDocument={load.rateconDocument}
                                     docsLoading={docsLoading}
                                     handleUploadPodsChange={handleUploadPodsChange}
+                                    handleUploadBolsChange={handleUploadBolsChange}
                                     handleUploadDocsChange={handleUploadDocsChange}
+                                    handleUploadRateconChange={handleUploadRateconChange}
                                     openDocument={openDocument}
                                     setDocumentIdToDelete={setDocumentIdToDelete}
                                     setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
+                                    deletingDocumentId={deletingDocumentId}
+                                    documentIdToDelete={documentIdToDelete}
                                 />
                             </div>
                             <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
