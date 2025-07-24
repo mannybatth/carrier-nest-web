@@ -182,6 +182,7 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
         include: {
             loadDocuments: true,
             podDocuments: true,
+            bolDocuments: true,
             rateconDocument: true,
         },
     });
@@ -193,6 +194,7 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
     const documentsToDelete = [
         ...(load.loadDocuments || []),
         ...(load.podDocuments || []),
+        ...(load.bolDocuments || []),
         ...(load.rateconDocument ? [load.rateconDocument] : []),
     ];
     await Promise.all(documentsToDelete.map((document) => deleteDocumentFromGCS(document)));
@@ -341,6 +343,11 @@ const getLoad = async ({
                       },
                       rateconDocument: true,
                       podDocuments: {
+                          orderBy: {
+                              createdAt: 'desc',
+                          },
+                      },
+                      bolDocuments: {
                           orderBy: {
                               createdAt: 'desc',
                           },
