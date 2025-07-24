@@ -116,6 +116,7 @@ const expandedLoad = Prisma.validator<Prisma.LoadDefaultArgs>()({
         },
         loadDocuments: true,
         podDocuments: true,
+        bolDocuments: true,
         rateconDocument: true,
     },
 });
@@ -374,6 +375,7 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                 customer: true,
                 receiver: true,
                 podDocuments: true,
+                bolDocuments: true,
             },
         },
         assignmentPayments: {
