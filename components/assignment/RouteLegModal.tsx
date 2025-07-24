@@ -13,6 +13,7 @@ import {
     ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 import React, { Fragment, useCallback, useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
 import { type LoadStop, Prisma, type Route } from '@prisma/client';
@@ -412,6 +413,7 @@ type Props = {
 };
 
 const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
+    const router = useRouter();
     const [load, setLoad] = useLoadContext();
     const [routeLegData, setRouteLegData] = useRouteLegDataContext();
     const [dragState, setDragState] = useState<DragState>({
@@ -573,6 +575,22 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
         updateRouteDetails(locations);
     };
 
+    const handleSuccessAndClose = () => {
+        // Check if we have routeLegId in URL params for navigation after close
+        const { routeLegId } = router.query;
+
+        if (routeLegId) {
+            // For router navigation scenarios, we need to navigate first to avoid reopening
+            router.replace(`/loads/${load.id}`).then(() => {
+                // Close modal after URL has been updated
+                close(true);
+            });
+        } else {
+            // Normal close without navigation
+            close(true);
+        }
+    };
+
     const submit = async () => {
         setSaveLoading(true);
 
@@ -614,7 +632,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                     });
 
                     notify({ title: 'Load Assignment', message: 'Assignment updated successfully', type: 'success' });
-                    close(true);
+                    handleSuccessAndClose();
                     setSaveLoading(false);
                 } catch (error) {
                     setSaveLoading(false);
@@ -647,7 +665,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                     });
 
                     notify({ title: 'Load Assignment', message: 'Assignment created successfully', type: 'success' });
-                    close(true);
+                    handleSuccessAndClose();
                     setSaveLoading(false);
                 } catch (error) {
                     setSaveLoading(false);
