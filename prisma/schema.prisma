@@ -188,6 +188,7 @@ model Load {
     user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
     activity           LoadActivity[]
     podDocuments       LoadDocument[]      @relation("loadForPodDoc")
+    bolDocuments       LoadDocument[]      @relation("loadForBolDoc")
     rateconDocument    LoadDocument?       @relation("loadForRatecon")
     loadDocuments      LoadDocument[]      @relation("load")
     driverAssignments  DriverAssignment[]
@@ -385,12 +386,14 @@ model LoadDocument {
     fileType         String
     fileSize         BigInt
     loadIdForPodDoc  String?
+    loadIdForBolDoc  String?
     loadIdForRatecon String?        @unique
     driverId         String?
     carrierId        String?
     activity         LoadActivity[] @relation("actionDocument")
     driver           Driver?        @relation(fields: [driverId], references: [id])
     loadForPodDoc    Load?          @relation("loadForPodDoc", fields: [loadIdForPodDoc], references: [id], onDelete: Cascade)
+    loadForBolDoc    Load?          @relation("loadForBolDoc", fields: [loadIdForBolDoc], references: [id], onDelete: Cascade)
     loadForRateCon   Load?          @relation("loadForRatecon", fields: [loadIdForRatecon], references: [id], onDelete: Cascade)
     load             Load?          @relation("load", fields: [loadId], references: [id], onDelete: Cascade)
     user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -460,8 +463,12 @@ enum LoadActivityAction {
     CHANGE_STATUS
     UPLOAD_POD
     REMOVE_POD
+    UPLOAD_BOL
+    REMOVE_BOL
     UPLOAD_DOCUMENT
     REMOVE_DOCUMENT
+    UPLOAD_RATECON
+    REMOVE_RATECON
     ADD_DRIVER_TO_ASSIGNMENT
     REMOVE_DRIVER_FROM_ASSIGNMENT
     CHANGE_ASSIGNMENT_STATUS

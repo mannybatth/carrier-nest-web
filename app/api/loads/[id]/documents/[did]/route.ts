@@ -41,13 +41,15 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
     }
 
     const isPod = req.nextUrl.searchParams.get('isPod') === 'true';
+    const isBol = req.nextUrl.searchParams.get('isBol') === 'true';
     const isRatecon = req.nextUrl.searchParams.get('isRatecon') === 'true';
 
     const document = await prisma.loadDocument.findFirst({
         where: {
             id: documentId,
-            ...(!(isPod || isRatecon) && { loadId: load.id }),
+            ...(!(isPod || isBol || isRatecon) && { loadId: load.id }),
             ...(isPod && { loadIdForPodDoc: load.id }),
+            ...(isBol && { loadIdForBolDoc: load.id }),
             ...(isRatecon && { loadIdForRatecon: load.id }),
             ...(driver && { driverId: driver.id }),
         },
@@ -67,7 +69,13 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
         data: {
             load: { connect: { id: load.id } },
             carrierId: load.carrierId,
-            action: isPod ? LoadActivityAction.REMOVE_POD : LoadActivityAction.REMOVE_DOCUMENT,
+            action: isPod
+                ? LoadActivityAction.REMOVE_POD
+                : isBol
+                ? LoadActivityAction.REMOVE_BOL
+                : isRatecon
+                ? LoadActivityAction.REMOVE_RATECON
+                : LoadActivityAction.REMOVE_DOCUMENT,
             ...(!driver ? { actorUser: { connect: { id: session.user.id } } } : {}),
             ...(driverId ? { actorDriver: { connect: { id: driverId } } } : {}),
             ...(driver ? { actorDriverName: driver?.name } : {}),

@@ -200,6 +200,68 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                             </>
                                         )}
 
+                                        {activityItem.action === LoadActivityAction.UPLOAD_BOL && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                uploaded a BOL{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.UPLOAD_RATECON && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                uploaded a rate confirmation{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                                {activityItem.longitude && activityItem.latitude && (
+                                                    <span className="block">
+                                                        {' '}
+                                                        <a
+                                                            onClick={() =>
+                                                                openCoordinatesInGoogleMaps(
+                                                                    activityItem.longitude,
+                                                                    activityItem.latitude,
+                                                                )
+                                                            }
+                                                        >
+                                                            Open Location
+                                                        </a>
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+
                                         {activityItem.action === LoadActivityAction.REMOVE_DOCUMENT && (
                                             <>
                                                 <span className="font-medium text-gray-900">
@@ -225,6 +287,38 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
                                                         activityItem.actorDriverName}
                                                 </span>{' '}
                                                 removed a POD{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.REMOVE_BOL && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                removed a BOL{' '}
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actionDocument?.fileName ||
+                                                        activityItem.actionDocumentFileName}
+                                                </span>
+                                            </>
+                                        )}
+
+                                        {activityItem.action === LoadActivityAction.REMOVE_RATECON && (
+                                            <>
+                                                <span className="font-medium text-gray-900">
+                                                    {activityItem.actorUser?.name ||
+                                                        activityItem.actorUser?.email ||
+                                                        activityItem.actorDriver?.name ||
+                                                        activityItem.actorDriverName}
+                                                </span>{' '}
+                                                removed a rate confirmation{' '}
                                                 <span className="font-medium text-gray-900">
                                                     {activityItem.actionDocument?.fileName ||
                                                         activityItem.actionDocumentFileName}

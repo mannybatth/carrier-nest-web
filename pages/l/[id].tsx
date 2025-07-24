@@ -4,6 +4,7 @@ import { ArrowTopRightOnSquareIcon, EllipsisVerticalIcon } from '@heroicons/reac
 import { LoadDocument, Prisma, RouteLegStatus } from '@prisma/client';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 import React, { ChangeEvent, Fragment, useEffect, useRef, useState } from 'react';
 import { notify } from '../../components/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
@@ -15,6 +16,7 @@ import { getAssignmentById } from '../../lib/rest/assignment';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { isDate24HrInThePast } from 'lib/load/load-utils';
 import RouteLegStatusBadge from 'components/loads/RouteLegStatusBadge';
+import { generateStandardizedFileName } from '../../lib/helpers/document-naming';
 
 const loadingSvg = (
     <svg
@@ -71,6 +73,7 @@ const DriverAssignmentDetailsPageSkeleton = () => {
 
 const DriverAssignmentDetailsPage: PageWithAuth = () => {
     const router = useRouter();
+    const { data: session } = useSession();
     const searchParams = new URLSearchParams(router.query as any);
     const driverId = searchParams.get('did');
     const { id: assignmentId } = router.query as { id: string };
@@ -98,7 +101,12 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
         try {
             const assignment = await getAssignmentById(assignmentId, driverId);
             setAssignment(assignment);
-            setLoadDocuments([...assignment.load.podDocuments].filter((ld) => ld));
+            // Include both POD and BOL documents with type information
+            const allDocuments = [
+                ...assignment.load.podDocuments.map((doc) => ({ ...doc, documentType: 'POD' })),
+                ...assignment.load.bolDocuments.map((doc) => ({ ...doc, documentType: 'BOL' })),
+            ].filter((ld) => ld);
+            setLoadDocuments(allDocuments);
             setDropOffDatePassed(isDate24HrInThePast(new Date(assignment.load.receiver.date)));
         } catch (e) {
             notify({ title: 'Assignment does not exist', message: e.message, type: 'error' });
@@ -210,6 +218,9 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
 
         setDocsLoading(true);
         try {
+            // Generate standardized filename for POD documents
+            const standardizedFileName = generateStandardizedFileName(file, 'POD', session);
+
             const [uploadResponse, locationResponse] = await Promise.all([
                 uploadFileToGCS(file, driverId, assignmentId),
                 getDeviceLocation(),
@@ -218,7 +229,7 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: uploadResponse.uniqueFileName,
                     fileUrl: uploadResponse.gcsInputUri,
-                    fileName: uploadResponse.originalFileName,
+                    fileName: standardizedFileName, // Use standardized filename instead of original
                     fileType: file.type,
                     fileSize: BigInt(file.size),
                 };
@@ -474,38 +485,56 @@ const DriverAssignmentDetailsPage: PageWithAuth = () => {
                             </div>
 
                             {loadDocuments.length > 0 && (
-                                <div className="flex flex-col space-y-2">
-                                    {loadDocuments.map((doc) => (
-                                        <div key={doc.id}>
-                                            <div className="flex items-center justify-between text-sm border border-gray-200 rounded cursor-pointer hover:bg-gray-50 active:bg-gray-100">
-                                                <div
-                                                    className="flex items-center flex-1 py-2 pl-3 pr-4"
-                                                    onClick={() => openDocument(doc)}
-                                                >
-                                                    <PaperClipIcon
-                                                        className="flex-shrink-0 w-4 h-4 text-gray-400"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span className="flex-1 w-0 ml-2 truncate">{doc.fileName}</span>
-                                                </div>
-                                                {doc.driverId === driverId && (
-                                                    <div className="flex-shrink-0 ml-2">
-                                                        <button
-                                                            type="button"
-                                                            className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                deleteLoadDocument(doc.id);
-                                                            }}
-                                                            disabled={docsLoading}
-                                                        >
-                                                            <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
-                                                        </button>
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-3">Load Documents</h3>
+                                    <div className="flex flex-col space-y-2">
+                                        {loadDocuments.map((doc) => (
+                                            <div key={doc.id}>
+                                                <div className="flex items-center justify-between text-sm border border-gray-200 rounded cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                                    <div
+                                                        className="flex items-center flex-1 py-2 pl-3 pr-4"
+                                                        onClick={() => openDocument(doc)}
+                                                    >
+                                                        <PaperClipIcon
+                                                            className="flex-shrink-0 w-4 h-4 text-gray-400"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <div className="flex items-center flex-1 ml-2">
+                                                            <span className="flex-1 w-0 truncate">{doc.fileName}</span>
+                                                            {(doc as any).documentType && (
+                                                                <span
+                                                                    className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                        (doc as any).documentType === 'POD'
+                                                                            ? 'bg-green-100 text-green-800'
+                                                                            : (doc as any).documentType === 'BOL'
+                                                                            ? 'bg-blue-100 text-blue-800'
+                                                                            : 'bg-gray-100 text-gray-800'
+                                                                    }`}
+                                                                >
+                                                                    {(doc as any).documentType}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                )}
+                                                    {doc.driverId === driverId && (
+                                                        <div className="flex-shrink-0 ml-2">
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center px-3 py-1 mr-2 text-sm font-medium leading-4 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    deleteLoadDocument(doc.id);
+                                                                }}
+                                                                disabled={docsLoading}
+                                                            >
+                                                                <TrashIcon className="flex-shrink-0 w-4 h-4 text-gray-800"></TrashIcon>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
