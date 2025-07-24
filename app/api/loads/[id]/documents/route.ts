@@ -41,13 +41,43 @@ export const POST = auth(async (req: NextAuthRequest, context: { params: { id: s
 
     const docData = body.loadDocument as LoadDocument;
     const isPod = body.isPod === true;
+    const isBol = body.isBol === true;
     const isRatecon = body.isRatecon === true;
-    const isNormalDoc = !isPod && !isRatecon;
+    const isNormalDoc = !isPod && !isBol && !isRatecon;
+
+    // Debug log to see what's happening with rate con uploads
+    if (isRatecon) {
+        console.log('Rate con upload - flags:', { isPod, isBol, isRatecon, isNormalDoc });
+    }
+
+    // If uploading a rate con document, check for existing rate con and prevent upload
+    if (isRatecon) {
+        const existingLoad = await prisma.load.findUnique({
+            where: { id: loadId },
+            include: { rateconDocument: true },
+        });
+
+        if (existingLoad?.rateconDocument) {
+            return NextResponse.json(
+                {
+                    code: 400,
+                    errors: [
+                        {
+                            message:
+                                'A rate confirmation document already exists for this load. Please delete the existing rate con document first.',
+                        },
+                    ],
+                },
+                { status: 400 },
+            );
+        }
+    }
 
     const loadDocument = await prisma.loadDocument.create({
         data: {
             ...(isNormalDoc && { load: { connect: { id: load.id } } }),
             ...(isPod && { loadForPodDoc: { connect: { id: load.id } } }),
+            ...(isBol && { loadForBolDoc: { connect: { id: load.id } } }),
             ...(isRatecon && { loadForRateCon: { connect: { id: load.id } } }),
             ...(driver && {
                 driver: { connect: { id: driver.id } },
@@ -68,11 +98,25 @@ export const POST = auth(async (req: NextAuthRequest, context: { params: { id: s
     const longitude = body?.longitude as number;
     const latitude = body?.latitude as number;
 
+    // Determine action explicitly to debug
+    let action: LoadActivityAction;
+    if (isPod) {
+        action = LoadActivityAction.UPLOAD_POD;
+    } else if (isBol) {
+        action = LoadActivityAction.UPLOAD_BOL;
+    } else if (isRatecon) {
+        action = LoadActivityAction.UPLOAD_RATECON;
+    } else {
+        action = LoadActivityAction.UPLOAD_DOCUMENT;
+    }
+
+    console.log('About to create LoadActivity with action:', action);
+
     await prisma.loadActivity.create({
         data: {
             load: { connect: { id: load.id } },
             carrierId: load.carrierId,
-            action: isPod ? LoadActivityAction.UPLOAD_POD : LoadActivityAction.UPLOAD_DOCUMENT,
+            action: action,
             ...(!driver ? { actorUser: { connect: { id: req.auth.user.id } } } : {}),
             ...(driverId ? { actorDriver: { connect: { id: driverId } } } : {}),
             ...(driver ? { actorDriverName: driver?.name } : {}),
