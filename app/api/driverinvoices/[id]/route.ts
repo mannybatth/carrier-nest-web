@@ -2,7 +2,16 @@ import { Prisma } from '@prisma/client';
 import { auth } from 'auth';
 import prisma from 'lib/prisma';
 import { NextAuthRequest } from 'next-auth/lib';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import {
+    getClientIP,
+    checkRateLimit,
+    createRateLimitResponse,
+    validateDriverPhone,
+    parsePhoneAuthRequest,
+    getRateLimitHeaders,
+    incrementRateLimit,
+} from 'lib/api/phone-auth-utils';
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     return getDriverInvoice(req, context);
@@ -17,12 +26,201 @@ export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id:
 });
 
 async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id: string } }) {
+    const invoiceId = params.id;
+    const clientIP = getClientIP(req);
+
+    // Check if we have proper authentication
     if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+        // No authentication, check for driver phone access with rate limiting
+        const rateLimit = await checkRateLimit(clientIP);
+
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.remaining);
+        }
+
+        // Parse request body for driverPhone
+        let driverPhone: string | undefined;
+        try {
+            const body = await req.json();
+            driverPhone = body.driverPhone;
+        } catch (error) {
+            // Not JSON or no body, try query params
+            const url = new URL(req.url || '');
+            driverPhone = url.searchParams.get('driverPhone') || undefined;
+        }
+
+        if (!driverPhone) {
+            // Count failed request toward rate limit
+            await incrementRateLimit(clientIP);
+            return NextResponse.json(
+                {
+                    code: 401,
+                    errors: [{ message: 'Authentication required or provide driverPhone' }],
+                },
+                {
+                    status: 401,
+                    headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                },
+            );
+        }
+
+        // Attempt to fetch invoice and verify driver phone
+        try {
+            const invoice = await prisma.driverInvoice.findUnique({
+                where: { id: invoiceId },
+                include: {
+                    driver: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true,
+                        },
+                    },
+                    carrier: {
+                        select: {
+                            id: true,
+                            street: true,
+                            city: true,
+                            state: true,
+                            zip: true,
+                            phone: true,
+                            email: true,
+                            name: true,
+                            mcNum: true,
+                            dotNum: true,
+                        },
+                    },
+                    createdBy: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                    assignments: {
+                        select: {
+                            id: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            chargeType: true,
+                            chargeValue: true,
+                            billedDistanceMiles: true,
+                            billedDurationHours: true,
+                            billedLoadRate: true,
+                            emptyMiles: true,
+                            assignedAt: true,
+                            load: {
+                                select: {
+                                    id: true,
+                                    refNum: true,
+                                    rate: true,
+                                    customer: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                        },
+                                    },
+                                },
+                            },
+                            routeLeg: {
+                                select: {
+                                    id: true,
+                                    scheduledDate: true,
+                                    scheduledTime: true,
+                                    distanceMiles: true,
+                                    durationHours: true,
+                                    startedAt: true,
+                                    endedAt: true,
+                                    startLatitude: true,
+                                    startLongitude: true,
+                                    endLatitude: true,
+                                    endLongitude: true,
+                                    locations: {
+                                        include: {
+                                            loadStop: true,
+                                            location: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    lineItems: {
+                        select: {
+                            id: true,
+                            description: true,
+                            amount: true,
+                            createdAt: true,
+                        },
+                    },
+                    payments: {
+                        select: {
+                            id: true,
+                            amount: true,
+                            paymentDate: true,
+                            notes: true,
+                            createdAt: true,
+                        },
+                    },
+                },
+            });
+
+            if (!invoice) {
+                // Count failed request toward rate limit
+                await incrementRateLimit(clientIP);
+                return NextResponse.json(
+                    { code: 404, errors: [{ message: 'Invoice not found' }] },
+                    {
+                        status: 404,
+                        headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                    },
+                );
+            }
+
+            // Normalize phone numbers for comparison (remove all non-digits)
+            const normalizePhone = (phone: string): string => {
+                return phone.replace(/\D/g, '');
+            };
+
+            const invoiceDriverPhone = normalizePhone(invoice.driver.phone || '');
+            const providedDriverPhone = normalizePhone(driverPhone);
+
+            if (invoiceDriverPhone !== providedDriverPhone) {
+                // Count failed request toward rate limit
+                await incrementRateLimit(clientIP);
+                return NextResponse.json(
+                    { code: 403, errors: [{ message: 'Driver phone does not match invoice' }] },
+                    {
+                        status: 403,
+                        headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                    },
+                );
+            }
+
+            // Success - return invoice with rate limit headers
+            return NextResponse.json(
+                { code: 200, data: invoice },
+                {
+                    headers: getRateLimitHeaders(rateLimit.remaining),
+                },
+            );
+        } catch (error) {
+            console.error('Error fetching driver invoice by phone:', error);
+            // Count failed request toward rate limit
+            await incrementRateLimit(clientIP);
+            return NextResponse.json(
+                { code: 500, errors: [{ message: 'Failed to fetch invoice' }] },
+                {
+                    status: 500,
+                    headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                },
+            );
+        }
     }
 
+    // Standard authenticated access
     const session = req.auth;
-    const invoiceId = params.id;
 
     try {
         const invoice = await prisma.driverInvoice.findUnique({
@@ -136,10 +334,105 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
 }
 
 async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: { id: string } }) {
+    const invoiceId = params.id;
+    const clientIP = getClientIP(req);
+
+    // Check if we have proper authentication
     if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+        // No authentication, check for driver phone access with rate limiting
+        const rateLimit = await checkRateLimit(clientIP);
+
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.remaining);
+        }
+
+        // Parse request body for phone-based approval
+        const { driverPhone, error: parseError } = await parsePhoneAuthRequest(req);
+        if (parseError) {
+            return parseError;
+        }
+
+        if (!driverPhone) {
+            await incrementRateLimit(clientIP);
+            return NextResponse.json(
+                { code: 400, errors: [{ message: 'Driver phone number is required for approval' }] },
+                {
+                    status: 400,
+                    headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                },
+            );
+        }
+
+        // Validate driver phone and get invoice
+        const { success, invoice, response } = await validateDriverPhone(invoiceId, driverPhone, clientIP, rateLimit);
+        if (!success || !invoice) {
+            return response!;
+        }
+
+        // Parse the full request body for status update
+        try {
+            const body = await req.json();
+            const { status } = body;
+
+            // Only allow status updates for phone-based requests
+            if (!status || status !== 'APPROVED') {
+                await incrementRateLimit(clientIP);
+                return NextResponse.json(
+                    { code: 400, errors: [{ message: 'Only invoice approval is allowed' }] },
+                    {
+                        status: 400,
+                        headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                    },
+                );
+            }
+
+            // Check if invoice is in PENDING status
+            if (invoice.status !== 'PENDING') {
+                await incrementRateLimit(clientIP);
+                return NextResponse.json(
+                    { code: 400, errors: [{ message: 'Invoice is not in pending status' }] },
+                    {
+                        status: 400,
+                        headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                    },
+                );
+            }
+
+            // Update invoice status to APPROVED
+            const updatedInvoice = await prisma.driverInvoice.update({
+                where: { id: invoiceId },
+                data: {
+                    status: 'APPROVED',
+                    updatedAt: new Date(),
+                },
+            });
+
+            return NextResponse.json(
+                {
+                    code: 200,
+                    data: {
+                        message: 'Invoice approved successfully',
+                        status: updatedInvoice.status,
+                    },
+                },
+                {
+                    headers: getRateLimitHeaders(rateLimit.remaining),
+                },
+            );
+        } catch (error) {
+            console.error('Error in phone-based invoice update:', error);
+            await incrementRateLimit(clientIP);
+            return NextResponse.json(
+                { code: 500, errors: [{ message: 'Failed to update invoice' }] },
+                {
+                    status: 500,
+                    headers: getRateLimitHeaders(Math.max(0, rateLimit.remaining - 1)),
+                },
+            );
+        }
     }
 
+    // Authenticated user - proceed with full update functionality
     const session = req.auth;
     const carrierId = session.user.defaultCarrierId;
 

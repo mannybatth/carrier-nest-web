@@ -31,6 +31,10 @@ const DriverInvoiceApprovalPage = () => {
     const [showPhoneVerification, setShowPhoneVerification] = useState(false);
     const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
     const [verificationError, setVerificationError] = useState('');
+    const [showInitialPhonePrompt, setShowInitialPhonePrompt] = useState(true);
+    const [initialPhoneInput, setInitialPhoneInput] = useState('');
+    const [initialPhoneError, setInitialPhoneError] = useState('');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const invoiceId = router.query.id as string;
 
     const [assignmentsTotal, setAssignmentsTotal] = useState(0);
@@ -74,18 +78,56 @@ const DriverInvoiceApprovalPage = () => {
     }, [invoice]);
 
     // Get invoice data on mount
-    const getInvoiceData = async () => {
+    const getInvoiceData = async (driverPhone?: string) => {
         setLoading(true);
+        setInitialPhoneError('');
         try {
-            const invoiceData = await getDriverInvoiceById(invoiceId);
+            let invoiceData;
+            if (driverPhone) {
+                // Try with driver phone (no auth) - use query parameter for GET request
+                const urlWithPhone = `/api/driverinvoices/${invoiceId}?driverPhone=${encodeURIComponent(driverPhone)}`;
+                const response = await fetch(urlWithPhone, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    if (response.status === 429) {
+                        throw new Error('Rate limit exceeded. Please try again later.');
+                    } else if (response.status === 403) {
+                        throw new Error(
+                            'Phone number does not match the driver for this invoice. Please check and try again.',
+                        );
+                    } else if (response.status === 404) {
+                        throw new Error('Invoice not found. Please check the link and try again.');
+                    } else {
+                        throw new Error(errorData.errors?.[0]?.message || 'Failed to fetch invoice');
+                    }
+                }
+
+                const data = await response.json();
+                invoiceData = data.data;
+                setIsAuthenticated(false);
+            } else {
+                // Try with regular auth
+                invoiceData = await getDriverInvoiceById(invoiceId);
+                setIsAuthenticated(true);
+            }
+
             setInvoice(invoiceData);
+            setShowInitialPhonePrompt(false);
         } catch (error) {
-            notify({
-                type: 'error',
-                title: 'Error fetching invoice data',
-                message: error.message,
-            });
-            router.push('/driverinvoices');
+            if (driverPhone) {
+                // Show error in phone prompt
+                setInitialPhoneError(error.message);
+            } else {
+                // No auth and no phone, show phone prompt
+                setShowInitialPhonePrompt(true);
+            }
         } finally {
             setLoading(false);
         }
@@ -93,9 +135,18 @@ const DriverInvoiceApprovalPage = () => {
 
     useEffect(() => {
         if (invoiceId) {
+            // First try without phone (authenticated access)
             getInvoiceData();
         }
     }, [invoiceId]);
+
+    const handleInitialPhoneSubmit = () => {
+        if (!initialPhoneInput.trim()) {
+            setInitialPhoneError('Please enter your phone number.');
+            return;
+        }
+        getInvoiceData(initialPhoneInput.trim());
+    };
 
     const handleApproveInvoice = async () => {
         if (!invoice) return;
@@ -104,7 +155,36 @@ const DriverInvoiceApprovalPage = () => {
         setShowPhoneVerification(false);
         setShowConfirmModal(false);
         try {
-            await approveDriverInvoice(invoice.id);
+            if (isAuthenticated) {
+                // Use regular authenticated API
+                await approveDriverInvoice(invoice.id);
+            } else {
+                // Use phone-based approval API
+                const response = await fetch(`/api/driverinvoices/${invoice.id}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        driverPhone: initialPhoneInput.trim(),
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    if (response.status === 429) {
+                        throw new Error('Rate limit exceeded. Please try again later.');
+                    } else if (response.status === 403) {
+                        throw new Error('Phone number verification failed. Please refresh and try again.');
+                    } else if (response.status === 404) {
+                        throw new Error('Invoice not found or no longer available for approval.');
+                    } else {
+                        throw new Error(errorData.errors?.[0]?.message || 'Failed to approve invoice');
+                    }
+                }
+            }
+
             setInvoice({ ...invoice, status: 'APPROVED' });
             notify({
                 type: 'success',
@@ -128,6 +208,14 @@ const DriverInvoiceApprovalPage = () => {
 
     const handleConfirmApproval = () => {
         setShowConfirmModal(false);
+
+        // For authenticated users, proceed directly
+        if (isAuthenticated) {
+            handleApproveInvoice();
+            return;
+        }
+
+        // For phone-authenticated users, show phone verification
         setShowPhoneVerification(true);
         setPhoneVerificationInput('');
         setVerificationError('');
@@ -257,6 +345,74 @@ const DriverInvoiceApprovalPage = () => {
 
     if (loading) {
         return <DriverInvoiceApprovalSkeleton />;
+    }
+
+    // Show initial phone prompt if not authenticated and no invoice loaded
+    if (showInitialPhonePrompt && !invoice) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+                <div className="max-w-md w-full mx-4">
+                    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 p-6">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
+                                <PhoneIcon className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-900 mb-2">Driver Verification Required</h2>
+                            <p className="text-sm text-gray-600">
+                                Please enter your phone number to view your invoice.
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="initialPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Phone Number
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="initialPhone"
+                                    value={initialPhoneInput}
+                                    onChange={(e) => {
+                                        // Only allow digits
+                                        const digitsOnly = e.target.value.replace(/\D/g, '');
+                                        setInitialPhoneInput(digitsOnly);
+                                        setInitialPhoneError(''); // Clear error when user types
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleInitialPhoneSubmit();
+                                        }
+                                    }}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Enter your phone number (digits only)"
+                                    autoFocus
+                                />
+                                {initialPhoneError && (
+                                    <p className="mt-2 text-sm text-red-600 bg-red-50 rounded-lg p-2 border border-red-200/50">
+                                        {initialPhoneError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={handleInitialPhoneSubmit}
+                                disabled={loading}
+                                className="w-full inline-flex justify-center items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            >
+                                {loading ? <Spinner /> : 'View Invoice'}
+                            </button>
+
+                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200/50">
+                                <p className="text-xs text-blue-800">
+                                    <ShieldCheckIcon className="w-3 h-3 inline mr-1" />
+                                    Your phone number must match the driver on this invoice for security.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!invoice) {
