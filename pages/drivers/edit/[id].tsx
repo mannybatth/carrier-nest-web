@@ -1,6 +1,7 @@
 import { Driver, Prisma } from '@prisma/client';
 import { DriverProvider, useDriverContext } from 'components/context/DriverContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
+import DriverEditSkeleton from 'components/skeletons/DriverEditSkeleton';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -59,11 +60,11 @@ const EditDriver: PageWithAuth = () => {
                 email: data.email,
                 phone: data.phone,
                 defaultChargeType: data.defaultChargeType,
-                perMileRate: new Prisma.Decimal(data.perMileRate),
-                perHourRate: new Prisma.Decimal(data.perHourRate),
-                takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
+                perMileRate: data.perMileRate ? new Prisma.Decimal(data.perMileRate) : null,
+                perHourRate: data.perHourRate ? new Prisma.Decimal(data.perHourRate) : null,
+                defaultFixedPay: data.defaultFixedPay ? new Prisma.Decimal(data.defaultFixedPay) : null,
+                takeHomePercent: data.takeHomePercent ? new Prisma.Decimal(data.takeHomePercent) : null,
             };
-
             const newDriver = await updateDriver(driver.id, driverData);
 
             notify({ title: 'Driver updated', message: 'Driver updated successfully' });
@@ -79,43 +80,82 @@ const EditDriver: PageWithAuth = () => {
 
     return (
         <Layout smHeaderComponent={<h1 className="text-xl font-semibold text-gray-900">Edit Driver</h1>}>
-            <div className="max-w-4xl py-2 mx-auto">
-                <BreadCrumb
-                    className="sm:px-6 md:px-8"
-                    paths={[
-                        {
-                            label: 'Drivers',
-                            href: '/drivers',
-                        },
-                        {
-                            label: driver ? `${driver.name}` : '',
-                            href: driver ? `/drivers/${driver.id}` : '',
-                        },
-                        {
-                            label: 'Edit Driver',
-                        },
-                    ]}
-                ></BreadCrumb>
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8">
-                    <h1 className="text-2xl font-semibold text-gray-900">Edit Driver</h1>
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
-                <div className="relative px-5 sm:px-6 md:px-8">
-                    {(loading || !driver) && <LoadingOverlay />}
-                    <form id="driver-form" onSubmit={formHook.handleSubmit(submit)}>
-                        <DriverForm formHook={formHook}></DriverForm>
-                        <div className="flex px-4 py-4 mt-4 bg-white border-t-2 border-neutral-200">
-                            <div className="flex-1"></div>
-                            <button
-                                type="submit"
-                                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Save Driver
-                            </button>
+            {!driver ? (
+                <DriverEditSkeleton />
+            ) : (
+                <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+                    <div className="max-w-4xl py-6 mx-auto px-4 sm:px-6 lg:px-8">
+                        <BreadCrumb
+                            className="mb-6"
+                            paths={[
+                                {
+                                    label: 'Drivers',
+                                    href: '/drivers',
+                                },
+                                {
+                                    label: driver ? `${driver.name}` : '',
+                                    href: driver ? `/drivers/${driver.id}` : '',
+                                },
+                                {
+                                    label: 'Edit Driver',
+                                },
+                            ]}
+                        />
+
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Driver</h1>
+                            <p className="text-gray-600">
+                                Update driver information and default pay configuration. Changes will apply to future
+                                assignments.
+                            </p>
                         </div>
-                    </form>
+
+                        <div className="relative">
+                            {loading && <LoadingOverlay message="Saving Driver..." />}
+                            <form id="driver-form" onSubmit={formHook.handleSubmit(submit)} className="space-y-6">
+                                <DriverForm formHook={formHook} />
+
+                                {/* Save Button Section */}
+                                <div className="bg-white rounded-3xl border-2 border-gray-200 p-8 shadow-xl hover:shadow-2xl transition-all duration-300">
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-bold text-gray-900 mb-2">
+                                                Ready to save changes?
+                                            </h4>
+                                            <p className="text-base text-gray-600 leading-relaxed">
+                                                Your changes will be applied immediately and affect future assignments.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => window.history.back()}
+                                                className="px-8 py-4 text-base font-semibold text-gray-700 bg-gray-100 border-2 border-gray-300 rounded-2xl hover:bg-gray-200 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={loading}
+                                                className="px-12 py-4 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                                            >
+                                                {loading ? (
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                        <span>Saving...</span>
+                                                    </div>
+                                                ) : (
+                                                    'Save Driver'
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </Layout>
     );
 };
