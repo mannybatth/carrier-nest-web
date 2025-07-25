@@ -2,10 +2,19 @@ import { DriverInvoiceStatus } from '@prisma/client';
 import { auth } from 'auth';
 import prisma from 'lib/prisma';
 import { NextAuthRequest } from 'next-auth/lib';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { sendDriverInvoiceApprovalNotification } from 'lib/driver-invoice-notifications';
+import {
+    getClientIP,
+    checkRateLimit,
+    createRateLimitResponse,
+    validateDriverPhone,
+    parsePhoneAuthRequest,
+    getRateLimitHeaders,
+} from 'lib/api/phone-auth-utils';
 
-export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
+// Handler for authenticated users (carriers)
+const authenticatedHandler = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
     if (!req.auth) {
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
@@ -49,9 +58,99 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
             );
         }
 
+        return await approveInvoice(invoice);
+    } catch (error) {
+        console.error('Error approving invoice:', error);
+        return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500 });
+    }
+});
+
+// Handler for phone-based authentication (drivers)
+async function phoneBasedHandler(req: NextRequest, { params }: { params: { id: string } }) {
+    const invoiceId = params.id;
+    const clientIP = getClientIP(req);
+
+    // Check rate limiting
+    const rateLimit = await checkRateLimit(clientIP);
+    if (!rateLimit.allowed) {
+        return createRateLimitResponse(rateLimit.remaining);
+    }
+
+    // Parse request body
+    const { driverPhone, error: parseError } = await parsePhoneAuthRequest(req);
+    if (parseError) {
+        return parseError;
+    }
+
+    if (!driverPhone) {
+        return NextResponse.json(
+            { code: 400, errors: [{ message: 'Driver phone number is required' }] },
+            {
+                status: 400,
+                headers: getRateLimitHeaders(rateLimit.remaining),
+            },
+        );
+    }
+
+    // Validate driver phone
+    const { success, invoice, response } = await validateDriverPhone(invoiceId, driverPhone, clientIP, rateLimit);
+    if (!success || !invoice) {
+        return response!;
+    }
+
+    // Check if invoice is pending
+    if (invoice.status !== DriverInvoiceStatus.PENDING) {
+        return NextResponse.json(
+            { code: 400, errors: [{ message: 'Invoice is not in pending status' }] },
+            {
+                status: 400,
+                headers: getRateLimitHeaders(rateLimit.remaining),
+            },
+        );
+    }
+
+    // Get full invoice with relationships for approval
+    const fullInvoice = await prisma.driverInvoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+            driver: {
+                select: {
+                    name: true,
+                },
+            },
+            carrier: {
+                select: {
+                    name: true,
+                    email: true,
+                },
+            },
+            assignments: {
+                select: {
+                    id: true,
+                },
+            },
+        },
+    });
+
+    if (!fullInvoice) {
+        return NextResponse.json(
+            { code: 404, errors: [{ message: 'Invoice not found' }] },
+            {
+                status: 404,
+                headers: getRateLimitHeaders(rateLimit.remaining),
+            },
+        );
+    }
+
+    return await approveInvoice(fullInvoice, rateLimit.remaining);
+}
+
+// Shared approval logic
+async function approveInvoice(invoice: any, rateLimitRemaining?: number) {
+    try {
         // Update the invoice status to APPROVED
         const updatedInvoice = await prisma.driverInvoice.update({
-            where: { id: invoiceId },
+            where: { id: invoice.id },
             data: {
                 status: DriverInvoiceStatus.APPROVED,
                 updatedAt: new Date(),
@@ -98,15 +197,41 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
             });
         }
 
-        return NextResponse.json({
-            code: 200,
-            data: {
-                message: 'Invoice approved successfully',
-                status: updatedInvoice.status,
+        const headers = rateLimitRemaining !== undefined ? getRateLimitHeaders(rateLimitRemaining) : {};
+
+        return NextResponse.json(
+            {
+                code: 200,
+                data: {
+                    message: 'Invoice approved successfully',
+                    status: updatedInvoice.status,
+                },
             },
-        });
+            { headers },
+        );
     } catch (error) {
         console.error('Error approving invoice:', error);
-        return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500 });
+        const headers = rateLimitRemaining !== undefined ? getRateLimitHeaders(rateLimitRemaining) : {};
+        return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500, headers });
     }
-});
+}
+
+// Main POST handler that routes between authenticated and phone-based handlers
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+    // Check if this is an authenticated request by looking for auth headers
+    const authHeader = req.headers.get('authorization');
+    const cookieHeader = req.headers.get('cookie');
+
+    // If there are auth headers/cookies, try authenticated handler first
+    if (authHeader || (cookieHeader && cookieHeader.includes('authjs'))) {
+        try {
+            return await authenticatedHandler(req as NextAuthRequest, { params });
+        } catch (error) {
+            // If authenticated handler fails, fall through to phone-based handler
+            //console.log('Authenticated handler failed, trying phone-based handler');
+        }
+    }
+
+    // Try phone-based handler
+    return await phoneBasedHandler(req, { params });
+}
