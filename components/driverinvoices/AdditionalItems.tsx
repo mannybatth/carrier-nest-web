@@ -26,6 +26,7 @@ interface AdditionalItemsProps {
     onNextStep: () => void;
     mode?: 'create' | 'edit';
     nextButtonText?: string;
+    emptyMiles?: { [key: string]: number };
 }
 
 const AdditionalItems: React.FC<AdditionalItemsProps> = ({
@@ -40,6 +41,7 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     onNextStep,
     mode = 'create',
     nextButtonText = 'Review & Create Invoice',
+    emptyMiles = {},
 }) => {
     // Edit state for line items - using index as ID for editing
     const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
@@ -47,6 +49,194 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
         description: '',
         amount: '',
     });
+
+    // Base pay guarantee state
+    const [basePay, setBasePay] = useState<string>('');
+    const [basePayInput, setBasePayInput] = useState<string>('');
+    const [isAutoLoaded, setIsAutoLoaded] = useState<boolean>(false);
+
+    // Load saved base pay for this driver on component mount
+    useEffect(() => {
+        if (invoice.driverId) {
+            const savedBasePay = localStorage.getItem(`basePay_${invoice.driverId}`);
+            if (savedBasePay) {
+                const formattedAmount = parseFloat(savedBasePay).toFixed(2);
+                setBasePay(formattedAmount);
+                setBasePayInput(formattedAmount);
+                setIsAutoLoaded(true);
+                // Apply the saved base pay automatically after assignments are loaded
+                setTimeout(() => {
+                    updateBasePayCalculation(formattedAmount);
+                }, 100);
+            }
+        }
+    }, [invoice.driverId, invoice.assignments.length]); // Add assignments.length to ensure assignments are loaded
+
+    // Save base pay to localStorage whenever it changes
+    const saveBasePayToStorage = (driverId: string, amount: string) => {
+        if (driverId && amount) {
+            localStorage.setItem(`basePay_${driverId}`, amount);
+        } else if (driverId) {
+            localStorage.removeItem(`basePay_${driverId}`);
+        }
+    };
+
+    // Calculate the current total amount from assignments only (excluding line items)
+    const calculateAssignmentTotal = () => {
+        return invoice.assignments.reduce((total, assignment) => {
+            let calculatedAmount = 0;
+            let billedMiles = 0;
+            let emptyMilesForAssignment = 0;
+
+            // Get empty miles for this assignment
+            if (assignment.chargeType === 'PER_MILE') {
+                billedMiles = Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles);
+
+                // Use the emptyMiles from the assignment object if available,
+                // otherwise fall back to the state
+                if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                    emptyMilesForAssignment = Number(assignment.emptyMiles);
+                } else {
+                    // Find empty miles for this assignment from state
+                    const emptyMilesKey = Object.keys(emptyMiles).find((key) => key.startsWith(`${assignment.id}-to-`));
+                    emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+                }
+
+                // Total miles including empty miles
+                const totalMiles = billedMiles + emptyMilesForAssignment;
+                calculatedAmount = totalMiles * Number(assignment.chargeValue);
+            } else {
+                // Non-mile based calculations
+                switch (assignment.chargeType) {
+                    case 'PER_HOUR':
+                        calculatedAmount =
+                            Number(assignment.billedDurationHours || assignment.routeLeg.durationHours) *
+                            Number(assignment.chargeValue);
+                        break;
+                    case 'PERCENTAGE_OF_LOAD':
+                        calculatedAmount =
+                            (Number(assignment.billedLoadRate || assignment.load.rate) *
+                                Number(assignment.chargeValue)) /
+                            100;
+                        break;
+                    case 'FIXED_PAY':
+                        calculatedAmount = Number(assignment.chargeValue);
+                        break;
+                }
+            }
+            return total + calculatedAmount;
+        }, 0);
+    };
+
+    const assignmentTotal = calculateAssignmentTotal();
+
+    // Function to calculate and update line items based on base pay
+    const updateBasePayCalculation = (basePayValue: string) => {
+        if (!basePayValue) {
+            // Remove base pay adjustment if no value
+            setInvoice((prevInvoice) => {
+                const updatedInvoice = { ...prevInvoice };
+                const filteredLineItems = updatedInvoice.lineItems.filter(
+                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
+                );
+                updatedInvoice.lineItems = filteredLineItems;
+                return updatedInvoice;
+            });
+            return;
+        }
+
+        const basePayAmount = parseFloat(basePayValue);
+        if (isNaN(basePayAmount) || basePayAmount <= 0) {
+            // Remove base pay adjustment if invalid value
+            setInvoice((prevInvoice) => {
+                const updatedInvoice = { ...prevInvoice };
+                const filteredLineItems = updatedInvoice.lineItems.filter(
+                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
+                );
+                updatedInvoice.lineItems = filteredLineItems;
+                return updatedInvoice;
+            });
+            return;
+        }
+
+        const difference = basePayAmount - assignmentTotal;
+
+        if (difference > 0) {
+            // Add base pay adjustment line item if total is less than base pay
+            setInvoice((prevInvoice) => {
+                const updatedInvoice = { ...prevInvoice };
+
+                // Remove any existing base pay adjustment
+                const filteredLineItems = updatedInvoice.lineItems.filter(
+                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
+                );
+
+                // Add new base pay adjustment at the beginning
+                const basePayLineItem = {
+                    id: `base-pay-${Date.now()}`,
+                    description: 'Base Pay Guarantee Adjustment',
+                    amount: new Decimal(difference.toFixed(2)),
+                };
+
+                updatedInvoice.lineItems = [basePayLineItem, ...filteredLineItems];
+
+                return updatedInvoice;
+            });
+        } else {
+            // Remove base pay adjustment if not needed
+            setInvoice((prevInvoice) => {
+                const updatedInvoice = { ...prevInvoice };
+                const filteredLineItems = updatedInvoice.lineItems.filter(
+                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
+                );
+                updatedInvoice.lineItems = filteredLineItems;
+                return updatedInvoice;
+            });
+        }
+    };
+
+    // Handle input changes without triggering calculations
+    const handleBasePayInputChange = (value: string) => {
+        // Remove non-numeric characters except decimal point
+        const numericValue = value.replace(/[^\d.]/g, '');
+
+        // Ensure only one decimal point
+        const parts = numericValue.split('.');
+        if (parts.length > 2) {
+            return;
+        }
+
+        setBasePayInput(numericValue);
+        // Clear auto-loaded indicator when user starts typing
+        if (isAutoLoaded) {
+            setIsAutoLoaded(false);
+        }
+        // Don't update basePay here to avoid triggering calculations
+    };
+
+    // Handle when user finishes editing (blur or Enter)
+    const handleBasePayFinish = () => {
+        if (basePayInput && !isNaN(parseFloat(basePayInput))) {
+            const formatted = parseFloat(basePayInput).toFixed(2);
+            setBasePayInput(formatted);
+            setBasePay(formatted);
+            updateBasePayCalculation(formatted);
+            // Save to localStorage
+            saveBasePayToStorage(invoice.driverId, formatted);
+        } else {
+            setBasePay('');
+            updateBasePayCalculation('');
+            // Remove from localStorage
+            saveBasePayToStorage(invoice.driverId, '');
+        }
+    };
+
+    // Handle Enter key press
+    const handleBasePayKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleBasePayFinish();
+        }
+    };
 
     // Refs for input fields
     const descriptionInputRef = useRef<HTMLInputElement>(null);
@@ -232,6 +422,68 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                                 rows={3}
                                 placeholder="Add any notes about this invoice..."
                             />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Base Pay Guarantee Section */}
+                <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Base Pay Guarantee</h3>
+                    </div>
+
+                    <div className="bg-gray-50/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4 sm:p-6 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex-1">
+                                <h4 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">
+                                    Set Minimum Guaranteed Pay
+                                </h4>
+                                <p className="text-xs sm:text-sm text-gray-600">
+                                    Set a minimum guaranteed amount the driver will make for this pay period.
+                                    <span className="block mt-1 text-gray-700">
+                                        Current assignment total: {formatCurrency(assignmentTotal.toFixed(2))}
+                                    </span>
+                                    {basePay && parseFloat(basePay) > assignmentTotal && (
+                                        <span className="block mt-1 font-medium text-green-700">
+                                            An adjustment of{' '}
+                                            {formatCurrency((parseFloat(basePay) - assignmentTotal).toFixed(2))} will be
+                                            added.
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                                        $
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={basePayInput}
+                                        onChange={(e) => handleBasePayInputChange(e.target.value)}
+                                        onBlur={handleBasePayFinish}
+                                        onKeyPress={handleBasePayKeyPress}
+                                        placeholder="0.00"
+                                        className="w-32 pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                                {basePayInput && (
+                                    <button
+                                        onClick={() => {
+                                            setBasePay('');
+                                            setBasePayInput('');
+                                            setIsAutoLoaded(false);
+                                            updateBasePayCalculation('');
+                                            // Remove from localStorage
+                                            saveBasePayToStorage(invoice.driverId, '');
+                                        }}
+                                        className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
