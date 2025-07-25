@@ -456,15 +456,21 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                 durationHours: new Prisma.Decimal(routeLeg.durationHours).toNumber(),
             });
         } else {
+            // For new assignments, try to use shipper's date if available
+            const shipperDate = load?.shipper?.date;
+            const defaultDate = shipperDate
+                ? new Date(shipperDate).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0];
+
             setRouteLegData({
                 driversWithCharge: [],
                 locations: [],
                 driverInstructions: '',
-                scheduledDate: new Date().toISOString().split('T')[0],
+                scheduledDate: defaultDate,
                 scheduledTime: '',
             });
         }
-    }, [routeLeg]);
+    }, [routeLeg, load]);
 
     const close = (value: boolean) => {
         onClose(value);
@@ -567,9 +573,17 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     };
 
     const onSelectedLegLocationsChange = async (locations: ExpandedRouteLegLocation[]) => {
+        // Find the shipper's date from the selected locations
+        const shipperLocation = locations.find((location) => location.loadStop?.type === 'SHIPPER');
+
+        // Get the shipper's date if available
+        const shipperDate = shipperLocation?.loadStop?.date;
+
         setRouteLegData({
             ...routeLegData,
             locations: locations,
+            // Set scheduledDate to shipper's date if available, otherwise keep current date
+            scheduledDate: shipperDate ? new Date(shipperDate).toISOString().split('T')[0] : routeLegData.scheduledDate,
         });
 
         updateRouteDetails(locations);
@@ -1178,19 +1192,43 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                                                                     <h5 className="text-lg font-semibold text-blue-900 mb-2">
                                                                         Assignment Route
                                                                     </h5>
-                                                                    <p className="text-sm text-blue-700 mb-4">
+                                                                    <p className="text-sm text-blue-700 mb-6">
                                                                         Select stops and locations for this assignment
                                                                     </p>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
-                                                                        onClick={() =>
-                                                                            setShowLegLocationSelection(true)
-                                                                        }
-                                                                    >
-                                                                        Select Locations
-                                                                        <ChevronDoubleRightIcon className="w-4 h-4 ml-2" />
-                                                                    </button>
+                                                                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+                                                                            onClick={() => {
+                                                                                // Select all load stops automatically
+                                                                                const allLoadStops: ExpandedRouteLegLocation[] =
+                                                                                    [
+                                                                                        load.shipper,
+                                                                                        ...load.stops,
+                                                                                        load.receiver,
+                                                                                    ].map((stop) => ({
+                                                                                        loadStop: stop as any,
+                                                                                        location: null,
+                                                                                    }));
+                                                                                onSelectedLegLocationsChange(
+                                                                                    allLoadStops,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            Use All Load Stops
+                                                                            <ChevronDoubleRightIcon className="w-4 h-4 ml-2" />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-white rounded-lg shadow-sm hover:bg-gray-50 hover:shadow-md border border-blue-200 transition-all"
+                                                                            onClick={() =>
+                                                                                setShowLegLocationSelection(true)
+                                                                            }
+                                                                        >
+                                                                            Select Manually
+                                                                            <ChevronDoubleRightIcon className="w-4 h-4 ml-2" />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </section>
