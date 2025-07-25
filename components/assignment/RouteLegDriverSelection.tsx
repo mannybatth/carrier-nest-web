@@ -272,13 +272,23 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                             <div
                                                 key={index}
                                                 className={`
-                      bg-white rounded-lg border shadow-sm transition-all duration-200
+                      bg-white rounded-lg border shadow-sm transition-all duration-200 cursor-pointer
                       ${
                           isSelected
                               ? 'border-blue-200 bg-blue-50 shadow-md'
                               : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                       }
                     `}
+                                                onClick={() => {
+                                                    // Create a synthetic event to toggle the driver selection
+                                                    const syntheticEvent = {
+                                                        target: {
+                                                            checked: !isSelected,
+                                                            value: driver.id,
+                                                        },
+                                                    } as React.ChangeEvent<HTMLInputElement>;
+                                                    handleCheckboxChange(syntheticEvent, driver);
+                                                }}
                                             >
                                                 <div className="flex items-center p-3">
                                                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
@@ -297,7 +307,10 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                             type="checkbox"
                                                             value={driver.id}
                                                             checked={isSelected}
-                                                            onChange={(e) => handleCheckboxChange(e, driver)}
+                                                            onChange={(e) => {
+                                                                e.stopPropagation(); // Prevent double triggering
+                                                                handleCheckboxChange(e, driver);
+                                                            }}
                                                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                         />
                                                     </div>
@@ -305,7 +318,10 @@ const RouteLegDriverSelection: React.FC<Props> = ({
 
                                                 {/* Condensed Driver Configuration */}
                                                 {isSelected && (
-                                                    <div className="border-t border-blue-100 p-3 bg-blue-50/50">
+                                                    <div
+                                                        className="border-t border-blue-100 p-3 bg-blue-50/50"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div>
                                                                 <label className="block text-xs font-medium text-gray-700 mb-1">
