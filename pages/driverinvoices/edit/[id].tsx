@@ -793,6 +793,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                                     onNextStep={nextStep}
                                     mode="edit"
                                     nextButtonText="Review Changes"
+                                    emptyMiles={emptyMiles}
                                 />
                             )}
 
