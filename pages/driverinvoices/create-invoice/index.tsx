@@ -1338,6 +1338,7 @@ const CreateDriverInvoicePage = () => {
                                     onNextStep={nextStep}
                                     mode="create"
                                     nextButtonText="Review Invoice"
+                                    emptyMiles={emptyMiles}
                                 />
                             )}
                             {/* Step 4: Review & Create */}
