@@ -13,58 +13,6 @@ import {
     getRateLimitHeaders,
 } from 'lib/api/phone-auth-utils';
 
-// Handler for authenticated users (carriers)
-const authenticatedHandler = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
-    if (!req.auth) {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-    }
-
-    const invoiceId = params.id;
-
-    try {
-        const carrierId = req.auth.user.defaultCarrierId;
-
-        // Find the invoice and verify that it belongs to the current carrier and is in PENDING status
-        const invoice = await prisma.driverInvoice.findFirst({
-            where: {
-                id: invoiceId,
-                carrierId,
-                status: DriverInvoiceStatus.PENDING,
-            },
-            include: {
-                driver: {
-                    select: {
-                        name: true,
-                    },
-                },
-                carrier: {
-                    select: {
-                        name: true,
-                        email: true,
-                    },
-                },
-                assignments: {
-                    select: {
-                        id: true,
-                    },
-                },
-            },
-        });
-
-        if (!invoice) {
-            return NextResponse.json(
-                { code: 404, errors: [{ message: 'Invoice not found, already approved, or unauthorized' }] },
-                { status: 404 },
-            );
-        }
-
-        return await approveInvoice(invoice);
-    } catch (error) {
-        console.error('Error approving invoice:', error);
-        return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500 });
-    }
-});
-
 // Handler for phone-based authentication (drivers)
 async function phoneBasedHandler(req: NextRequest, { params }: { params: { id: string } }) {
     const invoiceId = params.id;
@@ -216,22 +164,58 @@ async function approveInvoice(invoice: any, rateLimitRemaining?: number) {
     }
 }
 
-// Main POST handler that routes between authenticated and phone-based handlers
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-    // Check if this is an authenticated request by looking for auth headers
-    const authHeader = req.headers.get('authorization');
-    const cookieHeader = req.headers.get('cookie');
+// Main POST handler using auth wrapper that handles both authenticated and phone-based requests
+export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
+    const invoiceId = params.id;
+    const clientIP = getClientIP(req);
 
-    // If there are auth headers/cookies, try authenticated handler first
-    if (authHeader || (cookieHeader && cookieHeader.includes('authjs'))) {
-        try {
-            return await authenticatedHandler(req as NextAuthRequest, { params });
-        } catch (error) {
-            // If authenticated handler fails, fall through to phone-based handler
-            //console.log('Authenticated handler failed, trying phone-based handler');
-        }
+    // Check if we have proper authentication
+    if (!req.auth) {
+        // No authentication, use phone-based handler
+        return await phoneBasedHandler(req, { params });
     }
 
-    // Try phone-based handler
-    return await phoneBasedHandler(req, { params });
-}
+    // Authenticated user - proceed with carrier authentication
+    try {
+        const carrierId = req.auth.user.defaultCarrierId;
+
+        // Find the invoice and verify that it belongs to the current carrier and is in PENDING status
+        const invoice = await prisma.driverInvoice.findFirst({
+            where: {
+                id: invoiceId,
+                carrierId,
+                status: DriverInvoiceStatus.PENDING,
+            },
+            include: {
+                driver: {
+                    select: {
+                        name: true,
+                    },
+                },
+                carrier: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
+                assignments: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+
+        if (!invoice) {
+            return NextResponse.json(
+                { code: 404, errors: [{ message: 'Invoice not found, already approved, or unauthorized' }] },
+                { status: 404 },
+            );
+        }
+
+        return await approveInvoice(invoice);
+    } catch (error) {
+        console.error('Error approving invoice:', error);
+        return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500 });
+    }
+});
