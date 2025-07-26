@@ -88,16 +88,18 @@ const Dashboard: PageWithAuth = () => {
             }
         >
             <div className="py-2 mx-auto max-w-7xl ">
-                <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8 ">
-                    <h1 className="text-2xl font-bold text-slate-700">
-                        Welcome back
-                        <span className="font-light text-black cappitalize">
-                            &nbsp;{session?.user?.name ? session?.user?.name + '!' : defaultCarrier?.name + '!'}
-                        </span>
-                    </h1>
+                {loadsList?.length < 0 && (
+                    <div className="hidden px-5 my-4 md:block sm:px-6 md:px-8 ">
+                        <h1 className="text-2xl font-bold text-slate-700">
+                            Welcome back
+                            <span className="font-light text-black cappitalize">
+                                &nbsp;{session?.user?.name ? session?.user?.name + '!' : defaultCarrier?.name + '!'}
+                            </span>
+                        </h1>
 
-                    <div className="w-full mt-2 mb-1 border-t border-gray-300" />
-                </div>
+                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+                    </div>
+                )}
                 <div className="px-6 md:px-8  ">
                     <>
                         {!loadsLoading && loadsList?.length === 0 ? (

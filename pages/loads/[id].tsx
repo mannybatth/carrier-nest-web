@@ -66,19 +66,29 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         // Check if there's a hash in the URL
         if (router.asPath.includes('#')) {
             const id = router.asPath.split('#')[1];
-            // Optionally, use a timeout to wait for content to load
-            setTimeout(() => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                }
-            }, 100); // Adjust delay as needed
+
+            // Special case: if hash is 'add-assignment', open the assignment modal
+            if (id === 'add-assignment') {
+                setTimeout(() => {
+                    setOpenLegAssignment(true);
+                    // Remove the hash from the URL to prevent modal from reopening on refresh
+                    router.replace(`/loads/${loadId}`, undefined, { shallow: true });
+                }, 100); // Small delay to ensure component is ready
+            } else {
+                // Optionally, use a timeout to wait for content to load
+                setTimeout(() => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 100); // Adjust delay as needed
+            }
         }
 
         if (routeLegId && routeLegId !== 'undefined' && load) {
             editLegClicked(routeLegId as string);
         }
-    }, [router.asPath, load, routeLegId]);
+    }, [router.asPath, load, routeLegId, loadId]);
 
     useEffect(() => {
         if (!load) {
