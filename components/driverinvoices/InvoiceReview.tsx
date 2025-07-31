@@ -9,6 +9,7 @@ import {
     NewDriverInvoice,
 } from 'interfaces/models';
 import Spinner from 'components/Spinner';
+import { financialCalculation, calculateAssignmentAmount, safeNumber } from 'lib/financial-utils';
 
 interface InvoiceReviewProps {
     invoice: NewDriverInvoice | ExpandedDriverInvoice;
@@ -157,52 +158,25 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
                         </thead>
                         <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100/60">
                             {invoice.assignments.map((assignment) => {
-                                // Calculate base amount for the assignment
-                                let calculatedAmount = 0;
-                                let billedMiles = 0;
-                                let emptyMilesForAssignment = 0;
-
                                 // Get empty miles for this assignment
-                                if (assignment.chargeType === 'PER_MILE') {
-                                    billedMiles = Number(
-                                        assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles,
-                                    );
-
-                                    // Use the emptyMiles from the assignment object if available,
-                                    // otherwise fall back to the state
-                                    if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
-                                        emptyMilesForAssignment = Number(assignment.emptyMiles);
-                                    } else {
-                                        // Find empty miles for this assignment from state
-                                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
-                                            key.startsWith(`${assignment.id}-to-`),
-                                        );
-                                        emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
-                                    }
-
-                                    // Total miles including empty miles
-                                    const totalMiles = billedMiles + emptyMilesForAssignment;
-                                    calculatedAmount = totalMiles * Number(assignment.chargeValue);
+                                let emptyMilesForAssignment = 0;
+                                if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                                    emptyMilesForAssignment = safeNumber(assignment.emptyMiles);
                                 } else {
-                                    // Non-mile based calculations remain the same
-                                    switch (assignment.chargeType) {
-                                        case 'PER_HOUR':
-                                            calculatedAmount =
-                                                Number(
-                                                    assignment.billedDurationHours || assignment.routeLeg.durationHours,
-                                                ) * Number(assignment.chargeValue);
-                                            break;
-                                        case 'PERCENTAGE_OF_LOAD':
-                                            calculatedAmount =
-                                                (Number(assignment.billedLoadRate || assignment.load.rate) *
-                                                    Number(assignment.chargeValue)) /
-                                                100;
-                                            break;
-                                        case 'FIXED_PAY':
-                                            calculatedAmount = Number(assignment.chargeValue);
-                                            break;
-                                    }
+                                    // Find empty miles for this assignment from state
+                                    const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                        key.startsWith(`${assignment.id}-to-`),
+                                    );
+                                    emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
                                 }
+
+                                // Calculate amount using shared utility for consistency
+                                const calculatedAmount = calculateAssignmentAmount(assignment, emptyMilesForAssignment);
+
+                                // Get billed miles for display (needed for UI)
+                                const billedMiles = safeNumber(
+                                    assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles,
+                                );
 
                                 // Format the locations. For each location in the routeLeg, we check if loadStop exists;
                                 // if not, we use the nested location object.

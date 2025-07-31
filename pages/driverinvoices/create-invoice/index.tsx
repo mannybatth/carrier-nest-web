@@ -21,6 +21,7 @@ import { useMileCalculation } from 'hooks/useMileCalculation';
 import InvoiceStepper from 'components/InvoiceStepper';
 import { createInvoiceSteps } from 'lib/constants/stepper';
 import { InvoiceReview } from 'components/driverinvoices/InvoiceReview';
+import { financialCalculation, financialAdd, calculateAssignmentAmount, safeNumber } from 'lib/financial-utils';
 import AdditionalItems from 'components/driverinvoices/AdditionalItems';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
@@ -104,54 +105,30 @@ const CreateDriverInvoicePage = () => {
     useEffect(() => {
         let total = 0;
 
-        // Add up assignment amounts
+        // Add up assignment amounts with financial precision
         invoice.assignments.forEach((assignment) => {
-            let amount = 0;
-            switch (assignment.chargeType) {
-                case 'PER_MILE':
-                    // Get base miles
-                    const baseMiles = Number(assignment.billedDistanceMiles || assignment.routeLeg.distanceMiles);
-
-                    // Get empty miles for this assignment
-                    let emptyMilesForAssignment = 0;
-                    if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
-                        // Use the emptyMiles from the assignment object if available
-                        emptyMilesForAssignment = Number(assignment.emptyMiles);
-                    } else {
-                        // Find empty miles for this assignment from state
-                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
-                            key.startsWith(`${assignment.id}-to-`),
-                        );
-                        emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
-                    }
-
-                    // Total miles including empty miles
-                    const totalMiles = baseMiles + emptyMilesForAssignment;
-                    amount = totalMiles * Number(assignment.chargeValue);
-                    break;
-                case 'PER_HOUR':
-                    amount =
-                        Number(assignment.billedDurationHours || assignment.routeLeg.durationHours) *
-                        Number(assignment.chargeValue);
-                    break;
-                case 'PERCENTAGE_OF_LOAD':
-                    amount =
-                        (Number(assignment.billedLoadRate || assignment.load.rate) * Number(assignment.chargeValue)) /
-                        100;
-                    break;
-                case 'FIXED_PAY':
-                    amount = Number(assignment.chargeValue);
-                    break;
+            // Get empty miles for this assignment
+            let emptyMilesForAssignment = 0;
+            if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                // Use the emptyMiles from the assignment object if available
+                emptyMilesForAssignment = safeNumber(assignment.emptyMiles);
+            } else {
+                // Find empty miles for this assignment from state
+                const emptyMilesKey = Object.keys(emptyMiles).find((key) => key.startsWith(`${assignment.id}-to-`));
+                emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
             }
-            total += amount;
+
+            const amount = calculateAssignmentAmount(assignment, emptyMilesForAssignment);
+            total = financialAdd(total, amount);
         });
 
-        // Add up line items
+        // Add up line items with financial precision
         invoice.lineItems.forEach((item) => {
-            total += Number.parseFloat(item.amount);
+            const itemAmount = safeNumber(item.amount);
+            total = financialAdd(total, itemAmount);
         });
 
-        setTotalAmount(total.toFixed(2));
+        setTotalAmount(financialCalculation(total).toFixed(2));
     }, [invoice.assignments, invoice.lineItems, emptyMiles]);
 
     // Calculate empty miles when mile-based assignments change
