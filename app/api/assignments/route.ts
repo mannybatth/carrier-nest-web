@@ -9,6 +9,7 @@ import { ExpandedDriverAssignment } from 'interfaces/models';
 import firebaseAdmin from '../../../lib/firebase/firebaseAdmin';
 import Twilio from 'twilio';
 import { appUrl } from 'lib/constants';
+import { AssignmentNotificationHelper } from 'lib/helpers/AssignmentNotificationHelper';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -265,6 +266,25 @@ export const POST = auth(async (req: NextAuthRequest) => {
             return assignments;
         });
 
+        // Send notifications for newly created assignments
+        try {
+            for (const assignment of assignments) {
+                await AssignmentNotificationHelper.notifyAssignmentUpdated({
+                    assignmentId: assignment.id,
+                    routeLegId: 'route-leg-placeholder', // We don't have direct access to routeLegId here
+                    loadId: loadId,
+                    carrierId: load.carrierId,
+                    driverId: assignment.driver.id,
+                    driverName: assignment.driver.name,
+                    loadNum: `Load-${loadId}`, // You might want to use a proper load number field
+                    updateType: 'new_assignment',
+                });
+            }
+        } catch (notificationError) {
+            // Log the error but don't fail the main operation
+            console.error('Error sending new assignment notifications:', notificationError);
+        }
+
         sendPushNotification(assignments, loadId, false);
 
         if (sendSms) {
@@ -315,6 +335,14 @@ export const PUT = auth(async (req: NextAuthRequest) => {
             include: { devices: true },
         });
 
+        // Get current assignments before the transaction
+        const currentAssignments = await prisma.driverAssignment.findMany({
+            where: { routeLegId },
+            select: { driverId: true },
+        });
+        const currentDriverIds = currentAssignments.map((assignment) => assignment.driverId);
+        const newAssignedDriverIds = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
+
         await prisma.$transaction(async (prisma) => {
             await prisma.routeLeg.update({
                 where: { id: routeLegId },
@@ -327,14 +355,6 @@ export const PUT = auth(async (req: NextAuthRequest) => {
                 },
             });
 
-            const currentAssignments = await prisma.driverAssignment.findMany({
-                where: { routeLegId },
-                select: { driverId: true },
-            });
-
-            const currentDriverIds = currentAssignments.map((assignment) => assignment.driverId);
-
-            const newAssignedDriverIds = driverIdsFromRequest.filter((id) => !currentDriverIds.includes(id));
             const removedDriverIds = currentDriverIds.filter((id) => !driverIdsFromRequest.includes(id));
 
             const newDriverAssignmentsData = routeLegData.driversWithCharge
@@ -431,6 +451,54 @@ export const PUT = auth(async (req: NextAuthRequest) => {
 
         const routeExpanded = await getExpandedRoute(loadId);
         const routeLeg = routeExpanded.routeLegs.find((leg) => leg.id === routeLegId);
+
+        // Send notifications for assignment changes
+        try {
+            if (routeLeg && routeLeg.driverAssignments) {
+                // Get the drivers that were newly assigned
+                const newlyAssignedDrivers = allRelevantDrivers.filter((driver) =>
+                    newAssignedDriverIds.includes(driver.id),
+                );
+
+                // Send notifications for newly assigned drivers
+                for (const driver of newlyAssignedDrivers) {
+                    const assignment = routeLeg.driverAssignments.find((assign) => assign.driver.id === driver.id);
+
+                    if (assignment) {
+                        await AssignmentNotificationHelper.notifyAssignmentUpdated({
+                            assignmentId: assignment.id,
+                            routeLegId: routeLeg.id,
+                            loadId: loadId,
+                            carrierId: load.carrierId,
+                            driverId: driver.id,
+                            driverName: driver.name,
+                            loadNum: `Load-${loadId}`, // You might want to use a proper load number field
+                            updateType: 'assigned',
+                        });
+                    }
+                }
+
+                // Send notifications for assignment updates (schedule, instructions, etc.)
+                for (const assignment of routeLeg.driverAssignments) {
+                    if (currentDriverIds.includes(assignment.driver.id)) {
+                        // This is an existing assignment that was updated
+                        await AssignmentNotificationHelper.notifyAssignmentUpdated({
+                            assignmentId: assignment.id,
+                            routeLegId: routeLeg.id,
+                            loadId: loadId,
+                            carrierId: load.carrierId,
+                            driverId: assignment.driver.id,
+                            driverName: assignment.driver.name,
+                            loadNum: `Load-${loadId}`, // You might want to use a proper load number field
+                            updateType: 'schedule_updated',
+                        });
+                    }
+                }
+            }
+        } catch (notificationError) {
+            // Log the error but don't fail the main operation
+            console.error('Error sending assignment notifications:', notificationError);
+        }
 
         sendPushNotification(routeLeg.driverAssignments, loadId, true);
 

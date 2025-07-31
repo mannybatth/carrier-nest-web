@@ -4,6 +4,7 @@ import prisma from 'lib/prisma';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDriverInvoiceApprovalNotification } from 'lib/driver-invoice-notifications';
+import { DriverInvoiceNotificationHelper } from 'lib/helpers/DriverInvoiceNotificationHelper';
 import {
     getClientIP,
     checkRateLimit,
@@ -104,6 +105,22 @@ async function approveInvoice(invoice: any, rateLimitRemaining?: number) {
                 updatedAt: new Date(),
             },
         });
+
+        // Create in-app notification for invoice approval
+        try {
+            await DriverInvoiceNotificationHelper.notifyInvoiceApproved({
+                invoiceId: invoice.id,
+                carrierId: invoice.carrierId,
+                driverId: invoice.driverId,
+                driverName: invoice.driver.name,
+                invoiceNum: invoice.invoiceNum.toString(),
+                amount: Number(invoice.totalAmount),
+                approvedAt: new Date(),
+            });
+        } catch (notificationError) {
+            console.error('Failed to create invoice approval notification:', notificationError);
+            // Notification failure doesn't affect the API response
+        }
 
         // Send email notification to carrier asynchronously
         if (invoice.carrier?.email) {

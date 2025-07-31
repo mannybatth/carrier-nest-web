@@ -27,15 +27,26 @@ type UserProviderProps = {
 };
 
 export function UserProvider({ children }: UserProviderProps) {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
     const [isProPlan, setIsProPlan] = useState(false);
     const [isLoadingCarrier, setIsLoadingCarrier] = useState(true);
+    const [hasInitialized, setHasInitialized] = useState(false);
 
     useEffect(() => {
-        fetchCarriers();
-    }, [session]);
+        // Only fetch carriers once when session is authenticated and not already initialized
+        if (status === 'authenticated' && session?.user?.id && !hasInitialized) {
+            setHasInitialized(true);
+            fetchCarriers();
+        } else if (status === 'unauthenticated') {
+            // Reset state when user logs out
+            setHasInitialized(false);
+            setCarriers([]);
+            setDefaultCarrier(null);
+            setIsLoadingCarrier(true);
+        }
+    }, [status, session?.user?.id, hasInitialized]);
 
     useEffect(() => {
         if (session?.user?.defaultCarrierId && carriers.length > 0) {
@@ -43,7 +54,7 @@ export function UserProvider({ children }: UserProviderProps) {
             setDefaultCarrier(carrier);
             setIsProPlan(isProPlanUtil(carrier?.subscription));
         }
-    }, [session, carriers]);
+    }, [session?.user?.defaultCarrierId, carriers]);
 
     const fetchCarriers = async () => {
         try {

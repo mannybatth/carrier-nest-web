@@ -3,6 +3,7 @@ import { auth } from 'auth';
 import prisma from 'lib/prisma';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
+import { DriverInvoiceNotificationHelper } from 'lib/helpers/DriverInvoiceNotificationHelper';
 
 export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
     if (!req.auth) {
@@ -25,6 +26,13 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
         // Find the invoice and verify that it belongs to the current carrier
         const invoice = await prisma.driverInvoice.findFirst({
             where: { id: invoiceId, status: { in: ['APPROVED', 'PENDING'] } },
+            include: {
+                driver: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
         });
         if (!invoice || invoice.carrierId !== carrierId) {
             return NextResponse.json(
@@ -41,11 +49,35 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
             );
         }
 
+        // Store previous status for notification
+        const previousStatus = invoice.status;
+
         // Update the invoice status
         const updatedInvoice = await prisma.driverInvoice.update({
             where: { id: invoiceId },
             data: { status },
         });
+
+        // Create notifications for relevant status changes
+        try {
+            if (status === DriverInvoiceStatus.APPROVED && previousStatus === DriverInvoiceStatus.PENDING) {
+                // Invoice approved notification
+                await DriverInvoiceNotificationHelper.notifyInvoiceApproved({
+                    invoiceId: invoice.id,
+                    carrierId: invoice.carrierId,
+                    driverId: invoice.driverId,
+                    driverName: invoice.driver.name,
+                    invoiceNum: invoice.invoiceNum.toString(),
+                    amount: Number(invoice.totalAmount),
+                    approvedAt: new Date(),
+                });
+            } else if (status === DriverInvoiceStatus.PAID || status === DriverInvoiceStatus.PARTIALLY_PAID) {
+                // Payment status change notification - removed as per requirements
+            }
+        } catch (notificationError) {
+            console.error('Failed to create status change notification:', notificationError);
+            // Notification failure doesn't affect the API response
+        }
 
         return NextResponse.json({
             code: 200,

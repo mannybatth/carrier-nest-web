@@ -28,7 +28,9 @@ export const useAuth = () => {
     }, [router.query, session, update]);
 
     useEffect(() => {
-        if (status === 'loading') return;
+        if (status === 'loading') {
+            return;
+        }
 
         if (status === 'unauthenticated') {
             router.replace('/homepage');
@@ -42,7 +44,7 @@ export const useAuth = () => {
                 router.replace('/');
             }
         }
-    }, [status, session, router.pathname]);
+    }, [status, session?.user?.defaultCarrierId, router.pathname]); // More specific dependencies
 
     return { status, session };
 };

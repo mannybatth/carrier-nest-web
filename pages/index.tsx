@@ -5,6 +5,7 @@ import Link from 'next/link';
 import React from 'react';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
+import NotificationBell from '../components/NotificationBell';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
 import { getUpcomingLoads } from '../lib/rest/dashboard';
@@ -82,8 +83,9 @@ const Dashboard: PageWithAuth = () => {
     return (
         <Layout
             smHeaderComponent={
-                <div className="flex items-center">
+                <div className="flex items-center justify-between w-full">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Dashboard</h1>
+                    <NotificationBell />
                 </div>
             }
         >
