@@ -4,6 +4,9 @@ import prisma, { ensurePrismaConnection, disconnectPrisma } from '../../../../li
 import { Notification, NotificationPreference, Driver } from '@prisma/client';
 import { sseConnectionTracker } from '../../../../lib/sse-connection-tracker';
 
+// Force dynamic rendering for SSE
+export const dynamic = 'force-dynamic';
+
 const headers = {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
