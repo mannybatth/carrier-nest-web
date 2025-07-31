@@ -1,0 +1,23 @@
+{
+  "functions": {
+    "app/api/notifications/stream/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/api/notifications/stream",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "X-Accel-Buffering",
+          "value": "no"
+        }
+      ]
+    }
+  ]
+}
