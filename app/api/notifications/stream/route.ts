@@ -68,15 +68,6 @@ export async function GET(request: NextRequest) {
                     }
                 };
 
-                // Send initial connection message
-                sendMessage({
-                    type: 'connected',
-                    message: 'SSE connection established',
-                    timestamp: new Date().toISOString(),
-                    userId,
-                    carrierId,
-                });
-
                 // Heartbeat function
                 const sendHeartbeat = () => {
                     sseConnectionTracker.updateHeartbeat(connectionId);
