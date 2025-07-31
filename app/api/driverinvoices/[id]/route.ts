@@ -504,7 +504,7 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
         });
 
         const updates = assignments.map((assignment: any) => {
-            // Helper function to safely convert to Decimal or null
+            // Helper function to safely convert to Decimal with proper rounding
             const safeDecimal = (value: any): Prisma.Decimal | null => {
                 if (
                     value === null ||
@@ -516,7 +516,7 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
                     return null;
                 }
                 try {
-                    return new Prisma.Decimal(value);
+                    return new Prisma.Decimal(value).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
                 } catch (error) {
                     console.warn(`Failed to convert value to Decimal: ${value}`, error);
                     return null;
@@ -525,7 +525,10 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
 
             const data: Prisma.DriverAssignmentUpdateInput = {
                 chargeType: assignment.chargeType,
-                chargeValue: new Prisma.Decimal(assignment.chargeValue),
+                chargeValue: new Prisma.Decimal(assignment.chargeValue).toDecimalPlaces(
+                    2,
+                    Prisma.Decimal.ROUND_HALF_UP,
+                ),
             };
 
             if (assignment.chargeType === 'PER_MILE') {
@@ -551,7 +554,7 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
         // Execute all assignment updates in a single transaction
         const updatedAssignments = await prisma.$transaction(updates);
 
-        // Calculate the total for the assignments using reduce
+        // Calculate the total for the assignments using reduce with proper rounding
         const assignmentTotal = updatedAssignments.reduce((acc, a) => {
             // Check charge type and calculate the total accordingly
             if (!a.chargeValue) return acc;
@@ -561,17 +564,22 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
             if (a.chargeType === 'PERCENTAGE_OF_LOAD') {
                 const loadRate = a.billedLoadRate || new Prisma.Decimal(0);
                 const percentage = a.chargeValue.div(100);
-                return acc.add(loadRate.mul(percentage));
+                const amount = loadRate.mul(percentage).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+                return acc.add(amount);
             }
             if (a.chargeType === 'PER_MILE') {
                 // Calculate total miles including empty miles
                 const baseMiles = a.billedDistanceMiles || new Prisma.Decimal(0);
                 const emptyMiles = a.emptyMiles || new Prisma.Decimal(0);
                 const totalMiles = baseMiles.add(emptyMiles);
-                return acc.add(totalMiles.mul(a.chargeValue));
+                const amount = totalMiles.mul(a.chargeValue).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+                return acc.add(amount);
             }
             if (a.chargeType === 'PER_HOUR') {
-                return acc.add(a.billedDurationHours.mul(a.chargeValue));
+                const amount = a.billedDurationHours
+                    .mul(a.chargeValue)
+                    .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+                return acc.add(amount);
             }
             // Default case if charge type is not recognized
             return acc;
@@ -581,14 +589,14 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
             where: { invoiceId: id, carrierId },
         });
 
-        // Create line items if provided
+        // Create line items if provided with proper decimal rounding
         const lineItemCreates = lineItems.map((item: any) =>
             prisma.driverInvoiceLineItem.create({
                 data: {
                     invoiceId: invoice.id,
                     driverId,
                     carrierId,
-                    amount: new Prisma.Decimal(item.amount),
+                    amount: new Prisma.Decimal(item.amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
                     description: item.description,
                     chargeId: item.chargeId || null,
                 },
@@ -599,7 +607,8 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
 
         const lineItemsTotal = createdLineItems.reduce((acc, item) => acc.add(item.amount), new Prisma.Decimal(0));
 
-        const totalAmount = assignmentTotal.add(lineItemsTotal);
+        // Calculate total with proper rounding
+        const totalAmount = assignmentTotal.add(lineItemsTotal).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
         await prisma.driverInvoice.update({
             where: { id: invoice.id },

@@ -48,7 +48,6 @@ const settingsNavItems = [
         icon: BellIcon,
         iconSolid: BellIconSolid,
         description: 'Email and SMS notification preferences',
-        comingSoon: true,
     },
     {
         name: 'Security',

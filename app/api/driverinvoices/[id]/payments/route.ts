@@ -3,6 +3,7 @@ import { auth } from 'auth';
 import prisma from 'lib/prisma';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
+import { DriverInvoiceNotificationHelper } from 'lib/helpers/DriverInvoiceNotificationHelper';
 
 // This API route is at /api/driverinvoices/[id]/payments
 export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id: string } }) => {
@@ -29,7 +30,16 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
 
         const carrierId = req.auth.user.defaultCarrierId;
         // Find the invoice and verify that it belongs to the current carrier
-        const invoice = await prisma.driverInvoice.findUnique({ where: { id: invoiceId } });
+        const invoice = await prisma.driverInvoice.findUnique({
+            where: { id: invoiceId },
+            include: {
+                driver: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        });
         if (!invoice || invoice.carrierId !== carrierId) {
             return NextResponse.json(
                 { code: 404, errors: [{ message: 'Invoice not found or unauthorized' }] },
@@ -37,8 +47,11 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
             );
         }
 
+        // Store previous status for notification
+        const previousStatus = invoice.status;
+
         // Use a transaction to create the payment and update the invoice status atomically
-        const newPayment = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             // Create the invoice payment record
             const payment = await tx.driverInvoicePayment.create({
                 data: {
@@ -72,10 +85,24 @@ export const POST = auth(async (req: NextAuthRequest, { params }: { params: { id
                 data: { status: newStatus },
             });
 
-            return payment;
+            return { payment, newStatus };
         });
 
-        return NextResponse.json({ code: 200, data: { paymentId: newPayment.id } });
+        // Create notification for payment processing
+        if (result.newStatus !== previousStatus) {
+            try {
+                if (result.newStatus === DriverInvoiceStatus.PAID) {
+                    // Payment processed notification - removed as per requirements
+                } else {
+                    // Payment status change notification - removed as per requirements
+                }
+            } catch (notificationError) {
+                console.error('Failed to create payment notification:', notificationError);
+                // Notification failure doesn't affect the API response
+            }
+        }
+
+        return NextResponse.json({ code: 200, data: { paymentId: result.payment.id } });
     } catch (error) {
         console.error('Error adding payment:', error);
         return NextResponse.json({ code: 500, errors: [{ message: 'Server error' }] }, { status: 500 });

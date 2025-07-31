@@ -275,30 +275,35 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
         const updatedAssignments = await prisma.$transaction(updates);
 
-        // Calculate the total for the assignments using reduce
+        // Calculate the total for the assignments using reduce with proper financial rounding
         const assignmentTotal = updatedAssignments.reduce((acc, a) => {
             // Check charge type and calculate the total accordingly
             if (!a.chargeValue) return acc;
+
+            let calculatedAmount = new Prisma.Decimal(0);
+
             if (a.chargeType === 'FIXED_PAY') {
-                return acc.add(a.chargeValue);
-            }
-            if (a.chargeType === 'PERCENTAGE_OF_LOAD') {
+                calculatedAmount = a.chargeValue;
+            } else if (a.chargeType === 'PERCENTAGE_OF_LOAD') {
                 const loadRate = a.billedLoadRate || new Prisma.Decimal(0);
                 const percentage = a.chargeValue.div(100);
-                return acc.add(loadRate.mul(percentage));
-            }
-            if (a.chargeType === 'PER_MILE') {
+                // Apply financial rounding: multiply first, then round to 2 decimal places
+                calculatedAmount = loadRate.mul(percentage).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+            } else if (a.chargeType === 'PER_MILE') {
                 // Calculate total miles including empty miles
                 const baseMiles = a.billedDistanceMiles || new Prisma.Decimal(0);
                 const emptyMiles = a.emptyMiles || new Prisma.Decimal(0);
                 const totalMiles = baseMiles.add(emptyMiles);
-                return acc.add(totalMiles.mul(a.chargeValue));
+                // Apply financial rounding: multiply first, then round to 2 decimal places
+                calculatedAmount = totalMiles.mul(a.chargeValue).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+            } else if (a.chargeType === 'PER_HOUR') {
+                const hours = a.billedDurationHours || new Prisma.Decimal(0);
+                // Apply financial rounding: multiply first, then round to 2 decimal places
+                calculatedAmount = hours.mul(a.chargeValue).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
             }
-            if (a.chargeType === 'PER_HOUR') {
-                return acc.add(a.billedDurationHours.mul(a.chargeValue));
-            }
-            // Default case if charge type is not recognized
-            return acc;
+
+            // Add the calculated amount to the accumulator with proper rounding
+            return acc.add(calculatedAmount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
         }, new Prisma.Decimal(0));
 
         const lineItemCreates = lineItems.map((item: any) =>
@@ -307,7 +312,8 @@ export const POST = auth(async (req: NextAuthRequest) => {
                     invoiceId: invoice.id,
                     driverId,
                     carrierId,
-                    amount: new Prisma.Decimal(item.amount),
+                    // Apply financial rounding to line item amounts
+                    amount: new Prisma.Decimal(item.amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
                     description: item.description,
                     chargeId: item.chargeId || null,
                 },
@@ -316,9 +322,13 @@ export const POST = auth(async (req: NextAuthRequest) => {
 
         const createdLineItems = await prisma.$transaction(lineItemCreates);
 
-        const lineItemsTotal = createdLineItems.reduce((acc, item) => acc.add(item.amount), new Prisma.Decimal(0));
+        // Calculate line items total with proper financial rounding
+        const lineItemsTotal = createdLineItems.reduce((acc, item) => {
+            return acc.add(item.amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        }, new Prisma.Decimal(0));
 
-        const totalAmount = assignmentTotal.add(lineItemsTotal);
+        // Final total calculation with financial rounding
+        const totalAmount = assignmentTotal.add(lineItemsTotal).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
         await prisma.driverInvoice.update({
             where: { id: invoice.id },

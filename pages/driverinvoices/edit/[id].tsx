@@ -292,7 +292,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
             setCurrentStep(2.5); // Mile calculation step
         } else {
             setShowMileCalculationStep(false);
-            setCurrentStep(3); // Skip to additional items
+            setCurrentStep(2); // Go to additional items step (which is step 2 when no mile calculation)
         }
     };
 

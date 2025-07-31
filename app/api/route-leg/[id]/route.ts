@@ -3,6 +3,7 @@ import { auth } from 'auth';
 import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
+import { AssignmentNotificationHelper } from 'lib/helpers/AssignmentNotificationHelper';
 
 export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     const routeLegId = context.params.id;
@@ -91,6 +92,7 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
                                     id: true,
                                     status: true,
                                     carrierId: true,
+                                    refNum: true,
                                 },
                             },
                         },
@@ -184,6 +186,54 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
 
             return { routeLeg, loadStatus };
         });
+
+        // Send notifications for assignment status changes
+        try {
+            const routeLeg = updates.routeLeg;
+
+            // Only send notifications for specific status changes and if we have driver assignments
+            if (routeLeg.driverAssignments && routeLeg.driverAssignments.length > 0) {
+                for (const assignment of routeLeg.driverAssignments) {
+                    // Prepare notification parameters
+                    const notificationParams = {
+                        assignmentId: assignment.id,
+                        routeLegId: routeLeg.id,
+                        loadId: routeLeg.route.load.id,
+                        carrierId: routeLeg.route.load.carrierId,
+                        driverId: assignment.driver.id,
+                        driverName: assignment.driver.name,
+                        loadNum: routeLeg.route.load.refNum, // Use actual order/reference number
+                    };
+
+                    // Send notifications based on status
+                    if (routeLegStatus === RouteLegStatus.IN_PROGRESS) {
+                        await AssignmentNotificationHelper.notifyAssignmentStarted(notificationParams);
+                    } else if (routeLegStatus === RouteLegStatus.COMPLETED) {
+                        await AssignmentNotificationHelper.notifyAssignmentCompleted(notificationParams);
+                    } else if (routeLegStatus === RouteLegStatus.ASSIGNED) {
+                        // Determine user type based on whether the session user is a driver or admin/user
+                        const userType = session?.user?.driverId ? 'Driver' : 'Admin';
+
+                        // Use driver name if session user is a driver, otherwise use session user name
+                        const changedByName = session?.user?.driverId
+                            ? assignment.driver.name
+                            : session?.user?.name || 'User';
+
+                        // Optionally notify about assignment being assigned/updated
+                        await AssignmentNotificationHelper.notifyStatusChange({
+                            ...notificationParams,
+                            fromStatus: 'UNKNOWN',
+                            toStatus: 'ASSIGNED',
+                            changedBy: changedByName, // Include who changed the status
+                            changedByType: userType, // Include user type
+                        });
+                    }
+                }
+            }
+        } catch (notificationError) {
+            // Log the error but don't fail the main operation
+            console.error('Error sending assignment notifications:', notificationError);
+        }
 
         return NextResponse.json({ code: 200, data: { routeLeg: updates.routeLeg, loadStatus: updates.loadStatus } });
     } catch (error) {

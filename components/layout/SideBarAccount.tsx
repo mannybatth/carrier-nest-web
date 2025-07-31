@@ -8,6 +8,7 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import type React from 'react';
 import { Fragment } from 'react';
+import NotificationBell from '../../components/NotificationBell';
 
 interface SideBarAccountProps {
     collapsed: boolean;
@@ -18,10 +19,16 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
 
     if (collapsed) {
         return (
-            <div className="flex justify-center p-2 border-t border-slate-200">
+            <div className="flex flex-col items-center space-y-4 p-3 border-t border-slate-200/80 bg-gradient-to-b from-slate-50/50 to-white">
+                {/* Notification Bell - Collapsed */}
+                <div className="relative">
+                    <NotificationBell collapsed={true} />
+                </div>
+
+                {/* Account Menu - Collapsed */}
                 <Menu as="div" className="relative">
                     <Menu.Button
-                        className="flex items-center justify-center w-10 h-10 text-sm font-medium text-white rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+                        className="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
                         data-tooltip-id="tooltip"
                         data-tooltip-content={defaultCarrier?.name || 'Account'}
                         data-tooltip-place="right"
@@ -31,28 +38,135 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
 
                     <Transition
                         as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
+                        enter="transition ease-out duration-200"
+                        enterFrom="transform opacity-0 scale-95 translate-y-2"
+                        enterTo="transform opacity-100 scale-100 translate-y-0"
+                        leave="transition ease-in duration-150"
+                        leaveFrom="transform opacity-100 scale-100 translate-y-0"
+                        leaveTo="transform opacity-0 scale-95 translate-y-2"
                     >
-                        <Menu.Items className="fixed bottom-16 left-2 mb-2 w-48 origin-bottom-left bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none z-[9999]">
-                            <div className="py-1">
-                                <div className="px-4 py-3 border-b border-slate-100">
-                                    <p className="text-sm font-medium text-slate-900 truncate">
-                                        {defaultCarrier?.name || ''}
-                                    </p>
-                                    <p className="text-xs text-slate-500 truncate">{defaultCarrier?.email || ''}</p>
+                        <Menu.Items className="fixed bottom-20 left-2 mb-2 w-56 origin-bottom-left bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-slate-200/60 focus:outline-none z-[9999] border border-white/20">
+                            <div className="py-2">
+                                {/* Account Header */}
+                                <div className="px-4 py-3 border-b border-slate-100/80">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700">
+                                            {defaultCarrier?.name?.charAt(0).toUpperCase() || ''}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-900 truncate">
+                                                {defaultCarrier?.name || ''}
+                                            </p>
+                                            <p className="text-xs text-slate-500 truncate">
+                                                {defaultCarrier?.email || ''}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* Menu Items */}
+                                <div className="py-1">
+                                    <Menu.Item>
+                                        {({ active }) => (
+                                            <Link href={`/billing`}>
+                                                <button
+                                                    className={classNames(
+                                                        active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
+                                                        'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80',
+                                                    )}
+                                                >
+                                                    Plan & Billing
+                                                </button>
+                                            </Link>
+                                        )}
+                                    </Menu.Item>
+                                    <Menu.Item>
+                                        {({ active }) => (
+                                            <Link href={`/settings`}>
+                                                <button
+                                                    className={classNames(
+                                                        active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
+                                                        'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80',
+                                                    )}
+                                                >
+                                                    Account Settings
+                                                </button>
+                                            </Link>
+                                        )}
+                                    </Menu.Item>
+                                    <div className="border-t border-slate-100/80 mt-1 pt-1">
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <a
+                                                    href={`/api/auth/signout`}
+                                                    className={classNames(
+                                                        active ? 'bg-red-50/80 text-red-700' : 'text-slate-700',
+                                                        'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-red-50/80 hover:text-red-700',
+                                                    )}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        signOut();
+                                                    }}
+                                                >
+                                                    Sign Out
+                                                </a>
+                                            )}
+                                        </Menu.Item>
+                                    </div>
+                                </div>
+                            </div>
+                        </Menu.Items>
+                    </Transition>
+                </Menu>
+            </div>
+        );
+    }
+
+    return (
+        <div className="border-t border-slate-200/80 bg-gradient-to-b from-slate-50/30 to-white">
+            {/* Enhanced Account & Notification Section - Expanded */}
+            <div className="p-4 space-y-4">
+                {/* Notification Bell for expanded sidebar */}
+                <div className="flex justify-center">
+                    <NotificationBell collapsed={false} />
+                </div>
+
+                {/* Account Menu for expanded sidebar */}
+                <Menu as="div" className="relative">
+                    <Menu.Button className="flex items-center w-full p-3 rounded-2xl hover:bg-slate-100/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white group">
+                        <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 group-hover:from-slate-700 group-hover:to-slate-800 shadow-lg transition-all duration-200">
+                            {defaultCarrier?.name?.charAt(0).toUpperCase() || ''}
+                        </div>
+                        <div className="flex-1 min-w-0 ml-3">
+                            <div className="text-sm font-semibold text-slate-900 truncate">
+                                {defaultCarrier?.name || ''}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate">{defaultCarrier?.email || ''}</div>
+                        </div>
+                        <div className="flex items-center flex-shrink-0 ml-2">
+                            <ChevronUpDownIcon className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors duration-200" />
+                        </div>
+                    </Menu.Button>
+
+                    <Transition
+                        as={Fragment}
+                        enter="transition ease-out duration-200"
+                        enterFrom="transform opacity-0 scale-95 translate-y-2"
+                        enterTo="transform opacity-100 scale-100 translate-y-0"
+                        leave="transition ease-in duration-150"
+                        leaveFrom="transform opacity-100 scale-100 translate-y-0"
+                        leaveTo="transform opacity-0 scale-95 translate-y-2"
+                    >
+                        <Menu.Items className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-slate-200/60 focus:outline-none z-[9999] border border-white/20">
+                            <div className="py-2">
+                                {/* Menu Items */}
                                 <Menu.Item>
                                     {({ active }) => (
                                         <Link href={`/billing`}>
                                             <button
                                                 className={classNames(
-                                                    active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                                    'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
+                                                    active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80 rounded-lg mx-2',
                                                 )}
                                             >
                                                 Plan & Billing
@@ -65,116 +179,39 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                                         <Link href={`/settings`}>
                                             <button
                                                 className={classNames(
-                                                    active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                                    'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
+                                                    active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80 rounded-lg mx-2',
                                                 )}
                                             >
-                                                Account settings
+                                                Account Settings
                                             </button>
                                         </Link>
                                     )}
                                 </Menu.Item>
-                                <Menu.Item>
-                                    {({ active }) => (
-                                        <a
-                                            href={`/api/auth/signout`}
-                                            className={classNames(
-                                                active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                                'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
-                                            )}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                signOut();
-                                            }}
-                                        >
-                                            Sign out
-                                        </a>
-                                    )}
-                                </Menu.Item>
+                                <div className="border-t border-slate-100/80 mt-1 pt-1">
+                                    <Menu.Item>
+                                        {({ active }) => (
+                                            <a
+                                                href={`/api/auth/signout`}
+                                                className={classNames(
+                                                    active ? 'bg-red-50/80 text-red-700' : 'text-slate-700',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-red-50/80 hover:text-red-700 rounded-lg mx-2',
+                                                )}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    signOut();
+                                                }}
+                                            >
+                                                Sign Out
+                                            </a>
+                                        )}
+                                    </Menu.Item>
+                                </div>
                             </div>
                         </Menu.Items>
                     </Transition>
                 </Menu>
             </div>
-        );
-    }
-
-    return (
-        <div className="border-t border-slate-200 ">
-            <Menu as="div" className="relative inline-block w-full">
-                <Menu.Button className="flex flex-row relative items-center w-full px-3 py-3 space-x-3 text-left hover:bg-slate-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white">
-                    <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-medium text-white rounded-lg bg-slate-600">
-                        {defaultCarrier?.name?.charAt(0).toUpperCase() || ''}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate">{defaultCarrier?.name || ''}</div>
-                        <div className="text-xs text-slate-500 truncate">{defaultCarrier?.email || ''}</div>
-                    </div>
-                    <div className="flex-shrink-0">
-                        <ChevronUpDownIcon className="w-4 h-4 text-slate-400" />
-                    </div>
-                </Menu.Button>
-
-                <Transition
-                    as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="transform opacity-0 scale-95"
-                    enterTo="transform opacity-100 scale-100"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="transform opacity-100 scale-100"
-                    leaveTo="transform opacity-0 scale-95"
-                >
-                    <Menu.Items className="fixed z-[9999] w-64 bottom-16 left-4 mb-2 origin-bottom bg-white rounded-lg shadow-lg ring-1 ring-slate-200 focus:outline-none">
-                        <div className="py-1">
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <Link href={`/billing`}>
-                                        <button
-                                            className={classNames(
-                                                active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                                'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
-                                            )}
-                                        >
-                                            Plan & Billing
-                                        </button>
-                                    </Link>
-                                )}
-                            </Menu.Item>
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <Link href={`/settings`}>
-                                        <button
-                                            className={classNames(
-                                                active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                                'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
-                                            )}
-                                        >
-                                            Account settings
-                                        </button>
-                                    </Link>
-                                )}
-                            </Menu.Item>
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <a
-                                        href={`/api/auth/signout`}
-                                        className={classNames(
-                                            active ? 'bg-slate-50 text-slate-900' : 'text-slate-700',
-                                            'block w-full text-left px-4 py-2 text-sm transition-colors duration-150',
-                                        )}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            signOut();
-                                        }}
-                                    >
-                                        Sign out
-                                    </a>
-                                )}
-                            </Menu.Item>
-                        </div>
-                    </Menu.Items>
-                </Transition>
-            </Menu>
         </div>
     );
 };
