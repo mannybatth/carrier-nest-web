@@ -8,6 +8,8 @@ interface GlobalNotificationContextType {
     unreadCount: number;
     loading: boolean;
     connected: boolean;
+    usingPollingFallback: boolean;
+    hasEnabledNotifications: boolean | null;
     toastNotifications: ToastNotification[];
     markAsRead: (notificationIds: string[]) => Promise<void>;
     markAllAsRead: () => Promise<void>;
@@ -16,6 +18,7 @@ interface GlobalNotificationContextType {
     dismissToast: (id: string) => void;
     markToastAsRead: (notificationId: string) => void;
     isMainTab: boolean; // Indicates if this tab manages the SSE connection
+    checkNotificationPreferences: () => Promise<boolean>; // Allow manual refresh of preferences
 }
 
 const GlobalNotificationContext = createContext<GlobalNotificationContextType | undefined>(undefined);
@@ -32,16 +35,20 @@ interface GlobalNotificationProviderProps {
     children: ReactNode;
 }
 
-// Production configuration for Vercel deployment with visibility-aware optimizations
+// Vercel-optimized configuration matching server-side SSE settings
 const PRODUCTION_CONFIG = {
-    HEARTBEAT_INTERVAL: process.env.NODE_ENV === 'production' ? 10000 : 5000, // 10s in prod, 5s in dev
+    HEARTBEAT_INTERVAL: process.env.NODE_ENV === 'production' ? 8000 : 5000, // Match server 8s heartbeat
     LEADER_TIMEOUT: process.env.NODE_ENV === 'production' ? 20000 : 10000, // 20s in prod, 10s in dev
-    SSE_RECONNECT_DELAY: process.env.NODE_ENV === 'production' ? 3000 : 1000, // 3s in prod, 1s in dev
+    SSE_RECONNECT_DELAY: process.env.NODE_ENV === 'production' ? 2000 : 1000, // Fast reconnection
+    SSE_CONNECTION_TIMEOUT: process.env.NODE_ENV === 'production' ? 30 : 15, // 30s to match Vercel function timeout
     MAX_NOTIFICATIONS: 100, // Limit stored notifications for memory efficiency
     DEBOUNCE_DELAY: process.env.NODE_ENV === 'production' ? 1000 : 500, // Longer debounce in production
     TOAST_CLEANUP_INTERVAL: 30000, // Clean up old toasts every 30s
-    INIT_DELAY: process.env.NODE_ENV === 'production' ? 500 : 200, // Reduced delay for faster loading
+    INIT_DELAY: process.env.NODE_ENV === 'production' ? 200 : 100, // Faster initialization
     VISIBILITY_CHECK_INTERVAL: 5000, // Check visibility every 5s
+    POLLING_INTERVAL: process.env.NODE_ENV === 'production' ? 15000 : 10000, // Fallback polling interval
+    MAX_SSE_FAILURES: 2, // Switch to polling after 2 failures (faster fallback)
+    CONNECTION_RETRY_LIMIT: 5, // Limit connection retries before fallback
 };
 
 // Broadcast channel for communication between tabs
@@ -60,6 +67,8 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const [isMounted, setIsMounted] = useState(false);
     const [isPageVisible, setIsPageVisible] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [usingPollingFallback, setUsingPollingFallback] = useState(false);
+    const [hasEnabledNotifications, setHasEnabledNotifications] = useState<boolean | null>(null); // null = not checked yet
 
     const broadcastChannel = useRef<BroadcastChannel | null>(null);
     const eventSource = useRef<EventSource | null>(null);
@@ -72,9 +81,57 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const sessionStartTime = useRef(Date.now());
     const isChannelClosed = useRef<boolean>(false);
     const isLoadingRef = useRef<boolean>(false); // Track loading state to prevent duplicate calls
+    const pollingTimer = useRef<NodeJS.Timeout | null>(null);
+    const lastPollingCheck = useRef<number>(Date.now());
+    const sseFailureCount = useRef<number>(0);
+    const connectionRetryCount = useRef<number>(0);
+    const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const carrierId = session?.user?.defaultCarrierId;
     const userId = session?.user?.id;
+
+    // Check if user has any enabled notification preferences
+    const checkNotificationPreferences = useCallback(async () => {
+        if (!userId || !carrierId) {
+            setHasEnabledNotifications(false);
+            return false;
+        }
+
+        try {
+            const response = await fetch(`/api/notifications/preferences?carrierId=${carrierId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (response.ok) {
+                const preferences = await response.json();
+
+                // Check if user has ANY enabled notifications (push, email, SMS, or in-app)
+                const hasAnyEnabled = preferences.some(
+                    (pref: any) => pref.enabled || pref.emailEnabled || pref.smsEnabled || pref.pushEnabled,
+                );
+
+                console.log(`[Notifications] User has enabled notifications: ${hasAnyEnabled}`);
+                setHasEnabledNotifications(hasAnyEnabled);
+                return hasAnyEnabled;
+            } else {
+                console.warn('[Notifications] Failed to fetch preferences, assuming disabled');
+                setHasEnabledNotifications(false);
+                return false;
+            }
+        } catch (error) {
+            console.warn('[Notifications] Error checking preferences:', error);
+            setHasEnabledNotifications(false);
+            return false;
+        }
+    }, [userId, carrierId]);
+
+    // Check preferences on session change
+    useEffect(() => {
+        if (userId && carrierId && isInitialized) {
+            checkNotificationPreferences();
+        }
+    }, [userId, carrierId, isInitialized, checkNotificationPreferences]);
 
     // Production-optimized safe broadcast helper
     const safeBroadcast = useCallback(
@@ -503,8 +560,30 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         }
     }, [notifications, toastNotifications, safeBroadcast]);
 
-    // Production-optimized SSE connection handling - only for visible main tabs
+    // Production-optimized SSE connection handling - only for visible main tabs with enabled notifications
     useEffect(() => {
+        // Early return if notifications are not enabled or not checked yet
+        if (hasEnabledNotifications === null) {
+            console.log('[SSE] Waiting for notification preferences check...');
+            return;
+        }
+
+        if (!hasEnabledNotifications) {
+            console.log('[SSE] No enabled notifications - skipping SSE connection');
+            // Clean up any existing connections
+            if (eventSource.current) {
+                eventSource.current.close();
+                eventSource.current = null;
+                setConnected(false);
+            }
+            if (pollingTimer.current) {
+                clearTimeout(pollingTimer.current);
+                pollingTimer.current = null;
+            }
+            setUsingPollingFallback(false);
+            return;
+        }
+
         if (!isMainTab || !carrierId || !userId || !isPageVisible || !isInitialized) {
             // If not main tab, missing auth, not visible, or not initialized - close any existing connection
             if (eventSource.current) {
@@ -517,87 +596,256 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         }
 
         let reconnectAttempts = 0;
-        const maxReconnectAttempts = process.env.NODE_ENV === 'production' ? 10 : 5;
+        const maxReconnectAttempts = PRODUCTION_CONFIG.CONNECTION_RETRY_LIMIT;
 
-        // Initialize SSE connection for main tab with production optimizations
+        // Polling fallback for when SSE fails
+        const startPollingFallback = () => {
+            if (usingPollingFallback || !isPageVisible) return;
+
+            console.log(`[SSE] Starting polling fallback for tab ${tabId.current}`);
+            setUsingPollingFallback(true);
+            setConnected(false);
+
+            const pollForNotifications = async () => {
+                if (!usingPollingFallback || !isPageVisible) return;
+
+                try {
+                    const url = new URL('/api/notifications/poll', window.location.origin);
+                    url.searchParams.set('carrierId', carrierId);
+                    url.searchParams.set('userId', userId);
+                    url.searchParams.set('lastCheck', lastPollingCheck.current.toString());
+
+                    const response = await fetch(url.toString(), {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: AbortSignal.timeout(5000), // 5s timeout
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.notifications?.length > 0) {
+                            console.log(`[Polling] Received ${data.notifications.length} notifications`);
+                            data.notifications.forEach((notification: any) => {
+                                safeBroadcast({
+                                    type: 'NEW_NOTIFICATION',
+                                    payload: { notification },
+                                });
+                            });
+                        }
+                        lastPollingCheck.current = Date.now();
+                    }
+                } catch (error) {
+                    console.warn('[Polling] Error:', error);
+                } finally {
+                    if (usingPollingFallback && isPageVisible) {
+                        pollingTimer.current = setTimeout(pollForNotifications, PRODUCTION_CONFIG.POLLING_INTERVAL);
+                    }
+                }
+            };
+
+            pollForNotifications();
+        };
+
+        const stopPollingFallback = () => {
+            if (pollingTimer.current) {
+                clearTimeout(pollingTimer.current);
+                pollingTimer.current = null;
+            }
+            setUsingPollingFallback(false);
+            console.log(`[Polling] Stopped for tab ${tabId.current}`);
+        };
+
+        // Vercel-optimized SSE connection with fast timeout handling
         const connectSSE = () => {
+            if (usingPollingFallback) {
+                console.log(`[SSE] Skipping - using polling fallback`);
+                return;
+            }
+
+            // Clear existing connection
             if (eventSource.current) {
                 eventSource.current.close();
+                eventSource.current = null;
+            }
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current);
+                connectionTimeoutRef.current = null;
             }
 
             const url = new URL('/api/notifications/stream', window.location.origin);
             url.searchParams.set('carrierId', carrierId);
             url.searchParams.set('userId', userId);
+            url.searchParams.set('t', Date.now().toString()); // Always add timestamp
 
-            // Add timestamp to prevent caching issues in production
-            if (process.env.NODE_ENV === 'production') {
-                url.searchParams.set('t', Date.now().toString());
-            }
+            console.log(`[SSE] Connecting (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts + 1})`);
 
-            eventSource.current = new EventSource(url.toString());
+            // Set connection timeout matching Vercel function timeout
+            connectionTimeoutRef.current = setTimeout(() => {
+                console.warn(`[SSE] Connection timeout after ${PRODUCTION_CONFIG.SSE_CONNECTION_TIMEOUT}s`);
+                sseFailureCount.current++;
 
-            eventSource.current.onopen = () => {
-                console.log(`[SSE] Connection established for tab ${tabId.current}`);
-                setConnected(true);
-                broadcastConnectionStatus(true);
-                reconnectAttempts = 0; // Reset on successful connection
+                if (eventSource.current) {
+                    eventSource.current.close();
+                    eventSource.current = null;
+                }
+                setConnected(false);
 
-                // Show toast notifications for unshown events that occurred while disconnected
-                showUnshownToastNotifications();
-            };
-
-            eventSource.current.onmessage = (event) => {
-                // Only process messages if tab is still visible
-                if (!isPageVisible) {
+                // Switch to polling after timeout
+                if (sseFailureCount.current >= PRODUCTION_CONFIG.MAX_SSE_FAILURES) {
+                    console.warn(`[SSE] Too many failures, switching to polling`);
+                    startPollingFallback();
                     return;
                 }
 
-                try {
-                    const parsedData = JSON.parse(event.data);
+                // Try reconnection if under limit
+                if (reconnectAttempts < maxReconnectAttempts && isPageVisible) {
+                    scheduleReconnection();
+                } else {
+                    startPollingFallback();
+                }
+            }, PRODUCTION_CONFIG.SSE_CONNECTION_TIMEOUT * 1000);
 
-                    // Handle the nested notification structure
-                    if (parsedData.type === 'notification' && parsedData.notification) {
-                        handleSSENotification(parsedData.notification);
-                    } else {
-                        // Handle direct notification (for backward compatibility)
-                        handleSSENotification(parsedData);
+            try {
+                eventSource.current = new EventSource(url.toString());
+
+                eventSource.current.onopen = () => {
+                    console.log(`[SSE] Connected successfully for tab ${tabId.current}`);
+
+                    // Clear timeout on successful connection
+                    if (connectionTimeoutRef.current) {
+                        clearTimeout(connectionTimeoutRef.current);
+                        connectionTimeoutRef.current = null;
                     }
-                } catch (error) {
-                    // Ignore parsing errors
-                }
-            };
 
-            eventSource.current.onerror = (error) => {
-                setConnected(false);
-                broadcastConnectionStatus(false);
+                    // Reset failure counters
+                    sseFailureCount.current = 0;
+                    connectionRetryCount.current = 0;
+                    reconnectAttempts = 0;
 
-                // Only attempt reconnection if tab is still visible
-                if (isPageVisible && reconnectAttempts < maxReconnectAttempts) {
-                    const delay =
-                        process.env.NODE_ENV === 'production'
-                            ? Math.min(PRODUCTION_CONFIG.SSE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), 30000)
-                            : PRODUCTION_CONFIG.SSE_RECONNECT_DELAY;
+                    setConnected(true);
+                    broadcastConnectionStatus(true);
+                    showUnshownToastNotifications();
+                };
 
-                    reconnectAttempts++;
-                    setTimeout(() => {
-                        // Double-check visibility before reconnecting
-                        if (isPageVisible && isMainTab) {
-                            connectSSE();
+                eventSource.current.onmessage = (event) => {
+                    if (!isPageVisible) return;
+
+                    try {
+                        const parsedData = JSON.parse(event.data);
+
+                        // Handle different message types
+                        switch (parsedData.type) {
+                            case 'connected':
+                                console.log(`[SSE] Initial connection confirmed (${parsedData.connectionTime}ms)`);
+                                break;
+                            case 'heartbeat':
+                                // Silent heartbeat handling
+                                break;
+                            case 'timeout_warning':
+                                console.warn(`[SSE] Server timeout warning: ${parsedData.message}`);
+                                break;
+                            case 'notification':
+                                if (parsedData.notification) {
+                                    handleSSENotification(parsedData.notification);
+                                }
+                                break;
+                            case 'error':
+                                console.warn(`[SSE] Server error: ${parsedData.message}`);
+                                break;
+                            default:
+                                // Handle direct notification for backward compatibility
+                                handleSSENotification(parsedData);
                         }
-                    }, delay);
+                    } catch (error) {
+                        console.warn('[SSE] Message parse error:', error);
+                    }
+                };
+
+                eventSource.current.onerror = (error) => {
+                    console.warn(`[SSE] Connection error:`, error);
+
+                    // Clear timeout on error
+                    if (connectionTimeoutRef.current) {
+                        clearTimeout(connectionTimeoutRef.current);
+                        connectionTimeoutRef.current = null;
+                    }
+
+                    sseFailureCount.current++;
+                    setConnected(false);
+                    broadcastConnectionStatus(false);
+
+                    if (eventSource.current) {
+                        eventSource.current.close();
+                        eventSource.current = null;
+                    }
+
+                    // Check if we should switch to polling
+                    if (sseFailureCount.current >= PRODUCTION_CONFIG.MAX_SSE_FAILURES) {
+                        console.warn(`[SSE] Max failures reached, switching to polling`);
+                        startPollingFallback();
+                        return;
+                    }
+
+                    // Try reconnection if under limits
+                    if (reconnectAttempts < maxReconnectAttempts && isPageVisible) {
+                        scheduleReconnection();
+                    } else {
+                        console.warn(`[SSE] Max reconnection attempts reached, switching to polling`);
+                        startPollingFallback();
+                    }
+                };
+            } catch (error) {
+                console.error('[SSE] Failed to create EventSource:', error);
+                sseFailureCount.current++;
+                setConnected(false);
+
+                if (
+                    sseFailureCount.current >= PRODUCTION_CONFIG.MAX_SSE_FAILURES ||
+                    reconnectAttempts >= maxReconnectAttempts
+                ) {
+                    startPollingFallback();
+                } else if (isPageVisible) {
+                    scheduleReconnection();
                 }
-            };
+            }
         };
 
+        const scheduleReconnection = () => {
+            const delay = Math.min(
+                PRODUCTION_CONFIG.SSE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
+                10000, // Cap at 10 seconds
+            );
+
+            reconnectAttempts++;
+            console.log(`[SSE] Scheduling reconnection in ${delay}ms (attempt ${reconnectAttempts})`);
+
+            setTimeout(() => {
+                if (isPageVisible && isMainTab && !usingPollingFallback) {
+                    connectSSE();
+                }
+            }, delay);
+        };
+
+        // Start connection
         connectSSE();
 
         return () => {
+            // Cleanup timeouts
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current);
+                connectionTimeoutRef.current = null;
+            }
+
+            // Stop polling fallback
+            stopPollingFallback();
+
+            // Close SSE connection
             if (eventSource.current) {
                 eventSource.current.close();
                 eventSource.current = null;
             }
         };
-    }, [isMainTab, carrierId, userId, isPageVisible, isInitialized]);
+    }, [isMainTab, carrierId, userId, isPageVisible, isInitialized, hasEnabledNotifications]);
 
     // Broadcast connection status to other tabs
     const broadcastConnectionStatus = (connected: boolean) => {
@@ -977,6 +1225,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             if (initTimer.current) {
                 clearTimeout(initTimer.current);
             }
+            if (pollingTimer.current) {
+                clearTimeout(pollingTimer.current);
+            }
             if (eventSource.current) {
                 eventSource.current.close();
             }
@@ -1005,6 +1256,18 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     useEffect(() => {
         // Early return if missing required data, already loading, or not initialized
         if (!userId || !carrierId || isLoadingRef.current || !isMounted || !isInitialized) return;
+
+        // Don't load notifications if user has no enabled preferences
+        if (hasEnabledNotifications === false) {
+            console.log('[Notifications] Skipping notification load - no enabled preferences');
+            return;
+        }
+
+        // Wait for preferences check to complete
+        if (hasEnabledNotifications === null) {
+            console.log('[Notifications] Waiting for preferences check before loading notifications');
+            return;
+        }
 
         const loadNotifications = async () => {
             // Double-check to prevent race conditions and ensure component is ready
@@ -1110,7 +1373,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             clearTimeout(timeoutId);
             // Don't reset isLoadingRef here as it might be in progress
         };
-    }, [userId, carrierId, isMounted, isInitialized]);
+    }, [userId, carrierId, isMounted, isInitialized, hasEnabledNotifications]);
 
     const value = useMemo(
         () => ({
@@ -1118,6 +1381,8 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             unreadCount,
             loading,
             connected,
+            usingPollingFallback,
+            hasEnabledNotifications,
             toastNotifications,
             markAsRead,
             markAllAsRead,
@@ -1126,12 +1391,15 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             dismissToast,
             markToastAsRead,
             isMainTab,
+            checkNotificationPreferences,
         }),
         [
             notifications,
             unreadCount,
             loading,
             connected,
+            usingPollingFallback,
+            hasEnabledNotifications,
             toastNotifications,
             markAsRead,
             markAllAsRead,
@@ -1140,6 +1408,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             dismissToast,
             markToastAsRead,
             isMainTab,
+            checkNotificationPreferences,
         ],
     );
 

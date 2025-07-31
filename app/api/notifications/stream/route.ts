@@ -1,35 +1,35 @@
 import { NextRequest } from 'next/server';
 import { auth } from '../../../../auth';
-import prisma, { ensurePrismaConnection, disconnectPrisma } from '../../../../lib/prisma';
-import { Notification, NotificationPreference, Driver } from '@prisma/client';
-import { sseConnectionTracker } from '../../../../lib/sse-connection-tracker';
+import prisma, { ensurePrismaConnection } from '../../../../lib/prisma';
+
+// Vercel-optimized configuration for SSE
+const VERCEL_CONFIG = {
+    MAX_DURATION: 25, // 25 seconds max (5s before Vercel timeout)
+    HEARTBEAT_INTERVAL: 8, // 8 seconds heartbeat
+    DB_QUERY_TIMEOUT: 3, // 3 seconds DB timeout
+    NOTIFICATION_CHECK_INTERVAL: 5, // 5 seconds check interval
+    IMMEDIATE_RESPONSE_TIMEOUT: 100, // Send response within 100ms
+    MAX_NOTIFICATIONS_PER_BATCH: 3, // Limit batch size
+    CONNECTION_CLEANUP_GRACE: 2, // 2 seconds grace period before cleanup
+};
 
 // Force dynamic rendering for SSE
 export const dynamic = 'force-dynamic';
 
 const headers = {
     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Cache-Control',
-    'X-Accel-Buffering': 'no', // Disable proxy buffering
+    'X-Accel-Buffering': 'no', // Disable proxy buffering for Vercel
 };
-
-// Graceful shutdown handler
-const gracefulShutdown = () => {
-    sseConnectionTracker.closeAllConnections();
-};
-
-// Setup graceful shutdown handlers
-if (typeof process !== 'undefined') {
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
-}
 
 export async function GET(request: NextRequest) {
+    const connectionStart = Date.now();
+
     try {
-        // Verify authentication
+        // Fast authentication check
         const session = await auth();
         if (!session?.user?.id) {
             return new Response('Unauthorized', {
@@ -48,256 +48,181 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Create ReadableStream for SSE
+        // Check if user has any enabled notification preferences
+        try {
+            const preferences = await prisma.notificationPreference.findMany({
+                where: {
+                    userId: userId,
+                    carrierId: carrierId,
+                },
+                select: {
+                    enabled: true,
+                    emailEnabled: true,
+                    smsEnabled: true,
+                    pushEnabled: true,
+                },
+            });
+
+            const hasAnyEnabled = preferences.some(
+                (pref) => pref.enabled || pref.emailEnabled || pref.smsEnabled || pref.pushEnabled,
+            );
+
+            if (!hasAnyEnabled) {
+                console.log(`[SSE] User ${userId} has no enabled notifications - closing connection`);
+                return new Response('No notification preferences enabled', {
+                    status: 204, // No content
+                    headers: { 'Content-Type': 'text/plain' },
+                });
+            }
+
+            console.log(`[SSE] User ${userId} has enabled notifications - proceeding with connection`);
+        } catch (error) {
+            console.warn('[SSE] Error checking preferences, proceeding anyway:', error);
+            // Continue with connection if preferences check fails
+        }
+
+        // Create ReadableStream with immediate response
         const stream = new ReadableStream({
             start(controller) {
-                // Add to connection tracker with user agent info
-                const userAgent = request.headers.get('user-agent') || 'Unknown';
-                const connectionId = sseConnectionTracker.addConnection(controller, userId, carrierId, userAgent);
-
-                let heartbeatInterval: NodeJS.Timeout;
-                let notificationCheckInterval: NodeJS.Timeout;
-                let connectionRefreshInterval: NodeJS.Timeout;
                 let isActive = true;
+                let heartbeatInterval: NodeJS.Timeout | null = null;
+                let notificationInterval: NodeJS.Timeout | null = null;
+                let cleanupTimeout: NodeJS.Timeout | null = null;
+                let messageCount = 0;
 
-                // Send initial connection confirmation
+                // Fast message sender with error handling
                 const sendMessage = (data: any) => {
-                    if (!isActive) return;
+                    if (!isActive || messageCount > 200) return false; // Rate limiting
                     try {
                         controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
+                        messageCount++;
+                        return true;
                     } catch (error) {
-                        console.warn('[SSE] Error sending message:', error);
+                        console.warn('[SSE] Send error:', error);
                         cleanup();
+                        return false;
                     }
                 };
 
-                // Heartbeat function
+                // Optimized cleanup function
+                const cleanup = () => {
+                    if (!isActive) return;
+                    isActive = false;
+
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    if (notificationInterval) clearInterval(notificationInterval);
+                    if (cleanupTimeout) clearTimeout(cleanupTimeout);
+
+                    try {
+                        controller.close();
+                    } catch (error) {
+                        // Ignore close errors
+                    }
+                };
+
+                // Lightweight heartbeat
                 const sendHeartbeat = () => {
-                    sseConnectionTracker.updateHeartbeat(connectionId);
                     sendMessage({
                         type: 'heartbeat',
                         timestamp: new Date().toISOString(),
                     });
                 };
 
-                // Check for new notifications with connection retry logic
+                // Optimized notification check with short timeout
                 const checkNotifications = async () => {
                     if (!isActive) return;
 
-                    let retryCount = 0;
-                    const maxRetries = 3;
-                    const baseDelay = 1000; // 1 second base delay
-
-                    const attemptQuery = async (): Promise<void> => {
-                        try {
-                            // Ensure connection is healthy before querying
-                            const connectionHealthy = await ensurePrismaConnection();
-                            if (!connectionHealthy) {
-                                throw new Error('Database connection could not be established');
-                            }
-
-                            // Get recent notifications (last 2 minutes to account for any delays)
-                            const recentThreshold = new Date(Date.now() - 2 * 60 * 1000);
-
-                            // Use a timeout for the query to prevent hanging
-                            const queryTimeout = new Promise<never>((_, reject) => {
-                                setTimeout(() => reject(new Error('Query timeout')), 10000);
-                            });
-
-                            const queryPromise = prisma.notification.findMany({
-                                where: {
-                                    carrierId: carrierId,
-                                    createdAt: {
-                                        gte: recentThreshold,
-                                    },
-                                    // Only send unread notifications via SSE
-                                    isRead: false,
+                    try {
+                        // Quick database query with timeout
+                        const queryPromise = prisma.notification.findMany({
+                            where: {
+                                carrierId: carrierId,
+                                createdAt: {
+                                    gte: new Date(Date.now() - 60 * 1000), // Last 1 minute only
                                 },
-                                orderBy: { createdAt: 'desc' },
-                                take: 5, // Limit batch size for performance
-                                select: {
-                                    id: true,
-                                    type: true,
-                                    title: true,
-                                    message: true,
-                                    data: true,
-                                    isRead: true,
-                                    createdAt: true,
-                                    carrierId: true,
-                                    userId: true,
-                                },
-                            });
+                                isRead: false,
+                            },
+                            orderBy: { createdAt: 'desc' },
+                            take: VERCEL_CONFIG.MAX_NOTIFICATIONS_PER_BATCH,
+                            select: {
+                                id: true,
+                                type: true,
+                                title: true,
+                                message: true,
+                                data: true,
+                                isRead: true,
+                                createdAt: true,
+                                carrierId: true,
+                                userId: true,
+                            },
+                        });
 
-                            const notifications = await Promise.race([queryPromise, queryTimeout]);
+                        const timeoutPromise = new Promise<never>((_, reject) => {
+                            setTimeout(() => reject(new Error('Query timeout')), VERCEL_CONFIG.DB_QUERY_TIMEOUT * 1000);
+                        });
 
-                            // Reset retry count on successful query
-                            retryCount = 0;
+                        const notifications = await Promise.race([queryPromise, timeoutPromise]);
 
-                            // Send notifications if any found
-                            if (notifications.length > 0) {
-                                for (const notification of notifications) {
-                                    sendMessage({
+                        if (notifications.length > 0) {
+                            for (const notification of notifications) {
+                                if (
+                                    !sendMessage({
                                         type: 'notification',
                                         notification,
-                                    });
-                                }
+                                    })
+                                )
+                                    break;
                             }
-                        } catch (error: any) {
-                            console.error(
-                                `[SSE] Error checking notifications (attempt ${retryCount + 1}/${maxRetries}):`,
-                                error,
-                            );
-
-                            // Check if it's a connection error that we should retry
-                            const isConnectionError =
-                                error.code === 'P1017' ||
-                                error.message?.includes('connection') ||
-                                error.message?.includes('closed') ||
-                                error.message?.includes('server has closed') ||
-                                error.message?.includes('connection pool') ||
-                                error.message?.includes('timeout') ||
-                                error.message?.includes('Query timeout') ||
-                                error.message?.includes('Connection check timeout');
-
-                            if (isConnectionError && retryCount < maxRetries) {
-                                retryCount++;
-
-                                // Exponential backoff with jitter
-                                const delay = baseDelay * Math.pow(2, retryCount - 1) + Math.random() * 1000;
-
-                                // Wait before retry
-                                await new Promise((resolve) => setTimeout(resolve, delay));
-
-                                // Force disconnect to reset connection state
-                                try {
-                                    await disconnectPrisma();
-                                } catch (disconnectError) {
-                                    console.warn('[SSE] Error during disconnect:', disconnectError);
-                                }
-
-                                return attemptQuery();
-                            } else if (isConnectionError) {
-                                console.error(
-                                    '[SSE] Max retries reached, disabling notification checks for this connection',
-                                );
-
-                                // Send error message to client
-                                sendMessage({
-                                    type: 'error',
-                                    message: 'Database connection lost',
-                                    error: 'Connection will be restored automatically',
-                                });
-
-                                // Stop the notification interval to prevent further errors
-                                if (notificationCheckInterval) {
-                                    clearInterval(notificationCheckInterval);
-                                    notificationCheckInterval = null;
-                                }
-                                return;
-                            } else {
-                                // Non-connection error, send to client for debugging
-                                sendMessage({
-                                    type: 'error',
-                                    message: 'Error fetching notifications',
-                                    error: process.env.NODE_ENV === 'development' ? error.message : 'Internal error',
-                                });
-                            }
-                        }
-                    };
-
-                    await attemptQuery();
-                };
-
-                // Cleanup function with improved error handling
-                const cleanup = async () => {
-                    if (!isActive) return; // Already cleaned up
-                    isActive = false;
-
-                    // Clear intervals
-                    if (heartbeatInterval) {
-                        clearInterval(heartbeatInterval);
-                        heartbeatInterval = null;
-                    }
-                    if (notificationCheckInterval) {
-                        clearInterval(notificationCheckInterval);
-                        notificationCheckInterval = null;
-                    }
-                    if (connectionRefreshInterval) {
-                        clearInterval(connectionRefreshInterval);
-                        connectionRefreshInterval = null;
-                    }
-
-                    // Remove from connection tracker
-                    sseConnectionTracker.removeConnection(connectionId, controller);
-
-                    // Close the controller safely
-                    try {
-                        if (controller.desiredSize !== null) {
-                            controller.close();
                         }
                     } catch (error) {
-                        console.warn('[SSE] Error closing controller:', error);
-                    }
-
-                    // Disconnect Prisma connection for this stream to prevent connection leaks
-                    try {
-                        await disconnectPrisma();
-                    } catch (disconnectError) {
-                        console.warn('[SSE] Error disconnecting Prisma:', disconnectError);
+                        console.warn('[SSE] Query error:', error);
+                        // Continue operation even with DB errors
                     }
                 };
 
-                // Start heartbeat (every 45 seconds)
-                heartbeatInterval = setInterval(sendHeartbeat, 45000);
+                // Send immediate connection confirmation
+                setTimeout(() => {
+                    sendMessage({
+                        type: 'connected',
+                        timestamp: new Date().toISOString(),
+                        connectionTime: Date.now() - connectionStart,
+                    });
+                }, 10); // 10ms delay to ensure stream is ready
 
-                // Add connection refresh interval (every 5 minutes)
-                connectionRefreshInterval = setInterval(async () => {
-                    if (!isActive) return;
+                // Setup intervals with Vercel-optimized timings
+                heartbeatInterval = setInterval(sendHeartbeat, VERCEL_CONFIG.HEARTBEAT_INTERVAL * 1000);
+                notificationInterval = setInterval(
+                    checkNotifications,
+                    VERCEL_CONFIG.NOTIFICATION_CHECK_INTERVAL * 1000,
+                );
 
-                    try {
-                        await ensurePrismaConnection();
-                    } catch (error) {
-                        console.warn('[SSE] Error during periodic connection refresh:', error);
-                    }
-                }, 5 * 60 * 1000); // 5 minutes
+                // Auto-cleanup before Vercel timeout
+                cleanupTimeout = setTimeout(() => {
+                    sendMessage({
+                        type: 'timeout_warning',
+                        message: 'Connection will close due to function timeout',
+                    });
+                    setTimeout(cleanup, VERCEL_CONFIG.CONNECTION_CLEANUP_GRACE * 1000);
+                }, (VERCEL_CONFIG.MAX_DURATION - VERCEL_CONFIG.CONNECTION_CLEANUP_GRACE) * 1000);
 
-                // Start notification checking (every 10 seconds)
-                notificationCheckInterval = setInterval(checkNotifications, 10000);
+                // Handle client disconnect
+                request.signal?.addEventListener('abort', cleanup);
 
-                // Auto-cleanup after 10 minutes of inactivity
-                const autoCleanupTimeout = setTimeout(() => {
-                    cleanup();
-                }, 10 * 60 * 1000);
-
-                // Handle connection close
-                request.signal?.addEventListener('abort', () => {
-                    clearTimeout(autoCleanupTimeout);
-                    cleanup();
-                });
-
-                // Initial notification check
-                checkNotifications();
+                // Initial notification check (delayed to not block connection)
+                setTimeout(checkNotifications, 1000);
             },
 
             cancel() {
-                // Cleanup is handled in the start function
+                // Cleanup handled in start function
             },
         });
 
-        // Return SSE response with proper headers
         return new Response(stream, {
             status: 200,
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache, no-transform',
-                Connection: 'keep-alive',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET',
-                'Access-Control-Allow-Headers': 'Cache-Control',
-            },
+            headers,
         });
     } catch (error) {
-        console.error('[SSE] Error in GET handler:', error);
+        console.error('[SSE] Setup error:', error);
         return new Response('Internal Server Error', {
             status: 500,
             headers: { 'Content-Type': 'text/plain' },
