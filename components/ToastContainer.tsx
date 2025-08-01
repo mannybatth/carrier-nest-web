@@ -35,14 +35,33 @@ const ToastItem: React.FC<ToastItemProps> = ({
     animationDirection = { from: 'translate-x-full', to: 'translate-x-full' },
 }) => {
     const [show, setShow] = useState(true);
+    const [progress, setProgress] = useState(100);
 
-    // Debug logging
+    // Debug logging removed for production
     useEffect(() => {
-        // Debug logging removed for production
-    }, [notification]);
+        // Production-ready notification tracking
+    }, [notification, progress]);
 
     useEffect(() => {
         const duration = notification.duration || 6000;
+        const startTime = Date.now();
+
+        // Apple-style smooth progress animation with easing
+        const progressInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, duration - elapsed);
+            const rawProgress = (remaining / duration) * 100;
+
+            // Apple-style easing for smoother animation
+            const easedProgress =
+                rawProgress > 90
+                    ? rawProgress
+                    : rawProgress > 50
+                    ? rawProgress - Math.sin((100 - rawProgress) * 0.1) * 2
+                    : rawProgress - Math.sin((100 - rawProgress) * 0.05) * 1;
+
+            setProgress(Math.max(0, easedProgress));
+        }, 16); // 60fps for smooth animation
 
         const timer = setTimeout(() => {
             setShow(false);
@@ -51,6 +70,7 @@ const ToastItem: React.FC<ToastItemProps> = ({
 
         return () => {
             clearTimeout(timer);
+            clearInterval(progressInterval);
         };
     }, [notification.id, onDismiss, notification.duration]);
 
@@ -67,7 +87,7 @@ const ToastItem: React.FC<ToastItemProps> = ({
     };
 
     const getIcon = () => {
-        const iconClass = 'h-5 w-5';
+        const iconClass = 'h-4 w-4'; // Compact icons for better proportion
         switch (notification.type) {
             case 'success':
                 return <CheckCircleIcon className={iconClass} />;
@@ -84,36 +104,36 @@ const ToastItem: React.FC<ToastItemProps> = ({
         switch (notification.type) {
             case 'success':
                 return {
-                    titleColor: 'text-green-800',
-                    messageColor: 'text-green-700',
-                    iconColor: 'text-green-600',
+                    titleColor: 'text-green-900',
+                    messageColor: 'text-green-800',
+                    iconColor: 'text-green-700',
                     accentColor: 'rgba(52, 199, 89, 0.2)', // Apple green
                     shadowColor: 'rgba(52, 199, 89, 0.15)',
                     glowColor: 'rgba(52, 199, 89, 0.3)',
                 };
             case 'warning':
                 return {
-                    titleColor: 'text-orange-800',
-                    messageColor: 'text-orange-700',
-                    iconColor: 'text-orange-600',
+                    titleColor: 'text-orange-900',
+                    messageColor: 'text-orange-800',
+                    iconColor: 'text-orange-700',
                     accentColor: 'rgba(255, 149, 0, 0.2)', // Apple orange
                     shadowColor: 'rgba(255, 149, 0, 0.15)',
                     glowColor: 'rgba(255, 149, 0, 0.3)',
                 };
             case 'error':
                 return {
-                    titleColor: 'text-red-800',
-                    messageColor: 'text-red-700',
-                    iconColor: 'text-red-600',
+                    titleColor: 'text-red-900',
+                    messageColor: 'text-red-800',
+                    iconColor: 'text-red-700',
                     accentColor: 'rgba(255, 69, 58, 0.2)', // Apple red
                     shadowColor: 'rgba(255, 69, 58, 0.15)',
                     glowColor: 'rgba(255, 69, 58, 0.3)',
                 };
             default:
                 return {
-                    titleColor: 'text-blue-800',
-                    messageColor: 'text-blue-700',
-                    iconColor: 'text-blue-600',
+                    titleColor: 'text-blue-900',
+                    messageColor: 'text-blue-800',
+                    iconColor: 'text-blue-700',
                     accentColor: 'rgba(0, 122, 255, 0.2)', // Apple blue
                     shadowColor: 'rgba(0, 122, 255, 0.15)',
                     glowColor: 'rgba(0, 122, 255, 0.3)',
@@ -136,99 +156,58 @@ const ToastItem: React.FC<ToastItemProps> = ({
             leaveTo="opacity-0 scale-85 translate-x-full translate-y-[-40px] rotate-12"
         >
             <div className="relative group pointer-events-auto w-full">
-                {/* Liquid Glass Toast Container with Apple Design Language */}
+                {/* Liquid Glass Toast Container with Premium Apple Design Language */}
                 <div
-                    className={`relative overflow-hidden rounded-2xl transition-all duration-700 ease-out cursor-pointer
-                        transform hover:scale-[1.02] active:scale-[0.98]
+                    className={`relative overflow-hidden rounded-3xl transition-all duration-300 ease-out cursor-pointer
+                        transform hover:scale-[1.01] active:scale-[0.99] bg-white
                         ${notification.priority === 'URGENT' ? 'animate-pulse' : ''}`}
                     onClick={handleToastClick}
                     style={{
-                        background: `
-                            radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.95) 0%, rgba(248, 248, 251, 0.9) 50%, rgba(240, 240, 243, 0.85) 100%),
-                            linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(0, 0, 0, 0.05) 100%)
-                        `,
-                        backdropFilter: 'blur(20px) saturate(180%)',
-                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                        boxShadow: `
-                            0 8px 32px rgba(0, 0, 0, 0.12),
-                            0 2px 16px rgba(0, 0, 0, 0.08),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.7),
-                            inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-                            0 0 0 1px rgba(255, 255, 255, 0.2)
-                        `,
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        borderRadius: '16px', // Consistent border radius
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                        border: '1px solid rgba(229, 231, 235, 0.6)',
+                        borderRadius: '24px',
                     }}
                 >
-                    {/* Dynamic liquid accent gradient */}
+                    {/* Simple accent line for notification type */}
                     <div
-                        className="absolute top-0 left-0 right-0 h-1 overflow-hidden"
+                        className="absolute top-0 left-0 right-0 h-1"
                         style={{
-                            background: `linear-gradient(90deg,
-                                ${colors.accentColor} 0%,
-                                ${colors.glowColor} 30%,
-                                ${colors.glowColor} 50%,
-                                ${colors.glowColor} 70%,
-                                ${colors.accentColor} 100%)`,
-                            borderRadius: '16px 16px 0 0', // Match container border radius
-                        }}
-                    >
-                        <div
-                            className="absolute inset-0 opacity-60"
-                            style={{
-                                background: `linear-gradient(90deg, transparent 0%, ${colors.glowColor} 50%, transparent 100%)`,
-                                animation: 'shimmer 3s ease-in-out infinite',
-                            }}
-                        />
-                    </div>
-
-                    {/* Liquid glass shine effect */}
-                    <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                            background: `linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, transparent 30%, transparent 70%, rgba(255, 255, 255, 0.2) 100%)`,
-                            transform: 'translateX(-100%)',
-                            animation: 'liquid-shine 4s ease-in-out infinite',
-                            borderRadius: '16px', // Match container border radius
+                            backgroundColor: colors.accentColor.replace('0.2', '0.6'),
+                            borderRadius: '24px 24px 0 0',
                         }}
                     />
 
-                    {/* Content area with enhanced liquid aesthetics */}
-                    <div className="flex items-start gap-4 p-6 relative z-10">
-                        {/* Icon with liquid glass effect */}
-                        <div className={`flex-shrink-0 ${colors.iconColor} mt-0.5 relative`}>
+                    {/* Content area with responsive padding */}
+                    <div className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 md:p-6 relative z-10">
+                        {/* Simple icon container */}
+                        <div className={`flex-shrink-0 ${colors.iconColor} mt-0.5 sm:mt-1`}>
                             <div
-                                className="p-3 transition-all duration-300 ease-out"
+                                className="p-3 sm:p-3.5 md:p-4 transition-all duration-300 ease-out
+                                         hover:scale-105 relative overflow-hidden bg-gray-50 rounded-2xl"
                                 style={{
-                                    background: `
-                                        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 70%),
-                                        ${colors.accentColor}
-                                    `,
-                                    backdropFilter: 'blur(8px)',
-                                    WebkitBackdropFilter: 'blur(8px)',
-                                    boxShadow: `
-                                        0 4px 16px ${colors.shadowColor},
-                                        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-                                        inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-                                    `,
-                                    border: '1px solid rgba(255, 255, 255, 0.4)',
-                                    borderRadius: '12px', // Consistent border radius
-                                    transform: 'translateZ(0)',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                    border: '1px solid rgba(229, 231, 235, 0.6)',
                                 }}
                             >
                                 {getIcon()}
                             </div>
                         </div>
 
-                        {/* Enhanced text content with liquid glass backdrop */}
-                        <div className="flex-1 min-w-0">
+                        {/* Apple-style enhanced text content with premium typography */}
+                        <div className="flex-1 min-w-0 pr-2 sm:pr-3">
                             {hasTitle && (
                                 <div
-                                    className={`font-semibold text-[15px] leading-6 ${colors.titleColor} truncate mb-2`}
+                                    className={`font-bold text-sm sm:text-base leading-5 sm:leading-6 ${colors.titleColor} mb-1.5 sm:mb-2 line-clamp-2`}
                                     style={{
-                                        textShadow: '0 1px 3px rgba(255, 255, 255, 0.8)',
-                                        fontWeight: '600',
-                                        letterSpacing: '-0.02em',
+                                        textShadow:
+                                            '0 2px 4px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(0, 0, 0, 0.12)',
+                                        fontWeight: '700',
+                                        letterSpacing: '-0.025em',
+                                        lineHeight: '1.25',
+                                        fontFamily:
+                                            '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
                                     }}
                                 >
                                     {notification.title}
@@ -236,12 +215,15 @@ const ToastItem: React.FC<ToastItemProps> = ({
                             )}
                             {hasMessage && (
                                 <div
-                                    className={`text-[13px] leading-5 ${colors.messageColor} ${
-                                        hasTitle ? 'line-clamp-2' : 'line-clamp-3'
-                                    }`}
+                                    className={`text-xs sm:text-sm leading-4 sm:leading-5 ${colors.messageColor} ${
+                                        hasTitle ? 'line-clamp-1 sm:line-clamp-2' : 'line-clamp-2 sm:line-clamp-3'
+                                    } opacity-90`}
                                     style={{
-                                        textShadow: '0 1px 2px rgba(255, 255, 255, 0.6)',
-                                        lineHeight: '1.45',
+                                        textShadow: '0 1px 3px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.08)',
+                                        lineHeight: '1.35',
+                                        letterSpacing: '-0.015em',
+                                        fontFamily:
+                                            '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
                                     }}
                                 >
                                     {notification.message}
@@ -249,32 +231,39 @@ const ToastItem: React.FC<ToastItemProps> = ({
                             )}
                         </div>
 
-                        {/* Liquid glass close button */}
+                        {/* Simple close button */}
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleDismiss();
                             }}
-                            className="flex-shrink-0 p-2.5 transition-all duration-300 ease-out
-                                     text-gray-500 hover:text-gray-700
-                                     transform hover:scale-110 active:scale-90 hover:rotate-90"
+                            className="flex-shrink-0 p-2.5 sm:p-3 transition-all duration-300 ease-out
+                                     text-gray-500 hover:text-gray-700 active:scale-90
+                                     hover:bg-gray-100 rounded-2xl group relative overflow-hidden"
                             style={{
-                                background: `
-                                    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(248, 248, 251, 0.7) 100%)
-                                `,
-                                backdropFilter: 'blur(12px) saturate(150%)',
-                                WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-                                boxShadow: `
-                                    0 4px 16px rgba(0, 0, 0, 0.1),
-                                    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                                    inset 0 -1px 0 rgba(0, 0, 0, 0.05),
-                                    0 0 0 1px rgba(255, 255, 255, 0.3)
-                                `,
-                                border: '1px solid rgba(255, 255, 255, 0.4)',
-                                borderRadius: '10px', // Consistent border radius
+                                background: 'rgba(249, 250, 251, 0.8)',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                border: '1px solid rgba(229, 231, 235, 0.6)',
                             }}
                         >
-                            <XMarkIcon className="h-4 w-4" />
+                            {/* Simple circular progress indicator */}
+                            <div
+                                className="absolute inset-0 rounded-2xl"
+                                style={{
+                                    background: `conic-gradient(from -90deg,
+                                        rgba(59, 130, 246, 0.8) 0%,
+                                        rgba(59, 130, 246, 0.8) ${progress}%,
+                                        transparent ${progress}%,
+                                        transparent 100%)`,
+                                    mask: `radial-gradient(circle at center, transparent 42%, white 45%, white 100%)`,
+                                    WebkitMask: `radial-gradient(circle at center, transparent 42%, white 45%, white 100%)`,
+                                }}
+                            />
+
+                            <XMarkIcon
+                                className="h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ease-out
+                                               group-hover:scale-110 relative z-10"
+                            />
                         </button>
                     </div>
                 </div>
@@ -298,13 +287,13 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
     onDismiss,
     onMarkAsRead,
     zIndex = 50,
-    maxVisible = 3, // Changed default to 3 for stacking
+    maxVisible = 5, // Increased default for vertical list
 }) => {
     const [mounted, setMounted] = useState(false);
 
-    // Debug logging
+    // Debug logging removed for production
     useEffect(() => {
-        // Debug logging removed for production
+        // Production-ready container tracking
     }, [notifications, position, zIndex, maxVisible]);
 
     useEffect(() => {
@@ -327,19 +316,19 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
     const getPositionClasses = (pos: ToastPosition) => {
         switch (pos) {
             case 'top-left':
-                return 'top-4 left-4';
+                return 'top-2 sm:top-4 left-2 sm:left-4';
             case 'top-center':
-                return 'top-4 left-1/2 transform -translate-x-1/2';
+                return 'top-2 sm:top-4 left-1/2 transform -translate-x-1/2';
             case 'top-right':
-                return 'top-4 right-4';
+                return 'top-2 sm:top-4 right-2 sm:right-4';
             case 'bottom-left':
-                return 'bottom-4 left-4';
+                return 'bottom-2 sm:bottom-4 left-2 sm:left-4';
             case 'bottom-center':
-                return 'bottom-4 left-1/2 transform -translate-x-1/2';
+                return 'bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2';
             case 'bottom-right':
-                return 'bottom-4 right-4';
+                return 'bottom-2 sm:bottom-4 right-2 sm:right-4';
             default:
-                return 'top-4 right-4';
+                return 'top-2 sm:top-4 right-2 sm:right-4';
         }
     };
 
@@ -359,106 +348,54 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
     const animationDirection = getAnimationDirection(position);
     const positionClasses = getPositionClasses(position);
 
+    // Production-ready notification processing
+
     // Debug logging removed for production
 
     const containerElement = (
         <div
-            className={`fixed ${positionClasses} pointer-events-none w-full max-w-sm`}
+            className={`fixed ${positionClasses} pointer-events-none w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-sm xl:max-w-sm px-3 sm:px-0`}
             style={{ zIndex }}
             aria-live="polite"
             aria-label="Notifications"
         >
-            <div className="relative min-w-0 w-full">
-                {visibleNotifications.map((notification, index) => {
-                    // Calculate stacking transformations for consistent 3D effect
-                    const stackOffset = index * 8; // Reduced offset for tighter stacking
-                    const scaleReduction = 1 - index * 0.025; // Smaller scale reduction for subtlety
-                    const shadowDepth = 1 + index * 0.6; // Consistent shadow depth
-                    const blurAmount = index > 0 ? 1 + index * 0.5 : 0; // Subtle progressive blur for depth
+            <div className="relative min-w-0 w-full space-y-2 sm:space-y-3">
+                {visibleNotifications.map((notification, index) => (
+                    <div key={notification.id} className="w-full">
+                        <ToastItem
+                            notification={notification}
+                            onDismiss={onDismiss}
+                            onMarkAsRead={onMarkAsRead}
+                            animationDirection={animationDirection}
+                        />
+                    </div>
+                ))}
 
-                    return (
-                        <div
-                            key={notification.id}
-                            className="absolute top-0 left-0 w-full toast-stack-item"
-                            style={{
-                                transform: `translateY(${stackOffset}px) scale(${scaleReduction}) translateZ(${
-                                    -index * 5
-                                }px)`,
-                                zIndex: maxVisible - index,
-                                filter: `
-                                    drop-shadow(0 ${4 + index * 2}px ${8 + index * 4}px rgba(0, 0, 0, ${
-                                    0.12 * shadowDepth
-                                }))
-                                    ${blurAmount > 0 ? `blur(${blurAmount}px)` : ''}
-                                `,
-                                perspective: '1000px',
-                                transformStyle: 'preserve-3d',
-                            }}
-                        >
-                            <ToastItem
-                                notification={notification}
-                                onDismiss={onDismiss}
-                                onMarkAsRead={onMarkAsRead}
-                                animationDirection={animationDirection}
-                            />
-                        </div>
-                    );
-                })}
-
-                {/* Stack indicator for additional notifications */}
+                {/* Simple indicator for additional notifications with mobile optimization */}
                 {notifications.length > maxVisible && (
-                    <div
-                        className="absolute top-6 right-2 z-0 pointer-events-none"
-                        style={{
-                            transform: `translateY(${maxVisible * 8}px) scale(${1 - maxVisible * 0.025})`,
-                        }}
-                    >
+                    <div className="w-full mt-2 sm:mt-3">
                         <div
-                            className="w-full h-12"
+                            className="w-full h-10 sm:h-12 flex items-center justify-center bg-white rounded-2xl"
                             style={{
-                                background: `
-                                    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.9) 0%, rgba(248, 248, 251, 0.85) 50%, rgba(240, 240, 243, 0.8) 100%),
-                                    linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.03) 100%)
-                                `,
-                                backdropFilter: 'blur(16px) saturate(150%)',
-                                WebkitBackdropFilter: 'blur(16px) saturate(150%)',
-                                boxShadow: `
-                                    0 4px 16px rgba(0, 0, 0, 0.08),
-                                    0 1px 8px rgba(0, 0, 0, 0.05),
-                                    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-                                    inset 0 -1px 0 rgba(0, 0, 0, 0.05),
-                                    0 0 0 1px rgba(255, 255, 255, 0.15)
-                                `,
-                                border: '1px solid rgba(255, 255, 255, 0.25)',
-                                borderRadius: '16px', // Consistent border radius
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                border: '1px solid rgba(229, 231, 235, 0.6)',
                             }}
                         >
-                            <div className="flex items-center justify-center h-full px-4">
-                                <span
-                                    className="text-xs font-semibold text-gray-600"
-                                    style={{
-                                        textShadow: '0 1px 2px rgba(255, 255, 255, 0.8)',
-                                        letterSpacing: '-0.01em',
-                                    }}
-                                >
-                                    +{notifications.length - maxVisible} more notification
-                                    {notifications.length - maxVisible !== 1 ? 's' : ''}
-                                </span>
-                            </div>
+                            <span
+                                className="text-xs sm:text-sm font-semibold text-gray-600"
+                                style={{
+                                    letterSpacing: '-0.01em',
+                                    lineHeight: '1.2',
+                                }}
+                            >
+                                +{notifications.length - maxVisible} more notification
+                                {notifications.length - maxVisible !== 1 ? 's' : ''}
+                            </span>
                         </div>
                     </div>
                 )}
 
-                {/* Spacer to ensure proper container height for stacking */}
-                <div
-                    className="invisible w-full"
-                    style={{
-                        height:
-                            visibleNotifications.length > 0
-                                ? `${90 + (Math.min(visibleNotifications.length, maxVisible) - 1) * 8}px`
-                                : '0px',
-                    }}
-                />
+                {/* Spacer removed - no longer needed for vertical list layout */}
             </div>
         </div>
     );

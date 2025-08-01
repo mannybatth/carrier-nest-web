@@ -1,5 +1,7 @@
 import prisma from '../prisma';
 import { NotificationType, NotificationPriority } from '../../interfaces/notifications';
+import { NotificationDeduplicationService } from './NotificationDeduplicationService';
+import { NotificationTargetingService } from './NotificationTargetingService';
 
 export interface ServerNotificationData {
     type: NotificationType;
@@ -156,47 +158,67 @@ export class ServerNotificationService {
         customData: Record<string, any>;
     }) {
         try {
-            // Get all users in this carrier
-            const users = await prisma.user.findMany({
-                where: {
-                    defaultCarrierId: params.carrierId,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                },
+            // Get all users in this carrier who should receive assignment notifications (optimized with caching)
+            const users = await NotificationTargetingService.getNotificationTargets({
+                carrierId: params.carrierId,
+                assignmentId: params.assignmentId,
+                driverId: params.driverId,
             });
 
             const notifications = [];
 
-            // Create notification for each user who has this notification type enabled
-            for (const user of users) {
-                const isEnabled = await this.isNotificationEnabled(user.id, params.carrierId, params.type);
+            // Process users in parallel for better performance
+            const notificationPromises = users.map(async (user) => {
+                try {
+                    const isEnabled = await this.isNotificationEnabled(user.id, params.carrierId, params.type);
 
-                if (isEnabled) {
-                    const title = this.getAssignmentNotificationTitle(params.type, params.customData);
-                    const message = this.getAssignmentNotificationMessage(params.type, params.customData);
-                    const priority = this.getAssignmentNotificationPriority(params.type);
+                    if (isEnabled) {
+                        const title = this.getAssignmentNotificationTitle(params.type, params.customData);
+                        const message = this.getAssignmentNotificationMessage(params.type, params.customData);
+                        const priority = this.getAssignmentNotificationPriority(params.type);
 
-                    const notification = await this.createNotification({
-                        type: params.type,
-                        title,
-                        message,
-                        priority,
-                        carrierId: params.carrierId,
-                        userId: user.id, // This user will receive the notification
-                        driverId: params.driverId,
-                        assignmentId: params.assignmentId,
-                        routeLegId: params.routeLegId,
-                        loadId: params.loadId,
-                        data: params.customData,
-                    });
+                        // Use deduplication service to prevent duplicate notifications
+                        const notification = await NotificationDeduplicationService.createUniqueNotification({
+                            type: params.type,
+                            title,
+                            message,
+                            priority,
+                            carrierId: params.carrierId,
+                            userId: user.id,
+                            driverId: params.driverId,
+                            assignmentId: params.assignmentId,
+                            routeLegId: params.routeLegId,
+                            loadId: params.loadId,
+                            data: params.customData,
+                        });
 
-                    notifications.push(notification);
-                } else {
+                        if (notification) {
+                            return notification;
+                        } else {
+                            return null;
+                        }
+                    } else {
+                        return null;
+                    }
+                } catch (error) {
+                    console.error(`Error creating notification for user ${user.id}:`, error);
+                    return null;
                 }
-            }
+            });
+
+            // Wait for all notifications to be processed
+            const results = await Promise.allSettled(notificationPromises);
+
+            // Collect successful notifications
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value) {
+                    notifications.push(result.value);
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to create notification for user ${users[index]?.id}:`, result.reason);
+                }
+            });
+
+            return notifications;
 
             return notifications;
         } catch (error) {

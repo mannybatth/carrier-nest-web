@@ -156,7 +156,19 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                             ) : (
                                 <Component {...pageProps} />
                             )}
-                            <Toaster position="top-right" />
+                            <Toaster
+                                position="top-right"
+                                containerClassName="z-50"
+                                toastOptions={{
+                                    duration: 6000,
+                                    style: {
+                                        background: 'transparent',
+                                        boxShadow: 'none',
+                                        padding: 0,
+                                        margin: 0,
+                                    },
+                                }}
+                            />
                             <NotificationToastManager />
                         </GlobalNotificationProvider>
                     </SidebarProvider>
