@@ -713,3 +713,114 @@ input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-year-fiel
 .toast-stack-item {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Apple-style notification animations */
+@keyframes fade-out-slide {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    max-height: 200px;
+    margin-bottom: 0.5rem;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(20px) scale(0.95);
+    max-height: 200px;
+    margin-bottom: 0.5rem;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@keyframes subtle-shimmer {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progressBorder {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+    filter: blur(0px) brightness(1.2);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.99);
+    filter: blur(0.5px) brightness(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(1px) brightness(0.8);
+  }
+}
+
+.animate-fade-out-slide {
+  animation: fade-out-slide 0.4s ease-in-out forwards;
+}
+
+.apple-card-hover {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.apple-card-hover:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08), 0 6px 15px rgba(0, 0, 0, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px) saturate(130%) brightness(108%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) brightness(108%) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.apple-card-hover:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.02) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  animation: subtle-shimmer 0.6s ease-out forwards;
+}
+
+.apple-card-hover:active {
+  transform: translateY(-2px) scale(1.008);
+  transition-duration: 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apple-card-hover:hover {
+    transform: none;
+  }
+  .apple-card-hover:hover::before {
+    animation: none;
+  }
+}
