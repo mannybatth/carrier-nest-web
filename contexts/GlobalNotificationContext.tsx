@@ -37,24 +37,26 @@ interface GlobalNotificationProviderProps {
 
 // Vercel-optimized configuration matching server-side SSE settings
 const PRODUCTION_CONFIG = {
-    HEARTBEAT_INTERVAL: process.env.NODE_ENV === 'production' ? 8000 : 5000, // Match server 8s heartbeat
-    LEADER_TIMEOUT: process.env.NODE_ENV === 'production' ? 20000 : 10000, // 20s in prod, 10s in dev
-    SSE_RECONNECT_DELAY: process.env.NODE_ENV === 'production' ? 2000 : 1000, // Fast reconnection
-    SSE_CONNECTION_TIMEOUT: process.env.NODE_ENV === 'production' ? 30 : 15, // 30s to match Vercel function timeout
-    MAX_NOTIFICATIONS: 100, // Limit stored notifications for memory efficiency
-    DEBOUNCE_DELAY: process.env.NODE_ENV === 'production' ? 1000 : 500, // Longer debounce in production
-    TOAST_CLEANUP_INTERVAL: 30000, // Clean up old toasts every 30s
-    INIT_DELAY: process.env.NODE_ENV === 'production' ? 200 : 100, // Faster initialization
-    VISIBILITY_CHECK_INTERVAL: 5000, // Check visibility every 5s
-    POLLING_INTERVAL: process.env.NODE_ENV === 'production' ? 15000 : 10000, // Fallback polling interval
-    MAX_SSE_FAILURES: 2, // Switch to polling after 2 failures (faster fallback)
-    CONNECTION_RETRY_LIMIT: 5, // Limit connection retries before fallback
+    HEARTBEAT_INTERVAL: process.env.NODE_ENV === 'production' ? 8000 : 5000,
+    LEADER_TIMEOUT: process.env.NODE_ENV === 'production' ? 20000 : 10000,
+    SSE_RECONNECT_DELAY: process.env.NODE_ENV === 'production' ? 1000 : 500,
+    SSE_CONNECTION_TIMEOUT: process.env.NODE_ENV === 'production' ? 30 : 15,
+    MAX_NOTIFICATIONS: 100,
+    DEBOUNCE_DELAY: process.env.NODE_ENV === 'production' ? 1000 : 500,
+    TOAST_CLEANUP_INTERVAL: 30000,
+    INIT_DELAY: process.env.NODE_ENV === 'production' ? 200 : 100,
+    VISIBILITY_CHECK_INTERVAL: 5000,
+    POLLING_INTERVAL: process.env.NODE_ENV === 'production' ? 15000 : 10000,
+    MAX_SSE_FAILURES: 3,
+    AUTO_RECONNECT_ON_CLOSE: true,
+    CONNECTION_RETRY_LIMIT: 5,
 };
 
 // Broadcast channel for communication between tabs
 const CHANNEL_NAME = 'carrier-nest-notifications';
 const LEADER_KEY = 'carrier-nest-notification-leader';
 const STATE_KEY = 'carrier-nest-notification-state';
+const TOAST_SHOWN_KEY = 'carrier-nest-toast-shown';
 
 export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProps> = ({ children }) => {
     const { data: session } = useSession();
@@ -68,7 +70,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const [isPageVisible, setIsPageVisible] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
     const [usingPollingFallback, setUsingPollingFallback] = useState(false);
-    const [hasEnabledNotifications, setHasEnabledNotifications] = useState<boolean | null>(null); // null = not checked yet
+    const [hasEnabledNotifications, setHasEnabledNotifications] = useState<boolean | null>(null);
 
     const broadcastChannel = useRef<BroadcastChannel | null>(null);
     const eventSource = useRef<EventSource | null>(null);
@@ -78,9 +80,11 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const initTimer = useRef<NodeJS.Timeout | null>(null);
     const tabId = useRef<string>(Math.random().toString(36).substr(2, 9));
     const processedNotificationIds = useRef(new Set<string>());
+    const toastCreatedNotificationIds = useRef(new Set<string>());
     const sessionStartTime = useRef(Date.now());
+    const tabInactiveTimestamp = useRef<number | null>(null);
     const isChannelClosed = useRef<boolean>(false);
-    const isLoadingRef = useRef<boolean>(false); // Track loading state to prevent duplicate calls
+    const isLoadingRef = useRef<boolean>(false);
     const pollingTimer = useRef<NodeJS.Timeout | null>(null);
     const lastPollingCheck = useRef<number>(Date.now());
     const sseFailureCount = useRef<number>(0);
@@ -89,6 +93,41 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
     const carrierId = session?.user?.defaultCarrierId;
     const userId = session?.user?.id;
+
+    // Helper functions for persistent toast tracking
+    const getShownToastIds = useCallback((): Set<string> => {
+        try {
+            const stored = localStorage.getItem(TOAST_SHOWN_KEY);
+            if (stored) {
+                const data = JSON.parse(stored);
+                const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+                const filtered = data.filter((item: any) => item.timestamp > dayAgo);
+                localStorage.setItem(TOAST_SHOWN_KEY, JSON.stringify(filtered));
+                return new Set(filtered.map((item: any) => item.id));
+            }
+        } catch (error) {
+            localStorage.removeItem(TOAST_SHOWN_KEY);
+        }
+        return new Set<string>();
+    }, []);
+
+    const markToastAsShown = useCallback(
+        (notificationId: string) => {
+            try {
+                const existing = getShownToastIds();
+                if (!existing.has(notificationId)) {
+                    const stored = localStorage.getItem(TOAST_SHOWN_KEY);
+                    const data = stored ? JSON.parse(stored) : [];
+                    data.push({ id: notificationId, timestamp: Date.now() });
+                    localStorage.setItem(TOAST_SHOWN_KEY, JSON.stringify(data));
+                    toastCreatedNotificationIds.current.add(notificationId);
+                }
+            } catch (error) {
+                toastCreatedNotificationIds.current.add(notificationId);
+            }
+        },
+        [getShownToastIds],
+    );
 
     // Check if user has any enabled notification preferences
     const checkNotificationPreferences = useCallback(async () => {
@@ -105,22 +144,16 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
             if (response.ok) {
                 const preferences = await response.json();
-
-                // Check if user has ANY enabled notifications (push, email, SMS, or in-app)
                 const hasAnyEnabled = preferences.some(
                     (pref: any) => pref.enabled || pref.emailEnabled || pref.smsEnabled || pref.pushEnabled,
                 );
-
-                console.log(`[Notifications] User has enabled notifications: ${hasAnyEnabled}`);
                 setHasEnabledNotifications(hasAnyEnabled);
                 return hasAnyEnabled;
             } else {
-                console.warn('[Notifications] Failed to fetch preferences, assuming disabled');
                 setHasEnabledNotifications(false);
                 return false;
             }
         } catch (error) {
-            console.warn('[Notifications] Error checking preferences:', error);
             setHasEnabledNotifications(false);
             return false;
         }
@@ -152,12 +185,71 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         [isMounted],
     );
 
+    // Function to show toast notifications for notifications that occurred while tab was inactive
+    const showNotificationsFromInactiveTime = useCallback(
+        (inactiveTimestamp: number) => {
+            if (!notifications.length) {
+                return;
+            }
+
+            const getToastType = (type: string): 'info' | 'error' | 'success' | 'warning' => {
+                switch (type?.toLowerCase()) {
+                    case 'success':
+                        return 'success';
+                    case 'warning':
+                        return 'warning';
+                    case 'error':
+                        return 'error';
+                    default:
+                        return 'info';
+                }
+            };
+
+            const notificationsWhileInactive = notifications.filter((notification) => {
+                const notificationTime = new Date(notification.createdAt).getTime();
+                const isAfterInactive = notificationTime > inactiveTimestamp;
+                const isNotAlreadyToasted = !toastNotifications.some(
+                    (toast) => toast.notificationId === notification.id,
+                );
+                const isForCurrentUser = notification.userId === userId;
+
+                return isAfterInactive && isNotAlreadyToasted && !notification.isRead && isForCurrentUser;
+            });
+
+            if (notificationsWhileInactive.length > 0) {
+                const newToasts: ToastNotification[] = notificationsWhileInactive.map((notification) => ({
+                    id: notification.id,
+                    notificationId: notification.id,
+                    title: notification.title || 'New Notification',
+                    message: notification.message || '',
+                    type: getToastType(notification.type),
+                    priority: notification.priority,
+                    duration: 8000,
+                }));
+
+                setToastNotifications((prev) => [...newToasts, ...prev]);
+
+                if (!isChannelClosed.current && broadcastChannel.current) {
+                    newToasts.forEach((toast) => {
+                        safeBroadcast({
+                            type: 'TOAST_NOTIFICATION',
+                            payload: {
+                                notification: notifications.find((n) => n.id === toast.notificationId),
+                                fromInactive: true,
+                            },
+                        });
+                    });
+                }
+            }
+        },
+        [notifications, toastNotifications, safeBroadcast, userId],
+    );
+
     // Page and Window Visibility API - Track when tab/window becomes active/inactive
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
         const handleVisibilityChange = () => {
-            // Check both tab visibility and window focus
             const isTabVisible = !document.hidden;
             const isWindowFocused = document.hasFocus();
             const isVisible = isTabVisible && isWindowFocused;
@@ -165,14 +257,14 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             setIsPageVisible(isVisible);
 
             if (!isVisible) {
-                // Tab/window became inactive - disconnect SSE and stop heartbeat
                 const reason = !isTabVisible ? 'tab inactivity' : 'window lost focus';
+
+                tabInactiveTimestamp.current = Date.now();
 
                 if (eventSource.current) {
                     eventSource.current.close();
                     eventSource.current = null;
                     setConnected(false);
-                    console.log(`[SSE] Connection closed due to ${reason}`);
                 }
 
                 if (heartbeatTimer.current) {
@@ -180,7 +272,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     heartbeatTimer.current = null;
                 }
 
-                // Clear leadership if we were the leader
                 if (isMainTab) {
                     const leaderInfo = localStorage.getItem(LEADER_KEY);
                     if (leaderInfo) {
@@ -196,37 +287,67 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     }
                 }
 
-                // Broadcast that we're going inactive
                 safeBroadcast({
                     type: 'TAB_INACTIVE',
                     payload: { tabId: tabId.current },
                 });
             } else {
-                // Tab/window became active - potentially take leadership
+                console.log(
+                    `[Tab Tracking] Previous inactive timestamp:`,
+                    tabInactiveTimestamp.current ? new Date(tabInactiveTimestamp.current).toISOString() : 'null',
+                );
+                console.log(
+                    `[Tab Tracking] Current session start time:`,
+                    new Date(sessionStartTime.current).toISOString(),
+                );
 
-                // Update session start time to current time to prevent old notifications from showing as toasts
-                sessionStartTime.current = Date.now();
+                if (tabInactiveTimestamp.current) {
+                    const inactiveTime = tabInactiveTimestamp.current;
+                    const inactiveDuration = Date.now() - inactiveTime;
+                    console.log(
+                        `[Tab Tracking] Tab was inactive for ${inactiveDuration}ms (${Math.round(
+                            inactiveDuration / 1000,
+                        )}s)`,
+                    );
+                    console.log(
+                        `[Tab Tracking] Checking for notifications since ${new Date(inactiveTime).toISOString()}`,
+                    );
 
-                // Delay leadership check to avoid conflicts
+                    setTimeout(() => {
+                        console.log(`[Tab Tracking] Running showNotificationsFromInactiveTime after 100ms delay`);
+                        showNotificationsFromInactiveTime(inactiveTime);
+                    }, 100);
+
+                    tabInactiveTimestamp.current = null;
+                } else {
+                    console.log(`[Tab Tracking] No previous inactive timestamp found`);
+                }
+
+                const newSessionStart = Date.now();
+                console.log(
+                    `[Tab Tracking] Updating session start time from ${new Date(
+                        sessionStartTime.current,
+                    ).toISOString()} to ${new Date(newSessionStart).toISOString()}`,
+                );
+                sessionStartTime.current = newSessionStart;
+
                 setTimeout(() => {
                     if (isPageVisible && isMounted && isInitialized) {
                         electLeader();
                     }
                 }, 500);
+                console.log(`[Tab Tracking] ================================`);
             }
         };
 
-        // Initial visibility state (check both tab and window)
         const initialTabVisible = !document.hidden;
         const initialWindowFocused = document.hasFocus();
         setIsPageVisible(initialTabVisible && initialWindowFocused);
 
-        // Listen to both visibility change and window focus/blur events
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('focus', handleVisibilityChange);
         window.addEventListener('blur', handleVisibilityChange);
 
-        // Periodic visibility check as backup
         visibilityCheckTimer.current = setInterval(() => {
             const currentTabVisible = !document.hidden;
             const currentWindowFocused = document.hasFocus();
@@ -245,16 +366,18 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 clearInterval(visibilityCheckTimer.current);
             }
         };
-    }, [isMainTab, isMounted, isInitialized, isPageVisible]);
+    }, [isMainTab, isMounted, isInitialized, isPageVisible, showNotificationsFromInactiveTime]);
 
-    // Non-blocking initialization - Delay to ensure critical page loads first
+    // Non-blocking initialization
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        // Defer initialization to not block critical page loading
         initTimer.current = setTimeout(() => {
             setIsMounted(true);
             setIsInitialized(true);
+
+            const shownToastIds = getShownToastIds();
+            shownToastIds.forEach((id) => toastCreatedNotificationIds.current.add(id));
         }, PRODUCTION_CONFIG.INIT_DELAY);
 
         return () => {
@@ -262,22 +385,20 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 clearTimeout(initTimer.current);
             }
         };
-    }, []);
+    }, [getShownToastIds]);
 
-    // Initialize broadcast channel - Only after initialization delay
+    // Initialize broadcast channel
     useEffect(() => {
         if (typeof window === 'undefined' || !isInitialized) return;
 
         isChannelClosed.current = false;
         broadcastChannel.current = new BroadcastChannel(CHANNEL_NAME);
 
-        // Listen for messages from other tabs
         broadcastChannel.current.onmessage = (event) => {
             if (isChannelClosed.current) return;
 
             const { type, payload, fromTab } = event.data;
 
-            // Skip processing if this message is from the current tab (to prevent self-processing)
             if (fromTab === tabId.current) return;
 
             switch (type) {
@@ -289,13 +410,11 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     setConnected(payload.connected);
                     break;
                 case 'NEW_NOTIFICATION':
-                    // Handle new notification from other tabs (all tabs should update)
                     setNotifications((prev) => {
                         const exists = prev.some((n) => n.id === payload.notification.id);
                         if (exists) return prev;
 
                         const updated = [payload.notification, ...prev];
-                        // Inline deduplication and sorting
                         const uniqueNotifications = updated.filter(
                             (notification, index, self) => index === self.findIndex((n) => n.id === notification.id),
                         );
@@ -305,17 +424,13 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                             return bTime - aTime;
                         });
                     });
-                    if (!payload.notification.isRead) {
-                        setUnreadCount((prev) => prev + 1);
-                    }
                     break;
                 case 'TOAST_NOTIFICATION':
-                    // Handle toast notifications from other tabs (only show if notification is recent)
                     const notificationTimestamp = new Date(payload.notification.createdAt).getTime();
                     const currentTabSessionStart = sessionStartTime.current;
+                    const shouldShowToast = payload.fromInactive || notificationTimestamp >= currentTabSessionStart;
 
-                    // Only show toast if the notification was created after this tab's session started
-                    if (notificationTimestamp >= currentTabSessionStart) {
+                    if (shouldShowToast) {
                         const getToastType = (type: string): 'info' | 'error' | 'success' | 'warning' => {
                             switch (type?.toLowerCase()) {
                                 case 'success':
@@ -335,28 +450,24 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                             message: payload.notification.message || '',
                             type: getToastType(payload.notification.type),
                             priority: payload.notification.priority,
-                            duration: 5000,
+                            duration: payload.fromInactive ? 6000 : 5000,
                         };
                         setToastNotifications((prev) => [toast, ...prev]);
                     }
                     break;
                 case 'TAB_INACTIVE':
-                    // Another tab became inactive, we might need to take leadership
                     if (isPageVisible && isInitialized && !isMainTab) {
-                        setTimeout(() => electLeader(), 1000); // Delay to avoid conflicts
+                        setTimeout(() => electLeader(), 1000);
                     }
                     break;
                 case 'LEADER_HEARTBEAT':
-                    // Another tab is announcing it's the leader
                     if (payload.tabId !== tabId.current) {
                         setIsMainTab(false);
                         updateLeaderTimestamp(payload.tabId);
                     }
                     break;
                 case 'LEADER_ELECTION':
-                    // Another tab is requesting leadership
                     if (isMainTab && payload.tabId !== tabId.current && isPageVisible) {
-                        // Announce we're the current leader (only if we're visible)
                         safeBroadcast({
                             type: 'LEADER_HEARTBEAT',
                             payload: { tabId: tabId.current },
@@ -366,7 +477,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             }
         };
 
-        // Check if we should become the leader - only if page is visible and window is focused
         const leaderInfo = localStorage.getItem(LEADER_KEY);
         const now = Date.now();
         const isTabVisible = !document.hidden;
@@ -416,15 +526,14 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 broadcastChannel.current = null;
             }
         };
-    }, [isInitialized, isPageVisible]); // Add isPageVisible dependency
+    }, [isInitialized, isPageVisible]);
 
-    // Leader election logic - only for visible tabs with focused windows
+    // Leader election logic
     const electLeader = useCallback(() => {
         if (typeof window === 'undefined' || !isPageVisible || !isInitialized) {
             return;
         }
 
-        // Double-check that both tab is visible and window is focused
         const isTabVisible = !document.hidden;
         const isWindowFocused = document.hasFocus();
         if (!isTabVisible || !isWindowFocused) {
@@ -481,14 +590,13 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             });
         }, PRODUCTION_CONFIG.HEARTBEAT_INTERVAL);
 
-        // Initial heartbeat
         safeBroadcast({
             type: 'LEADER_HEARTBEAT',
             payload: { tabId: tabId.current },
         });
     }, [safeBroadcast, updateLeaderTimestamp]);
 
-    // Periodic check for leader status - only for visible tabs
+    // Periodic check for leader status
     useEffect(() => {
         if (typeof window === 'undefined' || !isInitialized) return;
 
@@ -509,17 +617,18 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const showUnshownToastNotifications = useCallback(() => {
         const currentTime = Date.now();
         const sessionStart = sessionStartTime.current;
+        const shownToastIds = getShownToastIds();
 
-        // Find notifications that occurred after session start but haven't been shown as toasts
         const unshownNotifications = notifications.filter((notification) => {
             const notificationCreatedAt = new Date(notification.createdAt).getTime();
             const isAfterSessionStart = notificationCreatedAt >= sessionStart;
             const isNotAlreadyToasted = !toastNotifications.some((toast) => toast.notificationId === notification.id);
-
-            // Only show notifications from the last hour to avoid spam
+            const isNotPreviouslyShown = !shownToastIds.has(notification.id);
             const isRecent = currentTime - notificationCreatedAt <= 3600000; // 1 hour
 
-            return isAfterSessionStart && isNotAlreadyToasted && isRecent && !notification.isRead;
+            return (
+                isAfterSessionStart && isNotAlreadyToasted && isNotPreviouslyShown && isRecent && !notification.isRead
+            );
         });
 
         if (unshownNotifications.length > 0) {
@@ -546,9 +655,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 duration: 5000,
             }));
 
+            newToasts.forEach((toast) => markToastAsShown(toast.notificationId));
             setToastNotifications((prev) => [...newToasts, ...prev]);
 
-            // Broadcast toast notifications to other tabs
             if (!isChannelClosed.current && broadcastChannel.current) {
                 newToasts.forEach((toast) => {
                     safeBroadcast({
@@ -558,19 +667,15 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 });
             }
         }
-    }, [notifications, toastNotifications, safeBroadcast]);
+    }, [notifications, toastNotifications, safeBroadcast, getShownToastIds, markToastAsShown]);
 
-    // Production-optimized SSE connection handling - only for visible main tabs with enabled notifications
+    // Production-optimized SSE connection handling
     useEffect(() => {
-        // Early return if notifications are not enabled or not checked yet
         if (hasEnabledNotifications === null) {
-            console.log('[SSE] Waiting for notification preferences check...');
             return;
         }
 
         if (!hasEnabledNotifications) {
-            console.log('[SSE] No enabled notifications - skipping SSE connection');
-            // Clean up any existing connections
             if (eventSource.current) {
                 eventSource.current.close();
                 eventSource.current = null;
@@ -585,12 +690,10 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         }
 
         if (!isMainTab || !carrierId || !userId || !isPageVisible || !isInitialized) {
-            // If not main tab, missing auth, not visible, or not initialized - close any existing connection
             if (eventSource.current) {
                 eventSource.current.close();
                 eventSource.current = null;
                 setConnected(false);
-                console.log(`[SSE] Connection closed - not eligible for SSE connection`);
             }
             return;
         }
@@ -598,11 +701,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         let reconnectAttempts = 0;
         const maxReconnectAttempts = PRODUCTION_CONFIG.CONNECTION_RETRY_LIMIT;
 
-        // Polling fallback for when SSE fails
         const startPollingFallback = () => {
             if (usingPollingFallback || !isPageVisible) return;
 
-            console.log(`[SSE] Starting polling fallback for tab ${tabId.current}`);
             setUsingPollingFallback(true);
             setConnected(false);
 
@@ -618,13 +719,12 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     const response = await fetch(url.toString(), {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' },
-                        signal: AbortSignal.timeout(5000), // 5s timeout
+                        signal: AbortSignal.timeout(5000),
                     });
 
                     if (response.ok) {
                         const data = await response.json();
                         if (data.notifications?.length > 0) {
-                            console.log(`[Polling] Received ${data.notifications.length} notifications`);
                             data.notifications.forEach((notification: any) => {
                                 safeBroadcast({
                                     type: 'NEW_NOTIFICATION',
@@ -635,7 +735,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                         lastPollingCheck.current = Date.now();
                     }
                 } catch (error) {
-                    console.warn('[Polling] Error:', error);
+                    // Ignore polling errors
                 } finally {
                     if (usingPollingFallback && isPageVisible) {
                         pollingTimer.current = setTimeout(pollForNotifications, PRODUCTION_CONFIG.POLLING_INTERVAL);
@@ -652,17 +752,13 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 pollingTimer.current = null;
             }
             setUsingPollingFallback(false);
-            console.log(`[Polling] Stopped for tab ${tabId.current}`);
         };
 
-        // Vercel-optimized SSE connection with fast timeout handling
         const connectSSE = () => {
             if (usingPollingFallback) {
-                console.log(`[SSE] Skipping - using polling fallback`);
                 return;
             }
 
-            // Clear existing connection
             if (eventSource.current) {
                 eventSource.current.close();
                 eventSource.current = null;
@@ -675,13 +771,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             const url = new URL('/api/notifications/stream', window.location.origin);
             url.searchParams.set('carrierId', carrierId);
             url.searchParams.set('userId', userId);
-            url.searchParams.set('t', Date.now().toString()); // Always add timestamp
+            url.searchParams.set('t', Date.now().toString());
 
-            console.log(`[SSE] Connecting (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts + 1})`);
-
-            // Set connection timeout matching Vercel function timeout
             connectionTimeoutRef.current = setTimeout(() => {
-                console.warn(`[SSE] Connection timeout after ${PRODUCTION_CONFIG.SSE_CONNECTION_TIMEOUT}s`);
                 sseFailureCount.current++;
 
                 if (eventSource.current) {
@@ -690,14 +782,11 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 }
                 setConnected(false);
 
-                // Switch to polling after timeout
                 if (sseFailureCount.current >= PRODUCTION_CONFIG.MAX_SSE_FAILURES) {
-                    console.warn(`[SSE] Too many failures, switching to polling`);
                     startPollingFallback();
                     return;
                 }
 
-                // Try reconnection if under limit
                 if (reconnectAttempts < maxReconnectAttempts && isPageVisible) {
                     scheduleReconnection();
                 } else {
@@ -709,18 +798,17 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 eventSource.current = new EventSource(url.toString());
 
                 eventSource.current.onopen = () => {
-                    console.log(`[SSE] Connected successfully for tab ${tabId.current}`);
-
-                    // Clear timeout on successful connection
                     if (connectionTimeoutRef.current) {
                         clearTimeout(connectionTimeoutRef.current);
                         connectionTimeoutRef.current = null;
                     }
 
-                    // Reset failure counters
                     sseFailureCount.current = 0;
                     connectionRetryCount.current = 0;
                     reconnectAttempts = 0;
+
+                    const oldSessionStart = sessionStartTime.current;
+                    sessionStartTime.current = Date.now();
 
                     setConnected(true);
                     broadcastConnectionStatus(true);
@@ -733,16 +821,27 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     try {
                         const parsedData = JSON.parse(event.data);
 
-                        // Handle different message types
                         switch (parsedData.type) {
                             case 'connected':
-                                console.log(`[SSE] Initial connection confirmed (${parsedData.connectionTime}ms)`);
                                 break;
                             case 'heartbeat':
-                                // Silent heartbeat handling
+                                if (parsedData.dbStatus === 'disabled') {
+                                    console.warn('[SSE] Database queries disabled on server side');
+                                }
                                 break;
                             case 'timeout_warning':
-                                console.warn(`[SSE] Server timeout warning: ${parsedData.message}`);
+                                if (parsedData.shouldReconnect && PRODUCTION_CONFIG.AUTO_RECONNECT_ON_CLOSE) {
+                                    // Wait for auto-reconnect
+                                } else {
+                                    if (eventSource.current) {
+                                        eventSource.current.close();
+                                        eventSource.current = null;
+                                        setConnected(false);
+                                    }
+                                    startPollingFallback();
+                                }
+                                break;
+                            case 'early_warning':
                                 break;
                             case 'notification':
                                 if (parsedData.notification) {
@@ -750,21 +849,16 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                                 }
                                 break;
                             case 'error':
-                                console.warn(`[SSE] Server error: ${parsedData.message}`);
                                 break;
                             default:
-                                // Handle direct notification for backward compatibility
                                 handleSSENotification(parsedData);
                         }
                     } catch (error) {
-                        console.warn('[SSE] Message parse error:', error);
+                        // Ignore parse errors
                     }
                 };
 
                 eventSource.current.onerror = (error) => {
-                    console.warn(`[SSE] Connection error:`, error);
-
-                    // Clear timeout on error
                     if (connectionTimeoutRef.current) {
                         clearTimeout(connectionTimeoutRef.current);
                         connectionTimeoutRef.current = null;
@@ -779,23 +873,25 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                         eventSource.current = null;
                     }
 
-                    // Check if we should switch to polling
+                    if (isPageVisible && isMainTab && PRODUCTION_CONFIG.AUTO_RECONNECT_ON_CLOSE) {
+                        if (reconnectAttempts < maxReconnectAttempts) {
+                            scheduleReconnection();
+                            return;
+                        }
+                    }
+
                     if (sseFailureCount.current >= PRODUCTION_CONFIG.MAX_SSE_FAILURES) {
-                        console.warn(`[SSE] Max failures reached, switching to polling`);
                         startPollingFallback();
                         return;
                     }
 
-                    // Try reconnection if under limits
                     if (reconnectAttempts < maxReconnectAttempts && isPageVisible) {
                         scheduleReconnection();
                     } else {
-                        console.warn(`[SSE] Max reconnection attempts reached, switching to polling`);
                         startPollingFallback();
                     }
                 };
             } catch (error) {
-                console.error('[SSE] Failed to create EventSource:', error);
                 sseFailureCount.current++;
                 setConnected(false);
 
@@ -811,13 +907,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         };
 
         const scheduleReconnection = () => {
-            const delay = Math.min(
-                PRODUCTION_CONFIG.SSE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
-                10000, // Cap at 10 seconds
-            );
+            const delay = Math.min(PRODUCTION_CONFIG.SSE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), 10000);
 
             reconnectAttempts++;
-            console.log(`[SSE] Scheduling reconnection in ${delay}ms (attempt ${reconnectAttempts})`);
 
             setTimeout(() => {
                 if (isPageVisible && isMainTab && !usingPollingFallback) {
@@ -826,20 +918,16 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             }, delay);
         };
 
-        // Start connection
         connectSSE();
 
         return () => {
-            // Cleanup timeouts
             if (connectionTimeoutRef.current) {
                 clearTimeout(connectionTimeoutRef.current);
                 connectionTimeoutRef.current = null;
             }
 
-            // Stop polling fallback
             stopPollingFallback();
 
-            // Close SSE connection
             if (eventSource.current) {
                 eventSource.current.close();
                 eventSource.current = null;
@@ -856,57 +944,100 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     };
 
     // Production-optimized utility functions with memory management
-    const deduplicateAndSort = useCallback((notifications: any[]): any[] => {
-        // Filter out admin and driver-specific notifications
-        const filteredNotifications = notifications.filter((notification) => {
-            if (notification.data && notification.data.forDriver === true) return false;
-            if (!notification.userId) return false;
-            return true;
-        });
+    const deduplicateAndSort = useCallback(
+        (notifications: any[]): any[] => {
+            const filteredNotifications = notifications.filter((notification) => {
+                if (!notification.userId) {
+                    return false;
+                }
 
-        // Remove duplicates based on ID
-        const uniqueNotifications = filteredNotifications.filter(
-            (notification, index, self) => index === self.findIndex((n) => n.id === notification.id),
-        );
+                if (notification.data && notification.data.forDriver === true && notification.userId !== userId) {
+                    return false;
+                }
 
-        // Sort by time first (most recent first), then by priority for ties
-        const sorted = uniqueNotifications.sort((a, b) => {
-            const aTime = new Date(a.createdAt).getTime();
-            const bTime = new Date(b.createdAt).getTime();
+                return true;
+            });
 
-            if (aTime !== bTime) {
-                return bTime - aTime;
-            }
+            const uniqueNotifications = filteredNotifications.filter(
+                (notification, index, self) => index === self.findIndex((n) => n.id === notification.id),
+            );
 
-            const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
-            const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
-            const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+            const sorted = uniqueNotifications.sort((a, b) => {
+                const aTime = new Date(a.createdAt).getTime();
+                const bTime = new Date(b.createdAt).getTime();
 
-            return bPriority - aPriority;
-        });
+                if (aTime !== bTime) {
+                    return bTime - aTime;
+                }
 
-        // Limit notifications in memory for production performance
-        return sorted.slice(0, PRODUCTION_CONFIG.MAX_NOTIFICATIONS);
-    }, []);
+                const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+                const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
+                const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+
+                return bPriority - aPriority;
+            });
+
+            return sorted.slice(0, PRODUCTION_CONFIG.MAX_NOTIFICATIONS);
+        },
+        [userId],
+    );
 
     // Handle notifications from SSE (main tab only)
     const handleSSENotification = useCallback(
         (notification: any) => {
-            // Filter out driver/admin notifications
             if (notification.data && notification.data.forDriver === true) {
-                return;
+                if (notification.userId !== userId) {
+                    return;
+                }
             }
+
             if (!notification.userId) {
                 return;
             }
 
-            // Check if already processed
+            if (notification.userId !== userId) {
+                return;
+            }
+
             if (processedNotificationIds.current.has(notification.id)) {
+                const notificationCreatedAt = new Date(notification.createdAt).getTime();
+                const hasExistingToast = toastNotifications.some((toast) => toast.notificationId === notification.id);
+                const hasAlreadyCreatedToast = toastCreatedNotificationIds.current.has(notification.id);
+                const notificationAge = Date.now() - notificationCreatedAt;
+                const isRecentEnough = notificationAge <= 3600000; // 1 hour
+
+                if (!hasExistingToast && !hasAlreadyCreatedToast && !notification.isRead && isRecentEnough) {
+                    const getToastType = (type: string): 'info' | 'error' | 'success' | 'warning' => {
+                        switch (type?.toLowerCase()) {
+                            case 'success':
+                                return 'success';
+                            case 'warning':
+                                return 'warning';
+                            case 'error':
+                                return 'error';
+                            default:
+                                return 'info';
+                        }
+                    };
+
+                    const toast: ToastNotification = {
+                        id: notification.id,
+                        notificationId: notification.id,
+                        title: notification.title || 'New Notification',
+                        message: notification.message || '',
+                        type: getToastType(notification.type),
+                        priority: notification.priority,
+                        duration: 5000,
+                    };
+
+                    markToastAsShown(notification.id);
+                    setToastNotifications((prev) => [toast, ...prev]);
+                }
+
                 return;
             }
             processedNotificationIds.current.add(notification.id);
 
-            // Update local state
             setNotifications((prev) => {
                 const exists = prev.some((n) => n.id === notification.id);
                 if (exists) {
@@ -918,12 +1049,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 return deduplicated;
             });
 
-            // Update unread count
-            if (!notification.isRead) {
-                setUnreadCount((prev) => prev + 1);
-            }
-
-            // Show toast for new notifications (directly add to local state for main tab)
             const notificationCreatedAt = new Date(notification.createdAt).getTime();
             const sessionStart = sessionStartTime.current;
 
@@ -951,10 +1076,10 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     duration: 5000,
                 };
 
+                markToastAsShown(notification.id);
                 setToastNotifications((prev) => [toast, ...prev]);
             }
 
-            // Broadcast to other tabs
             if (!isChannelClosed.current && broadcastChannel.current) {
                 try {
                     safeBroadcast({
@@ -962,7 +1087,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                         payload: { notification },
                     });
 
-                    // Also broadcast toast notification for other tabs
                     if (notificationCreatedAt >= sessionStart) {
                         safeBroadcast({
                             type: 'TOAST_NOTIFICATION',
@@ -973,23 +1097,48 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     // Ignore broadcast errors
                 }
             }
+
+            setTimeout(() => {
+                // Refresh without dependency
+                if (!carrierId || isLoadingRef.current) return;
+
+                isLoadingRef.current = true;
+                setLoading(true);
+
+                NotificationService.getNotifications({
+                    carrierId,
+                    userId,
+                    limit: PRODUCTION_CONFIG.MAX_NOTIFICATIONS,
+                    offset: 0,
+                })
+                    .then((response) => {
+                        const fetchedNotifications = response.data?.notifications || [];
+                        const fetchedUnreadCount = response.data?.unreadCount || 0;
+                        setUnreadCount(fetchedUnreadCount);
+                    })
+                    .catch(() => {
+                        // Ignore refresh errors
+                    })
+                    .finally(() => {
+                        setLoading(false);
+                        isLoadingRef.current = false;
+                    });
+            }, 1000);
         },
-        [deduplicateAndSort, safeBroadcast],
+        [deduplicateAndSort, safeBroadcast, userId, markToastAsShown, toastNotifications],
     );
 
     // Production-optimized shared state management
     const updateSharedState = useCallback(() => {
         try {
             const state = {
-                notifications: notifications.slice(0, PRODUCTION_CONFIG.MAX_NOTIFICATIONS), // Limit stored data
+                notifications: notifications.slice(0, PRODUCTION_CONFIG.MAX_NOTIFICATIONS),
                 unreadCount,
                 timestamp: Date.now(),
             };
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
         } catch (error) {
-            // Handle localStorage quota exceeded in production
             if (error instanceof Error && error.name === 'QuotaExceededError') {
-                // Clear old data and try again
                 localStorage.removeItem(STATE_KEY);
                 try {
                     const minimizedState = { notifications: [], unreadCount, timestamp: Date.now() };
@@ -1001,29 +1150,39 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         }
     }, [notifications, unreadCount]);
 
+    // Periodic unread count validation
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'production') return;
+
+        const validateInterval = setInterval(() => {
+            const calculatedUnreadCount = notifications.filter((n) => !n.isRead).length;
+
+            if (calculatedUnreadCount !== unreadCount) {
+                setUnreadCount(calculatedUnreadCount);
+            }
+        }, 30000);
+
+        return () => clearInterval(validateInterval);
+    }, [notifications, unreadCount]);
+
     // Toast cleanup for memory management
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return;
 
         const cleanupInterval = setInterval(() => {
-            setToastNotifications((prev) => {
-                // Keep only the most recent toasts (last 10)
-                return prev.slice(0, 10);
-            });
+            setToastNotifications((prev) => prev.slice(0, 10));
         }, PRODUCTION_CONFIG.TOAST_CLEANUP_INTERVAL);
 
         return () => clearInterval(cleanupInterval);
     }, []);
 
-    // Load shared state from localStorage - only notifications, not unread count
+    // Load shared state from localStorage
     const loadSharedState = useCallback(() => {
         try {
             const stateStr = localStorage.getItem(STATE_KEY);
             if (stateStr) {
                 const state = JSON.parse(stateStr);
                 setNotifications(state.notifications || []);
-                // Don't load unread count from localStorage - let API be the source of truth
-                // setUnreadCount(state.unreadCount || 0);
             }
         } catch (error) {
             // Ignore errors loading shared state
@@ -1035,18 +1194,18 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         loadSharedState();
     }, [loadSharedState]);
 
-    // Sync state changes to localStorage (debounced to prevent excessive writes)
+    // Sync state changes to localStorage (debounced)
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             updateSharedState();
-        }, 100); // Debounce by 100ms
+        }, 100);
 
         return () => clearTimeout(timeoutId);
     }, [updateSharedState]);
 
-    // API methods - Production optimized with race condition prevention
+    // API methods - Production optimized
     const refreshNotifications = useCallback(async () => {
-        if (!carrierId || isLoadingRef.current) return; // Use ref instead of loading state
+        if (!carrierId || isLoadingRef.current) return;
 
         isLoadingRef.current = true;
         setLoading(true);
@@ -1061,7 +1220,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             const fetchedNotifications = response.data?.notifications || [];
             const fetchedUnreadCount = response.data?.unreadCount || 0;
 
-            // Set the unread count from API response (don't calculate from notifications)
             setUnreadCount(fetchedUnreadCount);
 
             setNotifications((prev) => {
@@ -1084,7 +1242,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 return deduplicateAndSort(merged);
             });
 
-            // Direct broadcast without using safeBroadcast to avoid dependency
             if (!isChannelClosed.current && broadcastChannel.current) {
                 try {
                     broadcastChannel.current.postMessage({
@@ -1105,7 +1262,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             setLoading(false);
             isLoadingRef.current = false;
         }
-    }, [carrierId, userId, deduplicateAndSort]); // Removed loading and safeBroadcast dependencies
+    }, [carrierId, userId, deduplicateAndSort]);
 
     const markAsRead = useCallback(
         async (notificationIds: string[]) => {
@@ -1119,13 +1276,9 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                             : notif,
                     );
 
-                    // Calculate new unread count from updated notifications
                     const newUnreadCount = updatedNotifications.filter((n) => !n.isRead).length;
-
-                    // Update unread count immediately
                     setUnreadCount(newUnreadCount);
 
-                    // Direct broadcast without using safeBroadcast to avoid dependency
                     if (!isChannelClosed.current && broadcastChannel.current) {
                         try {
                             broadcastChannel.current.postMessage({
@@ -1148,7 +1301,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             }
         },
         [userId],
-    ); // Removed safeBroadcast, unreadCount, notifications dependencies
+    );
 
     const markAllAsRead = useCallback(async () => {
         if (!carrierId || !userId) return;
@@ -1163,7 +1316,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     readAt: new Date().toISOString(),
                 }));
 
-                // Direct broadcast without using safeBroadcast to avoid dependency
                 if (!isChannelClosed.current && broadcastChannel.current) {
                     try {
                         broadcastChannel.current.postMessage({
@@ -1186,7 +1338,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         } catch (error) {
             // Ignore mark all as read errors
         }
-    }, [carrierId, userId]); // Removed safeBroadcast dependency
+    }, [carrierId, userId]);
 
     const createNotification = useCallback(async (data: any) => {
         try {
@@ -1235,7 +1387,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                 broadcastChannel.current.close();
             }
 
-            // If we were the leader, clear the leadership
             if (isMainTab) {
                 const leaderInfo = localStorage.getItem(LEADER_KEY);
                 if (leaderInfo) {
@@ -1252,25 +1403,19 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
         };
     }, [isMainTab]);
 
-    // Load notifications on mount and when session changes (production-optimized and non-blocking)
+    // Load notifications on mount and when session changes
     useEffect(() => {
-        // Early return if missing required data, already loading, or not initialized
         if (!userId || !carrierId || isLoadingRef.current || !isMounted || !isInitialized) return;
 
-        // Don't load notifications if user has no enabled preferences
         if (hasEnabledNotifications === false) {
-            console.log('[Notifications] Skipping notification load - no enabled preferences');
             return;
         }
 
-        // Wait for preferences check to complete
         if (hasEnabledNotifications === null) {
-            console.log('[Notifications] Waiting for preferences check before loading notifications');
             return;
         }
 
         const loadNotifications = async () => {
-            // Double-check to prevent race conditions and ensure component is ready
             if (isLoadingRef.current || !isMounted || !isInitialized) return;
 
             isLoadingRef.current = true;
@@ -1284,22 +1429,17 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     offset: 0,
                 });
 
-                // Check if component is still mounted and initialized before updating state
                 if (!isMounted || !isInitialized) return;
 
                 const fetchedNotifications = response.data?.notifications || [];
                 const fetchedUnreadCount = response.data?.unreadCount || 0;
 
-                // Set the unread count from API response first - this is the authoritative source
                 setUnreadCount(fetchedUnreadCount);
 
                 setNotifications((prev) => {
-                    // Use only the fetched notifications as the authoritative source
-                    // Don't merge with previous state during initial load to avoid count issues
                     const isInitialLoad = prev.length === 0;
 
                     if (isInitialLoad) {
-                        // For initial load, use only API data
                         processedNotificationIds.current.clear();
                         fetchedNotifications.forEach((notification) => {
                             processedNotificationIds.current.add(notification.id);
@@ -1307,7 +1447,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
                         return fetchedNotifications.slice(0, PRODUCTION_CONFIG.MAX_NOTIFICATIONS);
                     } else {
-                        // For subsequent loads, merge carefully
                         const notificationMap = new Map();
                         fetchedNotifications.forEach((notification) => {
                             notificationMap.set(notification.id, notification);
@@ -1324,7 +1463,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                             processedNotificationIds.current.add(notification.id);
                         });
 
-                        // Inline deduplication and sorting with memory limit
                         const uniqueNotifications = merged.filter(
                             (notification, index, self) => index === self.findIndex((n) => n.id === notification.id),
                         );
@@ -1338,7 +1476,6 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
                     }
                 });
 
-                // Only broadcast if we have a valid broadcast channel and component is ready
                 if (!isChannelClosed.current && broadcastChannel.current && isMounted && isInitialized) {
                     try {
                         broadcastChannel.current.postMessage({
@@ -1363,15 +1500,13 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
             }
         };
 
-        // Only call immediately on mount if initialized, use shorter delay for faster loading
         const isInitialLoad = notifications.length === 0;
-        const delay = isInitialLoad ? 50 : PRODUCTION_CONFIG.DEBOUNCE_DELAY; // Very short delay for initial load
+        const delay = isInitialLoad ? 50 : PRODUCTION_CONFIG.DEBOUNCE_DELAY;
 
         const timeoutId = setTimeout(loadNotifications, delay);
 
         return () => {
             clearTimeout(timeoutId);
-            // Don't reset isLoadingRef here as it might be in progress
         };
     }, [userId, carrierId, isMounted, isInitialized, hasEnabledNotifications]);
 

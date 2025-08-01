@@ -1,16 +1,19 @@
 import { NextRequest } from 'next/server';
 import { auth } from '../../../../auth';
-import prisma, { ensurePrismaConnection } from '../../../../lib/prisma';
+import prisma, { executeSSEQuery } from '../../../../lib/prisma';
 
-// Vercel-optimized configuration for SSE
+// Vercel-optimized configuration for SSE - Long-lived connections while tab is active
 const VERCEL_CONFIG = {
-    MAX_DURATION: 25, // 25 seconds max (5s before Vercel timeout)
+    MAX_DURATION: 28, // 28 seconds max (2s before Vercel timeout)
     HEARTBEAT_INTERVAL: 8, // 8 seconds heartbeat
-    DB_QUERY_TIMEOUT: 3, // 3 seconds DB timeout
-    NOTIFICATION_CHECK_INTERVAL: 5, // 5 seconds check interval
+    DB_QUERY_TIMEOUT: 1.5, // 1.5 second DB timeout (balanced)
+    NOTIFICATION_CHECK_INTERVAL: 6, // 6 seconds check interval (more frequent)
     IMMEDIATE_RESPONSE_TIMEOUT: 100, // Send response within 100ms
-    MAX_NOTIFICATIONS_PER_BATCH: 3, // Limit batch size
+    MAX_NOTIFICATIONS_PER_BATCH: 3, // Up to 3 notifications per batch
     CONNECTION_CLEANUP_GRACE: 2, // 2 seconds grace period before cleanup
+    MAX_DB_FAILURES: 3, // Max consecutive DB failures before disabling queries
+    EARLY_CLOSE_WARNING: 23, // Send close warning at 23 seconds
+    AUTO_RECONNECT_DELAY: 1000, // 1 second delay before auto-reconnect
 };
 
 // Force dynamic rendering for SSE
@@ -48,37 +51,42 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Check if user has any enabled notification preferences
+        // Check if user has any enabled notification preferences (with fast timeout)
         try {
-            const preferences = await prisma.notificationPreference.findMany({
-                where: {
-                    userId: userId,
-                    carrierId: carrierId,
-                },
-                select: {
-                    enabled: true,
-                    emailEnabled: true,
-                    smsEnabled: true,
-                    pushEnabled: true,
-                },
-            });
-
-            const hasAnyEnabled = preferences.some(
-                (pref) => pref.enabled || pref.emailEnabled || pref.smsEnabled || pref.pushEnabled,
+            const preferences = await executeSSEQuery(
+                () =>
+                    prisma.notificationPreference.findMany({
+                        where: {
+                            userId: userId,
+                            carrierId: carrierId,
+                        },
+                        select: {
+                            enabled: true,
+                            emailEnabled: true,
+                            smsEnabled: true,
+                            pushEnabled: true,
+                        },
+                    }),
+                1000, // 1 second timeout
             );
 
-            if (!hasAnyEnabled) {
-                console.log(`[SSE] User ${userId} has no enabled notifications - closing connection`);
-                return new Response('No notification preferences enabled', {
-                    status: 204, // No content
-                    headers: { 'Content-Type': 'text/plain' },
-                });
-            }
+            if (preferences) {
+                const hasAnyEnabled = preferences.some(
+                    (pref) => pref.enabled || pref.emailEnabled || pref.smsEnabled || pref.pushEnabled,
+                );
 
-            console.log(`[SSE] User ${userId} has enabled notifications - proceeding with connection`);
+                if (!hasAnyEnabled) {
+                    return new Response('No notification preferences enabled', {
+                        status: 204, // No content
+                        headers: { 'Content-Type': 'text/plain' },
+                    });
+                }
+            } else {
+                console.warn('[SSE] Could not check preferences (timeout), proceeding anyway');
+            }
         } catch (error) {
             console.warn('[SSE] Error checking preferences, proceeding anyway:', error);
-            // Continue with connection if preferences check fails
+            // Continue with connection if preferences check fails or times out
         }
 
         // Create ReadableStream with immediate response
@@ -89,6 +97,8 @@ export async function GET(request: NextRequest) {
                 let notificationInterval: NodeJS.Timeout | null = null;
                 let cleanupTimeout: NodeJS.Timeout | null = null;
                 let messageCount = 0;
+                let dbFailureCount = 0; // Track consecutive DB failures
+                let dbQueriesDisabled = false; // Circuit breaker for DB queries
 
                 // Fast message sender with error handling
                 const sendMessage = (data: any) => {
@@ -120,48 +130,62 @@ export async function GET(request: NextRequest) {
                     }
                 };
 
-                // Lightweight heartbeat
+                // Enhanced heartbeat with connection status
                 const sendHeartbeat = () => {
                     sendMessage({
                         type: 'heartbeat',
                         timestamp: new Date().toISOString(),
+                        connectionDuration: Date.now() - connectionStart,
+                        dbStatus: dbQueriesDisabled ? 'disabled' : 'active',
+                        messageCount: messageCount,
                     });
                 };
 
-                // Optimized notification check with short timeout
+                // Optimized notification check with circuit breaker
                 const checkNotifications = async () => {
-                    if (!isActive) return;
+                    if (!isActive || dbQueriesDisabled) return;
 
                     try {
-                        // Quick database query with timeout
-                        const queryPromise = prisma.notification.findMany({
-                            where: {
-                                carrierId: carrierId,
-                                createdAt: {
-                                    gte: new Date(Date.now() - 60 * 1000), // Last 1 minute only
-                                },
-                                isRead: false,
-                            },
-                            orderBy: { createdAt: 'desc' },
-                            take: VERCEL_CONFIG.MAX_NOTIFICATIONS_PER_BATCH,
-                            select: {
-                                id: true,
-                                type: true,
-                                title: true,
-                                message: true,
-                                data: true,
-                                isRead: true,
-                                createdAt: true,
-                                carrierId: true,
-                                userId: true,
-                            },
-                        });
+                        // Use the specialized SSE query function with automatic timeout
+                        const notifications = await executeSSEQuery(
+                            () =>
+                                prisma.notification.findMany({
+                                    where: {
+                                        carrierId: carrierId,
+                                        createdAt: {
+                                            gte: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes (increased from 30 seconds)
+                                        },
+                                        isRead: false,
+                                        // Add explicit userId filter for better query performance
+                                        OR: [
+                                            { userId: userId },
+                                            { userId: null }, // Include carrier-wide notifications
+                                        ],
+                                    },
+                                    orderBy: { createdAt: 'desc' },
+                                    take: VERCEL_CONFIG.MAX_NOTIFICATIONS_PER_BATCH,
+                                    select: {
+                                        id: true,
+                                        type: true,
+                                        title: true,
+                                        message: true,
+                                        data: true,
+                                        isRead: true,
+                                        createdAt: true,
+                                        carrierId: true,
+                                        userId: true,
+                                    },
+                                }),
+                            VERCEL_CONFIG.DB_QUERY_TIMEOUT * 1000,
+                        );
 
-                        const timeoutPromise = new Promise<never>((_, reject) => {
-                            setTimeout(() => reject(new Error('Query timeout')), VERCEL_CONFIG.DB_QUERY_TIMEOUT * 1000);
-                        });
+                        if (notifications === null) {
+                            // Query failed/timed out
+                            throw new Error('Query timeout or failure');
+                        }
 
-                        const notifications = await Promise.race([queryPromise, timeoutPromise]);
+                        // Reset failure count on successful query
+                        dbFailureCount = 0;
 
                         if (notifications.length > 0) {
                             for (const notification of notifications) {
@@ -175,8 +199,20 @@ export async function GET(request: NextRequest) {
                             }
                         }
                     } catch (error) {
-                        console.warn('[SSE] Query error:', error);
-                        // Continue operation even with DB errors
+                        dbFailureCount++;
+                        console.warn(`[SSE] Query error (${dbFailureCount}/${VERCEL_CONFIG.MAX_DB_FAILURES}):`, error);
+
+                        // Implement circuit breaker - disable DB queries after too many failures
+                        if (dbFailureCount >= VERCEL_CONFIG.MAX_DB_FAILURES) {
+                            console.warn('[SSE] Too many DB failures, disabling further queries for this connection');
+                            dbQueriesDisabled = true;
+
+                            // Send error message to client
+                            sendMessage({
+                                type: 'error',
+                                message: 'Database connection issues detected, switching to heartbeat-only mode',
+                            });
+                        }
                     }
                 };
 
@@ -196,13 +232,28 @@ export async function GET(request: NextRequest) {
                     VERCEL_CONFIG.NOTIFICATION_CHECK_INTERVAL * 1000,
                 );
 
-                // Auto-cleanup before Vercel timeout
+                // Early warning system at 15 seconds
+                const earlyWarningTimeout = setTimeout(() => {
+                    sendMessage({
+                        type: 'early_warning',
+                        message: 'Connection will close soon, switching to polling recommended',
+                        remainingTime: VERCEL_CONFIG.MAX_DURATION - VERCEL_CONFIG.EARLY_CLOSE_WARNING,
+                    });
+                }, VERCEL_CONFIG.EARLY_CLOSE_WARNING * 1000);
+
+                // Auto-cleanup before Vercel timeout (more aggressive)
                 cleanupTimeout = setTimeout(() => {
                     sendMessage({
                         type: 'timeout_warning',
-                        message: 'Connection will close due to function timeout',
+                        message: 'Connection will close due to function timeout, will auto-reconnect',
+                        shouldReconnect: true,
+                        reconnectDelay: VERCEL_CONFIG.AUTO_RECONNECT_DELAY,
                     });
-                    setTimeout(cleanup, VERCEL_CONFIG.CONNECTION_CLEANUP_GRACE * 1000);
+                    setTimeout(() => {
+                        cleanup();
+                        // Clear early warning timeout if cleanup happens first
+                        clearTimeout(earlyWarningTimeout);
+                    }, VERCEL_CONFIG.CONNECTION_CLEANUP_GRACE * 1000);
                 }, (VERCEL_CONFIG.MAX_DURATION - VERCEL_CONFIG.CONNECTION_CLEANUP_GRACE) * 1000);
 
                 // Handle client disconnect

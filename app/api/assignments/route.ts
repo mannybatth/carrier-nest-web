@@ -455,6 +455,9 @@ export const PUT = auth(async (req: NextAuthRequest) => {
         // Send notifications for assignment changes
         try {
             if (routeLeg && routeLeg.driverAssignments) {
+                // Track notifications sent to avoid duplicates within this operation
+                const sentNotifications = new Set<string>();
+
                 // Get the drivers that were newly assigned
                 const newlyAssignedDrivers = allRelevantDrivers.filter((driver) =>
                     newAssignedDriverIds.includes(driver.id),
@@ -465,33 +468,42 @@ export const PUT = auth(async (req: NextAuthRequest) => {
                     const assignment = routeLeg.driverAssignments.find((assign) => assign.driver.id === driver.id);
 
                     if (assignment) {
-                        await AssignmentNotificationHelper.notifyAssignmentUpdated({
-                            assignmentId: assignment.id,
-                            routeLegId: routeLeg.id,
-                            loadId: loadId,
-                            carrierId: load.carrierId,
-                            driverId: driver.id,
-                            driverName: driver.name,
-                            loadNum: `Load-${loadId}`, // You might want to use a proper load number field
-                            updateType: 'assigned',
-                        });
+                        const notificationKey = `assigned-${assignment.id}`;
+                        if (!sentNotifications.has(notificationKey)) {
+                            await AssignmentNotificationHelper.notifyAssignmentUpdated({
+                                assignmentId: assignment.id,
+                                routeLegId: routeLeg.id,
+                                loadId: loadId,
+                                carrierId: load.carrierId,
+                                driverId: driver.id,
+                                driverName: driver.name,
+                                loadNum: `Load-${loadId}`, // You might want to use a proper load number field
+                                updateType: 'assigned',
+                            });
+                            sentNotifications.add(notificationKey);
+                        }
                     }
                 }
 
                 // Send notifications for assignment updates (schedule, instructions, etc.)
+                // Only for existing assignments that haven't been notified about yet
                 for (const assignment of routeLeg.driverAssignments) {
                     if (currentDriverIds.includes(assignment.driver.id)) {
                         // This is an existing assignment that was updated
-                        await AssignmentNotificationHelper.notifyAssignmentUpdated({
-                            assignmentId: assignment.id,
-                            routeLegId: routeLeg.id,
-                            loadId: loadId,
-                            carrierId: load.carrierId,
-                            driverId: assignment.driver.id,
-                            driverName: assignment.driver.name,
-                            loadNum: `Load-${loadId}`, // You might want to use a proper load number field
-                            updateType: 'schedule_updated',
-                        });
+                        const notificationKey = `schedule_updated-${assignment.id}`;
+                        if (!sentNotifications.has(notificationKey)) {
+                            await AssignmentNotificationHelper.notifyAssignmentUpdated({
+                                assignmentId: assignment.id,
+                                routeLegId: routeLeg.id,
+                                loadId: loadId,
+                                carrierId: load.carrierId,
+                                driverId: assignment.driver.id,
+                                driverName: assignment.driver.name,
+                                loadNum: `Load-${loadId}`, // You might want to use a proper load number field
+                                updateType: 'schedule_updated',
+                            });
+                            sentNotifications.add(notificationKey);
+                        }
                     }
                 }
             }

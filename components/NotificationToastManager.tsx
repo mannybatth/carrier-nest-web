@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
 import ToastContainer from './ToastContainer';
 
