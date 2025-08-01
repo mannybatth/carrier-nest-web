@@ -55,7 +55,9 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                         leaveFrom="translate-x-0"
                         leaveTo="-translate-x-full"
                     >
-                        <div className="relative flex flex-col flex-1 w-full max-w-xs bg-white shadow-xl">
+                        <div className="relative flex flex-col flex-1 w-full max-w-xs bg-white/95 backdrop-blur-md shadow-xl shadow-slate-900/10 border-r border-white/20">
+                            {/* Subtle liquid glass overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-slate-50/20 pointer-events-none" />
                             <Transition.Child
                                 as={Fragment}
                                 enter="ease-in-out duration-300"
@@ -66,10 +68,10 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                 leaveTo="opacity-0"
                             >
                                 {/* Close button for smaller screens */}
-                                <div className="absolute top-0 right-0 pt-2 -mr-12">
+                                <div className="absolute top-0 right-0 pt-2 -mr-12 z-20">
                                     <button
                                         type="button"
-                                        className="flex items-center justify-center w-10 h-10 ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                                        className="flex items-center justify-center w-10 h-10 ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white bg-black/20 backdrop-blur-sm"
                                         onClick={() => setSidebarOpen(false)}
                                     >
                                         <span className="sr-only">Close sidebar</span>
@@ -77,13 +79,15 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                                     </button>
                                 </div>
                             </Transition.Child>
-                            <div className="flex-1 h-0 pt-0 pb-4 overflow-y-auto">
+                            <div className="flex-1 h-0 pt-0 pb-4 overflow-y-auto relative z-10">
                                 <SideBarFooter collapsed={false} onToggle={() => setSidebarOpen(false)} />
                                 <SideBarSearch collapsed={false} />
                                 <CreateNewButton className="mx-4 mt-4" collapsed={false} />
                                 <Navigation collapsed={false} />
                             </div>
-                            <SideBarAccount collapsed={false} />
+                            <div className="relative z-10">
+                                <SideBarAccount collapsed={false} />
+                            </div>
                         </div>
                     </Transition.Child>
                     <div className="flex-shrink-0 w-14">{/* Force sidebar to shrink to fit close icon */}</div>
@@ -96,8 +100,12 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     sidebarCollapsed ? 'md:w-16' : 'md:w-64'
                 }`}
             >
-                <div className="flex flex-col flex-1 min-h-0 border-r  border-gray-200 bg-gradient-to-b from-slate-50 to-gray-100 shadow-none">
-                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-visible">
+                {/* Subtle liquid glass sidebar */}
+                <div className="flex flex-col flex-1 min-h-0 bg-white/95 backdrop-blur-md border-r border-white/20 shadow-lg shadow-slate-900/8">
+                    {/* Subtle glass overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-slate-50/20 pointer-events-none" />
+
+                    <div className="flex flex-col flex-1 pt-0 pb-4 overflow-visible relative z-10">
                         <SideBarFooter collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
                         <SideBarSearch collapsed={sidebarCollapsed} />
                         <CreateNewButton
@@ -108,7 +116,9 @@ const Layout: React.FC<Props> = ({ children, className, smHeaderComponent }) => 
                     </div>
 
                     {/* Account section positioned at bottom */}
-                    <SideBarAccount collapsed={sidebarCollapsed} />
+                    <div className="relative z-10">
+                        <SideBarAccount collapsed={sidebarCollapsed} />
+                    </div>
                 </div>
             </div>
 
