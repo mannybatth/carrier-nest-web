@@ -590,9 +590,13 @@ model Notification {
     user         User?                  @relation(fields: [userId], references: [id])
     deliveries   NotificationDelivery[]
 
+    // Performance indexes for notification system
     @@index([carrierId, createdAt(sort: Desc)])
     @@index([userId, isRead])
     @@index([type, carrierId])
+    @@index([type, assignmentId, userId, createdAt(sort: Desc)], name: "notification_deduplication_idx")
+    @@index([type, carrierId, createdAt(sort: Desc)], name: "notification_type_carrier_idx")
+    @@index([userId, isRead, createdAt(sort: Desc)], name: "notification_user_read_idx")
 }
 
 model NotificationPreference {
