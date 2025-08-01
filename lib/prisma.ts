@@ -20,6 +20,8 @@ const prismaConfig = {
             url: process.env.POSTGRES_PRISMA_URL,
         },
     },
+    // Add error format for better debugging in production
+    errorFormat: 'minimal' as const,
 };
 
 if (process.env.NODE_ENV === 'production') {
@@ -80,6 +82,22 @@ export const ensurePrismaConnection = async (): Promise<boolean> => {
     } catch (error) {
         console.error('Failed to ensure Prisma connection:', error);
         return false;
+    }
+};
+
+// Specialized function for SSE endpoints with aggressive timeouts
+export const executeSSEQuery = async <T>(queryFn: () => Promise<T>, timeoutMs = 1500): Promise<T | null> => {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('SSE query timeout')), timeoutMs);
+        });
+
+        const result = await Promise.race([queryFn(), timeoutPromise]);
+        return result;
+    } catch (error) {
+        console.warn('[SSE] Database query failed:', error);
+        return null;
     }
 };
 

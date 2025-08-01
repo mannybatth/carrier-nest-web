@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { BellIcon } from '@heroicons/react/24/outline';
+import { BellIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
 import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
 import Link from 'next/link';
@@ -176,28 +176,37 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                             {/* Content */}
                             <div className="relative">
                                 {/* Header row */}
-                                <div className="flex items-center justify-between gap-4 mb-3">
+                                <div className="flex items-center justify-between gap-3 mb-3">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500/15 to-purple-600/15 backdrop-blur-xl rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-blue-200/20 border border-white/40">
                                             <BellIconComponent className="w-5 h-5 text-blue-600 drop-shadow-sm" />
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900 tracking-tight leading-tight">
-                                                New Notifications
+                                                Notifications
                                             </h3>
                                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                                                Unread updates and alerts
+                                                Updates and alerts
                                             </p>
                                         </div>
                                     </div>
-                                    {unreadCount > 0 && (
-                                        <button
-                                            onClick={handleMarkAllAsRead}
-                                            className="px-4 py-2 text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0 shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
-                                        >
-                                            Clear all
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {/* Settings Gear Button */}
+                                        <Link href="/settings/notifications">
+                                            <button className="w-8 h-8 bg-gray-50/80 hover:bg-gray-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center shadow-sm ring-1 ring-gray-200/25 border border-white/60 backdrop-blur-sm group">
+                                                <Cog6ToothIcon className="w-4 h-4 text-gray-600 group-hover:text-gray-700 transition-colors duration-200" />
+                                            </button>
+                                        </Link>
+                                        {/* Mark All Read Button */}
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={handleMarkAllAsRead}
+                                                className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0 shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Status indicator row */}
@@ -348,19 +357,19 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                         </div>
 
                         {/* Ultra-Premium Footer - Always show */}
-                        <div className="relative px-6 py-4 border-t border-gray-100/60">
+                        <div className="relative px-4 py-3 border-t border-gray-100/60">
                             {/* Advanced gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-br from-gray-50/70 via-white/50 to-blue-50/30" />
 
                             <div className="relative">
                                 <Link
                                     href="/notifications"
-                                    className="group flex items-center justify-center gap-3 w-full py-3.5 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 hover:from-blue-100/70 hover:to-indigo-100/70 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
+                                    className="group flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 hover:from-blue-100/70 hover:to-indigo-100/70 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
                                 >
-                                    <span>View all notifications</span>
+                                    <span>View All</span>
                                     {unreadCount > unreadNotifications.length && (
-                                        <span className="px-3 py-1.5 text-xs bg-gradient-to-r from-blue-100/80 to-indigo-100/80 text-blue-700 rounded-xl font-semibold shadow-sm ring-1 ring-blue-200/30 border border-white/50">
-                                            +{unreadCount - unreadNotifications.length} more unread
+                                        <span className="px-2 py-1 text-xs bg-gradient-to-r from-blue-100/80 to-indigo-100/80 text-blue-700 rounded-lg font-semibold shadow-sm ring-1 ring-blue-200/30 border border-white/50">
+                                            +{unreadCount - unreadNotifications.length}
                                         </span>
                                     )}
                                     <svg

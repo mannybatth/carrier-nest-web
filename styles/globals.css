@@ -1,31 +1,122 @@
 @tailwind base;
 
-/* Apple Liquid Glass Animations */
-@keyframes shimmer {
+/* Apple-inspired smooth animations for toasts */
+@keyframes gentle-slide-in {
   0% {
-    transform: translateX(-100%);
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
   }
   100% {
-    transform: translateX(100%);
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
+@keyframes gentle-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
-  50% {
-    transform: translateY(-2px) rotate(1deg);
+  100% {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
   }
 }
 
-@keyframes glow-pulse {
+@keyframes subtle-float {
   0%, 100% {
-    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+    transform: translateY(0px);
   }
   50% {
-    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+    transform: translateY(-1px);
   }
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.01);
+    opacity: 0.95;
+  }
+}
+
+/* Liquid Glass Animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes liquid-shine {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes liquid-bounce {
+  0% {
+    transform: scale(0.9) translateY(10px);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05) translateY(-5px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Text truncation utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Apple-inspired animation classes */
+.animate-gentle-slide-in {
+  animation: gentle-slide-in 0.5s ease-out;
+}
+
+.animate-gentle-slide-out {
+  animation: gentle-slide-out 0.3s ease-in;
+}
+
+.animate-subtle-float {
+  animation: subtle-float 4s ease-in-out infinite;
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2s ease-in-out infinite;
 }
 
 .animate-shimmer {
@@ -38,6 +129,14 @@
 
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-urgent-pulse {
+  animation: urgent-pulse 2s ease-in-out infinite;
+}
+
+.animate-liquid-bounce {
+  animation: liquid-bounce 1s ease-out;
 }
 
 body {
@@ -389,4 +488,228 @@ input[type="date"]:valid[value]:not([value=""])::-webkit-datetime-edit-year-fiel
     textarea {
         font-size: 16px !important;
     }
+}
+
+/* Apple Neomorphism Design for Toast Notifications */
+@keyframes neumorphic-pulse {
+  0%, 100% {
+    box-shadow:
+      8px 8px 16px rgba(163, 177, 198, 0.6),
+      -8px -8px 16px rgba(255, 255, 255, 0.8),
+      inset 0 0 0 transparent,
+      inset 0 0 0 transparent;
+  }
+  50% {
+    box-shadow:
+      12px 12px 24px rgba(163, 177, 198, 0.8),
+      -12px -12px 24px rgba(255, 255, 255, 0.9),
+      inset 2px 2px 4px rgba(163, 177, 198, 0.3),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.7);
+  }
+}
+
+@keyframes neumorphic-hover {
+  0% {
+    transform: translateY(0px) scale(1);
+    box-shadow:
+      8px 8px 16px rgba(163, 177, 198, 0.6),
+      -8px -8px 16px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+      12px 12px 24px rgba(163, 177, 198, 0.7),
+      -12px -12px 24px rgba(255, 255, 255, 0.9),
+      0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes neumorphic-press {
+  0% {
+    transform: scale(1);
+    box-shadow:
+      8px 8px 16px rgba(163, 177, 198, 0.6),
+      -8px -8px 16px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    transform: scale(0.98);
+    box-shadow:
+      inset 4px 4px 8px rgba(163, 177, 198, 0.6),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.8),
+      2px 2px 4px rgba(163, 177, 198, 0.3);
+  }
+}
+
+@keyframes neumorphic-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(100%) translateY(-10px) scale(0.95);
+    box-shadow:
+      4px 4px 8px rgba(163, 177, 198, 0.4),
+      -4px -4px 8px rgba(255, 255, 255, 0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+    box-shadow:
+      8px 8px 16px rgba(163, 177, 198, 0.6),
+      -8px -8px 16px rgba(255, 255, 255, 0.8);
+  }
+}
+
+@keyframes neumorphic-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+    box-shadow:
+      8px 8px 16px rgba(163, 177, 198, 0.6),
+      -8px -8px 16px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%) translateY(-10px) scale(0.95);
+    box-shadow:
+      2px 2px 4px rgba(163, 177, 198, 0.3),
+      -2px -2px 4px rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Apple Neomorphism utility classes */
+.neumorphic-base {
+  background: linear-gradient(145deg, #f0f0f3, #cacace);
+  border-radius: 20px;
+  box-shadow:
+    8px 8px 16px rgba(163, 177, 198, 0.6),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.neumorphic-inset {
+  background: linear-gradient(145deg, #cacace, #f0f0f3);
+  box-shadow:
+    inset 4px 4px 8px rgba(163, 177, 198, 0.6),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+}
+
+.neumorphic-raised {
+  background: linear-gradient(145deg, #f0f0f3, #cacace);
+  box-shadow:
+    6px 6px 12px rgba(163, 177, 198, 0.6),
+    -6px -6px 12px rgba(255, 255, 255, 0.8);
+}
+
+.neumorphic-floating {
+  background: linear-gradient(145deg, #f8f8fb, #e1e1e6);
+  box-shadow:
+    12px 12px 24px rgba(163, 177, 198, 0.7),
+    -12px -12px 24px rgba(255, 255, 255, 0.9),
+    0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Apple-specific color variations */
+.neumorphic-blue {
+  background: linear-gradient(145deg, #e3f2fd, #bbdefb);
+  box-shadow:
+    8px 8px 16px rgba(144, 202, 249, 0.4),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
+
+.neumorphic-green {
+  background: linear-gradient(145deg, #e8f5e8, #c8e6c9);
+  box-shadow:
+    8px 8px 16px rgba(165, 214, 167, 0.4),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
+
+.neumorphic-orange {
+  background: linear-gradient(145deg, #fff3e0, #ffe0b2);
+  box-shadow:
+    8px 8px 16px rgba(255, 204, 128, 0.4),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
+
+.neumorphic-red {
+  background: linear-gradient(145deg, #ffebee, #ffcdd2);
+  box-shadow:
+    8px 8px 16px rgba(239, 154, 154, 0.4),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
+
+/* Hover and interaction states */
+.neumorphic-hover {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.neumorphic-hover:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow:
+    12px 12px 24px rgba(163, 177, 198, 0.7),
+    -12px -12px 24px rgba(255, 255, 255, 0.9),
+    0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.neumorphic-press:active {
+  transform: scale(0.98);
+  box-shadow:
+    inset 4px 4px 8px rgba(163, 177, 198, 0.6),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+}
+
+/* Animation classes */
+.animate-neumorphic-pulse {
+  animation: neumorphic-pulse 2s ease-in-out infinite;
+}
+
+.animate-neumorphic-hover {
+  animation: neumorphic-hover 0.3s ease-out forwards;
+}
+
+.animate-neumorphic-press {
+  animation: neumorphic-press 0.15s ease-in-out;
+}
+
+.animate-neumorphic-slide-in {
+  animation: neumorphic-slide-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-neumorphic-slide-out {
+  animation: neumorphic-slide-out 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+}
+
+/* Liquid glass shimmer effect for enhanced toast design */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* Stacked toast animations */
+@keyframes stack-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(100%) translateY(-20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+}
+
+@keyframes stack-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%) translateY(-20px) scale(0.9);
+  }
+}
+
+/* Smooth transitions for stacked toasts */
+.toast-stack-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
