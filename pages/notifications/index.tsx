@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useGlobalNotifications } from '../../contexts/GlobalNotificationContext';
+import { NotificationService } from '../../lib/services/NotificationServiceClient';
 import Layout from '../../components/layout/Layout';
 import NotificationsSkeleton from '../../components/skeletons/NotificationsSkeleton';
 import {
@@ -70,48 +71,152 @@ function getNotificationTypeDescription(type: string): string {
 
 const NotificationsPage: React.FC = () => {
     const { data: session } = useSession();
-    const { notifications, unreadCount, connected, loading, markAsRead, markAllAsRead, refreshNotifications } =
-        useGlobalNotifications();
+    const { unreadCount, connected, loading: contextLoading, markAsRead, markAllAsRead } = useGlobalNotifications();
 
     const [filter, setFilter] = useState<'all' | 'unread'>('unread');
     const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [animatingOut, setAnimatingOut] = useState<string[]>([]); // Track notifications animating out
 
-    const filteredNotifications = filter === 'unread' ? notifications.filter((n) => !n.isRead) : notifications;
+    const carrierId = session?.user?.defaultCarrierId;
+    const userId = session?.user?.id;
 
-    // Pagination calculations
-    const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
-    const startIndex = (currentPage - 1) * NOTIFICATIONS_PER_PAGE;
-    const endIndex = startIndex + NOTIFICATIONS_PER_PAGE;
-    const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
+    // Calculate pagination values
+    const totalPages = Math.ceil(totalCount / NOTIFICATIONS_PER_PAGE);
+    const offset = (currentPage - 1) * NOTIFICATIONS_PER_PAGE;
+
+    // Fetch notifications with pagination
+    const fetchNotifications = async (page = 1, filterType: 'all' | 'unread' = filter) => {
+        if (!carrierId) return;
+
+        setLoading(true);
+        try {
+            const offset = (page - 1) * NOTIFICATIONS_PER_PAGE;
+            const response = await NotificationService.getNotifications({
+                carrierId,
+                userId,
+                limit: NOTIFICATIONS_PER_PAGE,
+                offset,
+                unreadOnly: filterType === 'unread',
+            });
+
+            if (response.code === 200 && response.data) {
+                setNotifications(response.data.notifications || []);
+                setTotalCount(response.data.total || 0);
+                setHasMore(response.data.hasMore || false);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+            setNotifications([]);
+            setTotalCount(0);
+            setHasMore(false);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial fetch when component mounts or dependencies change
+    useEffect(() => {
+        if (carrierId && userId) {
+            fetchNotifications(1, filter);
+            setCurrentPage(1);
+        }
+    }, [carrierId, userId, filter]);
 
     const handleSelectNotification = (id: string) => {
         setSelectedNotifications((prev) => (prev.includes(id) ? prev.filter((nId) => nId !== id) : [...prev, id]));
     };
 
     const handleSelectAll = () => {
-        if (selectedNotifications.length === paginatedNotifications.length) {
+        if (selectedNotifications.length === notifications.length) {
             setSelectedNotifications([]);
         } else {
-            setSelectedNotifications(paginatedNotifications.map((n) => n.id));
+            setSelectedNotifications(notifications.map((n) => n.id));
         }
     };
 
     const handleMarkSelectedAsRead = async () => {
         if (selectedNotifications.length > 0) {
-            await markAsRead(selectedNotifications);
-            setSelectedNotifications([]);
+            // If on unread tab, animate out selected notifications
+            if (filter === 'unread') {
+                setAnimatingOut((prev) => [...prev, ...selectedNotifications]);
+
+                setTimeout(async () => {
+                    await markAsRead(selectedNotifications);
+
+                    // Remove from notifications list after animation
+                    setTimeout(() => {
+                        setNotifications((prev) => prev.filter((n) => !selectedNotifications.includes(n.id)));
+                        setAnimatingOut((prev) => prev.filter((id) => !selectedNotifications.includes(id)));
+                        setSelectedNotifications([]);
+                    }, 300);
+                }, 100);
+            } else {
+                await markAsRead(selectedNotifications);
+                setSelectedNotifications([]);
+                // Refresh the current page to reflect changes
+                await fetchNotifications(currentPage, filter);
+            }
         }
     };
 
-    const handlePageChange = (page: number) => {
+    const handleMarkAllAsRead = async () => {
+        if (filter === 'unread' && notifications.length > 0) {
+            // Animate out all unread notifications
+            const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+            setAnimatingOut(unreadIds);
+
+            setTimeout(async () => {
+                await markAllAsRead();
+
+                // Remove all unread notifications after animation
+                setTimeout(() => {
+                    setNotifications((prev) => prev.filter((n) => n.isRead));
+                    setAnimatingOut([]);
+                }, 300);
+            }, 100);
+        } else {
+            await markAllAsRead();
+            // Refresh the current page to reflect changes
+            await fetchNotifications(currentPage, filter);
+        }
+    };
+
+    const handlePageChange = async (page: number) => {
         setCurrentPage(page);
         setSelectedNotifications([]); // Clear selections when changing pages
+        await fetchNotifications(page, filter);
     };
 
     const handleNotificationClick = async (notification: any) => {
         if (!notification.isRead) {
-            await markAsRead([notification.id]);
+            // If on unread tab, add to animating out list first
+            if (filter === 'unread') {
+                setAnimatingOut((prev) => [...prev, notification.id]);
+
+                // Wait for animation to start, then mark as read
+                setTimeout(async () => {
+                    await markAsRead([notification.id]);
+
+                    // Remove from notifications list after animation completes
+                    setTimeout(() => {
+                        setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+                        setAnimatingOut((prev) => prev.filter((id) => id !== notification.id));
+                    }, 300); // Match animation duration
+                }, 100);
+            } else {
+                // If on all tab, just mark as read and update locally
+                await markAsRead([notification.id]);
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n.id === notification.id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n,
+                    ),
+                );
+            }
         }
     };
 
@@ -127,9 +232,9 @@ const NotificationsPage: React.FC = () => {
     };
 
     useEffect(() => {
-        refreshNotifications();
-        setCurrentPage(1); // Reset to first page when notifications refresh
-    }, [filter]);
+        // This effect was previously for refreshing notifications when filter changed
+        // Now it's handled in the main useEffect above
+    }, []);
 
     const smHeaderComponent = (
         <div className="flex items-center justify-between w-full">
@@ -148,55 +253,85 @@ const NotificationsPage: React.FC = () => {
     return (
         <Layout smHeaderComponent={smHeaderComponent}>
             <div className="flex flex-col h-full bg-gray-50/50 -mt-1 md:mt-0">
-                {/* Apple-style Header - Hidden on mobile */}
-                <div className="hidden md:block bg-white/80 backdrop-blur-xl border-b border-gray-200/60 sticky top-0 z-10">
-                    <div className="px-6 py-5">
+                {/* Clean Apple-style Header */}
+                <div
+                    className="hidden md:block sticky top-0 z-10"
+                    style={{
+                        background: `rgba(255, 255, 255, 0.8)`,
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+                    }}
+                >
+                    <div className="px-6 py-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center">
+                                <div className="flex items-center gap-4">
+                                    {/* Simplified icon container */}
+                                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center">
                                         <BellSolidIcon className="w-5 h-5 text-blue-600" />
                                     </div>
                                     <div>
-                                        <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+                                        <h1
+                                            className="text-2xl font-semibold text-gray-900"
+                                            style={{
+                                                letterSpacing: '-0.025em',
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                                            }}
+                                        >
                                             Notifications
                                         </h1>
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                            Real-time updates about assignments, routes, and system activities
+                                        <p
+                                            className="text-sm text-gray-500 mt-1"
+                                            style={{
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                            }}
+                                        >
+                                            Real-time updates about assignments and routes
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {/* Apple-style Filter Tabs */}
-                                <div className="flex bg-gray-100/80 backdrop-blur-xl rounded-xl p-1">
+                                {/* Clean filter tabs */}
+                                <div className="flex bg-gray-100 rounded-lg p-1">
                                     <button
                                         onClick={() => setFilter('unread')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                                             filter === 'unread'
                                                 ? 'bg-white text-gray-900 shadow-sm'
-                                                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                                : 'text-gray-600 hover:text-gray-900'
                                         }`}
+                                        style={{
+                                            fontFamily:
+                                                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                        }}
                                     >
                                         Unread ({unreadCount})
                                     </button>
                                     <button
                                         onClick={() => setFilter('all')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                                             filter === 'all'
                                                 ? 'bg-white text-gray-900 shadow-sm'
-                                                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                                : 'text-gray-600 hover:text-gray-900'
                                         }`}
+                                        style={{
+                                            fontFamily:
+                                                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                        }}
                                     >
-                                        All ({notifications.length})
+                                        All
                                     </button>
                                 </div>
 
                                 {/* Mark All Read Button */}
                                 {unreadCount > 0 && (
                                     <button
-                                        onClick={markAllAsRead}
+                                        onClick={handleMarkAllAsRead}
                                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 font-medium rounded-xl transition-all duration-200 hover:scale-105"
                                     >
                                         <CheckIcon className="w-4 h-4" />
@@ -254,14 +389,14 @@ const NotificationsPage: React.FC = () => {
                                         filter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                                     }`}
                                 >
-                                    All ({notifications.length})
+                                    All
                                 </button>
                             </div>
 
                             {/* Mobile Mark All Read Button */}
                             {unreadCount > 0 && (
                                 <button
-                                    onClick={markAllAsRead}
+                                    onClick={handleMarkAllAsRead}
                                     className="ml-3 p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 rounded-xl transition-all duration-200"
                                 >
                                     <CheckIcon className="w-5 h-5" />
@@ -297,106 +432,110 @@ const NotificationsPage: React.FC = () => {
                 </div>
 
                 {/* Notification Types Help Section - Apple style collapsible */}
-                <div className="mx-3  my-3  md:mx-6 ">
-                    <details className="group bg-white/60 backdrop-blur-xl rounded-2xl border border-gray-200/60 overflow-hidden transition-all duration-300">
-                        <summary className="flex items-center justify-between px-4 md:px-6 py-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                                    <InformationCircleIcon className="w-4 h-4 text-blue-600" />
+                {/* iPad-like centered layout container */}
+                <div className="mx-auto max-w-4xl px-3 md:px-6">
+                    <div className="my-3 md:my-6">
+                        <details className="group bg-white/60 backdrop-blur-xl rounded-2xl border border-gray-200/60 overflow-hidden transition-all duration-300">
+                            <summary className="flex items-center justify-between px-4 md:px-6 py-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                                        <InformationCircleIcon className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-900">Notification Types</h3>
+                                        <p className="text-xs text-gray-600">
+                                            Learn about different notification categories
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-900">Notification Types</h3>
-                                    <p className="text-xs text-gray-600">
-                                        Learn about different notification categories
+                                <ChevronDownIcon className="w-5 h-5 text-gray-400 transition-transform duration-200 group-open:rotate-180" />
+                            </summary>
+
+                            <div className="px-4 md:px-6 pb-4 border-t border-gray-200/60 bg-gray-50/30">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                    <div className="space-y-3">
+                                        <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                                                        Assignment Updates
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        Get notified when drivers start, complete, or update
+                                                        assignments, ensuring you stay informed about delivery progress.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                                                        Route Activities
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        Track route leg completions and updates to monitor real-time
+                                                        delivery progress and logistics coordination.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                                                        Document & Business
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        Stay updated on document uploads, invoice generation, payments,
+                                                        and other important business activities.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                                                        System & Security
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        Receive important alerts about system maintenance, security
+                                                        updates, and platform announcements.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 p-3 bg-blue-50/60 rounded-xl border border-blue-200/40">
+                                    <p className="text-xs text-blue-800 leading-relaxed">
+                                        <strong>Priority Levels:</strong> Urgent (immediate attention), High (important
+                                        updates), Medium (general updates), Low (informational). All notifications
+                                        include detailed descriptions to help you understand the context and required
+                                        actions.
                                     </p>
                                 </div>
                             </div>
-                            <ChevronDownIcon className="w-5 h-5 text-gray-400 transition-transform duration-200 group-open:rotate-180" />
-                        </summary>
-
-                        <div className="px-4 md:px-6 pb-4 border-t border-gray-200/60 bg-gray-50/30">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                                <div className="space-y-3">
-                                    <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-sm font-medium text-gray-900 mb-1">
-                                                    Assignment Updates
-                                                </h4>
-                                                <p className="text-xs text-gray-600 leading-relaxed">
-                                                    Get notified when drivers start, complete, or update assignments,
-                                                    ensuring you stay informed about delivery progress.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-sm font-medium text-gray-900 mb-1">
-                                                    Route Activities
-                                                </h4>
-                                                <p className="text-xs text-gray-600 leading-relaxed">
-                                                    Track route leg completions and updates to monitor real-time
-                                                    delivery progress and logistics coordination.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-sm font-medium text-gray-900 mb-1">
-                                                    Document & Business
-                                                </h4>
-                                                <p className="text-xs text-gray-600 leading-relaxed">
-                                                    Stay updated on document uploads, invoice generation, payments, and
-                                                    other important business activities.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white/80 rounded-xl p-4 border border-gray-200/40">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-sm font-medium text-gray-900 mb-1">
-                                                    System & Security
-                                                </h4>
-                                                <p className="text-xs text-gray-600 leading-relaxed">
-                                                    Receive important alerts about system maintenance, security updates,
-                                                    and platform announcements.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 p-3 bg-blue-50/60 rounded-xl border border-blue-200/40">
-                                <p className="text-xs text-blue-800 leading-relaxed">
-                                    <strong>Priority Levels:</strong> Urgent (immediate attention), High (important
-                                    updates), Medium (general updates), Low (informational). All notifications include
-                                    detailed descriptions to help you understand the context and required actions.
-                                </p>
-                            </div>
-                        </div>
-                    </details>
+                        </details>
+                    </div>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 overflow-hidden">
                     {loading ? (
                         <NotificationsSkeleton />
-                    ) : filteredNotifications.length === 0 ? (
+                    ) : notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-500 px-6">
                             <div className="w-20 h-20 bg-gray-100/80 backdrop-blur-xl rounded-3xl flex items-center justify-center mb-6">
                                 <BellIcon className="w-10 h-10 text-gray-400" />
@@ -411,233 +550,442 @@ const NotificationsPage: React.FC = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="bg-white/80 backdrop-blur-xl mx-3 md:mx-6 my-3 md:my-6 rounded-2xl border border-gray-200/60 overflow-hidden">
-                            {/* Select All Header - Desktop only */}
-                            <div className="hidden md:block px-6 py-4 border-b border-gray-200/60 bg-gray-50/50">
-                                <label className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            selectedNotifications.length === paginatedNotifications.length &&
-                                            paginatedNotifications.length > 0
-                                        }
-                                        onChange={handleSelectAll}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">
-                                        Select all {paginatedNotifications.length} notifications on this page
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        (Showing {startIndex + 1}-{Math.min(endIndex, filteredNotifications.length)} of{' '}
-                                        {filteredNotifications.length})
-                                    </span>
-                                </label>
-                            </div>
-
-                            {/* Mobile Select All - Collapsible */}
-                            <div className="md:hidden px-4 py-3 border-b border-gray-200/60 bg-gray-50/50">
-                                <label className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            selectedNotifications.length === paginatedNotifications.length &&
-                                            paginatedNotifications.length > 0
-                                        }
-                                        onChange={handleSelectAll}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Select all on page</span>
-                                    <span className="text-xs text-gray-500 ml-auto">
-                                        {startIndex + 1}-{Math.min(endIndex, filteredNotifications.length)} of{' '}
-                                        {filteredNotifications.length}
-                                    </span>
-                                </label>
-                            </div>
-
-                            {/* Notifications List */}
-                            <div className="divide-y divide-gray-200/60">
-                                {paginatedNotifications.map((notification) => (
-                                    <div
-                                        key={notification.id}
-                                        className={`flex items-start px-4 md:px-6 py-4 md:py-5 hover:bg-gray-50/50 transition-all duration-200 active:bg-gray-100/50 ${
-                                            !notification.isRead ? 'bg-blue-50/30 border-l-4 border-l-blue-500' : ''
-                                        }`}
-                                    >
-                                        {/* Checkbox */}
-                                        <div className="flex items-center mr-3 md:mr-4 pt-1">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedNotifications.includes(notification.id)}
-                                                onChange={() => handleSelectNotification(notification.id)}
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                            />
-                                        </div>
-
-                                        {/* Content */}
-                                        <div
-                                            className="flex-1 min-w-0 cursor-pointer"
-                                            onClick={() => handleNotificationClick(notification)}
+                        <div className="mx-auto max-w-4xl px-3 md:px-6">
+                            <div className="my-3 md:my-6">
+                                {/* Clean Desktop Select All - seamless header */}
+                                <div className="hidden md:block px-6 py-4">
+                                    <label className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                selectedNotifications.length === notifications.length &&
+                                                notifications.length > 0
+                                            }
+                                            onChange={handleSelectAll}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <span
+                                            className="text-sm font-medium text-gray-700"
+                                            style={{
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                            }}
                                         >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <h3
-                                                    className={`text-sm md:text-sm font-medium text-gray-900 leading-5 pr-2 ${
-                                                        !notification.isRead ? 'font-semibold' : ''
-                                                    }`}
-                                                >
-                                                    {notification.title}
-                                                </h3>
-                                                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                                                    <span className="text-xs text-gray-500 font-medium">
-                                                        {getTimeAgo(notification.createdAt)}
-                                                    </span>
-                                                    {!notification.isRead && (
-                                                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                    )}
+                                            Select all {notifications.length} notifications on this page
+                                        </span>
+                                        <span
+                                            className="text-xs text-gray-500"
+                                            style={{
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                            }}
+                                        >
+                                            (Showing {offset + 1}-{Math.min(offset + notifications.length, totalCount)}{' '}
+                                            of {totalCount})
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {/* Clean Mobile Select All - seamless header */}
+                                <div className="md:hidden px-4 py-3">
+                                    <label className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                selectedNotifications.length === notifications.length &&
+                                                notifications.length > 0
+                                            }
+                                            onChange={handleSelectAll}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <span
+                                            className="text-sm font-medium text-gray-700"
+                                            style={{
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                            }}
+                                        >
+                                            Select all on page
+                                        </span>
+                                        <span
+                                            className="text-xs text-gray-500 ml-auto"
+                                            style={{
+                                                fontFamily:
+                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                            }}
+                                        >
+                                            {offset + 1}-{Math.min(offset + notifications.length, totalCount)} of{' '}
+                                            {totalCount}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {/* Modern notification cards with compact elegant design */}
+                                <div className="space-y-2 px-4 md:px-6 py-3">
+                                    {notifications.map((notification) => (
+                                        <div
+                                            key={notification.id}
+                                            className={`relative group cursor-pointer rounded-2xl overflow-hidden apple-card-hover
+                                            ${
+                                                animatingOut.includes(notification.id)
+                                                    ? 'animate-fade-out-slide'
+                                                    : 'transition-all duration-300 ease-out'
+                                            }
+                                            ${!notification.isRead ? 'bg-white/90' : 'bg-white/70'}`}
+                                            onClick={() => handleNotificationClick(notification)}
+                                            style={{
+                                                border: '1px solid rgba(229, 231, 235, 0.3)',
+                                                boxShadow: !notification.isRead
+                                                    ? '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06)'
+                                                    : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                                                backdropFilter: 'blur(8px) saturate(120%)',
+                                                WebkitBackdropFilter: 'blur(8px) saturate(120%)',
+                                            }}
+                                        >
+                                            {/* Unread indicator stripe */}
+                                            {!notification.isRead && (
+                                                <div
+                                                    className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-blue-600 rounded-l-2xl"
+                                                    style={{
+                                                        boxShadow: '0 0 6px rgba(59, 130, 246, 0.4)',
+                                                    }}
+                                                />
+                                            )}
+
+                                            {/* Content area */}
+                                            <div className="flex items-start gap-3 p-3 md:p-4">
+                                                {/* Modern checkbox */}
+                                                <div className="flex items-center pt-0.5">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedNotifications.includes(notification.id)}
+                                                            onChange={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSelectNotification(notification.id);
+                                                            }}
+                                                            className="h-3.5 w-3.5 text-blue-600 focus:ring-2 focus:ring-blue-500/40 border-gray-300/60 rounded shadow-sm transition-all duration-200 hover:border-blue-400"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{
+                                                                backdropFilter: 'blur(4px)',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Notification content */}
+                                                <div className="flex-1 min-w-0">
+                                                    {/* Header with title and status */}
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex-1 min-w-0 pr-3">
+                                                            <h3
+                                                                className={`text-sm md:text-base font-semibold leading-tight ${
+                                                                    !notification.isRead
+                                                                        ? 'text-gray-900'
+                                                                        : 'text-gray-700'
+                                                                }`}
+                                                                style={{
+                                                                    letterSpacing: '-0.025em',
+                                                                    fontFamily:
+                                                                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                                                                }}
+                                                            >
+                                                                {notification.title}
+                                                            </h3>
+                                                        </div>
+
+                                                        {/* Status and timestamp */}
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            <span
+                                                                className="text-xs font-medium text-gray-500/80"
+                                                                style={{
+                                                                    fontFamily:
+                                                                        '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                                                }}
+                                                            >
+                                                                {getTimeAgo(notification.createdAt)}
+                                                            </span>
+                                                            {!notification.isRead ? (
+                                                                <div
+                                                                    className="w-2 h-2 bg-blue-500 rounded-full shadow-sm"
+                                                                    style={{
+                                                                        boxShadow: '0 0 4px rgba(59, 130, 246, 0.5)',
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div className="text-xs text-green-600/80 flex items-center gap-1 bg-green-50/50 px-1.5 py-0.5 rounded-full">
+                                                                    <EyeIcon className="w-2.5 h-2.5" />
+                                                                    <span className="font-medium">Read</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Message content */}
+                                                    <div
+                                                        className="text-xs md:text-sm text-gray-600/90 mb-2 leading-relaxed line-clamp-2"
+                                                        style={{
+                                                            fontFamily:
+                                                                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                                            lineHeight: '1.4',
+                                                        }}
+                                                    >
+                                                        {notification.message}
+                                                    </div>
+
+                                                    {/* Modern badges with refined compact design */}
+                                                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                                                        <span
+                                                            className="inline-flex items-center gap-1.5 text-xs px-2 py-1 bg-gray-50/80 text-gray-700 rounded-full font-medium border border-gray-200/50 backdrop-blur-sm"
+                                                            style={{
+                                                                fontFamily:
+                                                                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                                            }}
+                                                        >
+                                                            <div className="w-1 h-1 rounded-full bg-gray-500/70"></div>
+                                                            {getNotificationTypeDisplayName(notification.type)}
+                                                        </span>
+
+                                                        {notification.priority !== 'LOW' && (
+                                                            <span
+                                                                className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium border backdrop-blur-sm ${
+                                                                    notification.priority === 'URGENT'
+                                                                        ? 'bg-red-50/80 text-red-700 border-red-200/50'
+                                                                        : notification.priority === 'HIGH'
+                                                                        ? 'bg-orange-50/80 text-orange-700 border-orange-200/50'
+                                                                        : 'bg-yellow-50/80 text-yellow-700 border-yellow-200/50'
+                                                                }`}
+                                                                style={{
+                                                                    fontFamily:
+                                                                        '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className={`w-1 h-1 rounded-full ${
+                                                                        notification.priority === 'URGENT'
+                                                                            ? 'bg-red-500/70'
+                                                                            : notification.priority === 'HIGH'
+                                                                            ? 'bg-orange-500/70'
+                                                                            : 'bg-yellow-500/70'
+                                                                    }`}
+                                                                ></div>
+                                                                {notification.priority}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Type description with improved styling */}
+                                                    <div
+                                                        className="text-xs text-gray-500/70 leading-relaxed font-medium line-clamp-1"
+                                                        style={{
+                                                            fontFamily:
+                                                                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                                            lineHeight: '1.3',
+                                                        }}
+                                                    >
+                                                        {getNotificationTypeDescription(notification.type)}
+                                                    </div>
                                                 </div>
                                             </div>
-
-                                            <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                                                {notification.message}
-                                            </p>
-
-                                            {/* Mobile-optimized badges with better descriptions */}
-                                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                                                <span
-                                                    className={`text-xs px-2 md:px-3 py-1 rounded-full font-medium ${
-                                                        notification.priority === 'URGENT'
-                                                            ? 'bg-red-100 text-red-700'
-                                                            : notification.priority === 'HIGH'
-                                                            ? 'bg-amber-100 text-amber-700'
-                                                            : notification.priority === 'MEDIUM'
-                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                            : 'bg-gray-100 text-gray-700'
-                                                    }`}
-                                                >
-                                                    {getNotificationTypeDisplayName(notification.type)}
-                                                </span>
-
-                                                {notification.priority !== 'LOW' && (
-                                                    <span
-                                                        className={`text-xs px-2 py-0.5 rounded-md font-medium ${
-                                                            notification.priority === 'URGENT'
-                                                                ? 'bg-red-50 text-red-600'
-                                                                : notification.priority === 'HIGH'
-                                                                ? 'bg-amber-50 text-amber-600'
-                                                                : 'bg-yellow-50 text-yellow-600'
-                                                        }`}
-                                                    >
-                                                        {notification.priority}
-                                                    </span>
-                                                )}
-
-                                                {notification.isRead && (
-                                                    <span className="text-xs text-green-700 flex items-center gap-1 font-medium">
-                                                        <EyeIcon className="w-3 h-3" />
-                                                        Read
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Notification type description - Apple style subtle notes */}
-                                            <div className="mt-2 text-xs text-gray-500 leading-relaxed">
-                                                {getNotificationTypeDescription(notification.type)}
-                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
 
-                            {/* Mobile-optimized Pagination */}
-                            {totalPages > 1 && (
-                                <div className="px-4 md:px-6 py-3 md:py-4 border-t border-gray-200/60 bg-gray-50/50">
+                                {/* Pagination - seamless footer */}
+                                <div className="px-4 md:px-6 py-3 md:py-4">
                                     {/* Desktop Pagination */}
                                     <div className="hidden md:flex items-center justify-between">
                                         <div className="text-sm text-gray-700 font-medium">
-                                            Showing {startIndex + 1} to{' '}
-                                            {Math.min(endIndex, filteredNotifications.length)} of{' '}
-                                            {filteredNotifications.length} notifications
+                                            Showing {offset + 1} to{' '}
+                                            {Math.min(offset + notifications.length, totalCount)} of {totalCount}{' '}
+                                            notifications
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handlePageChange(currentPage - 1)}
-                                                disabled={currentPage === 1}
-                                                className="p-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
-                                            >
-                                                <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
-                                            </button>
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    className="p-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
+                                                    style={{
+                                                        background: `
+                                                        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%),
+                                                        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)
+                                                    `,
+                                                        backdropFilter: 'blur(12px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                        boxShadow: `
+                                                        0 4px 8px rgba(67, 56, 202, 0.04),
+                                                        inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                                                        0 0 0 1px rgba(255, 255, 255, 0.3)
+                                                    `,
+                                                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                    }}
+                                                >
+                                                    <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
+                                                </button>
 
-                                            <div className="flex items-center gap-1">
-                                                {[...Array(Math.min(totalPages, 7))].map((_, index) => {
-                                                    let pageNumber;
-                                                    if (totalPages <= 7) {
-                                                        pageNumber = index + 1;
-                                                    } else if (currentPage <= 4) {
-                                                        pageNumber = index + 1;
-                                                    } else if (currentPage >= totalPages - 3) {
-                                                        pageNumber = totalPages - 6 + index;
-                                                    } else {
-                                                        pageNumber = currentPage - 3 + index;
-                                                    }
+                                                <div className="flex items-center gap-1">
+                                                    {[...Array(Math.min(totalPages, 7))].map((_, index) => {
+                                                        let pageNumber;
+                                                        if (totalPages <= 7) {
+                                                            pageNumber = index + 1;
+                                                        } else if (currentPage <= 4) {
+                                                            pageNumber = index + 1;
+                                                        } else if (currentPage >= totalPages - 3) {
+                                                            pageNumber = totalPages - 6 + index;
+                                                        } else {
+                                                            pageNumber = currentPage - 3 + index;
+                                                        }
 
-                                                    return (
-                                                        <button
-                                                            key={pageNumber}
-                                                            onClick={() => handlePageChange(pageNumber)}
-                                                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                                                                currentPage === pageNumber
-                                                                    ? 'bg-blue-500 text-white shadow-sm'
-                                                                    : 'bg-white/60 hover:bg-white text-gray-700'
-                                                            }`}
-                                                        >
-                                                            {pageNumber}
-                                                        </button>
-                                                    );
-                                                })}
+                                                        return (
+                                                            <button
+                                                                key={pageNumber}
+                                                                onClick={() => handlePageChange(pageNumber)}
+                                                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 ${
+                                                                    currentPage === pageNumber
+                                                                        ? 'text-white shadow-sm'
+                                                                        : 'text-gray-700'
+                                                                }`}
+                                                                style={
+                                                                    currentPage === pageNumber
+                                                                        ? {
+                                                                              background: `
+                                                                    linear-gradient(135deg, rgba(59, 130, 246, 0.9) 0%, rgba(99, 102, 241, 0.8) 50%, rgba(139, 92, 246, 0.7) 100%),
+                                                                    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 70%)
+                                                                `,
+                                                                              boxShadow: `
+                                                                    0 4px 12px rgba(59, 130, 246, 0.3),
+                                                                    0 2px 6px rgba(99, 102, 241, 0.2),
+                                                                    inset 0 1px 2px rgba(255, 255, 255, 0.4)
+                                                                `,
+                                                                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                                          }
+                                                                        : {
+                                                                              background: `
+                                                                    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%),
+                                                                    linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)
+                                                                `,
+                                                                              backdropFilter:
+                                                                                  'blur(12px) saturate(150%)',
+                                                                              WebkitBackdropFilter:
+                                                                                  'blur(12px) saturate(150%)',
+                                                                              boxShadow: `
+                                                                    0 2px 4px rgba(67, 56, 202, 0.04),
+                                                                    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                                                                    0 0 0 1px rgba(255, 255, 255, 0.3)
+                                                                `,
+                                                                              border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                                          }
+                                                                }
+                                                            >
+                                                                {pageNumber}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="p-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
+                                                    style={{
+                                                        background: `
+                                                        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%),
+                                                        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)
+                                                    `,
+                                                        backdropFilter: 'blur(12px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                        boxShadow: `
+                                                        0 4px 8px rgba(67, 56, 202, 0.04),
+                                                        inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                                                        0 0 0 1px rgba(255, 255, 255, 0.3)
+                                                    `,
+                                                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                    }}
+                                                >
+                                                    <ChevronRightIcon className="w-4 h-4 text-gray-600" />
+                                                </button>
                                             </div>
-
-                                            <button
-                                                onClick={() => handlePageChange(currentPage + 1)}
-                                                disabled={currentPage === totalPages}
-                                                className="p-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
-                                            >
-                                                <ChevronRightIcon className="w-4 h-4 text-gray-600" />
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
 
                                     {/* Mobile Pagination */}
                                     <div className="md:hidden">
                                         <div className="text-xs text-gray-600 text-center mb-3">
-                                            Page {currentPage} of {totalPages} ({filteredNotifications.length} total)
+                                            Page {currentPage} of {Math.max(totalPages, 1)} ({totalCount} total)
                                         </div>
 
-                                        <div className="flex items-center justify-center gap-3">
-                                            <button
-                                                onClick={() => handlePageChange(currentPage - 1)}
-                                                disabled={currentPage === 1}
-                                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
-                                            >
-                                                <ChevronLeftIcon className="w-4 h-4" />
-                                                Previous
-                                            </button>
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-sm font-medium"
+                                                    style={{
+                                                        background: `
+                                                        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%),
+                                                        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)
+                                                    `,
+                                                        backdropFilter: 'blur(12px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                        boxShadow: `
+                                                        0 4px 8px rgba(67, 56, 202, 0.04),
+                                                        inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                                                        0 0 0 1px rgba(255, 255, 255, 0.3)
+                                                    `,
+                                                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                    }}
+                                                >
+                                                    <ChevronLeftIcon className="w-4 h-4" />
+                                                    Previous
+                                                </button>
 
-                                            <div className="px-3 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium min-w-[2.5rem] text-center">
-                                                {currentPage}
+                                                <div
+                                                    className="px-3 py-2 rounded-xl text-sm font-medium min-w-[2.5rem] text-center text-white"
+                                                    style={{
+                                                        background: `
+                                                        linear-gradient(135deg, rgba(59, 130, 246, 0.9) 0%, rgba(99, 102, 241, 0.8) 50%, rgba(139, 92, 246, 0.7) 100%),
+                                                        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 70%)
+                                                    `,
+                                                        boxShadow: `
+                                                        0 4px 12px rgba(59, 130, 246, 0.3),
+                                                        0 2px 6px rgba(99, 102, 241, 0.2),
+                                                        inset 0 1px 2px rgba(255, 255, 255, 0.4)
+                                                    `,
+                                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                    }}
+                                                >
+                                                    {currentPage}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-sm font-medium"
+                                                    style={{
+                                                        background: `
+                                                        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%),
+                                                        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)
+                                                    `,
+                                                        backdropFilter: 'blur(12px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                        boxShadow: `
+                                                        0 4px 8px rgba(67, 56, 202, 0.04),
+                                                        inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                                                        0 0 0 1px rgba(255, 255, 255, 0.3)
+                                                    `,
+                                                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                    }}
+                                                >
+                                                    Next
+                                                    <ChevronRightIcon className="w-4 h-4" />
+                                                </button>
                                             </div>
-
-                                            <button
-                                                onClick={() => handlePageChange(currentPage + 1)}
-                                                disabled={currentPage === totalPages}
-                                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
-                                            >
-                                                Next
-                                                <ChevronRightIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </div>
