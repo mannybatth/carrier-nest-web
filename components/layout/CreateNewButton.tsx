@@ -13,12 +13,12 @@ const CreateNewButton: React.FC<CreateNewButtonProps> = ({ className, collapsed 
             <div className={className}>
                 <Link
                     href="/loads/create"
-                    className="flex items-center mb-4 justify-center w-full p-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+                    className="flex items-center mb-3 justify-center w-full p-2.5 text-blue-600 bg-blue-50/60 hover:bg-blue-100/70 border border-blue-200/30 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-1 focus:ring-offset-transparent group"
                     data-tooltip-id="tooltip"
-                    data-tooltip-content="Create New"
+                    data-tooltip-content="New Load"
                     data-tooltip-place="right"
                 >
-                    <PlusIcon className="w-5 h-5" />
+                    <PlusIcon className="w-4 h-4 group-hover:scale-105 transition-transform duration-200" />
                 </Link>
             </div>
         );
@@ -28,10 +28,12 @@ const CreateNewButton: React.FC<CreateNewButtonProps> = ({ className, collapsed 
         <div className={className}>
             <Link
                 href={'/loads/create'}
-                className="flex items-center justify-center w-full px-3 py-2.5 mb-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+                className="flex items-center justify-center w-full px-3 py-2 mb-3 text-sm font-display font-medium text-blue-600 bg-blue-50/60 hover:bg-blue-100/70 border border-blue-200/30 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-1 focus:ring-offset-transparent group tracking-tight"
             >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Create New
+                <span className="text-base font-normal mr-1.5 group-hover:scale-105 transition-transform duration-200">
+                    +
+                </span>
+                New Load
             </Link>
         </div>
     );
