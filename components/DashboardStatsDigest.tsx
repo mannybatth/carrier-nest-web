@@ -177,7 +177,7 @@ export default function DashboardStatsDigest({ data: loadsList = [], loading = f
     return (
         <div className="flex min-h-screen w-full flex-col bg-white rounded-lg mb-8 overflow-clip">
             <main className="flex-1 py-6">
-                <div className="mx-auto max-w-7xl space-y-6">
+                <div className="mx-auto space-y-6">
                     <div className="flex flex-col justify-between gap-0 sm:items-start">
                         <h2 className="text-3xl font-bold tracking-tight text-[#1D1D1F]">Analytics Overview</h2>
                         <p className="text-sm text-[#86868B]">
@@ -629,7 +629,7 @@ const loadingSkeleton = () => {
     return (
         <div className="flex min-h-screen w-full flex-col bg-white rounded-lg mb-8 overflow-clip animate-pulse">
             <main className="flex-1 py-6">
-                <div className="mx-auto max-w-7xl space-y-6">
+                <div className="mx-auto space-y-6">
                     {/* Page Header Skeleton */}
                     <div className="flex flex-col justify-between gap-2 sm:items-start">
                         <div className="h-6 w-48 bg-gray-200 rounded-md" />

@@ -70,9 +70,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                         onClick={handleBellClick}
                         className={`relative flex items-center justify-center transition-all duration-300 ease-out group ${
                             collapsed
-                                ? 'w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-700 hover:from-blue-600 hover:via-blue-700 hover:to-purple-800 shadow-2xl shadow-blue-500/40 border border-blue-400/30 ring-1 ring-white/20'
-                                : 'w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-700 hover:from-blue-600 hover:via-blue-700 hover:to-purple-800 shadow-xl shadow-blue-500/30 border border-blue-400/30 ring-1 ring-white/20'
-                        } backdrop-blur-sm hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-transparent`}
+                                ? 'w-12 h-12 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 shadow-sm shadow-slate-900/5 border border-slate-200/50'
+                                : 'w-10 h-10 rounded-lg bg-slate-100/80 hover:bg-slate-200/80 shadow-sm shadow-slate-900/5 border border-slate-200/50'
+                        } backdrop-blur-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-slate-300/50 focus:ring-offset-1 focus:ring-offset-transparent`}
                         data-tooltip-id="tooltip"
                         data-tooltip-content={`${unreadCount} unread notifications`}
                         data-tooltip-place={collapsed ? 'right' : 'top'}
@@ -80,20 +80,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                         <BellIconComponent
                             className={`${
                                 collapsed ? 'w-6 h-6' : 'w-5 h-5'
-                            } transition-all duration-200 text-white drop-shadow-lg group-hover:drop-shadow-xl`}
+                            } transition-all duration-200 text-slate-600 group-hover:text-slate-700`}
                         />
 
-                        {/* Enhanced Unread Count Badge */}
+                        {/* Subtle Unread Count Badge */}
                         {unreadCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-full shadow-lg shadow-red-500/30 ring-2 ring-white/50 animate-pulse">
+                            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1.125rem] h-4 px-1 text-xs font-medium text-white bg-blue-500 rounded-full shadow-sm ring-1 ring-white/60">
                                 {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         )}
 
-                        {/* Enhanced Connection Status Indicator */}
+                        {/* Subtle Connection Status Indicator */}
                         <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-lg ${
-                                connected ? 'bg-green-500 shadow-green-500/30' : 'bg-orange-500 shadow-orange-500/30'
+                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${
+                                connected ? 'bg-green-500' : 'bg-orange-500'
                             }`}
                             title={connected ? 'Real-time connected' : 'Polling mode'}
                         />
@@ -103,9 +103,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                     <Menu.Button
                         className={`relative flex items-center justify-center transition-all duration-300 ease-out group ${
                             collapsed
-                                ? 'w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-700 hover:from-blue-600 hover:via-blue-700 hover:to-purple-800 shadow-2xl shadow-blue-500/40 border border-blue-400/30 ring-1 ring-white/20'
-                                : 'w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-700 hover:from-blue-600 hover:via-blue-700 hover:to-purple-800 shadow-xl shadow-blue-500/30 border border-blue-400/30 ring-1 ring-white/20'
-                        } backdrop-blur-sm hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-transparent`}
+                                ? 'w-12 h-12 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 shadow-sm shadow-slate-900/5 border border-slate-200/50'
+                                : 'w-10 h-10 rounded-lg bg-slate-100/80 hover:bg-slate-200/80 shadow-sm shadow-slate-900/5 border border-slate-200/50'
+                        } backdrop-blur-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-slate-300/50 focus:ring-offset-1 focus:ring-offset-transparent`}
                         data-tooltip-id="tooltip"
                         data-tooltip-content={`${unreadCount} unread notifications`}
                         data-tooltip-place={collapsed ? 'right' : 'top'}
@@ -113,32 +113,25 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                         <BellIconComponent
                             className={`${
                                 collapsed ? 'w-6 h-6' : 'w-5 h-5'
-                            } transition-all duration-200 text-white drop-shadow-lg group-hover:drop-shadow-xl`}
+                            } transition-all duration-200 text-slate-600 group-hover:text-slate-700`}
                         />
 
-                        {/* Enhanced Unread Count Badge */}
+                        {/* Subtle Unread Count Badge */}
                         {unreadCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-full shadow-lg shadow-red-500/30 ring-2 ring-white/50 animate-pulse">
+                            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1.125rem] h-4 px-1 text-xs font-medium text-white bg-blue-500 rounded-full shadow-sm ring-1 ring-white/60">
                                 {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         )}
 
-                        {/* Enhanced Connection Status Indicator */}
+                        {/* Subtle Connection Status Indicator */}
                         <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-lg ${
-                                connected ? 'bg-green-500 shadow-green-500/30' : 'bg-orange-500 shadow-orange-500/30'
+                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${
+                                connected ? 'bg-green-500' : 'bg-orange-500'
                             }`}
                             title={connected ? 'Real-time connected' : 'Polling mode'}
                         />
                     </Menu.Button>
                 )}
-
-                {/* Subtle Glow Effect */}
-                <div
-                    className={`absolute inset-0 ${
-                        collapsed ? 'w-12 h-12 rounded-2xl' : 'w-10 h-10 rounded-xl'
-                    } bg-gradient-to-br from-blue-400/20 to-purple-600/20 blur-xl -z-10`}
-                ></div>
             </div>
 
             {/* Ultra-Modern Apple-style Notification Popup - Only show on desktop */}
@@ -157,29 +150,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                             collapsed
                                 ? 'bottom-full left-0 mb-4 origin-bottom-left'
                                 : 'bottom-full left-0 mb-4 origin-bottom'
-                        } bg-white/98 backdrop-blur-3xl rounded-[2rem] shadow-2xl shadow-black/20 border border-white/60 ring-1 ring-gray-100/50 overflow-hidden focus:outline-none`}
-                        style={{
-                            backgroundImage:
-                                'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.98) 100%)',
-                        }}
+                        } liquid-popup overflow-hidden focus:outline-none`}
                     >
-                        {/* Ultra-Premium Glass Header */}
-                        <div className="relative px-6 py-5 border-b border-gray-100/60">
-                            {/* Advanced gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-blue-50/30 to-purple-50/20" />
-
-                            {/* Decorative background pattern */}
-                            <div className="absolute inset-0 opacity-[0.02]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600" />
-                            </div>
+                        {/* Clean Liquid Header */}
+                        <div className="relative px-6 py-5 border-b border-liquid-subtle">
+                            {/* Minimal overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
 
                             {/* Content */}
                             <div className="relative">
                                 {/* Header row */}
                                 <div className="flex items-center justify-between gap-3 mb-3">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500/15 to-purple-600/15 backdrop-blur-xl rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-blue-200/20 border border-white/40">
-                                            <BellIconComponent className="w-5 h-5 text-blue-600 drop-shadow-sm" />
+                                        <div className="w-10 h-10 liquid-card rounded-xl flex items-center justify-center flex-shrink-0 shadow-liquid-subtle">
+                                            <BellIconComponent className="w-5 h-5 text-slate-600 drop-shadow-sm" />
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900 tracking-tight leading-tight">
@@ -193,15 +177,15 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                     <div className="flex items-center gap-2">
                                         {/* Settings Gear Button */}
                                         <Link href="/settings/notifications">
-                                            <button className="w-8 h-8 bg-gray-50/80 hover:bg-gray-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center shadow-sm ring-1 ring-gray-200/25 border border-white/60 backdrop-blur-sm group">
-                                                <Cog6ToothIcon className="w-4 h-4 text-gray-600 group-hover:text-gray-700 transition-colors duration-200" />
+                                            <button className="w-8 h-8 liquid-button rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center group">
+                                                <Cog6ToothIcon className="w-4 h-4 text-slate-600 group-hover:text-slate-700 transition-colors duration-200" />
                                             </button>
                                         </Link>
                                         {/* Mark All Read Button */}
                                         {unreadCount > 0 && (
                                             <button
                                                 onClick={handleMarkAllAsRead}
-                                                className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0 shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
+                                                className="px-3 py-1.5 text-xs font-semibold text-blue-700 liquid-button rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0"
                                             >
                                                 Clear
                                             </button>
@@ -224,7 +208,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                         </span>
                                     </div>
                                     {unreadCount > 0 && (
-                                        <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-100/70 text-blue-800 shadow-sm ring-1 ring-blue-200/30 border border-white/50">
+                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50/90 text-blue-700 shadow-liquid-subtle border border-liquid-subtle">
                                             {unreadCount} new
                                         </span>
                                     )}
@@ -237,10 +221,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                             {unreadNotifications.length === 0 ? (
                                 <div className="p-10 text-center">
                                     <div className="relative w-20 h-20 mx-auto mb-6">
-                                        {/* Decorative background rings */}
-                                        <div className="absolute inset-0 bg-gradient-to-br from-gray-100/80 to-gray-200/40 rounded-full blur-sm" />
-                                        <div className="relative w-20 h-20 bg-gradient-to-br from-gray-50/90 to-gray-100/70 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl shadow-gray-200/60 ring-1 ring-gray-200/40 border border-white/60">
-                                            <BellIcon className="w-9 h-9 text-gray-400 drop-shadow-sm" />
+                                        {/* Clean liquid background */}
+                                        <div className="absolute inset-0 bg-slate-50/60 rounded-full blur-sm" />
+                                        <div className="relative w-20 h-20 liquid-card rounded-full flex items-center justify-center shadow-liquid">
+                                            <BellIcon className="w-9 h-9 text-slate-500" />
                                         </div>
                                     </div>
                                     <h4 className="text-base font-semibold text-gray-900 mb-2">All caught up!</h4>
@@ -255,17 +239,17 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                         <Menu.Item key={`notification-${notification.id}-${index}`}>
                                             {({ active }) => (
                                                 <div
-                                                    className={`relative group rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden ${
+                                                    className={`relative group rounded-xl transition-all duration-200 cursor-pointer overflow-hidden ${
                                                         active
-                                                            ? 'bg-gray-50/80 scale-[0.98] shadow-lg shadow-gray-200/40 ring-1 ring-gray-200/30'
-                                                            : 'hover:bg-gray-50/50 hover:shadow-md hover:shadow-gray-200/30'
-                                                    } bg-gradient-to-br from-blue-50/70 to-indigo-50/50 ring-1 ring-blue-200/30 shadow-sm shadow-blue-200/20 border border-blue-100/40`}
+                                                            ? 'bg-slate-50/90 scale-[0.98] shadow-liquid'
+                                                            : 'bg-white/60 hover:bg-slate-50/80 hover:shadow-liquid-subtle'
+                                                    } border border-liquid-subtle`}
                                                     onClick={() =>
                                                         handleNotificationClick(notification.id, notification.isRead)
                                                     }
                                                 >
-                                                    {/* Enhanced gradient overlay for unread notifications */}
-                                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-blue-50/40 via-transparent to-indigo-50/30" />
+                                                    {/* Clean liquid overlay */}
+                                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-white/30 via-transparent to-slate-50/10" />
 
                                                     <div className="relative p-4">
                                                         <div className="flex items-start gap-4">
@@ -317,7 +301,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                                                             .toLowerCase()}
                                                                     </span>
 
-                                                                    {/* Apple-style Mark as Read Button */}
+                                                                    {/* Clean Mark as Read Button */}
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -326,7 +310,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                                                                 notification.isRead,
                                                                             );
                                                                         }}
-                                                                        className="group/btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 bg-blue-50/70 hover:bg-blue-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ring-1 ring-blue-200/30 border border-white/60 backdrop-blur-sm"
+                                                                        className="group/btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 liquid-button rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                                                                         title="Mark as read"
                                                                     >
                                                                         <svg
@@ -356,24 +340,24 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                             )}
                         </div>
 
-                        {/* Ultra-Premium Footer - Always show */}
-                        <div className="relative px-4 py-3 border-t border-gray-100/60">
-                            {/* Advanced gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/70 via-white/50 to-blue-50/30" />
+                        {/* Clean Liquid Footer */}
+                        <div className="relative px-4 py-3 border-t border-liquid-subtle">
+                            {/* Minimal overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent" />
 
                             <div className="relative">
                                 <Link
                                     href="/notifications"
-                                    className="group flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 hover:from-blue-100/70 hover:to-indigo-100/70 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-sm ring-1 ring-blue-200/25 border border-white/60 backdrop-blur-sm"
+                                    className="group flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-blue-600 hover:text-blue-700 liquid-button rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     <span>View All</span>
                                     {unreadCount > unreadNotifications.length && (
-                                        <span className="px-2 py-1 text-xs bg-gradient-to-r from-blue-100/80 to-indigo-100/80 text-blue-700 rounded-lg font-semibold shadow-sm ring-1 ring-blue-200/30 border border-white/50">
+                                        <span className="px-2 py-1 text-xs bg-blue-50/90 text-blue-700 rounded-lg font-semibold shadow-liquid-subtle border border-liquid-subtle">
                                             +{unreadCount - unreadNotifications.length}
                                         </span>
                                     )}
                                     <svg
-                                        className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                                        className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -381,7 +365,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ collapsed = false }
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            strokeWidth={2.5}
+                                            strokeWidth={2}
                                             d="M9 5l7 7-7 7"
                                         />
                                     </svg>

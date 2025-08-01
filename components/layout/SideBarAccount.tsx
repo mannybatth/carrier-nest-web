@@ -28,7 +28,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                 {/* Account Menu - Collapsed */}
                 <Menu as="div" className="relative">
                     <Menu.Button
-                        className="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+                        className="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white overflow-hidden"
                         data-tooltip-id="tooltip"
                         data-tooltip-content={defaultCarrier?.name || 'Account'}
                         data-tooltip-place="right"
@@ -133,7 +133,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
 
                 {/* Account Menu for expanded sidebar */}
                 <Menu as="div" className="relative">
-                    <Menu.Button className="flex items-center w-full p-3 rounded-2xl hover:bg-slate-100/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white group">
+                    <Menu.Button className="flex items-center w-full p-3 rounded-2xl hover:bg-slate-100/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white group overflow-hidden">
                         <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 group-hover:from-slate-700 group-hover:to-slate-800 shadow-lg transition-all duration-200">
                             {defaultCarrier?.name?.charAt(0).toUpperCase() || ''}
                         </div>
@@ -157,7 +157,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                         leaveFrom="transform opacity-100 scale-100 translate-y-0"
                         leaveTo="transform opacity-0 scale-95 translate-y-2"
                     >
-                        <Menu.Items className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-slate-200/60 focus:outline-none z-[9999] border border-white/20">
+                        <Menu.Items className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-slate-200/60 focus:outline-none z-[9999] border border-white/20 overflow-hidden">
                             <div className="py-2">
                                 {/* Menu Items */}
                                 <Menu.Item>
@@ -166,7 +166,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                                             <button
                                                 className={classNames(
                                                     active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
-                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80 rounded-lg mx-2',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80',
                                                 )}
                                             >
                                                 Plan & Billing
@@ -180,7 +180,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                                             <button
                                                 className={classNames(
                                                     active ? 'bg-slate-50/80 text-slate-900' : 'text-slate-700',
-                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80 rounded-lg mx-2',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-slate-50/80',
                                                 )}
                                             >
                                                 Account Settings
@@ -195,7 +195,7 @@ const SideBarAccount: React.FC<SideBarAccountProps> = ({ collapsed }) => {
                                                 href={`/api/auth/signout`}
                                                 className={classNames(
                                                     active ? 'bg-red-50/80 text-red-700' : 'text-slate-700',
-                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-red-50/80 hover:text-red-700 rounded-lg mx-2',
+                                                    'block w-full text-left px-4 py-3 text-sm font-medium transition-all duration-150 hover:bg-red-50/80 hover:text-red-700',
                                                 )}
                                                 onClick={(e) => {
                                                     e.preventDefault();

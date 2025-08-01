@@ -110,7 +110,7 @@ const Navigation: React.FC<NavigationProps> = ({ collapsed }) => {
     };
 
     return (
-        <nav className={`${collapsed ? 'px-2' : 'px-3'} space-y-0.5 my-0`}>
+        <nav className={`${collapsed ? 'px-2' : 'px-4'} space-y-0.5 my-3`}>
             {navigation.map((item) => {
                 const active = isActive(item.href);
                 const IconComponent = active ? item.iconSolid : item.icon;
@@ -120,12 +120,12 @@ const Navigation: React.FC<NavigationProps> = ({ collapsed }) => {
                         key={item.name}
                         href={item.href}
                         className={classNames(
-                            'group relative flex items-center rounded-lg text-sm font-medium transition-all duration-200 ease-out',
-                            collapsed ? 'p-3 justify-center' : 'px-3 py-2.5',
+                            'group relative flex items-center font-display text-sm transition-all duration-200 ease-out',
+                            collapsed ? 'p-3 justify-center rounded-xl' : 'px-4 py-2.5 rounded-xl',
                             active
-                                ? 'bg-blue-100/70 text-blue-700 border-r-2 border-blue-600'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
-                            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white',
+                                ? 'text-blue-600 font-semibold'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/60 font-medium',
+                            'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:ring-offset-transparent',
                         )}
                         data-tooltip-id={collapsed ? 'tooltip' : undefined}
                         data-tooltip-content={collapsed ? item.name : undefined}
@@ -141,19 +141,24 @@ const Navigation: React.FC<NavigationProps> = ({ collapsed }) => {
                         />
 
                         {!collapsed && (
-                            <span className="flex-1 transition-colors duration-200">
+                            <span className="flex-1 transition-colors duration-200 tracking-[-0.01em]">
                                 {item.name}
                                 {item.comingSoon && (
-                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                    <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
                                         Soon
                                     </span>
                                 )}
                             </span>
                         )}
 
-                        {/* Active indicator for collapsed state */}
+                        {/* Minimal active indicator for collapsed state */}
                         {active && collapsed && (
-                            <div className="absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 bg-blue-600 rounded-full" />
+                            <div className="absolute -right-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 bg-blue-600 rounded-full" />
+                        )}
+
+                        {/* Subtle active bar for expanded state */}
+                        {active && !collapsed && (
+                            <div className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 bg-blue-600 rounded-r-sm" />
                         )}
                     </Link>
                 );
