@@ -1,24 +1,40 @@
 import { LoadDocument, LoadStatus, RouteLeg, RouteLegStatus } from '@prisma/client';
-import RouteLegModal from 'components/assignment/RouteLegModal';
 import { RouteLegDataProvider } from 'components/context/RouteLegDataContext';
 import { LoadingOverlay } from 'components/LoadingOverlay';
-import ActionsDropdown from 'components/loads/load-details/ActionsDropdown';
-import LoadAssignmentsSection from 'components/loads/load-details/LoadAssignmentsSection';
-import LoadDetailsToolbar from 'components/loads/load-details/LoadDetailsToolbar';
-import LoadRouteSection from 'components/loads/load-details/LoadRouteSection';
 import { removeRouteLegById } from 'lib/rest/assignment';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import React, { ChangeEvent, use, useEffect, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
-import SimpleDialog from '../../components/dialogs/SimpleDialog';
+import { notify } from '../../components/Notification';
+
+// Lazy load expensive components for better performance
+const RouteLegModal = lazy(() => import('components/assignment/RouteLegModal'));
+const LoadActivitySection = lazy(() => import('../../components/loads/load-details/LoadActivitySection'));
+const SimpleDialog = lazy(() => import('../../components/dialogs/SimpleDialog'));
+
+// Static imports for critical rendering path
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import LoadActivityLog from '../../components/loads/load-details/LoadActivityLog';
 import LoadDetailsDocuments from '../../components/loads/load-details/LoadDetailsDocuments';
 import LoadDetailsInfo from '../../components/loads/load-details/LoadDetailsInfo';
-import { notify } from '../../components/Notification';
+import LoadDetailsToolbar from '../../components/loads/load-details/LoadDetailsToolbar';
+import LoadRouteSection from '../../components/loads/load-details/LoadRouteSection';
+import LoadAssignmentsSection from '../../components/loads/load-details/LoadAssignmentsSection';
+import ActionsDropdown from 'components/loads/load-details/ActionsDropdown';
+
+// Memoized components for performance optimization
+const MemoizedBreadCrumb = React.memo(BreadCrumb);
+const MemoizedLoadDetailsToolbar = React.memo(LoadDetailsToolbar);
+const MemoizedActionsDropdown = React.memo(ActionsDropdown);
+const MemoizedLoadActivitySection = React.memo(LoadActivitySection);
+const MemoizedLoadDetailsInfo = React.memo(LoadDetailsInfo);
+const MemoizedLoadDetailsDocuments = React.memo(LoadDetailsDocuments);
+const MemoizedLoadRouteSection = React.memo(LoadRouteSection);
+const MemoizedLoadAssignmentsSection = React.memo(LoadAssignmentsSection);
+
+// Additional imports
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedRoute, ExpandedRouteLeg } from '../../interfaces/models';
@@ -30,7 +46,6 @@ import {
     updateLoadStatus,
 } from '../../lib/rest/load';
 import { uploadFileToGCS } from '../../lib/rest/uploadFile';
-import { v4 as uuidv4 } from 'uuid';
 import { generateStandardizedFileName } from '../../lib/helpers/document-naming';
 
 type Props = {
@@ -38,12 +53,10 @@ type Props = {
 };
 
 const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad, loading: loadLoading, error: loadError, loadDocumentsData, refetch } = useLoadContext();
     const { data: session } = useSession();
     const [openLegAssignment, setOpenLegAssignment] = useState(false);
-    const [podDocuments, setPodDocuments] = useState<LoadDocument[]>([]);
-    const [bolDocuments, setBolDocuments] = useState<LoadDocument[]>([]);
-    const [loadDocuments, setLoadDocuments] = useState<LoadDocument[]>([]);
+    // Remove separate document states since they're now in the load context
     const [docsLoading, setDocsLoading] = useState(false);
     const [downloadingDocs, setDownloadingDocs] = useState(false);
 
@@ -61,6 +74,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
     // Check to see if search query containts editAssignmentID
     const { routeLegId } = router.query;
+
+    // Memoize document arrays to prevent unnecessary re-renders
+    const podDocuments = useMemo(() => load?.podDocuments || [], [load?.podDocuments]);
+    const bolDocuments = useMemo(() => load?.bolDocuments || [], [load?.bolDocuments]);
+    const loadDocuments = useMemo(() => load?.loadDocuments || [], [load?.loadDocuments]);
 
     useEffect(() => {
         // Check if there's a hash in the URL
@@ -90,87 +108,39 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     }, [router.asPath, load, routeLegId, loadId]);
 
-    useEffect(() => {
-        if (!load) {
-            return;
-        }
-        // Filter out rateconDocument from loadDocuments since it's displayed separately
-        setLoadDocuments(load.loadDocuments || []);
-        setPodDocuments(load.podDocuments || []);
-        setBolDocuments(load.bolDocuments || []);
-    }, [load]);
-
-    const addAssignmentAction = async () => {
+    // Memoized functions to prevent unnecessary re-renders
+    const addAssignmentAction = useCallback(async () => {
         setOpenLegAssignment(true);
-    };
+    }, []);
 
-    const deleteLoad = async (id: string) => {
-        await deleteLoadById(id);
+    const deleteLoad = useCallback(
+        async (id: string) => {
+            await deleteLoadById(id);
+            notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+            router.push('/loads');
+        },
+        [router],
+    );
 
-        notify({ title: 'Load deleted', message: 'Load deleted successfully' });
+    // Consolidated document upload handler to reduce code duplication
+    const handleDocumentUpload = useCallback(
+        async (event: ChangeEvent<HTMLInputElement>, documentType: 'DOCUMENT' | 'POD' | 'BOL' | 'RATECON') => {
+            const file = event.target.files?.[0];
+            if (!file) return;
 
-        router.push('/loads');
-    };
-
-    const handleUploadDocsChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            // // console.log('No file selected.');
-            return;
-        }
-
-        setDocsLoading(true);
-        try {
-            const response = await uploadFileToGCS(file);
-            if (response?.uniqueFileName) {
-                // Generate standardized filename for general documents
-                const standardizedFileName = generateStandardizedFileName(file, 'DOCUMENT', session);
-
-                const simpleDoc: Partial<LoadDocument> = {
-                    fileKey: response.uniqueFileName,
-                    fileUrl: response.gcsInputUri,
-                    fileName: standardizedFileName,
-                    fileType: file.type,
-                    fileSize: BigInt(file.size),
-                };
-                const tempDocs = [simpleDoc, ...loadDocuments] as LoadDocument[];
-                setLoadDocuments(tempDocs);
-                const newLoadDocument = await addLoadDocumentToLoad(load.id, simpleDoc);
-
-                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
-                if (index !== -1) {
-                    const newLoadDocuments = [...tempDocs];
-                    newLoadDocuments[index] = newLoadDocument;
-                    setLoadDocuments(newLoadDocuments);
-                    setLoad({ ...load, loadDocuments: newLoadDocuments });
+            setDocsLoading(true);
+            try {
+                const response = await uploadFileToGCS(file);
+                if (!response?.uniqueFileName) {
+                    notify({
+                        title: `Error uploading ${documentType.toLowerCase()}`,
+                        message: 'Upload response invalid',
+                        type: 'error',
+                    });
+                    return;
                 }
-                notify({ title: 'Document uploaded', message: 'Document uploaded successfully' });
-            } else {
-                notify({ title: 'Error uploading document', message: 'Upload response invalid', type: 'error' });
-            }
-        } catch (e) {
-            notify({ title: 'Error uploading document', message: e.message, type: 'error' });
-        }
-        event.target.value = '';
-        setDocsLoading(false);
-    };
 
-    const handleUploadPodsChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            // console.log('No file selected.');
-            return;
-        }
-
-        setDocsLoading(true);
-        try {
-            const response = await uploadFileToGCS(file);
-            if (response?.uniqueFileName) {
-                // Generate standardized filename for POD documents
-                const standardizedFileName = generateStandardizedFileName(file, 'POD', session);
-
+                const standardizedFileName = generateStandardizedFileName(file, documentType, session);
                 const simpleDoc: Partial<LoadDocument> = {
                     fileKey: response.uniqueFileName,
                     fileUrl: response.gcsInputUri,
@@ -178,173 +148,118 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                     fileType: file.type,
                     fileSize: BigInt(file.size),
                 };
-                const tempDocs = [simpleDoc, ...podDocuments] as LoadDocument[];
-                setPodDocuments(tempDocs);
-                const newPodDocument = await addLoadDocumentToLoad(load.id, simpleDoc, {
-                    isPod: true,
+
+                const uploadOptions = {
+                    isPod: documentType === 'POD',
+                    isBol: documentType === 'BOL',
+                    isRatecon: documentType === 'RATECON',
+                };
+
+                const newDocument = await addLoadDocumentToLoad(load.id, simpleDoc, uploadOptions);
+
+                // Update load state based on document type
+                setLoad((prevLoad) => {
+                    switch (documentType) {
+                        case 'POD':
+                            return { ...prevLoad, podDocuments: [newDocument, ...podDocuments] };
+                        case 'BOL':
+                            return { ...prevLoad, bolDocuments: [newDocument, ...bolDocuments] };
+                        case 'RATECON':
+                            return { ...prevLoad, rateconDocument: newDocument };
+                        default:
+                            return { ...prevLoad, loadDocuments: [newDocument, ...loadDocuments] };
+                    }
                 });
 
-                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
-                if (index !== -1) {
-                    const newPodDocuments = [...tempDocs];
-                    newPodDocuments[index] = newPodDocument;
-                    setPodDocuments(newPodDocuments);
-                    setLoad({ ...load, podDocuments: newPodDocuments });
+                const successMessage =
+                    documentType === 'RATECON' ? 'Rate confirmation uploaded' : `${documentType} uploaded`;
+                notify({ title: successMessage, message: `${successMessage} successfully` });
+            } catch (e) {
+                notify({ title: `Error uploading ${documentType.toLowerCase()}`, message: e.message, type: 'error' });
+            } finally {
+                event.target.value = '';
+                setDocsLoading(false);
+            }
+        },
+        [load, loadDocuments, podDocuments, bolDocuments, setLoad, session],
+    );
+
+    // Specific handlers using the consolidated function
+    const handleUploadDocsChange = useCallback(
+        (event: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(event, 'DOCUMENT'),
+        [handleDocumentUpload],
+    );
+
+    const handleUploadPodsChange = useCallback(
+        (event: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(event, 'POD'),
+        [handleDocumentUpload],
+    );
+
+    const handleUploadBolsChange = useCallback(
+        (event: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(event, 'BOL'),
+        [handleDocumentUpload],
+    );
+
+    const handleUploadRateconChange = useCallback(
+        (event: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(event, 'RATECON'),
+        [handleDocumentUpload],
+    );
+
+    const deleteLoadDocument = useCallback(
+        async (id: string) => {
+            setDeletingDocumentId(id);
+            try {
+                const isRatecon = load.rateconDocument?.id === id;
+                const isPod = (load.podDocuments || []).some((pod) => pod.id === id);
+                const isBol = (load.bolDocuments || []).some((bol) => bol.id === id);
+
+                await deleteLoadDocumentFromLoad(load.id, id, {
+                    isPod,
+                    isBol,
+                    isRatecon,
+                });
+
+                if (isRatecon) {
+                    // Rate confirmation document is not in loadDocuments array, just clear it
+                    setLoad({ ...load, rateconDocument: null });
+                } else {
+                    // Filter out the deleted document from the appropriate arrays
+                    const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
+                    const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
+                    const newBolDocuments = bolDocuments.filter((ld) => ld.id !== id);
+                    setLoad({
+                        ...load,
+                        loadDocuments: newLoadDocuments,
+                        podDocuments: newPodDocuments,
+                        bolDocuments: newBolDocuments,
+                    });
                 }
-                notify({ title: 'POD uploaded', message: 'POD uploaded successfully' });
-            } else {
-                notify({ title: 'Error uploading POD', message: 'Upload response invalid', type: 'error' });
+                notify({ title: 'Document deleted', message: 'Document deleted successfully' });
+            } catch (e) {
+                notify({ title: 'Error deleting document', message: e.message, type: 'error' });
             }
-        } catch (e) {
-            notify({ title: 'Error uploading POD', message: e.message, type: 'error' });
-        }
-        event.target.value = '';
-        setDocsLoading(false);
-    };
+            setDeletingDocumentId(null);
+            setDocumentIdToDelete(null);
+            setOpenDeleteDocumentConfirmation(false);
+        },
+        [load, loadDocuments, podDocuments, bolDocuments, setLoad],
+    );
 
-    const handleUploadBolsChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            // console.log('No file selected.');
-            return;
-        }
-
-        setDocsLoading(true);
-        try {
-            const response = await uploadFileToGCS(file);
-            if (response?.uniqueFileName) {
-                // Generate standardized filename for BOL documents
-                const standardizedFileName = generateStandardizedFileName(file, 'BOL', session);
-
-                const simpleDoc: Partial<LoadDocument> = {
-                    fileKey: response.uniqueFileName,
-                    fileUrl: response.gcsInputUri,
-                    fileName: standardizedFileName,
-                    fileType: file.type,
-                    fileSize: BigInt(file.size),
-                };
-                const tempDocs = [simpleDoc, ...bolDocuments] as LoadDocument[];
-                setBolDocuments(tempDocs);
-                const newBolDocument = await addLoadDocumentToLoad(load.id, simpleDoc, {
-                    isBol: true,
-                });
-
-                const index = tempDocs.findIndex((ld) => ld.fileKey === simpleDoc.fileKey);
-                if (index !== -1) {
-                    const newBolDocuments = [...tempDocs];
-                    newBolDocuments[index] = newBolDocument;
-                    setBolDocuments(newBolDocuments);
-                    setLoad({ ...load, bolDocuments: newBolDocuments });
-                }
-                notify({ title: 'BOL uploaded', message: 'BOL uploaded successfully' });
-            } else {
-                notify({ title: 'Error uploading BOL', message: 'Upload response invalid', type: 'error' });
-            }
-        } catch (e) {
-            notify({ title: 'Error uploading BOL', message: e.message, type: 'error' });
-        }
-        event.target.value = '';
-        setDocsLoading(false);
-    };
-
-    const handleUploadRateconChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        // Check if a rate con document already exists
-        if (load.rateconDocument) {
-            event.target.value = '';
-            return;
-        }
-
-        setDocsLoading(true);
-        try {
-            const response = await uploadFileToGCS(file);
-            if (response?.uniqueFileName) {
-                // Generate standardized filename for rate confirmation documents
-                const standardizedFileName = generateStandardizedFileName(file, 'RATECON', session);
-
-                const simpleDoc: Partial<LoadDocument> = {
-                    fileKey: response.uniqueFileName,
-                    fileUrl: response.gcsInputUri,
-                    fileName: standardizedFileName,
-                    fileType: file.type,
-                    fileSize: BigInt(file.size),
-                };
-
-                // Upload as rate confirmation document (single document, replaces existing)
-                const newRateconDocument = await addLoadDocumentToLoad(load.id, simpleDoc, { isRatecon: true });
-
-                // Update the load with the new rate confirmation document
-                setLoad({ ...load, rateconDocument: newRateconDocument });
-                notify({ title: 'Rate confirmation uploaded', message: 'Rate confirmation uploaded successfully' });
-            } else {
-                notify({
-                    title: 'Error uploading rate confirmation',
-                    message: 'Upload response invalid',
-                    type: 'error',
-                });
-            }
-        } catch (e) {
-            notify({ title: 'Error uploading rate confirmation', message: e.message, type: 'error' });
-        }
-        event.target.value = '';
-        setDocsLoading(false);
-    };
-
-    const deleteLoadDocument = async (id: string) => {
-        setDeletingDocumentId(id);
-        try {
-            const isRatecon = load.rateconDocument?.id === id;
-            const isPod = (load.podDocuments || []).some((pod) => pod.id === id);
-            const isBol = (load.bolDocuments || []).some((bol) => bol.id === id);
-
-            await deleteLoadDocumentFromLoad(load.id, id, {
-                isPod,
-                isBol,
-                isRatecon,
-            });
-
-            if (isRatecon) {
-                // Rate confirmation document is not in loadDocuments array, just clear it
-                setLoad({ ...load, rateconDocument: null });
-            } else {
-                // Filter out the deleted document from the appropriate arrays
-                const newLoadDocuments = loadDocuments.filter((ld) => ld.id !== id);
-                const newPodDocuments = podDocuments.filter((ld) => ld.id !== id);
-                const newBolDocuments = bolDocuments.filter((ld) => ld.id !== id);
-                setLoad({
-                    ...load,
-                    loadDocuments: newLoadDocuments,
-                    podDocuments: newPodDocuments,
-                    bolDocuments: newBolDocuments,
-                });
-            }
-            notify({ title: 'Document deleted', message: 'Document deleted successfully' });
-        } catch (e) {
-            notify({ title: 'Error deleting document', message: e.message, type: 'error' });
-        }
-        setDeletingDocumentId(null);
-        setDocumentIdToDelete(null);
-        setOpenDeleteDocumentConfirmation(false);
-    };
-
-    const openDocument = (document: LoadDocument) => {
+    const openDocument = useCallback((document: LoadDocument) => {
         window.open(document.fileUrl);
-    };
+    }, []);
 
-    const changeLoadStatus = async (newStatus: LoadStatus) => {
-        if (load) {
-            setLoad({ ...load, status: newStatus });
-            await updateLoadStatus(load.id, newStatus);
-        }
-    };
+    const changeLoadStatus = useCallback(
+        async (newStatus: LoadStatus) => {
+            if (load) {
+                setLoad({ ...load, status: newStatus });
+                await updateLoadStatus(load.id, newStatus);
+            }
+        },
+        [load, setLoad],
+    );
 
-    const openRouteInGoogleMaps = () => {
+    const openRouteInGoogleMaps = useCallback(() => {
         if (load) {
             // origin is the load shipper address
             const origin = `${load.shipper.latitude}, ${load.shipper.longitude}`;
@@ -366,17 +281,17 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
             const url = `https://www.google.com/maps/dir/?${searchParams.toString()}`;
             window.open(url);
         }
-    };
+    }, [load]);
 
-    const downloadCombinedPDF = async () => {
+    const downloadCombinedPDF = useCallback(async () => {
         setDownloadingDocs(true);
         await downloadCombinedPDFForLoad(load, session.user.defaultCarrierId);
         setDownloadingDocs(false);
-    };
+    }, [load, session]);
 
-    const makeCopyOfLoadClicked = async () => {
+    const makeCopyOfLoadClicked = useCallback(async () => {
         router.push(`/loads/create?copyLoadId=${load.id}`);
-    };
+    }, [load, router]);
 
     const editLegClicked = (legId: string) => {
         const leg = load.route.routeLegs.find((rl) => rl.id === legId) as Partial<RouteLeg>;
@@ -479,86 +394,156 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
         }
     };
 
+    // Memoized action handlers to prevent unnecessary re-renders
+    const actionHandlers = useMemo(
+        () => ({
+            editLoad: () => router.push(`/loads/edit/${load?.id}`),
+            viewInvoice: () => load?.invoice && router.push(`/invoices/${load.invoice.id}`),
+            createInvoice: () => router.push(`/invoices/create-invoice/${load?.id}`),
+            addAssignment: addAssignmentAction,
+            downloadCombinedPDF,
+            makeCopyOfLoad: makeCopyOfLoadClicked,
+            deleteLoad: () => setOpenDeleteLoadConfirmation(true),
+            assignDriver: () => setOpenLegAssignment(true),
+            changeLoadStatus,
+        }),
+        [
+            load?.id,
+            load?.invoice,
+            router,
+            addAssignmentAction,
+            downloadCombinedPDF,
+            makeCopyOfLoadClicked,
+            changeLoadStatus,
+        ],
+    );
+    if (loadLoading && !load) {
+        return (
+            <Layout
+                smHeaderComponent={
+                    <div className="flex items-center">
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Loading Load...</h1>
+                    </div>
+                }
+            >
+                <LoadDetailsSkeleton />
+            </Layout>
+        );
+    }
+
+    // Show error state
+    if (loadError && !load) {
+        return (
+            <Layout
+                smHeaderComponent={
+                    <div className="flex items-center">
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Error</h1>
+                    </div>
+                }
+            >
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-2">Error loading load</h2>
+                        <p className="text-gray-600 mb-4">{loadError}</p>
+                        <button
+                            onClick={refetch}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
+    // Show loading skeleton if load is not available yet
+    if (!load) {
+        return (
+            <Layout
+                smHeaderComponent={
+                    <div className="flex items-center">
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
+                    </div>
+                }
+            >
+                <LoadDetailsSkeleton />
+            </Layout>
+        );
+    }
+
     return (
         <Layout
             smHeaderComponent={
                 <div className="flex items-center">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
                     <div className="flex flex-none space-x-2">
-                        <ActionsDropdown
+                        <MemoizedActionsDropdown
                             load={load}
                             disabled={!load}
-                            editLoadClicked={() => {
-                                router.push(`/loads/edit/${load.id}`);
-                            }}
-                            viewInvoiceClicked={() => {
-                                if (load.invoice) {
-                                    router.push(`/invoices/${load.invoice.id}`);
-                                }
-                            }}
-                            createInvoiceClicked={() => {
-                                router.push(`/invoices/create-invoice/${load.id}`);
-                            }}
-                            addAssignmentClicked={addAssignmentAction}
-                            downloadCombinedPDF={downloadCombinedPDF}
-                            makeCopyOfLoadClicked={makeCopyOfLoadClicked}
-                            deleteLoadClicked={() => {
-                                setOpenDeleteLoadConfirmation(true);
-                            }}
-                        ></ActionsDropdown>
+                            editLoadClicked={actionHandlers.editLoad}
+                            viewInvoiceClicked={actionHandlers.viewInvoice}
+                            createInvoiceClicked={actionHandlers.createInvoice}
+                            addAssignmentClicked={actionHandlers.addAssignment}
+                            downloadCombinedPDF={actionHandlers.downloadCombinedPDF}
+                            makeCopyOfLoadClicked={actionHandlers.makeCopyOfLoad}
+                            deleteLoadClicked={actionHandlers.deleteLoad}
+                        />
                     </div>
                 </div>
             }
         >
             <>
-                <RouteLegModal
-                    show={openLegAssignment}
-                    routeLeg={editingRouteLeg}
-                    onClose={() => {
-                        setOpenLegAssignment(false);
-                        setEditingRouteLeg(null);
-                    }}
-                ></RouteLegModal>
-                <SimpleDialog
-                    show={openDeleteLoadConfirmation}
-                    title="Delete Load"
-                    description="Are you sure you want to delete this load?"
-                    primaryButtonText="Delete"
-                    primaryButtonAction={() => deleteLoad(load.id)}
-                    secondaryButtonAction={() => setOpenDeleteLoadConfirmation(false)}
-                    onClose={() => setOpenDeleteLoadConfirmation(false)}
-                ></SimpleDialog>
-                <SimpleDialog
-                    show={openDeleteDocumentConfirmation}
-                    title="Delete Document"
-                    description="Are you sure you want to delete this document?"
-                    primaryButtonText="Delete"
-                    primaryButtonAction={() => {
-                        if (documentIdToDelete) {
-                            deleteLoadDocument(documentIdToDelete);
-                        }
-                    }}
-                    secondaryButtonAction={() => {
-                        setOpenDeleteDocumentConfirmation(false);
-                        setDocumentIdToDelete(null);
-                    }}
-                    onClose={() => {
-                        setOpenDeleteDocumentConfirmation(false);
-                        setDocumentIdToDelete(null);
-                    }}
-                ></SimpleDialog>
-                <SimpleDialog
-                    show={openDeleteLegConfirmation}
-                    title="Delete Assignment"
-                    description="Are you sure you want to delete this assignment?"
-                    primaryButtonText="Delete"
-                    primaryButtonAction={confirmDeleteLeg}
-                    secondaryButtonAction={() => setOpenDeleteLegConfirmation(false)}
-                    onClose={() => setOpenDeleteLegConfirmation(false)}
-                />
+                <Suspense fallback={<div />}>
+                    <RouteLegModal
+                        show={openLegAssignment}
+                        routeLeg={editingRouteLeg}
+                        onClose={() => {
+                            setOpenLegAssignment(false);
+                            setEditingRouteLeg(null);
+                        }}
+                    />
+                    <SimpleDialog
+                        show={openDeleteLoadConfirmation}
+                        title="Delete Load"
+                        description="Are you sure you want to delete this load?"
+                        primaryButtonText="Delete"
+                        primaryButtonAction={() => deleteLoad(load.id)}
+                        secondaryButtonAction={() => setOpenDeleteLoadConfirmation(false)}
+                        onClose={() => setOpenDeleteLoadConfirmation(false)}
+                    />
+                    <SimpleDialog
+                        show={openDeleteDocumentConfirmation}
+                        title="Delete Document"
+                        description="Are you sure you want to delete this document?"
+                        primaryButtonText="Delete"
+                        primaryButtonAction={() => {
+                            if (documentIdToDelete) {
+                                deleteLoadDocument(documentIdToDelete);
+                            }
+                        }}
+                        secondaryButtonAction={() => {
+                            setOpenDeleteDocumentConfirmation(false);
+                            setDocumentIdToDelete(null);
+                        }}
+                        onClose={() => {
+                            setOpenDeleteDocumentConfirmation(false);
+                            setDocumentIdToDelete(null);
+                        }}
+                    />
+                    <SimpleDialog
+                        show={openDeleteLegConfirmation}
+                        title="Delete Assignment"
+                        description="Are you sure you want to delete this assignment?"
+                        primaryButtonText="Delete"
+                        primaryButtonAction={confirmDeleteLeg}
+                        secondaryButtonAction={() => setOpenDeleteLegConfirmation(false)}
+                        onClose={() => setOpenDeleteLegConfirmation(false)}
+                    />
+                </Suspense>
                 <div className="relative max-w-7xl py-2 mx-auto">
                     {downloadingDocs && <LoadingOverlay message="Downloading documents..." />}
-                    <BreadCrumb
+                    <MemoizedBreadCrumb
                         className="sm:px-6 md:px-8"
                         paths={[
                             {
@@ -569,59 +554,41 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 label: load ? `${load.refNum}` : '',
                             },
                         ]}
-                    ></BreadCrumb>
+                    />
                     <div className="hidden px-5 mt-4 mb-3 md:block sm:px-6 md:px-8">
                         <div className="flex">
                             <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
-                            <ActionsDropdown
+                            <MemoizedActionsDropdown
                                 load={load}
                                 disabled={!load}
-                                editLoadClicked={() => {
-                                    router.push(`/loads/edit/${load.id}`);
-                                }}
-                                viewInvoiceClicked={() => {
-                                    if (load.invoice) {
-                                        router.push(`/invoices/${load.invoice.id}`);
-                                    }
-                                }}
-                                createInvoiceClicked={() => {
-                                    router.push(`/invoices/create-invoice/${load.id}`);
-                                }}
-                                addAssignmentClicked={addAssignmentAction}
-                                downloadCombinedPDF={downloadCombinedPDF}
-                                makeCopyOfLoadClicked={makeCopyOfLoadClicked}
-                                deleteLoadClicked={() => {
-                                    setOpenDeleteLoadConfirmation(true);
-                                }}
-                            ></ActionsDropdown>
+                                editLoadClicked={actionHandlers.editLoad}
+                                viewInvoiceClicked={actionHandlers.viewInvoice}
+                                createInvoiceClicked={actionHandlers.createInvoice}
+                                addAssignmentClicked={actionHandlers.addAssignment}
+                                downloadCombinedPDF={actionHandlers.downloadCombinedPDF}
+                                makeCopyOfLoadClicked={actionHandlers.makeCopyOfLoad}
+                                deleteLoadClicked={actionHandlers.deleteLoad}
+                            />
                         </div>
                         <div className="w-full mt-2 mb-1 border-t border-gray-300" />
                     </div>
 
-                    <LoadDetailsToolbar
+                    <MemoizedLoadDetailsToolbar
                         className="px-5 py-2 mb-1 bg-white sm:px-6 md:px-8"
                         load={load}
                         disabled={!load}
-                        editLoadClicked={() => {
-                            router.push(`/loads/edit/${load.id}`);
-                        }}
-                        viewInvoiceClicked={() => {
-                            if (load.invoice) {
-                                router.push(`/invoices/${load.invoice.id}`);
-                            }
-                        }}
-                        createInvoiceClicked={() => {
-                            router.push(`/invoices/create-invoice/${load.id}`);
-                        }}
-                        assignDriverClicked={() => setOpenLegAssignment(true)}
-                        changeLoadStatus={changeLoadStatus}
-                    ></LoadDetailsToolbar>
+                        editLoadClicked={actionHandlers.editLoad}
+                        viewInvoiceClicked={actionHandlers.viewInvoice}
+                        createInvoiceClicked={actionHandlers.createInvoice}
+                        assignDriverClicked={actionHandlers.assignDriver}
+                        changeLoadStatus={actionHandlers.changeLoadStatus}
+                    />
 
                     {load ? (
                         <div className="grid grid-cols-1 gap-4 px-5 sm:gap-6  lg:gap-6 sm:px-6 md:px-8">
                             <div>
-                                <LoadDetailsInfo />
-                                <LoadDetailsDocuments
+                                <MemoizedLoadDetailsInfo />
+                                <MemoizedLoadDetailsDocuments
                                     podDocuments={podDocuments}
                                     bolDocuments={bolDocuments}
                                     loadDocuments={loadDocuments}
@@ -636,10 +603,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
                                     deletingDocumentId={deletingDocumentId}
                                     documentIdToDelete={documentIdToDelete}
+                                    loadDocumentsData={loadDocumentsData}
                                 />
                             </div>
-                            <LoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
-                            <LoadAssignmentsSection
+                            <MemoizedLoadRouteSection openRouteInGoogleMaps={openRouteInGoogleMaps} />
+                            <MemoizedLoadAssignmentsSection
                                 removingRouteLegWithId={removingRouteLegWithId}
                                 setOpenLegAssignment={setOpenLegAssignment}
                                 changeLegStatusClicked={changeLegStatusClicked}
@@ -647,17 +615,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 editLegClicked={editLegClicked}
                                 openRouteInMapsClicked={openRouteInMapsClicked}
                             />
-                            <div className="mt-2">
-                                <div className="pb-2 f">
-                                    <h3 className="text-base font-semibold leading-6 text-gray-900">Load Activity</h3>
-                                    <p className="text-xs text-slate-500">
-                                        All changes made on this load are listed below
-                                    </p>
-                                </div>
-                                <div className={`w-full gap-1 bg-neutral-50 border border-slate-100 p-3 rounded-lg`}>
-                                    <LoadActivityLog loadId={loadId}></LoadActivityLog>
-                                </div>
-                            </div>
+                            <Suspense
+                                fallback={
+                                    <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                                        Loading activity...
+                                    </div>
+                                }
+                            >
+                                <MemoizedLoadActivitySection loadId={loadId} />
+                            </Suspense>
                         </div>
                     ) : (
                         <div className="px-5 sm:px-6 md:px-8">

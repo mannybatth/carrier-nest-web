@@ -26,6 +26,7 @@ type LoadDetailsDocumentsProps = {
     setOpenDeleteDocumentConfirmation: (open: boolean) => void;
     deletingDocumentId?: string | null; // Document currently being deleted (after confirmation)
     documentIdToDelete?: string | null; // Document queued for deletion (pending confirmation)
+    loadDocumentsData?: () => Promise<void>; // Function to load documents on demand
 };
 
 type DocumentType = 'pod' | 'bol' | 'ratecon' | 'document';
@@ -45,9 +46,37 @@ const LoadDetailsDocuments: React.FC<LoadDetailsDocumentsProps> = ({
     setOpenDeleteDocumentConfirmation,
     deletingDocumentId,
     documentIdToDelete,
+    loadDocumentsData,
 }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType>('document');
+    const [documentsLoaded, setDocumentsLoaded] = useState(false);
+
+    // Load documents when component mounts (lazy loading)
+    useEffect(() => {
+        const shouldLoadDocuments =
+            !documentsLoaded &&
+            loadDocumentsData &&
+            !loadDocuments?.length &&
+            !podDocuments?.length &&
+            !bolDocuments?.length &&
+            !rateconDocument;
+
+        if (shouldLoadDocuments) {
+            loadDocumentsData()
+                .then(() => {
+                    setDocumentsLoaded(true);
+                })
+                .catch(console.error);
+        }
+    }, [
+        loadDocumentsData,
+        documentsLoaded,
+        loadDocuments?.length,
+        podDocuments?.length,
+        bolDocuments?.length,
+        rateconDocument,
+    ]);
 
     const handleUpload = (event: ChangeEvent<HTMLInputElement>) => {
         switch (selectedDocumentType) {

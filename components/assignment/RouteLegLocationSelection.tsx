@@ -376,7 +376,7 @@ type Props = {
 };
 
 const RouteLegLocationSelection: React.FC<Props> = ({ title, onLegLocationsSelectionSave, onGoBack }: Props) => {
-    const [load] = useLoadContext();
+    const { load } = useLoadContext();
     const [routeLegData] = useRouteLegDataContext();
     const [allListItems, setAllListItems] = React.useState<ListItem[]>([]);
     const [locationOptions, setLocationOptions] = React.useState<Location[]>([]);

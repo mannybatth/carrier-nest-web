@@ -19,7 +19,7 @@ type Props = {
 };
 
 const CreateInvoice: PageWithAuth<Props> = ({ nextInvoiceNum }: Props) => {
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad } = useLoadContext();
     const [_, setLastDueNetDays] = useLocalStorage('lastDueNetDays', 30);
 
     const formHook = useForm<ExpandedInvoice>();

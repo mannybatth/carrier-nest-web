@@ -35,7 +35,7 @@ const LoadActivityLog: React.FC<Props> = ({ className, loadId }) => {
     const [activity, setActivity] = useState<ExpandedLoadActivity[]>([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [moreLoading, setMoreLoading] = useState(false);
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad } = useLoadContext();
 
     const [limit, setLimit] = React.useState(8);
     const [offset, setOffset] = React.useState(0);

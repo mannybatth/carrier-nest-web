@@ -61,13 +61,6 @@ const navigation = [
         iconSolid: IdentificationIconSolid,
     },
     {
-        name: 'IFTA',
-        href: '/ifta',
-        icon: FunnelIcon,
-        iconSolid: FunnelIconSolid,
-        comingSoon: true,
-    },
-    {
         name: 'Customers',
         href: '/customers',
         icon: UserGroupIcon,
@@ -84,6 +77,14 @@ const navigation = [
         href: '/equipments',
         icon: WrenchIcon,
         iconSolid: WrenchIconSolid,
+    },
+
+    {
+        name: 'IFTA',
+        href: '/ifta',
+        icon: FunnelIcon,
+        iconSolid: FunnelIconSolid,
+        comingSoon: true,
     },
 ];
 
@@ -122,7 +123,9 @@ const Navigation: React.FC<NavigationProps> = ({ collapsed }) => {
                         className={classNames(
                             'group relative flex items-center font-display text-sm transition-all duration-200 ease-out',
                             collapsed ? 'p-3 justify-center rounded-xl' : 'px-4 py-2.5 rounded-xl',
-                            active
+                            item.comingSoon
+                                ? 'text-slate-400 hover:text-slate-500 hover:bg-slate-50/40 font-medium'
+                                : active
                                 ? 'text-blue-600 font-semibold'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/60 font-medium',
                             'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:ring-offset-transparent',
@@ -134,17 +137,26 @@ const Navigation: React.FC<NavigationProps> = ({ collapsed }) => {
                         <IconComponent
                             className={classNames(
                                 collapsed ? 'h-5 w-5' : 'h-5 w-5 mr-3',
-                                active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600',
+                                item.comingSoon
+                                    ? 'text-slate-400 group-hover:text-slate-500'
+                                    : active
+                                    ? 'text-blue-600'
+                                    : 'text-slate-400 group-hover:text-slate-600',
                                 'transition-colors duration-200 flex-shrink-0',
                             )}
                             aria-hidden="true"
                         />
 
                         {!collapsed && (
-                            <span className="flex-1 transition-colors duration-200 tracking-[-0.01em]">
+                            <span
+                                className={classNames(
+                                    'flex-1 transition-colors duration-200 tracking-[-0.01em]',
+                                    item.comingSoon ? 'text-slate-400 group-hover:text-slate-500' : '',
+                                )}
+                            >
                                 {item.name}
                                 {item.comingSoon && (
-                                    <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
+                                    <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100/50 text-slate-400 border border-slate-200/40">
                                         Soon
                                     </span>
                                 )}
