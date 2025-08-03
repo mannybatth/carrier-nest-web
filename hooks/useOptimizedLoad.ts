@@ -1,35 +1,9 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { ExpandedLoad } from '../../interfaces/models';
-import { getLoadByIdOptimized } from '../../lib/rest/load-optimized';
+// hooks/useOptimizedLoad.ts
+import { useState, useEffect, useCallback } from 'react';
+import { ExpandedLoad } from '../interfaces/models';
+import { getLoadByIdOptimized } from '../lib/rest/load-optimized';
 
-type LoadContextType = {
-    load: ExpandedLoad | null;
-    setLoad: React.Dispatch<React.SetStateAction<ExpandedLoad | null>>;
-    loading: boolean;
-    error: string | null;
-    loadDocumentsData: () => Promise<void>;
-    refetch: () => Promise<void>;
-};
-
-const LoadContext = createContext<LoadContextType>({
-    load: null,
-    setLoad: () => null,
-    loading: true,
-    error: null,
-    loadDocumentsData: async () => {
-        console.warn('loadDocumentsData called on default context');
-    },
-    refetch: async () => {
-        console.warn('refetch called on default context');
-    },
-});
-
-type LoadProviderProps = {
-    children: React.ReactNode;
-    loadId: string;
-};
-
-export function LoadProvider({ children, loadId }: LoadProviderProps) {
+export const useOptimizedLoad = (loadId: string) => {
     const [load, setLoad] = useState<ExpandedLoad | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -40,7 +14,6 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
 
         try {
             setLoading(true);
-            setError(null);
             const lightLoad = await getLoadByIdOptimized(loadId, undefined, {
                 lightweight: true,
             });
@@ -59,7 +32,16 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
         try {
             const fullLoad = await getLoadByIdOptimized(loadId, undefined, {
                 expandCarrier: true,
-                // No field restrictions - load all essential data including stops, route, etc.
+                fields: [
+                    'id',
+                    'loadNum',
+                    'status',
+                    'rate',
+                    'refNum',
+                    'createdAt',
+                    'routeDistanceMiles',
+                    'routeDurationHours',
+                ],
             });
             setLoad(fullLoad);
         } catch (err) {
@@ -68,7 +50,7 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
     }, [loadId]);
 
     // Step 3: Load documents on demand
-    const loadDocumentsData = useCallback(async () => {
+    const loadDocuments = useCallback(async () => {
         if (!loadId) return;
 
         try {
@@ -82,14 +64,6 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
         }
     }, [loadId]);
 
-    // Refetch function for manual refresh
-    const refetch = useCallback(async () => {
-        await loadEssentialData();
-        setTimeout(() => {
-            loadFullData();
-        }, 100);
-    }, [loadEssentialData, loadFullData]);
-
     useEffect(() => {
         loadEssentialData();
 
@@ -101,22 +75,11 @@ export function LoadProvider({ children, loadId }: LoadProviderProps) {
         return () => clearTimeout(timer);
     }, [loadEssentialData, loadFullData]);
 
-    // Memoize context value to prevent unnecessary re-renders
-    const contextValue = useMemo(
-        () => ({
-            load,
-            setLoad,
-            loading,
-            error,
-            loadDocumentsData,
-            refetch,
-        }),
-        [load, setLoad, loading, error, loadDocumentsData, refetch],
-    );
-
-    return <LoadContext.Provider value={contextValue}>{children}</LoadContext.Provider>;
-}
-
-export function useLoadContext() {
-    return useContext(LoadContext);
-}
+    return {
+        load,
+        loading,
+        error,
+        loadDocuments,
+        refetch: loadFullData,
+    };
+};

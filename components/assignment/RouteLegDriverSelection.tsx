@@ -35,7 +35,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
     onGoBack,
     onDriverSelectionSave,
 }: Props) => {
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad } = useLoadContext();
     const {
         register,
         handleSubmit,

@@ -20,7 +20,7 @@ type LoadRouteSectionProps = {
 };
 
 const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMaps }) => {
-    const [load] = useLoadContext();
+    const { load } = useLoadContext();
 
     // Calculate rate per mile
     const ratePerMile =
@@ -39,7 +39,7 @@ const LoadRouteSection: React.FC<LoadRouteSectionProps> = ({ openRouteInGoogleMa
             name: load.shipper?.name || 'Pickup Location',
             stopType: 'shipper',
         },
-        ...load.stops.map((stop, index) => ({
+        ...(load.stops || []).map((stop, index) => ({
             ...stop,
             type: 'stop' as const,
             id: `stop-${index}`,

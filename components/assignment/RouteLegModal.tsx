@@ -414,7 +414,7 @@ type Props = {
 
 const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     const router = useRouter();
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad } = useLoadContext();
     const [routeLegData, setRouteLegData] = useRouteLegDataContext();
     const [dragState, setDragState] = useState<DragState>({
         isDragging: false,

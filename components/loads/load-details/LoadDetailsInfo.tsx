@@ -5,7 +5,7 @@ import LoadStatusBadge from '../LoadStatusBadge';
 import { DownloadInvoicePDFButton } from 'components/invoices/invoicePdf';
 
 const LoadDetailsInfo: React.FC = () => {
-    const [load] = useLoadContext();
+    const { load } = useLoadContext();
 
     // Format currency
     const formatCurrency = (value: number) => {

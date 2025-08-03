@@ -16,7 +16,7 @@ import PDFViewer from 'components/PDFViewer';
 import Spinner from 'components/Spinner';
 
 const EditLoad: PageWithAuth = () => {
-    const [load, setLoad] = useLoadContext();
+    const { load, setLoad } = useLoadContext();
     const router = useRouter();
 
     const formHook = useForm<ExpandedLoad>();

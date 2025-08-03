@@ -42,7 +42,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
     editLegClicked,
     openRouteInMapsClicked,
 }) => {
-    const [load] = useLoadContext();
+    const { load } = useLoadContext();
 
     const [routeLegIDUpdating, setRouteLegIDUpdating] = React.useState<string | null>(null);
 
