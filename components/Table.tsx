@@ -2,10 +2,10 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, Fragment, useRef } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { ChevronDownIcon, ChevronUpIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import Spinner from './Spinner';
-import { Menu, Transition } from '@headlessui/react';
+import { Menu } from '@headlessui/react';
 import { createPortal } from 'react-dom';
 
 // Simple className utility without tailwind-merge
@@ -84,8 +84,8 @@ const RowContent = React.memo(
             })}
 
             {row.menuItems?.length > 0 && (
-                <td className="relative px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <Menu as="div" className="relative inline-block text-left">
+                <td className="relative px-2 py-3 text-right" onClick={(e) => e.stopPropagation()} data-menu-item>
+                    <Menu as="div" className="relative inline-block text-left" data-menu-item>
                         {({ open }) => {
                             const buttonRef = useRef<HTMLButtonElement>(null);
                             const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -95,11 +95,9 @@ const RowContent = React.memo(
                                         if (!buttonRef.current) return;
 
                                         const rect = buttonRef.current.getBoundingClientRect();
-                                        const viewportHeight = window.innerHeight;
                                         const viewportWidth = window.innerWidth;
 
                                         // Menu dimensions
-                                        const menuHeight = 200;
                                         const menuWidth = 192;
 
                                         // Calculate vertical position (always below the button)
@@ -217,6 +215,7 @@ const Table = ({
     caption,
     stickyHeader = false,
 }: Props) => {
+    const router = useRouter();
     const [sort, setSort] = useState<Sort>(sortProps);
     const [isScrollable, setIsScrollable] = useState(false);
 
@@ -371,29 +370,27 @@ const Table = ({
                                         'group transition-colors',
                                         (onRowClick || rowLink) && 'cursor-pointer hover:bg-gray-50',
                                     )}
-                                    onClick={() => onRowClick && onRowClick(row.id, rowIndex)}
+                                    onClick={(e) => {
+                                        // Prevent navigation if clicking on menu items
+                                        if ((e.target as HTMLElement).closest('[data-menu-item]')) {
+                                            return;
+                                        }
+
+                                        if (onRowClick) {
+                                            onRowClick(row.id, rowIndex);
+                                        } else if (rowLink) {
+                                            // Use Next.js router for programmatic navigation
+                                            const href = rowLink(row.id);
+                                            router.push(href);
+                                        }
+                                    }}
                                 >
-                                    {rowLink ? (
-                                        <Link
-                                            href={rowLink(row.id)}
-                                            className="contents"
-                                            aria-label={`View details for row ${rowIndex + 1}`}
-                                        >
-                                            <RowContent
-                                                row={row}
-                                                rowIndex={rowIndex}
-                                                headers={headers}
-                                                handleMenuItemClick={handleMenuItemClick}
-                                            />
-                                        </Link>
-                                    ) : (
-                                        <RowContent
-                                            row={row}
-                                            rowIndex={rowIndex}
-                                            headers={headers}
-                                            handleMenuItemClick={handleMenuItemClick}
-                                        />
-                                    )}
+                                    <RowContent
+                                        row={row}
+                                        rowIndex={rowIndex}
+                                        headers={headers}
+                                        handleMenuItemClick={handleMenuItemClick}
+                                    />
                                 </tr>
                             );
                         })}
