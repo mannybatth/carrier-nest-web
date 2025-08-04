@@ -456,7 +456,7 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
     return (
         <Transition appear show={isOpen} as={React.Fragment}>
-            <Dialog as="div" className="relative z-10" onClose={handleClose}>
+            <Dialog as="div" className="relative z-40" onClose={handleClose}>
                 <Transition.Child
                     as={React.Fragment}
                     enter="ease-out duration-300"
@@ -775,14 +775,14 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
                     : 'hover:bg-gray-50/80'
             }`}
         >
-            <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center justify-between px-4 py-4 min-w-0">
                 <div
-                    className={`flex items-center flex-1 ${
+                    className={`flex items-center flex-1 min-w-0 ${
                         documentState !== 'normal' ? 'cursor-not-allowed' : 'cursor-pointer'
                     }`}
                     onClick={() => documentState === 'normal' && openDocument(document)}
                 >
-                    <div className="flex-shrink-0 mr-4">
+                    <div className="flex-shrink-0 mr-3">
                         <div
                             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
                                 documentState === 'deleting'
@@ -804,7 +804,7 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
                             )}
                         </div>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-2">
                         <p
                             className={`text-sm font-medium truncate transition-colors duration-200 ${
                                 documentState === 'deleting'
@@ -813,11 +813,12 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
                                     ? 'text-red-700'
                                     : 'text-gray-900 group-hover:text-gray-800'
                             }`}
+                            title={document.fileName}
                         >
                             {document.fileName}
                         </p>
                         <p
-                            className={`text-xs transition-colors duration-200 ${
+                            className={`text-xs transition-colors duration-200 truncate ${
                                 documentState === 'deleting'
                                     ? 'text-gray-400'
                                     : documentState === 'pending'
@@ -833,7 +834,7 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
                         </p>
                     </div>
                 </div>
-                <div className="flex-shrink-0 ml-4">
+                <div className="flex-shrink-0 ml-2">
                     {documentState === 'deleting' ? (
                         <div className="w-8 h-8 flex items-center justify-center">
                             {/* Empty space while deleting */}
@@ -848,6 +849,7 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
                             onClick={handleDeleteClick}
                             disabled={disabled || documentState !== 'normal'}
                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100/0 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete document"
                         >
                             <TrashIcon className="h-4 w-4" />
                         </button>
