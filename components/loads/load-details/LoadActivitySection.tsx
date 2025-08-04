@@ -12,10 +12,15 @@ const LoadActivitySection: React.FC<LoadActivitySectionProps> = ({ loadId, class
     const [showLoadActivity, setShowLoadActivity] = useState(false);
 
     return (
-        <div className={`mt-2 ${className}`}>
-            <div className="pb-2 cursor-pointer" onClick={() => setShowLoadActivity(!showLoadActivity)}>
+        <div
+            className={`bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100/50 backdrop-blur-sm ${className}`}
+        >
+            <div
+                className="px-6 py-6 border-b border-gray-100/80 bg-gradient-to-r from-gray-50/50 to-white cursor-pointer"
+                onClick={() => setShowLoadActivity(!showLoadActivity)}
+            >
                 <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold leading-6 text-gray-900">Load Activity</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Load Activity</h3>
                     <button
                         className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
                         type="button"
@@ -59,18 +64,15 @@ const LoadActivitySection: React.FC<LoadActivitySectionProps> = ({ loadId, class
                         )}
                     </button>
                 </div>
-                <p className="text-xs text-slate-500">All changes made on this load are listed below</p>
+                <p className="text-sm text-gray-500 mt-1">All changes made on this load are listed below</p>
             </div>
             {showLoadActivity && (
-                <div
-                    id="load-activity-content"
-                    className="w-full gap-1 bg-neutral-50 border border-slate-100 p-3 rounded-lg transition-all duration-200"
-                >
+                <div id="load-activity-content" className="px-6 py-6 bg-gray-50/30">
                     <Suspense
                         fallback={
-                            <div className="flex items-center justify-center py-4 text-sm text-gray-500">
+                            <div className="flex items-center justify-center py-8 text-sm text-gray-500">
                                 <svg
-                                    className="animate-spin -ml-1 mr-3 h-4 w-4"
+                                    className="animate-spin -ml-1 mr-3 h-5 w-5"
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
                                     viewBox="0 0 24 24"
