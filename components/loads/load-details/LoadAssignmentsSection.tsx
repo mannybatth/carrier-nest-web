@@ -153,7 +153,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                             return (
                                 <div
                                     key={leg.id} // Use leg.id instead of index for better React tracking
-                                    className="relative bg-gray-50 sm:border sm:border-gray-100 sm:rounded-lg overflow-hidden"
+                                    className="relative bg-white sm:border-0 sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
                                 >
                                     {/* Loading overlay */}
                                     {removingRouteLegWithId === leg.id && (
@@ -200,7 +200,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
 
                                             {/* Status dropdown */}
                                             <Menu as="div" className="relative inline-block text-left">
-                                                <Menu.Button className="inline-flex items-center justify-center p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                <Menu.Button className="inline-flex items-center justify-center w-10 h-10 bg-white rounded-xl border border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200">
                                                     <EllipsisHorizontalIcon className="h-5 w-5" aria-hidden="true" />
                                                 </Menu.Button>
                                                 <Transition
@@ -212,7 +212,7 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                     leaveFrom="transform opacity-100 scale-100"
                                                     leaveTo="transform opacity-0 scale-95"
                                                 >
-                                                    <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <Menu.Items className="absolute right-0   mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                         <div className="py-1">
                                                             {/* Status options - only show statuses different from current status */}
 
@@ -341,261 +341,313 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                         </div>
                                     </div>
 
-                                    {/* Route details summary */}
-                                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            <div className="flex items-center">
-                                                <ArrowsRightLeftIcon className="h-4 w-4 text-gray-500 mr-2" />
+                                    {/* Assignment content - Two Column Layout like DriverAssignmentsTable Expanded Row */}
+                                    <div className="px-6 py-5">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* Left Column - Route Details */}
+                                            <div className="space-y-6">
+                                                {/* Dense Route List */}
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-500">Distance</p>
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        {Number(legDistance)?.toFixed(2)} miles
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center">
-                                                <ClockIcon className="h-4 w-4 text-gray-500 mr-2" />
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-500">Duration</p>
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        {Number(legDuration)?.toFixed(2)} hours
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Assignment content */}
-                                    <div className="px-6 py-4">
-                                        {/* Drivers section with payment details */}
-                                        <div className="mb-4">
-                                            <div className="flex items-center mb-3">
-                                                <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
-                                                <h4 className="text-sm font-medium text-gray-700">
-                                                    Assigned Drivers & Payment
-                                                </h4>
-                                            </div>
-
-                                            <div className=" space-y-3">
-                                                {leg.driverAssignments.map((assignment, idx) => {
-                                                    const driver = assignment.driver;
-                                                    const chargeType = assignment.chargeType;
-                                                    const chargeValue = assignment.chargeValue;
-
-                                                    const estimatedPayment = calculateDriverPayment(
-                                                        assignment,
-                                                        Number(legDistance),
-                                                        Number(load.rate),
-                                                        Number(legDuration),
-                                                    );
-
-                                                    // Format charge type for display
-                                                    let chargeDisplay = '';
-                                                    if (chargeType === 'FIXED_PAY') {
-                                                        chargeDisplay = `Fixed Pay: ${formatCurrency(
-                                                            Number(chargeValue),
-                                                        )}`;
-                                                    } else if (chargeType === 'PERCENTAGE_OF_LOAD') {
-                                                        chargeDisplay = `${chargeValue}% of Load Rate`;
-                                                    } else if (chargeType === 'PER_MILE') {
-                                                        chargeDisplay = `${formatCurrency(
-                                                            Number(chargeValue),
-                                                        )} per mile`;
-                                                    } else if (chargeType === 'PER_HOUR') {
-                                                        chargeDisplay = `${formatCurrency(
-                                                            Number(chargeValue),
-                                                        )} per hour`;
-                                                    }
-
-                                                    return (
-                                                        <div
-                                                            key={`driver-payment-${idx}`}
-                                                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white border border-gray-200 rounded-lg"
-                                                        >
-                                                            <div className="flex items-center mb-2 sm:mb-0">
-                                                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                                                    <UserIcon className="h-4 w-4 text-blue-600" />
-                                                                </div>
-                                                                <div>
-                                                                    <Link
-                                                                        href={`/drivers/${driver.id}`}
-                                                                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                                                                    >
-                                                                        {driver.name}
-                                                                    </Link>
-                                                                    <p className="text-xs text-gray-500">
-                                                                        {chargeDisplay}
-                                                                    </p>
-                                                                </div>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h4 className="text-sm font-semibold text-gray-900">
+                                                            Route Stops
+                                                        </h4>
+                                                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                                            <div className="flex items-center space-x-1">
+                                                                <ArrowsRightLeftIcon className="h-3.5 w-3.5 text-gray-400" />
+                                                                <span className="font-medium">
+                                                                    {Number(legDistance)?.toFixed(2)} mi
+                                                                </span>
                                                             </div>
-
-                                                            <div className="bg-green-50 px-3 py-1 rounded-full">
-                                                                <span className="text-sm font-medium text-green-700">
-                                                                    Est. Total: {formatCurrency(estimatedPayment)}
+                                                            <div className="flex items-center space-x-1">
+                                                                <ClockIcon className="h-3.5 w-3.5 text-gray-400" />
+                                                                <span className="font-medium">
+                                                                    {Number(legDuration)?.toFixed(2)} hrs
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        {locations.map((location, idx) => {
+                                                            const isLoadStop = !!location.loadStop;
+                                                            const item = isLoadStop
+                                                                ? location.loadStop
+                                                                : location.location;
 
-                                        {/* Instructions section */}
-                                        {leg.driverInstructions && (
-                                            <div className="mb-4 bg-yellow-50 rounded-lg p-3 border border-yellow-100">
-                                                <div className="flex items-start">
-                                                    <InformationCircleIcon className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <h4 className="text-sm font-medium text-gray-900">
-                                                            Driver Instructions
-                                                        </h4>
-                                                        <p className="mt-1 text-sm text-gray-700">
-                                                            {leg.driverInstructions}
-                                                        </p>
+                                                            // Determine stop styling based on type
+                                                            const getStopConfig = () => {
+                                                                if (isLoadStop) {
+                                                                    switch (location.loadStop?.type) {
+                                                                        case 'SHIPPER':
+                                                                            return {
+                                                                                label: 'P',
+                                                                                color: 'bg-green-100 text-green-700 border border-green-200',
+                                                                                name: 'Pickup',
+                                                                            };
+                                                                        case 'RECEIVER':
+                                                                            return {
+                                                                                label: 'D',
+                                                                                color: 'bg-red-100 text-red-700 border border-red-200',
+                                                                                name: 'Delivery',
+                                                                            };
+                                                                        case 'STOP':
+                                                                            return {
+                                                                                label: 'S',
+                                                                                color: 'bg-amber-100 text-amber-700 border border-amber-200',
+                                                                                name: 'Stop',
+                                                                            };
+                                                                        default:
+                                                                            return {
+                                                                                label: 'C',
+                                                                                color: 'bg-purple-100 text-purple-700 border border-purple-200',
+                                                                                name: 'Custom',
+                                                                            };
+                                                                    }
+                                                                }
+                                                                return {
+                                                                    label: 'C',
+                                                                    color: 'bg-purple-100 text-purple-700 border border-purple-200',
+                                                                    name: 'Custom Location',
+                                                                };
+                                                            };
+
+                                                            const config = getStopConfig();
+
+                                                            return (
+                                                                <div
+                                                                    key={location.id}
+                                                                    className="flex items-start space-x-4"
+                                                                >
+                                                                    <div className="flex-shrink-0 flex items-center space-x-2">
+                                                                        <div className="relative">
+                                                                            <div
+                                                                                className={`w-10 h-10 ${config.color} rounded-xl flex items-center justify-center`}
+                                                                            >
+                                                                                <span className="text-sm font-bold">
+                                                                                    {config.label}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                                                                                {idx + 1}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <div className="flex items-center space-x-2">
+                                                                                    <span className="text-xs font-medium text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                                                                                        {config.name}
+                                                                                    </span>
+                                                                                    {isLoadStop && 'time' in item && (
+                                                                                        <span className="text-xs text-gray-600 font-medium">
+                                                                                            {item.time}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                {item?.latitude && item?.longitude && (
+                                                                                    <a
+                                                                                        href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="flex-shrink-0 w-7 h-7 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg flex items-center justify-center transition-colors duration-150"
+                                                                                    >
+                                                                                        <MapIcon className="w-3.5 h-3.5" />
+                                                                                    </a>
+                                                                                )}
+                                                                            </div>
+                                                                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                                                                                {item?.name || 'Unknown Location'}
+                                                                            </h4>
+                                                                            <p className="text-xs text-gray-600 mb-1">
+                                                                                {item?.street}
+                                                                            </p>
+                                                                            <p className="text-xs text-gray-600 font-medium">
+                                                                                {[
+                                                                                    item?.city?.toUpperCase(),
+                                                                                    item?.state?.toUpperCase(),
+                                                                                ]
+                                                                                    .filter(Boolean)
+                                                                                    .join(', ') ||
+                                                                                    'LOCATION NOT AVAILABLE'}
+                                                                            </p>
+
+                                                                            {/* Include start/completion status if available */}
+                                                                            {idx === 0 && leg.startedAt && (
+                                                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                                                    <p className="text-xs font-medium text-green-600">
+                                                                                        Started:{' '}
+                                                                                        {new Date(
+                                                                                            leg.startedAt,
+                                                                                        ).toLocaleString()}
+                                                                                    </p>
+                                                                                    {hasStartLocation && (
+                                                                                        <button
+                                                                                            onClick={() =>
+                                                                                                openInGoogleMaps(
+                                                                                                    leg.startLatitude,
+                                                                                                    leg.startLongitude,
+                                                                                                )
+                                                                                            }
+                                                                                            className="text-xs text-green-600 hover:text-green-800 underline"
+                                                                                        >
+                                                                                            View start location
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                            {idx === locations.length - 1 &&
+                                                                                leg.endedAt && (
+                                                                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                                                                        <p className="text-xs font-medium text-red-600">
+                                                                                            Completed:{' '}
+                                                                                            {new Date(
+                                                                                                leg.endedAt,
+                                                                                            ).toLocaleString()}
+                                                                                        </p>
+                                                                                        {hasEndLocation && (
+                                                                                            <button
+                                                                                                onClick={() =>
+                                                                                                    openInGoogleMaps(
+                                                                                                        leg.endLatitude,
+                                                                                                        leg.endLongitude,
+                                                                                                    )
+                                                                                                }
+                                                                                                className="text-xs text-red-600 hover:text-red-800 underline"
+                                                                                            >
+                                                                                                View completion location
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+
+                                                                            {/* Reference Numbers */}
+                                                                            {isLoadStop &&
+                                                                                (location.loadStop?.pickUpNumbers ||
+                                                                                    location.loadStop
+                                                                                        ?.referenceNumbers) && (
+                                                                                    <div className="flex space-x-2 mt-2">
+                                                                                        {location.loadStop
+                                                                                            ?.pickUpNumbers && (
+                                                                                            <span className="text-xs text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                                                                                                {location.loadStop
+                                                                                                    .type === 'RECEIVER'
+                                                                                                    ? 'Conf:'
+                                                                                                    : 'PU:'}{' '}
+                                                                                                {
+                                                                                                    location.loadStop
+                                                                                                        .pickUpNumbers
+                                                                                                }
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {location.loadStop
+                                                                                            ?.referenceNumbers && (
+                                                                                            <span className="text-xs text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                                                                                                Ref:{' '}
+                                                                                                {
+                                                                                                    location.loadStop
+                                                                                                        .referenceNumbers
+                                                                                                }
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {/* Route section */}
-                                        <div className="mt-4">
-                                            <h4 className="text-sm font-medium text-gray-700 mb-3">Route Details</h4>
+                                            {/* Right Column - Drivers, Payment, Instructions */}
+                                            <div className="space-y-6">
+                                                {/* Assigned Drivers */}
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-gray-900 mb-4">
+                                                        Assigned Drivers
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        {leg.driverAssignments.map((assignment, idx) => {
+                                                            const driver = assignment.driver;
+                                                            const chargeType = assignment.chargeType;
+                                                            const chargeValue = assignment.chargeValue;
 
-                                            <div className="relative">
-                                                {/* Vertical line connecting stops */}
-                                                <div
-                                                    className="absolute top-0 left-4 bottom-0 w-0.5 bg-gray-200"
-                                                    aria-hidden="true"
-                                                ></div>
+                                                            const estimatedPayment = calculateDriverPayment(
+                                                                assignment,
+                                                                Number(legDistance),
+                                                                Number(load.rate),
+                                                                Number(legDuration),
+                                                            );
 
-                                                <ul className="space-y-6">
-                                                    {locations.map((location, idx) => {
-                                                        const isLoadStop = !!location.loadStop;
-                                                        const item = isLoadStop ? location.loadStop : location.location;
-                                                        const isFirst = idx === 0;
-                                                        const isLast = idx === locations.length - 1;
+                                                            // Format charge type for display
+                                                            let chargeDisplay = '';
+                                                            if (chargeType === 'FIXED_PAY') {
+                                                                chargeDisplay = `Fixed Pay: ${formatCurrency(
+                                                                    Number(chargeValue),
+                                                                )}`;
+                                                            } else if (chargeType === 'PERCENTAGE_OF_LOAD') {
+                                                                chargeDisplay = `${chargeValue}% of Load Rate`;
+                                                            } else if (chargeType === 'PER_MILE') {
+                                                                chargeDisplay = `${formatCurrency(
+                                                                    Number(chargeValue),
+                                                                )} per mile`;
+                                                            } else if (chargeType === 'PER_HOUR') {
+                                                                chargeDisplay = `${formatCurrency(
+                                                                    Number(chargeValue),
+                                                                )} per hour`;
+                                                            }
 
-                                                        // Determine icon and colors based on position
-                                                        let icon = <MapPinIcon className="h-5 w-5 text-white" />;
-                                                        let bgColor = 'bg-blue-500';
-                                                        let label = 'Stop';
-
-                                                        if (isFirst) {
-                                                            icon = <TruckIcon className="h-5 w-5 text-white" />;
-                                                            bgColor = 'bg-green-500';
-                                                            label = 'Pick-Up';
-                                                        } else if (isLast) {
-                                                            icon = <MapPinIcon className="h-5 w-5 text-white" />;
-                                                            bgColor = 'bg-red-500';
-                                                            label = 'Drop-Off';
-                                                        }
-
-                                                        return (
-                                                            <li key={`location-${idx}`} className="relative">
-                                                                <div className="relative flex items-start space-x-3">
-                                                                    {/* Icon */}
-                                                                    <div>
-                                                                        <div
-                                                                            className={`h-9 w-9 rounded-full flex items-center justify-center ${bgColor}`}
-                                                                        >
-                                                                            {icon}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Content */}
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="text-sm">
-                                                                            <div className="flex flex-col font-medium text-gray-900">
-                                                                                <span className="text-xs text-gray-500 mr-2">
-                                                                                    {label}
-                                                                                </span>
-                                                                                {item.name}
+                                                            return (
+                                                                <div
+                                                                    key={`driver-payment-${idx}`}
+                                                                    className="bg-white rounded-xl p-5 shadow-sm border border-gray-100"
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center space-x-3">
+                                                                            <div className="h-12 w-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                                                                                <UserIcon className="h-6 w-6 text-blue-600" />
                                                                             </div>
-                                                                            <p className="mt-0.5 text-sm text-gray-500">
-                                                                                {item.street}, {item.city}, {item.state}{' '}
-                                                                                {item.zip}
-                                                                            </p>
+                                                                            <div>
+                                                                                <Link
+                                                                                    href={`/drivers/${driver.id}`}
+                                                                                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 block"
+                                                                                >
+                                                                                    {driver.name}
+                                                                                </Link>
+                                                                                <p className="text-xs text-gray-500">
+                                                                                    {chargeDisplay}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
+                                                                            <span className="text-sm font-semibold text-green-700">
+                                                                                {formatCurrency(estimatedPayment)}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Assignment footer with timestamps and location maps */}
-                                    <div className="px-6 py-3 bg-gray-100 border-t border-gray-100">
-                                        <div className="gap-4">
-                                            {/* Left column: Timestamps */}
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-start sm:space-x-4">
-                                                {leg.startedAt && (
-                                                    <div className="flex items-center">
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-500">Started</p>
-                                                            <p className="text-sm text-gray-900">
-                                                                {new Date(leg.startedAt).toLocaleString()}
-                                                            </p>
-                                                            {/* Start location map */}
-                                                            {hasStartLocation && (
-                                                                <div className="flex-1 ">
-                                                                    <div className="flex items-center justify-between mb-1 gap-1 ">
-                                                                        <p className="text-xs font-medium text-gray-500">
-                                                                            Start Location
-                                                                        </p>
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                openInGoogleMaps(
-                                                                                    leg.startLatitude,
-                                                                                    leg.startLongitude,
-                                                                                )
-                                                                            }
-                                                                            className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
-                                                                        >
-                                                                            Open in Maps
-                                                                            <ArrowTopRightOnSquareIcon className="ml-1 h-3 w-3" />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                )}
+                                                </div>
 
-                                                {leg.endedAt && (
-                                                    <div className="flex items-center">
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-500">
-                                                                Completed
-                                                            </p>
-                                                            <p className="text-sm text-gray-900">
-                                                                {new Date(leg.endedAt).toLocaleString()}
-                                                            </p>
-                                                            {/* End location map */}
-                                                            {hasEndLocation && (
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-center justify-between mb-1 gap-1">
-                                                                        <p className="text-xs font-medium text-gray-500">
-                                                                            End Location
-                                                                        </p>
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                openInGoogleMaps(
-                                                                                    leg.endLatitude,
-                                                                                    leg.endLongitude,
-                                                                                )
-                                                                            }
-                                                                            className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
-                                                                        >
-                                                                            Open in Maps
-                                                                            <ArrowTopRightOnSquareIcon className="ml-1 h-3 w-3" />
-                                                                        </button>
-                                                                    </div>
+                                                {/* Instructions */}
+                                                {leg.driverInstructions && (
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+                                                            Special Instructions
+                                                        </h4>
+                                                        <div className="bg-amber-50/50 rounded-xl p-5 border border-amber-100">
+                                                            <div className="flex items-start space-x-3">
+                                                                <div className="h-8 w-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                                    <InformationCircleIcon className="h-4 w-4 text-amber-600" />
                                                                 </div>
-                                                            )}
+                                                                <p className="text-sm text-amber-800">
+                                                                    {leg.driverInstructions}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
