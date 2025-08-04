@@ -309,7 +309,7 @@ const LoadRouteMap: React.FC<LoadRouteMapProps> = ({ locations, routeEncoded, cl
             />
 
             {/* Center Route Button */}
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-0">
                 <button
                     onClick={() => fitMapToLocations()}
                     className="inline-flex items-center px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-lg shadow-lg hover:bg-white/95 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 group"

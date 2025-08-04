@@ -716,7 +716,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     return (
         <>
             <Transition.Root show={show} as={Fragment}>
-                <Dialog as="div" className="relative z-10" onClose={(value) => close(value)}>
+                <Dialog as="div" className="relative z-[99999]" onClose={(value) => close(value)}>
                     <Transition.Child
                         as={React.Fragment}
                         enter="ease-out duration-300"

@@ -15,7 +15,6 @@ const LoadActivitySection = lazy(() => import('../../components/loads/load-detai
 const SimpleDialog = lazy(() => import('../../components/dialogs/SimpleDialog'));
 
 // Static imports for critical rendering path
-import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import LoadDetailsDocuments from '../../components/loads/load-details/LoadDetailsDocuments';
 import LoadDetailsInfo from '../../components/loads/load-details/LoadDetailsInfo';
@@ -25,7 +24,6 @@ import LoadAssignmentsSection from '../../components/loads/load-details/LoadAssi
 import ActionsDropdown from 'components/loads/load-details/ActionsDropdown';
 
 // Memoized components for performance optimization
-const MemoizedBreadCrumb = React.memo(BreadCrumb);
 const MemoizedLoadDetailsToolbar = React.memo(LoadDetailsToolbar);
 const MemoizedActionsDropdown = React.memo(ActionsDropdown);
 const MemoizedLoadActivitySection = React.memo(LoadActivitySection);
@@ -475,9 +473,9 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     return (
         <Layout
             smHeaderComponent={
-                <div className="flex items-center">
+                <div className="flex items-center  z-[10000]">
                     <h1 className="flex-1 text-xl font-semibold text-gray-900">Load Details</h1>
-                    <div className="flex flex-none space-x-2">
+                    <div className="flex flex-none space-x-2 z-[10000]">
                         <MemoizedActionsDropdown
                             load={load}
                             disabled={!load}
@@ -543,51 +541,173 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 </Suspense>
                 <div className="relative max-w-7xl py-2 mx-auto">
                     {downloadingDocs && <LoadingOverlay message="Downloading documents..." />}
-                    <MemoizedBreadCrumb
-                        className="sm:px-6 md:px-8"
-                        paths={[
-                            {
-                                label: 'Loads',
-                                href: '/loads',
-                            },
-                            {
-                                label: load ? `${load.refNum}` : '',
-                            },
-                        ]}
-                    />
-                    <div className="hidden px-5 mt-4 mb-3 md:block sm:px-6 md:px-8">
-                        <div className="flex">
-                            <h1 className="flex-1 text-2xl font-semibold text-gray-900">Load Details</h1>
-                            <MemoizedActionsDropdown
-                                load={load}
-                                disabled={!load}
-                                editLoadClicked={actionHandlers.editLoad}
-                                viewInvoiceClicked={actionHandlers.viewInvoice}
-                                createInvoiceClicked={actionHandlers.createInvoice}
-                                addAssignmentClicked={actionHandlers.addAssignment}
-                                downloadCombinedPDF={actionHandlers.downloadCombinedPDF}
-                                makeCopyOfLoadClicked={actionHandlers.makeCopyOfLoad}
-                                deleteLoadClicked={actionHandlers.deleteLoad}
-                            />
-                        </div>
-                        <div className="w-full mt-2 mb-1 border-t border-gray-300" />
+
+                    {/* Minimalistic Breadcrumb */}
+                    <div className="px-5 sm:px-6 md:px-8 mb-4">
+                        <nav className="text-sm text-gray-400">
+                            <span
+                                className="hover:text-gray-600 transition-colors cursor-pointer"
+                                onClick={() => router.push('/loads')}
+                            >
+                                Loads
+                            </span>
+                            <span className="mx-2 text-gray-300">/</span>
+                            <span className="text-gray-600">{load ? load.refNum : 'Loading...'}</span>
+                        </nav>
                     </div>
 
-                    <MemoizedLoadDetailsToolbar
-                        className="px-5 py-2 mb-1 bg-white sm:px-6 md:px-8"
-                        load={load}
-                        disabled={!load}
-                        editLoadClicked={actionHandlers.editLoad}
-                        viewInvoiceClicked={actionHandlers.viewInvoice}
-                        createInvoiceClicked={actionHandlers.createInvoice}
-                        assignDriverClicked={actionHandlers.assignDriver}
-                        changeLoadStatus={actionHandlers.changeLoadStatus}
-                    />
+                    <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-8 relative ">
+                        <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-xl shadow-gray-900/5 p-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-3">
+                                        <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                                            Load Details
+                                        </h1>
+                                        <div className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                Order #{load?.refNum}
+                                            </span>
+                                            <span className="text-gray-300">•</span>
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                Load #{load?.loadNum}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p className="mt-3 text-lg text-gray-600 font-medium">
+                                        Manage load details, assignments, and documentation
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sticky Toolbar Section */}
+                    <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-8 sticky top-0 z-10">
+                        <div className="bg-white/90 backdrop-blur-xl rounded-xl border border-gray-200/50 shadow-lg shadow-gray-900/5 p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500/90 to-blue-600/90 backdrop-blur-xl rounded-xl border border-blue-400/30 hover:from-blue-600/95 hover:to-blue-700/95 hover:border-blue-300/40 focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-blue-100/30 transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none"
+                                        onClick={actionHandlers.editLoad}
+                                        disabled={!load}
+                                    >
+                                        <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-white/20 backdrop-blur-sm shadow-inner">
+                                            <svg
+                                                className="w-3.5 h-3.5 text-white drop-shadow-sm"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        Edit Load
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500/90 to-blue-600/90 backdrop-blur-xl rounded-xl border border-blue-400/30 hover:from-blue-600/95 hover:to-blue-700/95 hover:border-blue-300/40 focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-blue-100/30 transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none"
+                                        onClick={actionHandlers.assignDriver}
+                                        disabled={!load}
+                                    >
+                                        <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-white/20 backdrop-blur-sm shadow-inner">
+                                            <svg
+                                                className="w-3.5 h-3.5 text-white drop-shadow-sm"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        Add Assignment
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-50/70 hover:bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200/50 hover:border-slate-300/60 focus:ring-2 focus:ring-slate-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-slate-300/10 hover:shadow-md hover:shadow-slate-300/15 disabled:opacity-50 disabled:shadow-none"
+                                        onClick={() => {
+                                            if (load.invoice) {
+                                                actionHandlers.viewInvoice();
+                                            } else {
+                                                actionHandlers.createInvoice();
+                                            }
+                                        }}
+                                        disabled={!load}
+                                    >
+                                        <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-slate-100/60 backdrop-blur-sm">
+                                            {load?.invoice ? (
+                                                <svg
+                                                    className="w-3.5 h-3.5 text-slate-500"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                    />
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                    />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    className="w-3.5 h-3.5 text-slate-500"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                    />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        {load?.invoice ? 'Go to Invoice' : 'Create Invoice'}
+                                    </button>
+                                </div>
+
+                                {/* Actions Dropdown on the right side */}
+                                <div className="flex items-center">
+                                    <ActionsDropdown
+                                        load={load}
+                                        disabled={!load}
+                                        editLoadClicked={actionHandlers.editLoad}
+                                        viewInvoiceClicked={actionHandlers.viewInvoice}
+                                        createInvoiceClicked={actionHandlers.createInvoice}
+                                        addAssignmentClicked={actionHandlers.addAssignment}
+                                        downloadCombinedPDF={actionHandlers.downloadCombinedPDF}
+                                        makeCopyOfLoadClicked={actionHandlers.makeCopyOfLoad}
+                                        deleteLoadClicked={actionHandlers.deleteLoad}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {load ? (
-                        <div className="grid grid-cols-1 gap-4 px-5 sm:gap-6  lg:gap-6 sm:px-6 md:px-8">
-                            <div>
-                                <MemoizedLoadDetailsInfo />
+                        <div className="grid grid-cols-1 gap-8 px-5 sm:px-6 md:px-8">
+                            <div className="space-y-8">
+                                <MemoizedLoadDetailsInfo changeLoadStatus={actionHandlers.changeLoadStatus} />
                                 <MemoizedLoadDetailsDocuments
                                     podDocuments={podDocuments}
                                     bolDocuments={bolDocuments}
@@ -622,13 +742,13 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                     </div>
                                 }
                             >
-                                <MemoizedLoadActivitySection loadId={loadId} />
+                                <div className="pb-8">
+                                    <MemoizedLoadActivitySection loadId={loadId} />
+                                </div>
                             </Suspense>
                         </div>
                     ) : (
-                        <div className="px-5 sm:px-6 md:px-8">
-                            <LoadDetailsSkeleton></LoadDetailsSkeleton>
-                        </div>
+                        <LoadDetailsSkeleton />
                     )}
                 </div>
             </>

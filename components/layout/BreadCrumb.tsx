@@ -15,21 +15,26 @@ export type Props = {
 const BreadCrumb: React.FC<Props> = ({ paths, ...props }) => {
     return (
         <div {...props}>
-            <div className="hidden text-sm md:block text-inherit">
-                <div className="flex items-center">
+            <div className="hidden md:block">
+                <nav className="flex items-center space-x-1" aria-label="Breadcrumb">
                     {paths.map((path, index) => (
-                        <span key={index}>
-                            {(path.href && (
-                                <Link href={path.href} className="text-inherit">
+                        <div key={index} className="flex items-center">
+                            {path.href ? (
+                                <Link
+                                    href={path.href}
+                                    className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline hover:decoration-2 hover:underline-offset-4 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 rounded-md"
+                                >
                                     {path.label}
                                 </Link>
-                            )) || <span className="text-inherit">{path.label}</span>}
-                            {index !== paths.length - 1 && (
-                                <ChevronRightIcon className="inline-block w-4 h-4 mx-1 text-zinc-500" />
+                            ) : (
+                                <span className="px-3 py-1.5 text-sm font-semibold text-gray-900 border-b-2 border-gray-300">
+                                    {path.label}
+                                </span>
                             )}
-                        </span>
+                            {index !== paths.length - 1 && <ChevronRightIcon className="w-4 h-4 mx-3 text-gray-400" />}
+                        </div>
                     ))}
-                </div>
+                </nav>
             </div>
         </div>
     );
