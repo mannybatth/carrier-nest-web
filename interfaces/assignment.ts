@@ -5,6 +5,7 @@ export interface DriverWithCharge {
     driver: Partial<Driver>;
     chargeType?: ChargeType;
     chargeValue?: number;
+    billedLoadRate?: number;
 }
 
 export interface RouteLegData {
