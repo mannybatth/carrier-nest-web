@@ -181,6 +181,23 @@ export const POST = auth(async (req: NextAuthRequest) => {
             include: { devices: true },
         });
 
+        // Check if any selected drivers are inactive
+        const inactiveDrivers = drivers.filter((driver) => !driver.active);
+        if (inactiveDrivers.length > 0) {
+            const inactiveDriverNames = inactiveDrivers.map((driver) => driver.name).join(', ');
+            return NextResponse.json(
+                {
+                    code: 400,
+                    errors: [
+                        {
+                            message: `Cannot assign inactive drivers: ${inactiveDriverNames}. Please activate them first or select different drivers.`,
+                        },
+                    ],
+                },
+                { status: 400 },
+            );
+        }
+
         const assignments = await prisma.$transaction(async (prisma) => {
             const route = await prisma.route.upsert({
                 where: { loadId },
@@ -206,6 +223,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 carrierId: load.carrierId,
                 chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
                 chargeValue: driverWithCharge.chargeValue || 0,
+                billedLoadRate: driverWithCharge.billedLoadRate || null,
             }));
 
             const loadActivitiesData = drivers.map((driver) => ({
@@ -335,6 +353,24 @@ export const PUT = auth(async (req: NextAuthRequest) => {
             include: { devices: true },
         });
 
+        // Check if any new drivers being assigned are inactive
+        const newDriversToAssign = allRelevantDrivers.filter((driver) => driverIdsFromRequest.includes(driver.id));
+        const inactiveDrivers = newDriversToAssign.filter((driver) => !driver.active);
+        if (inactiveDrivers.length > 0) {
+            const inactiveDriverNames = inactiveDrivers.map((driver) => driver.name).join(', ');
+            return NextResponse.json(
+                {
+                    code: 400,
+                    errors: [
+                        {
+                            message: `Cannot assign inactive drivers: ${inactiveDriverNames}. Please activate them first or select different drivers.`,
+                        },
+                    ],
+                },
+                { status: 400 },
+            );
+        }
+
         // Get current assignments before the transaction
         const currentAssignments = await prisma.driverAssignment.findMany({
             where: { routeLegId },
@@ -366,6 +402,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
                     carrierId: load.carrierId,
                     chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
                     chargeValue: driverWithCharge.chargeValue || 0,
+                    billedLoadRate: driverWithCharge.billedLoadRate || null,
                 }));
 
             const newDriverActivities = allRelevantDrivers
@@ -397,6 +434,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
                     routeLegId,
                     chargeType: driverWithCharge.chargeType || ChargeType.FIXED_PAY,
                     chargeValue: driverWithCharge.chargeValue || 0,
+                    billedLoadRate: driverWithCharge.billedLoadRate || null,
                 }));
 
             await prisma.driverAssignment.createMany({
@@ -419,6 +457,7 @@ export const PUT = auth(async (req: NextAuthRequest) => {
                     data: {
                         chargeType: assignment.chargeType,
                         chargeValue: assignment.chargeValue,
+                        billedLoadRate: assignment.billedLoadRate,
                     },
                 });
             }
@@ -705,6 +744,7 @@ async function getExpandedRoute(loadId: string) {
                             },
                             chargeType: true,
                             chargeValue: true,
+                            billedLoadRate: true,
                         },
                     },
                 },
