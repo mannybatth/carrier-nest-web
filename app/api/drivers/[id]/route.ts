@@ -4,6 +4,10 @@ import { NextAuthRequest } from 'next-auth/lib';
 import { NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { Session } from 'next-auth';
+import { ExpandedDriver } from 'interfaces/models';
+import { isProPlan } from 'lib/subscription';
+
+const BASIC_PLAN_MAX_DRIVERS = 5;
 
 export const GET = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
     if (!req.auth) {
@@ -41,6 +45,42 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
 
     driverData.phone = driverData.phone?.trim();
 
+    // Check subscription seats when activating a driver
+    if (driverData.active === true && !driver.active) {
+        const carrier = await prisma.carrier.findUnique({
+            where: { id: session.user.defaultCarrierId },
+            include: { subscription: true },
+        });
+
+        if (!carrier) {
+            return NextResponse.json({ error: 'Carrier not found' }, { status: 404 });
+        }
+
+        const activeDriverCount = await prisma.driver.count({
+            where: {
+                carrierId: session.user.defaultCarrierId,
+                active: true,
+            },
+        });
+
+        const maxDrivers =
+            isProPlan(carrier.subscription) && carrier.subscription?.numberOfDrivers
+                ? carrier.subscription.numberOfDrivers
+                : BASIC_PLAN_MAX_DRIVERS;
+
+        if (activeDriverCount >= maxDrivers) {
+            return NextResponse.json(
+                {
+                    error: 'No available seats in your subscription. Please upgrade your plan or deactivate another driver.',
+                    code: 'SUBSCRIPTION_LIMIT_REACHED',
+                    availableSeats: Math.max(0, maxDrivers - activeDriverCount),
+                    totalSeats: maxDrivers,
+                },
+                { status: 403 },
+            );
+        }
+    }
+
     if (driverData.phone) {
         const existingDriver = await prisma.driver.findFirst({
             where: {
@@ -66,18 +106,78 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
             id: driverId,
         },
         data: {
-            name: driverData.name,
-            email: driverData.email || '',
-            phone: driverData.phone || '',
-            defaultChargeType: driverData.defaultChargeType || undefined,
-            perMileRate: driverData.perMileRate,
-            perHourRate: driverData.perHourRate,
-            defaultFixedPay: driverData.defaultFixedPay,
-            takeHomePercent: driverData.takeHomePercent,
+            ...(driverData.name !== undefined && { name: driverData.name }),
+            ...(driverData.email !== undefined && { email: driverData.email || '' }),
+            ...(driverData.phone !== undefined && { phone: driverData.phone || '' }),
+            ...(driverData.active !== undefined && { active: driverData.active }),
+            ...(driverData.type !== undefined && { type: driverData.type }),
+            ...(driverData.defaultChargeType !== undefined && {
+                defaultChargeType: driverData.defaultChargeType || undefined,
+            }),
+            ...(driverData.perMileRate !== undefined && { perMileRate: driverData.perMileRate }),
+            ...(driverData.perHourRate !== undefined && { perHourRate: driverData.perHourRate }),
+            ...(driverData.defaultFixedPay !== undefined && { defaultFixedPay: driverData.defaultFixedPay }),
+            ...(driverData.takeHomePercent !== undefined && { takeHomePercent: driverData.takeHomePercent }),
         },
     });
 
+    // If driver is being deactivated, clear their device records to revoke app access
+    if (driverData.active === false) {
+        await prisma.device.deleteMany({
+            where: {
+                driverId: driverId,
+            },
+        });
+    }
+
     return NextResponse.json({ code: 200, data: { updatedDriver } }, { status: 200 });
+});
+
+export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
+    if (!req.auth) {
+        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+
+    const session = req.auth;
+    const driverId = context.params.id;
+
+    const driver = await prisma.driver.findFirst({
+        where: {
+            id: driverId,
+            carrierId: session.user.defaultCarrierId,
+        },
+    });
+
+    if (!driver) {
+        return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
+    }
+
+    const { active } = await req.json();
+
+    const updatedDriver = await prisma.driver.update({
+        where: { id: driverId },
+        data: { active },
+        include: {
+            devices: true,
+        },
+    });
+
+    // If driver is being deactivated, clear their device records to revoke app access
+    if (active === false) {
+        await prisma.device.deleteMany({
+            where: {
+                driverId: driverId,
+            },
+        });
+    }
+
+    // Add hasDriverApp property
+    const driverWithAppStatus: ExpandedDriver = {
+        ...updatedDriver,
+        hasDriverApp: updatedDriver.devices && updatedDriver.devices.length > 0,
+    };
+
+    return NextResponse.json(driverWithAppStatus, { status: 200 });
 });
 
 export const DELETE = auth(async (req: NextAuthRequest, context: { params: { id: string } }) => {
@@ -136,7 +236,7 @@ const getDriver = async ({
 }: {
     session: Session;
     query: { driverId: string; expand: string };
-}): Promise<{ code: number; data: { driver: Driver | null } }> => {
+}): Promise<{ code: number; data: { driver: ExpandedDriver | null } }> => {
     const expand = query.expand ? String(query.expand).split(',') : [];
     const include = expand.reduce((acc, relation) => {
         if (relation.includes('(')) {
@@ -150,6 +250,9 @@ const getDriver = async ({
         return acc;
     }, {});
 
+    // Always include devices to check if driver has app
+    include['devices'] = true;
+
     const driver = await prisma.driver.findFirst({
         where: {
             id: query.driverId,
@@ -157,6 +260,21 @@ const getDriver = async ({
         },
         include,
     });
+
+    if (driver) {
+        // Add computed field for app status
+        const driverWithDevices = driver as ExpandedDriver;
+        const driverWithAppStatus: ExpandedDriver = {
+            ...driverWithDevices,
+            hasDriverApp: driverWithDevices.devices && driverWithDevices.devices.length > 0,
+        };
+
+        return {
+            code: 200,
+            data: { driver: driverWithAppStatus },
+        };
+    }
+
     return {
         code: 200,
         data: { driver },
