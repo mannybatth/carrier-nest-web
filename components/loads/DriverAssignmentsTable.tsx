@@ -27,9 +27,10 @@ import {
     PlayIcon,
     TrashIcon,
 } from '@heroicons/react/24/outline';
-import type { ExpandedDriverAssignment } from '../../interfaces/models';
+import type { ExpandedDriverAssignment, ExpandedDriver } from '../../interfaces/models';
 import type { Sort } from '../../interfaces/table';
 import { RouteLegStatus } from '@prisma/client';
+import { notify } from '../Notification';
 
 // Helper functions
 const formatDate = (dateString: string) => {
@@ -123,6 +124,7 @@ type Props = {
     changeSort?: (sort: Sort) => void;
     deleteAssignment: (id: string) => void;
     changeLegStatusClicked: (status: string, legId: string) => void;
+    driver?: ExpandedDriver; // Add driver prop to check active status
 };
 
 export const DriverAssignmentsTable: React.FC<Props> = ({
@@ -133,6 +135,7 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
     headers = [],
     deleteAssignment,
     changeLegStatusClicked,
+    driver,
 }) => {
     const router = useRouter();
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -141,9 +144,22 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
     console.log('DriverAssignmentsTable', assignments);
 
     const handleStatusChange = async (status: string, legId: string) => {
+        // Check if driver is inactive and prevent status updates
+        if (driver && !driver.active) {
+            notify({
+                title: 'Assignment Update Failed',
+                message: 'Cannot update assignment status: Driver account is inactive',
+                type: 'error',
+            });
+            return;
+        }
+
         setUpdatingStatus((prev) => ({ ...prev, [legId]: true }));
         try {
             await changeLegStatusClicked(status, legId);
+        } catch (error) {
+            console.error('Error updating status:', error);
+            // Error handling is done in the parent component
         } finally {
             setUpdatingStatus((prev) => ({ ...prev, [legId]: false }));
         }
@@ -628,13 +644,26 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                                                     updatingStatus[
                                                                                                         assignment
                                                                                                             .routeLeg.id
-                                                                                                    ]
+                                                                                                    ] ||
+                                                                                                    (driver &&
+                                                                                                        !driver.active)
                                                                                                 }
                                                                                                 className={`${
                                                                                                     active
                                                                                                         ? 'bg-gray-50 text-gray-900'
                                                                                                         : 'text-gray-700'
-                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'text-gray-400'
+                                                                                                        : ''
+                                                                                                }`}
+                                                                                                title={
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'Driver account is inactive'
+                                                                                                        : ''
+                                                                                                }
                                                                                             >
                                                                                                 <CheckCircleIcon
                                                                                                     className="mr-3 h-4 w-4 text-gray-400"
@@ -663,13 +692,26 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                                                     updatingStatus[
                                                                                                         assignment
                                                                                                             .routeLeg.id
-                                                                                                    ]
+                                                                                                    ] ||
+                                                                                                    (driver &&
+                                                                                                        !driver.active)
                                                                                                 }
                                                                                                 className={`${
                                                                                                     active
                                                                                                         ? 'bg-gray-50 text-gray-900'
                                                                                                         : 'text-gray-700'
-                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'text-gray-400'
+                                                                                                        : ''
+                                                                                                }`}
+                                                                                                title={
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'Driver account is inactive'
+                                                                                                        : ''
+                                                                                                }
                                                                                             >
                                                                                                 <PlayIcon
                                                                                                     className="mr-3 h-4 w-4 text-gray-400"
@@ -699,13 +741,26 @@ export const DriverAssignmentsTable: React.FC<Props> = ({
                                                                                                     updatingStatus[
                                                                                                         assignment
                                                                                                             .routeLeg.id
-                                                                                                    ]
+                                                                                                    ] ||
+                                                                                                    (driver &&
+                                                                                                        !driver.active)
                                                                                                 }
                                                                                                 className={`${
                                                                                                     active
                                                                                                         ? 'bg-gray-50 text-gray-900'
                                                                                                         : 'text-gray-700'
-                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                                                                } group flex items-center w-full px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'text-gray-400'
+                                                                                                        : ''
+                                                                                                }`}
+                                                                                                title={
+                                                                                                    driver &&
+                                                                                                    !driver.active
+                                                                                                        ? 'Driver account is inactive'
+                                                                                                        : ''
+                                                                                                }
                                                                                             >
                                                                                                 <CheckCircleIcon
                                                                                                     className="mr-3 h-4 w-4 text-gray-400"
