@@ -432,6 +432,8 @@ model Driver {
     name              String
     email             String?
     phone             String
+    active            Boolean                 @default(true)
+    type              DriverType              @default(DRIVER)
     carrierId         String
     smsCode           String?
     smsCodeExpiry     DateTime?
@@ -720,4 +722,9 @@ enum NotificationPriority {
     MEDIUM
     HIGH
     URGENT
+}
+
+enum DriverType {
+    DRIVER
+    OWNER_OPERATOR
 }
