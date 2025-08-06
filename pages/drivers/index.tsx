@@ -2,9 +2,11 @@ import { Driver } from '@prisma/client';
 import { useUserContext } from 'components/context/UserContext';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
-import SimpleDialog from '../../components/dialogs/SimpleDialog';
+import ActivateDriverDialog from '../../components/dialogs/ActivateDriverDialog';
+import DeactivateDriverDialog from '../../components/dialogs/DeactivateDriverDialog';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
 import { notify } from '../../components/Notification';
@@ -12,12 +14,14 @@ import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { PaginationMetadata, Sort } from '../../interfaces/table';
 import { queryFromPagination, queryFromSort, sortFromQuery } from '../../lib/helpers/query';
-import { deleteDriverById, getAllDrivers } from '../../lib/rest/driver';
+import { getAllDrivers, deactivateDriver, activateDriver } from '../../lib/rest/driver';
 import { useLocalStorage } from '../../lib/useLocalStorage';
+import { calculateAvailableSeats } from '../../lib/driver/subscription-utils';
 
 const DriversPage: PageWithAuth = () => {
     const router = useRouter();
-    const { isProPlan, isLoadingCarrier } = useUserContext();
+    const { data: session } = useSession();
+    const { isProPlan, isLoadingCarrier, defaultCarrier } = useUserContext();
     const searchParams = new URLSearchParams(router.query as any);
     const sortProps = sortFromQuery({
         sortBy: searchParams.get('sortBy'),
@@ -31,8 +35,19 @@ const DriversPage: PageWithAuth = () => {
     const [loadingDrivers, setLoadingDrivers] = React.useState(true);
     const [tableLoading, setTableLoading] = React.useState(false);
 
-    const [openDeleteDriverConfirmation, setOpenDeleteDriverConfirmation] = React.useState(false);
-    const [driverIdToDelete, setDriverIdToDelete] = React.useState<string | null>(null);
+    const [openDeactivateDriverDialog, setOpenDeactivateDriverDialog] = React.useState(false);
+    const [driverToDeactivate, setDriverToDeactivate] = React.useState<{
+        id: string;
+        name: string;
+        phone: string;
+    } | null>(null);
+
+    const [openActivateDriverDialog, setOpenActivateDriverDialog] = React.useState(false);
+    const [driverToActivate, setDriverToActivate] = React.useState<{
+        id: string;
+        name: string;
+        phone: string;
+    } | null>(null);
 
     const [driversList, setDriversList] = React.useState<Driver[]>([]);
 
@@ -117,15 +132,80 @@ const DriversPage: PageWithAuth = () => {
         reloadDrivers({ sort, limit: metadata.next.limit, offset: metadata.next.offset, useTableLoading: true });
     };
 
-    const deleteDriver = async (id: string) => {
-        try {
-            await deleteDriverById(id);
-            notify({ title: 'Driver deleted', message: 'Driver deleted successfully' });
-            reloadDrivers({ sort, limit, offset, useTableLoading: true });
+    const handleDeactivateDriver = (id: string, name: string, phone: string) => {
+        setDriverToDeactivate({ id, name, phone });
+        setOpenDeactivateDriverDialog(true);
+    };
 
-            setDriverIdToDelete(null);
+    const confirmDeactivateDriver = async () => {
+        if (!driverToDeactivate) return;
+
+        try {
+            await deactivateDriver(driverToDeactivate.id);
+
+            // Update local state immediately for better UX
+            setDriversList((prevDrivers) =>
+                prevDrivers.map((driver) =>
+                    driver.id === driverToDeactivate.id ? { ...driver, active: false } : driver,
+                ),
+            );
+
+            notify({
+                title: 'Driver deactivated',
+                message: `${driverToDeactivate.name} has been deactivated successfully`,
+                type: 'success',
+            });
+
+            setOpenDeactivateDriverDialog(false);
+            setDriverToDeactivate(null);
+
+            // Reload drivers data to ensure consistency
+            reloadDrivers({ sort, limit, offset, useTableLoading: false });
         } catch (error) {
-            notify({ title: 'Error Deleting Driver', message: error.message, type: 'error' });
+            notify({ title: 'Error Deactivating Driver', message: error.message, type: 'error' });
+            throw error; // Re-throw to let the dialog handle the error
+        }
+    };
+
+    const handleActivateDriver = (id: string, name: string, phone: string) => {
+        setDriverToActivate({ id, name, phone });
+        setOpenActivateDriverDialog(true);
+
+        // Debug: log the seat calculation using shared utility
+        const seatInfo = calculateAvailableSeats(driversList, defaultCarrier);
+        console.log(`[Drivers List Page] Using shared calculation:`, seatInfo);
+    };
+
+    const confirmActivateDriver = async () => {
+        if (!driverToActivate) return;
+
+        const driver = driversList.find((d) => d.id === driverToActivate.id);
+
+        // Optimistically update the UI
+        setDriversList((prevDrivers) =>
+            prevDrivers.map((d) => (d.id === driverToActivate.id ? { ...d, active: true } : d)),
+        );
+
+        try {
+            await activateDriver(driverToActivate.id);
+            notify({
+                title: 'Driver activated',
+                message: `${driverToActivate.name} has been activated successfully`,
+                type: 'success',
+            });
+
+            setOpenActivateDriverDialog(false);
+            setDriverToActivate(null);
+
+            // Reload drivers data to ensure consistency
+            reloadDrivers({ sort, limit, offset, useTableLoading: false });
+        } catch (error) {
+            // Revert the optimistic update if API call failed
+            setDriversList((prevDrivers) =>
+                prevDrivers.map((d) => (d.id === driverToActivate.id ? { ...d, active: false } : d)),
+            );
+            notify({ title: 'Error Activating Driver', message: error.message, type: 'error' });
+            throw error; // Re-throw to let the dialog handle the error
         }
     };
 
@@ -146,25 +226,30 @@ const DriversPage: PageWithAuth = () => {
             }
         >
             <>
-                <SimpleDialog
-                    show={openDeleteDriverConfirmation}
-                    title="Delete Driver"
-                    description="Are you sure you want to delete this driver?"
-                    primaryButtonText="Delete"
-                    primaryButtonAction={() => {
-                        if (driverIdToDelete) {
-                            deleteDriver(driverIdToDelete);
-                        }
-                    }}
-                    secondaryButtonAction={() => {
-                        setOpenDeleteDriverConfirmation(false);
-                        setDriverIdToDelete(null);
-                    }}
+                <DeactivateDriverDialog
+                    open={openDeactivateDriverDialog}
                     onClose={() => {
-                        setOpenDeleteDriverConfirmation(false);
-                        setDriverIdToDelete(null);
+                        setOpenDeactivateDriverDialog(false);
+                        setDriverToDeactivate(null);
                     }}
-                ></SimpleDialog>
+                    onConfirm={confirmDeactivateDriver}
+                    driverName={driverToDeactivate?.name || ''}
+                    driverPhone={driverToDeactivate?.phone || ''}
+                />
+
+                <ActivateDriverDialog
+                    open={openActivateDriverDialog}
+                    onClose={() => {
+                        setOpenActivateDriverDialog(false);
+                        setDriverToActivate(null);
+                    }}
+                    onConfirm={confirmActivateDriver}
+                    driverName={driverToActivate?.name || ''}
+                    driverPhone={driverToActivate?.phone || ''}
+                    availableSeats={calculateAvailableSeats(driversList, defaultCarrier).availableSeats}
+                    totalSeats={calculateAvailableSeats(driversList, defaultCarrier).totalSeats}
+                />
+
                 <div className="py-2 mx-auto max-w-7xl">
                     {!isProPlan && !isLoadingCarrier && (
                         <div className="mx-5 my-4 mb-6 sm:mx-6 md:mx-8">
@@ -214,10 +299,8 @@ const DriversPage: PageWithAuth = () => {
                                 drivers={driversList}
                                 sort={sort}
                                 changeSort={changeSort}
-                                deleteDriver={(id: string) => {
-                                    setOpenDeleteDriverConfirmation(true);
-                                    setDriverIdToDelete(id);
-                                }}
+                                deactivateDriver={handleDeactivateDriver}
+                                activateDriver={handleActivateDriver}
                                 loading={tableLoading}
                             />
                         )}
