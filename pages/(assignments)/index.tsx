@@ -51,7 +51,7 @@ const AssignmentsPage = () => {
 
     useEffect(() => {
         const fetchDrivers = async () => {
-            const { drivers } = await getAllDrivers({ limit: 999, offset: 0 });
+            const { drivers } = await getAllDrivers({ limit: 999, offset: 0, activeOnly: true });
             setDrivers(drivers);
         };
         fetchDrivers();
