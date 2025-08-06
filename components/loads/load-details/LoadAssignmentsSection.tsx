@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { formatTimeTo12Hour } from 'lib/helpers/format';
+import { notify } from '../../Notification';
 
 type LoadAssignmentsSectionProps = {
     removingRouteLegWithId: string;
@@ -46,7 +47,16 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
 
     const [routeLegIDUpdating, setRouteLegIDUpdating] = React.useState<string | null>(null);
 
-    const handleRouteStatusChange = (status: string, legId: string) => {
+    const handleRouteStatusChange = (status: string, legId: string, hasInactiveDriver?: boolean) => {
+        if (hasInactiveDriver) {
+            notify({
+                title: 'Assignment Update Failed',
+                message: 'Cannot update assignment status: One or more assigned drivers are inactive',
+                type: 'error',
+            });
+            return;
+        }
+
         setRouteLegIDUpdating(legId);
         changeLegStatusClicked(status, legId);
     };
@@ -103,7 +113,9 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
         if (driverAssignment.chargeType === 'FIXED_PAY') {
             return driverAssignment.chargeValue;
         } else if (driverAssignment.chargeType === 'PERCENTAGE_OF_LOAD') {
-            return loadRate * (driverAssignment.chargeValue / 100);
+            // Use billedLoadRate if available, otherwise use the standard loadRate
+            const rateToUse = driverAssignment.billedLoadRate || loadRate;
+            return rateToUse * (driverAssignment.chargeValue / 100);
         } else if (driverAssignment.chargeType === 'PER_MILE') {
             return driverAssignment.chargeValue * legDistance;
         } else if (driverAssignment.chargeType === 'PER_HOUR') {
@@ -139,6 +151,9 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                     <div className="space-y-6">
                         {load.route.routeLegs.map((leg, index) => {
                             const drivers = leg.driverAssignments.map((driver) => driver.driver);
+                            const hasInactiveDriver = leg.driverAssignments.some(
+                                (assignment) => !assignment.driver?.active,
+                            );
                             const locations = leg.locations;
                             const legStatus = leg.status;
                             const statusStyles = getStatusStyles(legStatus);
@@ -224,13 +239,22 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                                                 handleRouteStatusChange(
                                                                                     'ASSIGNED',
                                                                                     leg.id,
+                                                                                    hasInactiveDriver,
                                                                                 )
                                                                             }
+                                                                            disabled={hasInactiveDriver}
                                                                             className={`${
-                                                                                active
+                                                                                active && !hasInactiveDriver
                                                                                     ? 'bg-gray-100 text-gray-900'
+                                                                                    : hasInactiveDriver
+                                                                                    ? 'text-gray-400 cursor-not-allowed'
                                                                                     : 'text-gray-700'
-                                                                            } flex w-full items-center px-4 py-2 text-sm`}
+                                                                            } flex w-full items-center px-4 py-2 text-sm disabled:opacity-50`}
+                                                                            title={
+                                                                                hasInactiveDriver
+                                                                                    ? 'Cannot update: One or more assigned drivers are inactive'
+                                                                                    : ''
+                                                                            }
                                                                         >
                                                                             Set as Assigned
                                                                         </button>
@@ -245,13 +269,22 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                                                 handleRouteStatusChange(
                                                                                     'IN_PROGRESS',
                                                                                     leg.id,
+                                                                                    hasInactiveDriver,
                                                                                 )
                                                                             }
+                                                                            disabled={hasInactiveDriver}
                                                                             className={`${
-                                                                                active
+                                                                                active && !hasInactiveDriver
                                                                                     ? 'bg-gray-100 text-gray-900'
+                                                                                    : hasInactiveDriver
+                                                                                    ? 'text-gray-400 cursor-not-allowed'
                                                                                     : 'text-gray-700'
-                                                                            } flex w-full items-center px-4 py-2 text-sm`}
+                                                                            } flex w-full items-center px-4 py-2 text-sm disabled:opacity-50`}
+                                                                            title={
+                                                                                hasInactiveDriver
+                                                                                    ? 'Cannot update: One or more assigned drivers are inactive'
+                                                                                    : ''
+                                                                            }
                                                                         >
                                                                             Set as In Progress
                                                                         </button>
@@ -266,13 +299,22 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                                                                                 handleRouteStatusChange(
                                                                                     'COMPLETED',
                                                                                     leg.id,
+                                                                                    hasInactiveDriver,
                                                                                 )
                                                                             }
+                                                                            disabled={hasInactiveDriver}
                                                                             className={`${
-                                                                                active
+                                                                                active && !hasInactiveDriver
                                                                                     ? 'bg-gray-100 text-gray-900'
+                                                                                    : hasInactiveDriver
+                                                                                    ? 'text-gray-400 cursor-not-allowed'
                                                                                     : 'text-gray-700'
-                                                                            } flex w-full items-center px-4 py-2 text-sm`}
+                                                                            } flex w-full items-center px-4 py-2 text-sm disabled:opacity-50`}
+                                                                            title={
+                                                                                hasInactiveDriver
+                                                                                    ? 'Cannot update: One or more assigned drivers are inactive'
+                                                                                    : ''
+                                                                            }
                                                                         >
                                                                             Set as Completed
                                                                         </button>
