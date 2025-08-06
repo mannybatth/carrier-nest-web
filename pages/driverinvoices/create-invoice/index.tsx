@@ -189,6 +189,7 @@ const CreateDriverInvoicePage = () => {
         const { drivers } = await getAllDrivers({
             limit: 999,
             offset: 0,
+            activeOnly: true, // Only show active drivers for invoice creation
         });
         setAllDrivers(drivers);
         setLoadingAllDrivers(false);
@@ -507,7 +508,7 @@ const CreateDriverInvoicePage = () => {
                             />
                         </div>
                     )}
-                    <div className="max-w-full mx-auto p-3 sm:p-6 bg-white rounded-lg shadow-none mt-2 sm:mt-4">
+                    <div className="max-w-full mx-auto px-3 sm:px-6 bg-white rounded-lg shadow-none mt-2 sm:mt-4">
                         {' '}
                         {/* Changed from max-w-6xl to max-w-full */}
                         <div className="mb-4 sm:mb-8 static top-0 bg-white py-1 sm:py-2">
@@ -564,6 +565,33 @@ const CreateDriverInvoicePage = () => {
                                         <div className="flex items-center justify-center w-full p-2 sm:p-4 font-bold text-sm sm:text-base">
                                             <Spinner /> Loading Drivers
                                         </div>
+                                    ) : allDrivers.length === 0 ? (
+                                        <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                                            <div className="flex flex-col items-center text-center space-y-6 px-8 py-12 max-w-sm mx-auto">
+                                                {/* Icon with subtle background */}
+                                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <UserIcon className="w-8 h-8 text-gray-400" />
+                                                </div>
+
+                                                {/* Main message */}
+                                                <div className="space-y-2">
+                                                    <h3 className="text-lg font-medium text-gray-900">
+                                                        No Active Drivers
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                                        Add active drivers to your team before creating an invoice.
+                                                    </p>
+                                                </div>
+
+                                                {/* Action button */}
+                                                <Link
+                                                    href="/drivers"
+                                                    className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                                >
+                                                    Manage Drivers
+                                                </Link>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                             {allDrivers.map((driver) => (
@@ -602,7 +630,12 @@ const CreateDriverInvoicePage = () => {
                                     <div className="mt-4 sm:mt-6 flex justify-end">
                                         <button
                                             onClick={nextStep}
-                                            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm sm:text-base"
+                                            disabled={allDrivers.length === 0 || !invoice.driverId}
+                                            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center text-sm sm:text-base ${
+                                                allDrivers.length === 0 || !invoice.driverId
+                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
                                         >
                                             Next <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                                         </button>
