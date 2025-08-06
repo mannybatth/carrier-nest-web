@@ -168,6 +168,7 @@ const getLoadOptimized = async ({
                     assignedAt: true,
                     chargeType: true,
                     chargeValue: true,
+                    billedLoadRate: true,
                     driver: { select: { id: true, name: true, email: true, phone: true } },
                 },
             };
@@ -278,6 +279,7 @@ const getLoadOptimized = async ({
                                     assignedAt: true,
                                     chargeType: true,
                                     chargeValue: true,
+                                    billedLoadRate: true,
                                     driver: { select: { id: true, name: true, email: true, phone: true } },
                                 },
                             },

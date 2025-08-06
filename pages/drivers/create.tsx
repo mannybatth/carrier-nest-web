@@ -25,6 +25,8 @@ const CreateDriver: PageWithAuth = () => {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
+                type: data.type,
+                active: true, // New drivers are active by default
                 defaultChargeType: data.defaultChargeType,
                 perMileRate: new Prisma.Decimal(data.perMileRate),
                 perHourRate: new Prisma.Decimal(data.perHourRate),

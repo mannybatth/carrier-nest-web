@@ -51,6 +51,22 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
         const finalLongitude = longitude || startLongitude || endLongitude;
 
         const updates = await prisma.$transaction(async (prisma) => {
+            // First, check if the driver making the update is active
+            if (driverIdFromSession) {
+                const driver = await prisma.driver.findFirst({
+                    where: { id: driverIdFromSession },
+                    select: { active: true, name: true },
+                });
+
+                if (!driver) {
+                    throw new Error('Driver not found');
+                }
+
+                if (!driver.active) {
+                    throw new Error('Cannot update assignment status: Driver account is inactive');
+                }
+            }
+
             const dataToUpdate: Partial<Prisma.RouteLegUpdateInput> = {
                 status: routeLegStatus,
                 ...(startLatitude !== undefined && { startLatitude }),
@@ -117,14 +133,20 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
                             },
                             chargeType: true,
                             chargeValue: true,
+                            billedLoadRate: true,
                         },
                     },
                 },
             });
 
-            const driver = driverIdFromSession
-                ? await prisma.driver.findFirst({ where: { id: driverIdFromSession } })
-                : null;
+            // Get driver info for activity logging (reuse from above if available)
+            let driver = null;
+            if (driverIdFromSession) {
+                driver = await prisma.driver.findFirst({
+                    where: { id: driverIdFromSession },
+                    select: { name: true },
+                });
+            }
 
             await prisma.loadActivity.create({
                 data: {

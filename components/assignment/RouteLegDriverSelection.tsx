@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeftIcon, UserCircleIcon, LightBulbIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
-import { type Driver, ChargeType, Prisma } from '@prisma/client';
+import { type Driver, ChargeType, DriverType, Prisma } from '@prisma/client';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { getAllDrivers } from '../../lib/rest/driver';
@@ -41,6 +41,8 @@ const RouteLegDriverSelection: React.FC<Props> = ({
         handleSubmit,
         setValue,
         watch,
+        reset,
+        getValues,
         formState: { isValid },
     } = useForm<FormValues>({
         mode: 'onChange',
@@ -51,6 +53,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                         driver: sd.driver,
                         chargeType: sd.chargeType,
                         chargeValue: sd.chargeValue,
+                        billedLoadRate: sd.billedLoadRate,
                     };
                 }
                 return acc;
@@ -65,12 +68,32 @@ const RouteLegDriverSelection: React.FC<Props> = ({
 
     const selectedDriversWatch = watch('selectedDrivers');
 
+    // Reset form when selectedDrivers prop changes (for editing existing assignments)
+    useEffect(() => {
+        if (selectedDrivers && selectedDrivers.length > 0) {
+            const formData = selectedDrivers.reduce((acc, sd) => {
+                if (sd.driver && sd.driver.id) {
+                    acc[sd.driver.id] = {
+                        driver: sd.driver,
+                        chargeType: sd.chargeType,
+                        chargeValue: sd.chargeValue,
+                        billedLoadRate: sd.billedLoadRate,
+                    };
+                }
+                return acc;
+            }, {} as { [key: string]: DriverWithCharge });
+
+            reset({ selectedDrivers: formData });
+        }
+    }, [selectedDrivers, reset]);
+
     useEffect(() => {
         const loadDrivers = async () => {
             setLoadingAllDrivers(true);
             const { drivers } = await getAllDrivers({
                 limit: 999,
                 offset: 0,
+                activeOnly: true, // Only show active drivers for assignments
             });
             setAllDrivers(drivers);
             setLoadingAllDrivers(false);
@@ -113,6 +136,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                     distanceMiles: distanceMiles,
                     durationHours: durationHours,
                     loadRate: loadRate,
+                    billedLoadRate: driverWithCharge.billedLoadRate,
                 });
                 return total.add(pay);
             }, new Prisma.Decimal(0))
@@ -126,6 +150,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             distanceMiles: distanceMiles,
             durationHours: durationHours,
             loadRate: loadRate,
+            billedLoadRate: driverWithCharge.billedLoadRate,
         }).toNumber();
     };
 
@@ -162,6 +187,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                 driver,
                 chargeType: getDefaultChargeType(value) || null,
                 chargeValue: getDefaultValueForChargeType(value, getDefaultChargeType(value)),
+                billedLoadRate: null,
             };
         } else {
             delete updatedDrivers[value];
@@ -174,6 +200,7 @@ const RouteLegDriverSelection: React.FC<Props> = ({
             driver: driverWithCharge.driver,
             chargeType: driverWithCharge.chargeType,
             chargeValue: driverWithCharge.chargeValue ? Number(driverWithCharge.chargeValue) : null,
+            billedLoadRate: driverWithCharge.billedLoadRate ? Number(driverWithCharge.billedLoadRate) : null,
         }));
 
         onDriverSelectionSave(newDrivers);
@@ -397,6 +424,46 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Billed Load Rate field for Owner Operators with Percentage of Load */}
+                                                        {driver.type === DriverType.OWNER_OPERATOR &&
+                                                            driverData?.chargeType ===
+                                                                ChargeType.PERCENTAGE_OF_LOAD && (
+                                                                <div className="mt-3">
+                                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                        Billed Load Rate
+                                                                    </label>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">
+                                                                            $
+                                                                        </span>
+                                                                        <input
+                                                                            {...register(
+                                                                                `selectedDrivers.${driver.id}.billedLoadRate`,
+                                                                                {
+                                                                                    required:
+                                                                                        driver.type ===
+                                                                                            DriverType.OWNER_OPERATOR &&
+                                                                                        driverData?.chargeType ===
+                                                                                            ChargeType.PERCENTAGE_OF_LOAD,
+                                                                                    min: 0,
+                                                                                    valueAsNumber: true,
+                                                                                },
+                                                                            )}
+                                                                            type="number"
+                                                                            placeholder="Enter billed rate"
+                                                                            step="any"
+                                                                            min="0"
+                                                                            onWheel={(e) => e.currentTarget.blur()}
+                                                                            className="block w-full pl-6 pr-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                                                        />
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                        Custom rate for percentage calculation instead
+                                                                        of load rate
+                                                                    </p>
+                                                                </div>
+                                                            )}
                                                     </div>
                                                 )}
                                             </div>
@@ -457,22 +524,29 @@ const RouteLegDriverSelection: React.FC<Props> = ({
                         </form>
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
-                            <div className="flex flex-col items-center text-center text-gray-500 space-y-3 px-4">
-                                <UserCircleIcon className="w-12 h-12 text-gray-300" />
-                                <div>
-                                    <p className="text-base font-medium">No drivers available</p>
-                                    <div className="flex items-center justify-center space-x-1 mt-2">
-                                        <span className="text-sm">Add drivers on the</span>
-                                        <Link
-                                            href="/drivers"
-                                            target="_blank"
-                                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-                                        >
-                                            Drivers Page
-                                            <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
-                                        </Link>
-                                    </div>
+                            <div className="flex flex-col items-center text-center space-y-6 px-8 py-12 max-w-sm mx-auto">
+                                {/* Icon with subtle background */}
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <UserCircleIcon className="w-8 h-8 text-gray-400" />
                                 </div>
+
+                                {/* Main message */}
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-medium text-gray-900">No Active Drivers</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                        Add active drivers to your team to assign them to loads and routes.
+                                    </p>
+                                </div>
+
+                                {/* Action button */}
+                                <Link
+                                    href="/drivers"
+                                    target="_blank"
+                                    className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                >
+                                    Manage Drivers
+                                    <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-2" />
+                                </Link>
                             </div>
                         </div>
                     )}

@@ -7,10 +7,12 @@ export const getAllDrivers = async ({
     sort,
     limit,
     offset,
+    activeOnly,
 }: {
     sort?: Sort;
     limit?: number;
     offset?: number;
+    activeOnly?: boolean;
 }): Promise<{ drivers: Driver[]; metadata: PaginationMetadata }> => {
     const params = new URLSearchParams();
     if (sort && sort.key) {
@@ -24,6 +26,9 @@ export const getAllDrivers = async ({
     }
     if (offset !== undefined) {
         params.append('offset', offset.toString());
+    }
+    if (activeOnly) {
+        params.append('activeOnly', 'true');
     }
     const response = await fetch(apiUrl + '/drivers?' + params.toString());
     const { data, errors }: JSONResponse<{ drivers: Driver[]; metadata: PaginationMetadata }> = await response.json();
@@ -120,4 +125,53 @@ export const deleteDriverById = async (id: string) => {
         throw new Error(errors.map((e) => e.message).join(', '));
     }
     return data.result;
+};
+
+export const deactivateDriver = async (id: string) => {
+    const response = await fetch(apiUrl + '/drivers/' + id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: false }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const { data, errors }: JSONResponse<{ updatedDriver: Driver }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.updatedDriver;
+};
+
+export const activateDriver = async (id: string) => {
+    const response = await fetch(apiUrl + '/drivers/' + id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: true }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 403 && errorData.code === 'SUBSCRIPTION_LIMIT_REACHED') {
+            // Handle subscription limit error specially
+            throw new Error(errorData.error || 'Subscription limit reached');
+        } else {
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+    }
+
+    const { data, errors }: JSONResponse<{ updatedDriver: Driver }> = await response.json();
+
+    if (errors) {
+        throw new Error(errors.map((e) => e.message).join(', '));
+    }
+    return data.updatedDriver;
 };

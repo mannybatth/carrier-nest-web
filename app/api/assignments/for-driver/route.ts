@@ -109,6 +109,36 @@ export const GET = auth(async (req: NextAuthRequest) => {
     }
 
     try {
+        // First, check if the driver exists and is active
+        const driver = await prisma.driver.findFirst({
+            where: {
+                id: driverId,
+                carrierId: tokenCarrierId,
+            },
+        });
+
+        if (!driver) {
+            return NextResponse.json(
+                {
+                    code: 404,
+                    errors: [{ message: 'Driver not found' }],
+                },
+                { status: 404 },
+            );
+        }
+
+        if (!driver.active) {
+            // Return empty assignments for inactive drivers using the same structure as active drivers with no data
+            const metadata = calcPaginationMetadata({ total: 0, limit, offset });
+            return NextResponse.json(
+                {
+                    code: 200,
+                    data: { metadata, assignments: [] },
+                },
+                { status: 200 },
+            );
+        }
+
         const total = await prisma.driverAssignment.count({
             where: {
                 driverId: driverId,
@@ -172,6 +202,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                                         name: true,
                                         email: true,
                                         phone: true,
+                                        active: true,
                                     },
                                 },
                             },
@@ -209,6 +240,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                                                         name: true,
                                                         email: true,
                                                         phone: true,
+                                                        active: true,
                                                     },
                                                 },
                                             },

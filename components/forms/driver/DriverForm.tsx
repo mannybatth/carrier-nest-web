@@ -1,7 +1,10 @@
-import { Driver, ChargeType } from '@prisma/client';
+import { Driver, ChargeType, DriverType } from '@prisma/client';
 import { tenDigitPhone } from 'lib/helpers/regExpressions';
-import React from 'react';
+import React, { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
+import { Listbox, Transition } from '@headlessui/react';
+import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/outline';
+import classNames from 'classnames';
 
 type Props = {
     formHook: UseFormReturn<Driver>;
@@ -14,10 +17,67 @@ const DriverForm: React.FC<Props> = ({
         trigger,
         getValues,
         clearErrors,
+        setValue,
+        watch,
         formState: { errors },
     },
     condensed,
 }) => {
+    // Pay type options with descriptions
+    const payTypeOptions = [
+        {
+            value: ChargeType.PER_MILE,
+            label: 'Per Mile',
+            description: 'Rate paid per mile driven (including empty miles)',
+        },
+        {
+            value: ChargeType.PER_HOUR,
+            label: 'Per Hour',
+            description: 'Hourly rate for time-based assignments',
+        },
+        {
+            value: ChargeType.FIXED_PAY,
+            label: 'Fixed Pay',
+            description: 'Fixed amount per assignment regardless of time/distance',
+        },
+        {
+            value: ChargeType.PERCENTAGE_OF_LOAD,
+            label: 'Percentage of Load',
+            description: 'Percentage of total load revenue (0-100%)',
+        },
+    ];
+
+    // Driver type options with descriptions
+    const driverTypeOptions = [
+        {
+            value: DriverType.DRIVER,
+            label: 'Driver',
+            description: 'Company employee driver',
+        },
+        {
+            value: DriverType.OWNER_OPERATOR,
+            label: 'Owner Operator',
+            description: 'Independent contractor with own equipment',
+        },
+    ];
+
+    const selectedPayType = watch('defaultChargeType');
+    const selectedDriverType = watch('type');
+    const selectedPayTypeOption = payTypeOptions.find((option) => option.value === selectedPayType);
+    const selectedDriverTypeOption = driverTypeOptions.find((option) => option.value === selectedDriverType);
+
+    const handlePayTypeChange = (value: ChargeType) => {
+        setValue('defaultChargeType', value);
+        trigger('defaultChargeType');
+        clearErrors('perMileRate');
+        clearErrors('perHourRate');
+        clearErrors('takeHomePercent');
+    };
+
+    const handleDriverTypeChange = (value: DriverType) => {
+        setValue('type', value);
+        trigger('type');
+    };
     return (
         <div className="relative mt-3 md:mt-0 md:col-span-2">
             {condensed ? (
@@ -117,6 +177,110 @@ const DriverForm: React.FC<Props> = ({
                                     )}
                                 </div>
                             </div>
+
+                            <div>
+                                <label htmlFor="driver-type" className="block text-sm font-semibold text-gray-900 mb-2">
+                                    Driver Type <span className="text-red-500">*</span>
+                                </label>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    Select whether this person is a company driver or an owner-operator
+                                </p>
+
+                                {/* Apple-style Headless UI Dropdown */}
+                                <Listbox value={selectedDriverType || ''} onChange={handleDriverTypeChange}>
+                                    <div className="relative">
+                                        <Listbox.Button className="relative w-full px-4 py-4 text-base border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 bg-white hover:border-gray-400 font-medium text-left cursor-pointer">
+                                            <span className="flex items-center">
+                                                {selectedDriverTypeOption ? (
+                                                    <span className="block truncate text-gray-900">
+                                                        {selectedDriverTypeOption.label}
+                                                    </span>
+                                                ) : (
+                                                    <span className="block truncate text-gray-500">
+                                                        Select driver type...
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                                <ChevronUpDownIcon
+                                                    className="h-5 w-5 text-gray-400"
+                                                    aria-hidden="true"
+                                                />
+                                            </span>
+                                        </Listbox.Button>
+
+                                        <Transition
+                                            as={React.Fragment}
+                                            enter="transition ease-out duration-200"
+                                            enterFrom="opacity-0 translate-y-1"
+                                            enterTo="opacity-100 translate-y-0"
+                                            leave="transition ease-in duration-150"
+                                            leaveFrom="opacity-100 translate-y-0"
+                                            leaveTo="opacity-0 translate-y-1"
+                                        >
+                                            <Listbox.Options className="absolute z-50 mt-2 w-full bg-white shadow-xl rounded-2xl border border-gray-200 py-2 max-h-60 overflow-auto focus:outline-none">
+                                                {driverTypeOptions.map((option) => (
+                                                    <Listbox.Option
+                                                        key={option.value}
+                                                        className={({ active }) =>
+                                                            classNames(
+                                                                'relative cursor-pointer select-none px-4 py-3 mx-2 rounded-xl transition-all duration-150',
+                                                                active ? 'bg-blue-50 text-blue-900' : 'text-gray-900',
+                                                            )
+                                                        }
+                                                        value={option.value}
+                                                    >
+                                                        {({ selected, active }) => (
+                                                            <div className="flex items-center">
+                                                                <div className="flex-1">
+                                                                    <div
+                                                                        className={classNames(
+                                                                            'block text-sm font-medium truncate',
+                                                                            selected
+                                                                                ? 'text-blue-900'
+                                                                                : 'text-gray-900',
+                                                                        )}
+                                                                    >
+                                                                        {option.label}
+                                                                    </div>
+                                                                    <div
+                                                                        className={classNames(
+                                                                            'block text-xs truncate mt-0.5',
+                                                                            active ? 'text-blue-700' : 'text-gray-500',
+                                                                        )}
+                                                                    >
+                                                                        {option.description}
+                                                                    </div>
+                                                                </div>
+                                                                {selected && (
+                                                                    <span className="ml-2 flex items-center text-blue-600">
+                                                                        <CheckIcon
+                                                                            className="h-4 w-4"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </Listbox.Option>
+                                                ))}
+                                            </Listbox.Options>
+                                        </Transition>
+                                    </div>
+                                </Listbox>
+
+                                {errors.type && (
+                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.type?.message}</p>
+                                )}
+
+                                {/* Hidden input for form validation */}
+                                <input
+                                    type="hidden"
+                                    {...register('type', {
+                                        required: 'Driver type is required',
+                                    })}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -141,33 +305,103 @@ const DriverForm: React.FC<Props> = ({
                                 <p className="text-xs text-gray-500 mb-3">
                                     Choose how this driver is typically compensated for assignments
                                 </p>
-                                <select
-                                    {...register('defaultChargeType', {
-                                        required: 'Pay type is required',
-                                        onChange: () => {
-                                            trigger('defaultChargeType');
-                                            clearErrors('perMileRate');
-                                            clearErrors('perHourRate');
-                                            clearErrors('takeHomePercent');
-                                        },
-                                    })}
-                                    id="defaultChargeType"
-                                    defaultValue=""
-                                    className="block w-full px-4 py-4 text-base border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 bg-white hover:border-gray-400 font-medium"
-                                >
-                                    <option value="" disabled>
-                                        Select Pay Type
-                                    </option>
-                                    <option value={ChargeType.PER_MILE}>Per Mile</option>
-                                    <option value={ChargeType.PER_HOUR}>Per Hour</option>
-                                    <option value={ChargeType.FIXED_PAY}>Fixed Pay</option>
-                                    <option value={ChargeType.PERCENTAGE_OF_LOAD}>Percentage of Load</option>
-                                </select>
+
+                                {/* Apple-style Headless UI Dropdown */}
+                                <Listbox value={selectedPayType || ''} onChange={handlePayTypeChange}>
+                                    <div className="relative">
+                                        <Listbox.Button className="relative w-full px-4 py-4 text-base border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 bg-white hover:border-gray-400 font-medium text-left cursor-pointer">
+                                            <span className="flex items-center">
+                                                {selectedPayTypeOption ? (
+                                                    <span className="block truncate text-gray-900">
+                                                        {selectedPayTypeOption.label}
+                                                    </span>
+                                                ) : (
+                                                    <span className="block truncate text-gray-500">
+                                                        Select Pay Type
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                                <ChevronUpDownIcon
+                                                    className="h-5 w-5 text-gray-400"
+                                                    aria-hidden="true"
+                                                />
+                                            </span>
+                                        </Listbox.Button>
+
+                                        <Transition
+                                            as={React.Fragment}
+                                            enter="transition ease-out duration-200"
+                                            enterFrom="opacity-0 translate-y-1"
+                                            enterTo="opacity-100 translate-y-0"
+                                            leave="transition ease-in duration-150"
+                                            leaveFrom="opacity-100 translate-y-0"
+                                            leaveTo="opacity-0 translate-y-1"
+                                        >
+                                            <Listbox.Options className="absolute z-50 mt-2 w-full bg-white shadow-xl rounded-2xl border border-gray-200 py-2 max-h-60 overflow-auto focus:outline-none">
+                                                {payTypeOptions.map((option) => (
+                                                    <Listbox.Option
+                                                        key={option.value}
+                                                        className={({ active }) =>
+                                                            classNames(
+                                                                'relative cursor-pointer select-none px-4 py-3 mx-2 rounded-xl transition-all duration-150',
+                                                                active ? 'bg-blue-50 text-blue-900' : 'text-gray-900',
+                                                            )
+                                                        }
+                                                        value={option.value}
+                                                    >
+                                                        {({ selected, active }) => (
+                                                            <div className="flex items-center">
+                                                                <div className="flex-1">
+                                                                    <div
+                                                                        className={classNames(
+                                                                            'block text-sm font-medium truncate',
+                                                                            selected
+                                                                                ? 'text-blue-900'
+                                                                                : 'text-gray-900',
+                                                                        )}
+                                                                    >
+                                                                        {option.label}
+                                                                    </div>
+                                                                    <div
+                                                                        className={classNames(
+                                                                            'block text-xs truncate mt-0.5',
+                                                                            active ? 'text-blue-700' : 'text-gray-500',
+                                                                        )}
+                                                                    >
+                                                                        {option.description}
+                                                                    </div>
+                                                                </div>
+                                                                {selected && (
+                                                                    <span className="ml-2 flex items-center text-blue-600">
+                                                                        <CheckIcon
+                                                                            className="h-4 w-4"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </Listbox.Option>
+                                                ))}
+                                            </Listbox.Options>
+                                        </Transition>
+                                    </div>
+                                </Listbox>
+
                                 {errors.defaultChargeType && (
                                     <p className="mt-2 text-sm text-red-600 font-medium">
                                         {errors.defaultChargeType?.message}
                                     </p>
                                 )}
+
+                                {/* Hidden input for form validation */}
+                                <input
+                                    type="hidden"
+                                    {...register('defaultChargeType', {
+                                        required: 'Pay type is required',
+                                    })}
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">

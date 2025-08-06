@@ -181,6 +181,18 @@ export const POST = auth(async (req: NextAuthRequest) => {
             return NextResponse.json({ code: 404, errors: [{ message: 'Driver not found' }] }, { status: 404 });
         }
 
+        if (!driver.active) {
+            return NextResponse.json(
+                {
+                    code: 400,
+                    errors: [
+                        { message: 'Cannot create invoices for inactive drivers. Please activate the driver first.' },
+                    ],
+                },
+                { status: 400 },
+            );
+        }
+
         const checkForInvoiceNum = await prisma.driverInvoice.findFirst({
             where: {
                 invoiceNum: invoiceNum,

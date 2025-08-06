@@ -774,7 +774,17 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => router.push(`/driverinvoices/edit/${invoice.id}`)}
-                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                disabled={!invoice.driver?.active}
+                                                className={`inline-flex items-center justify-center px-3 py-2 sm:px-4 border text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                                                    !invoice.driver?.active
+                                                        ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-blue-500'
+                                                }`}
+                                                title={
+                                                    !invoice.driver?.active
+                                                        ? 'Cannot edit invoice for inactive driver'
+                                                        : 'Edit Invoice'
+                                                }
                                             >
                                                 <PencilIcon className="w-4 h-4 mr-2" />
                                                 <span className="truncate">Edit Invoice</span>

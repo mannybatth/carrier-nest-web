@@ -75,6 +75,7 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                             name: true,
                             email: true,
                             phone: true,
+                            active: true,
                         },
                     },
                     carrier: {
@@ -235,6 +236,7 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                         name: true,
                         email: true,
                         phone: true,
+                        active: true,
                     },
                 },
                 carrier: {

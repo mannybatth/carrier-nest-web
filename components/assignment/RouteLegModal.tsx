@@ -446,6 +446,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
                         driver: assignment.driver,
                         chargeType: assignment.chargeType,
                         chargeValue: Number(assignment.chargeValue),
+                        billedLoadRate: assignment.billedLoadRate ? Number(assignment.billedLoadRate) : null,
                     };
                 }),
                 locations: routeLeg.locations,
@@ -693,8 +694,10 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
     };
 
     const calcDriverPay = (driverId: string) => {
-        const chargeType = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeType;
-        const chargeValue = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId)?.chargeValue ?? 0;
+        const driverWithCharge = routeLegData.driversWithCharge.find((d) => d.driver.id === driverId);
+        const chargeType = driverWithCharge?.chargeType;
+        const chargeValue = driverWithCharge?.chargeValue ?? 0;
+        const billedLoadRate = driverWithCharge?.billedLoadRate;
 
         return calculateDriverPay({
             chargeType,
@@ -702,6 +705,7 @@ const RouteLegModal: React.FC<Props> = ({ show, routeLeg, onClose }: Props) => {
             distanceMiles: routeLegData.distanceMiles ?? 0,
             durationHours: routeLegData.durationHours ?? 0,
             loadRate: new Prisma.Decimal(load.rate),
+            billedLoadRate: billedLoadRate,
         });
     };
 

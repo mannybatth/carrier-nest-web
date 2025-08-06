@@ -304,7 +304,9 @@ const expandedDriver = Prisma.validator<Prisma.DriverDefaultArgs>()({
         equipments: true,
     },
 });
-export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>>;
+export type ExpandedDriver = Partial<Prisma.DriverGetPayload<typeof expandedDriver>> & {
+    hasDriverApp?: boolean;
+};
 
 /**
  * DriverAssignment
@@ -468,6 +470,7 @@ const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>(
                 name: true,
                 email: true,
                 phone: true,
+                active: true,
             },
         },
 

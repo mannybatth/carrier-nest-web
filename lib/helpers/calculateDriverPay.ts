@@ -6,12 +6,14 @@ export const calculateDriverPay = ({
     distanceMiles,
     durationHours,
     loadRate,
+    billedLoadRate,
 }: {
     chargeType: ChargeType;
     chargeValue: Prisma.Decimal | number;
     distanceMiles: Prisma.Decimal | number;
     durationHours: Prisma.Decimal | number;
     loadRate: Prisma.Decimal | number;
+    billedLoadRate?: Prisma.Decimal | number;
 }) => {
     if (!chargeType || !chargeValue) return new Prisma.Decimal(0);
 
@@ -26,7 +28,8 @@ export const calculateDriverPay = ({
     } else if (chargeType === ChargeType.FIXED_PAY) {
         return chargeValueDecimal;
     } else if (chargeType === ChargeType.PERCENTAGE_OF_LOAD) {
-        const rate = new Prisma.Decimal(loadRate ?? 0);
+        // Use billedLoadRate if provided, otherwise use the standard loadRate
+        const rate = new Prisma.Decimal(billedLoadRate ?? loadRate ?? 0);
         return rate.mul(chargeValueDecimal).div(100).toNearest(0.01);
     }
     return new Prisma.Decimal(0);

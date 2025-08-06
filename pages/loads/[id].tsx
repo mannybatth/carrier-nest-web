@@ -292,6 +292,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     }, [load, router]);
 
     const editLegClicked = (legId: string) => {
+        if (!load?.route?.routeLegs) {
+            console.error('Route legs not available');
+            return;
+        }
+
         const leg = load.route.routeLegs.find((rl) => rl.id === legId) as Partial<RouteLeg>;
         if (leg) {
             setEditingRouteLeg(leg);
@@ -300,6 +305,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
     };
 
     const openRouteInMapsClicked = (legId: string) => {
+        if (!load?.route?.routeLegs) {
+            console.error('Route legs not available');
+            return;
+        }
+
         // Find the relevant RouteLeg
         const routeLeg = load.route.routeLegs.find((rl) => rl.id === legId);
         if (!routeLeg) return;
@@ -342,6 +352,10 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
     const changeLegStatusClicked = async (legStatus: RouteLegStatus, routeLegId: string) => {
         try {
+            if (!load?.route?.routeLegs) {
+                throw new Error('Route legs not available');
+            }
+
             const { loadStatus, routeLeg: newRouteLeg } = await updateRouteLegStatus(routeLegId, legStatus);
 
             // Insert the updated route leg into the route
@@ -359,7 +373,21 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
             notify({ title: 'Load Assignment Status', message: 'Load assignment successfully updated' });
         } catch (error) {
-            notify({ title: 'Error Updating Load Assignment ', type: 'error' });
+            // Check if the error is related to inactive driver
+            const errorMessage = error.message || 'Unknown error occurred';
+            if (errorMessage.includes('Driver account is inactive')) {
+                notify({
+                    title: 'Assignment Update Failed',
+                    message: 'Cannot update assignment status: Driver account is inactive',
+                    type: 'error',
+                });
+            } else {
+                notify({
+                    title: 'Error Updating Load Assignment',
+                    message: errorMessage,
+                    type: 'error',
+                });
+            }
         }
     };
 
@@ -374,13 +402,20 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
 
             try {
                 await removeRouteLegById(legIdToDelete);
-                setLoad((prev) => ({
-                    ...prev,
-                    route: {
-                        ...prev.route,
-                        routeLegs: prev.route.routeLegs.filter((rl) => rl.id !== legIdToDelete),
-                    },
-                }));
+                setLoad((prev) => {
+                    if (!prev?.route?.routeLegs) {
+                        console.error('Route legs not available for deletion');
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        route: {
+                            ...prev.route,
+                            routeLegs: prev.route.routeLegs.filter((rl) => rl.id !== legIdToDelete),
+                        },
+                    };
+                });
                 notify({ title: 'Load Assignment', message: 'Load assignment successfully removed' });
             } catch (e) {
                 notify({ title: 'Error Removing Load Assignment', type: 'error' });

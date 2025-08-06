@@ -58,7 +58,10 @@ export const POST = auth(async (req: NextAuthRequest) => {
         }
 
         const driverCount = await prisma.driver.count({
-            where: { carrierId },
+            where: {
+                carrierId,
+                active: true, // Only count active drivers against subscription limit
+            },
         });
 
         const maxDrivers =
@@ -104,6 +107,8 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 name: driverData.name,
                 email: driverData.email || '',
                 phone: driverData.phone || '',
+                active: driverData.active !== undefined ? driverData.active : true,
+                type: driverData.type || 'DRIVER',
                 defaultChargeType: driverData.defaultChargeType || undefined,
                 perMileRate: driverData.perMileRate,
                 perHourRate: driverData.perHourRate,
@@ -147,6 +152,7 @@ const getDrivers = async ({
 
     const sortBy = req.nextUrl.searchParams.get('sortBy') as string;
     const sortDir = (req.nextUrl.searchParams.get('sortDir') as string) || 'asc';
+    const activeOnly = req.nextUrl.searchParams.get('activeOnly') === 'true';
 
     const limit =
         req.nextUrl.searchParams.get('limit') !== undefined ? Number(req.nextUrl.searchParams.get('limit')) : undefined;
@@ -171,18 +177,19 @@ const getDrivers = async ({
         }
     }
 
+    const whereClause = {
+        carrierId: session.user.defaultCarrierId,
+        ...(activeOnly ? { active: true } : {}),
+    };
+
     const total = await prisma.driver.count({
-        where: {
-            carrierId: session.user.defaultCarrierId,
-        },
+        where: whereClause,
     });
 
     const metadata = calcPaginationMetadata({ total, limit, offset });
 
     const drivers = await prisma.driver.findMany({
-        where: {
-            carrierId: session.user.defaultCarrierId,
-        },
+        where: whereClause,
         ...(limit ? { take: limit } : { take: 10 }),
         ...(offset ? { skip: offset } : { skip: 0 }),
         orderBy: buildOrderBy(sortBy, sortDir) || {

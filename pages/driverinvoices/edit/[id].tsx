@@ -149,7 +149,7 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         setLoading(true);
         try {
             // Load all drivers first
-            const { drivers } = await getAllDrivers({ limit: 999, offset: 0 });
+            const { drivers } = await getAllDrivers({ limit: 999, offset: 0, activeOnly: true });
             setAllDrivers(drivers);
 
             const invoiceData = await getDriverInvoiceById(invoiceId);
@@ -529,6 +529,92 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
 
     if (loading) {
         return <InvoiceSkeleton />;
+    }
+
+    // Check if driver is inactive
+    if (invoice && !invoice.driver?.active) {
+        return (
+            <Layout
+                smHeaderComponent={
+                    <div className="flex items-center">
+                        <h1 className="flex-1 text-xl font-semibold text-gray-900">Driver Invoices</h1>
+                    </div>
+                }
+            >
+                <div className="min-h-screen bg-gray-50/30">
+                    <div className="max-w-7xl mx-auto p-3 sm:p-6 bg-transparent">
+                        {/* Apple-style Breadcrumb */}
+                        <div className="mb-4 sm:mb-8 bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-200/30">
+                            <nav className="flex" aria-label="Breadcrumb">
+                                <ol className="flex items-center space-x-1 sm:space-x-2">
+                                    <li>
+                                        <Link
+                                            href="/driverinvoices"
+                                            className="text-gray-500 hover:text-gray-700 text-sm sm:text-base transition-colors"
+                                        >
+                                            Driver Invoices
+                                        </Link>
+                                    </li>
+                                    <li className="flex items-center">
+                                        <svg
+                                            className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                            aria-hidden="true"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
+                                            Edit Invoice #{invoice?.invoiceNum}
+                                        </span>
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+
+                        {/* Inactive Driver Message */}
+                        <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                            <div className="flex flex-col items-center text-center space-y-6 px-8 py-12 max-w-md mx-auto">
+                                {/* Icon with subtle background */}
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                                    <UserIcon className="w-8 h-8 text-red-400" />
+                                </div>
+
+                                {/* Main message */}
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-medium text-gray-900">Driver Inactive</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                        This invoice belongs to {invoice.driver?.name}, who is currently inactive.
+                                        Invoices for inactive drivers cannot be edited.
+                                    </p>
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <Link
+                                        href={`/driverinvoices/${invoice.id}`}
+                                        className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                    >
+                                        View Invoice
+                                    </Link>
+                                    <Link
+                                        href="/driverinvoices"
+                                        className="inline-flex items-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        Back to Invoices
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Layout>
+        );
     }
 
     return (
