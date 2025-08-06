@@ -91,6 +91,7 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
                                 },
                                 chargeType: true,
                                 chargeValue: true,
+                                billedLoadRate: true,
                             },
                         },
                         route: {
@@ -130,6 +131,7 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
                                                 },
                                                 chargeType: true,
                                                 chargeValue: true,
+                                                billedLoadRate: true,
                                             },
                                         },
                                     },
@@ -148,6 +150,17 @@ export const GET = auth(async (req: NextAuthRequest, context: { params: { id: st
                     errors: [{ message: 'Driver assignment not found' }],
                 },
                 { status: 404 },
+            );
+        }
+
+        // If accessed by driver ID, check if the driver is active
+        if (did && driverAssignment.driver && !driverAssignment.driver.active) {
+            return NextResponse.json(
+                {
+                    code: 403,
+                    errors: [{ message: 'Access denied. Driver account is inactive.' }],
+                },
+                { status: 403 },
             );
         }
 
@@ -202,6 +215,40 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
 
     try {
         const body = await req.json();
+
+        // First, get the assignment to check the driver status
+        const existingAssignment = await prisma.driverAssignment.findFirst({
+            where: {
+                id: assignmentId,
+                carrierId: tokenCarrierId,
+            },
+            include: {
+                driver: true,
+            },
+        });
+
+        if (!existingAssignment) {
+            return NextResponse.json(
+                {
+                    code: 404,
+                    errors: [{ message: 'Driver assignment not found' }],
+                },
+                { status: 404 },
+            );
+        }
+
+        if (!existingAssignment.driver.active) {
+            return NextResponse.json(
+                {
+                    code: 403,
+                    errors: [
+                        { message: 'Cannot update assignment for inactive driver. Please activate the driver first.' },
+                    ],
+                },
+                { status: 403 },
+            );
+        }
+
         const updatedAssignment = await prisma.driverAssignment.updateMany({
             where: {
                 id: assignmentId,
