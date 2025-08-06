@@ -34,6 +34,9 @@ const EditDriver: PageWithAuth = () => {
         if (driver.phone) {
             formHook.setValue('phone', driver.phone);
         }
+        if (driver.type) {
+            formHook.setValue('type', driver.type);
+        }
         if (driver.defaultChargeType) {
             formHook.setValue('defaultChargeType', driver.defaultChargeType);
         }
@@ -59,6 +62,7 @@ const EditDriver: PageWithAuth = () => {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
+                type: data.type,
                 defaultChargeType: data.defaultChargeType,
                 perMileRate: data.perMileRate ? new Prisma.Decimal(data.perMileRate) : null,
                 perHourRate: data.perHourRate ? new Prisma.Decimal(data.perHourRate) : null,
