@@ -12,10 +12,11 @@ type Props = {
     sort: Sort;
     loading: boolean;
     changeSort: (sort: Sort) => void;
-    deleteDriver: (id: string) => void;
+    deactivateDriver: (id: string, name: string, phone: string) => void;
+    activateDriver: (id: string, name: string, phone: string) => void;
 };
 
-const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, deleteDriver }) => {
+const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, deactivateDriver, activateDriver }) => {
     const router = useRouter();
 
     return (
@@ -25,7 +26,9 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                 { key: 'name', title: 'Name' },
                 { key: 'email', title: 'Email' },
                 { key: 'phone', title: 'Phone' },
-                { key: 'defaultChargeType', title: 'Default Pay Type' }, // Added new column header
+                { key: 'type', title: 'Type' },
+                { key: 'active', title: 'Status' },
+                { key: 'defaultChargeType', title: 'Default Pay Type' },
             ]}
             rows={drivers.map((driver) => ({
                 id: driver.id,
@@ -33,7 +36,46 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                     { value: driver.name },
                     { value: driver.email },
                     { value: formatPhoneNumber(driver.phone) },
-                    { value: getChargeTypeLabel(driver.defaultChargeType) }, // Added new column value
+                    {
+                        value: driver.type === 'OWNER_OPERATOR' ? 'Owner Operator' : 'Driver',
+                        className: driver.type === 'OWNER_OPERATOR' ? 'text-purple-600 font-medium' : '',
+                    },
+                    {
+                        node: (
+                            <span
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${
+                                    driver.active
+                                        ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
+                                        : 'bg-red-100 text-red-800 ring-1 ring-red-200'
+                                }`}
+                            >
+                                {driver.active ? (
+                                    <>
+                                        <svg className="w-2.5 h-2.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        Active
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-2.5 h-2.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        Inactive
+                                    </>
+                                )}
+                            </span>
+                        ),
+                    },
+                    { value: getChargeTypeLabel(driver.defaultChargeType) },
                 ],
                 menuItems: [
                     {
@@ -42,10 +84,21 @@ const DriversTable: React.FC<Props> = ({ drivers, sort, loading, changeSort, del
                             router.push(`/drivers/edit/${driver.id}`);
                         },
                     },
-                    {
-                        title: 'Delete',
-                        onClick: () => deleteDriver(driver.id),
-                    },
+                    ...(driver.active
+                        ? [
+                              {
+                                  title: 'Deactivate',
+                                  onClick: () => deactivateDriver(driver.id, driver.name, driver.phone),
+                                  className: 'text-red-600',
+                              },
+                          ]
+                        : [
+                              {
+                                  title: 'Activate',
+                                  onClick: () => activateDriver(driver.id, driver.name, driver.phone),
+                                  className: 'text-green-600',
+                              },
+                          ]),
                 ],
             }))}
             rowLink={(id) => `/drivers/${id}`}
