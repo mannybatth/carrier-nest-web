@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { UserPlusIcon } from '@heroicons/react/24/outline';
+import { Tab } from '@headlessui/react';
+import { ChevronDownIcon, UserPlusIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
 import { PageWithAuth } from '../../../interfaces/auth';
 import TeamMembersCard from '../../../components/team/TeamMembersCard';
@@ -15,7 +16,9 @@ import { useLocalStorage } from '../../../lib/useLocalStorage';
 import {
     getAllTeamMembers,
     createTeamMember,
-    deleteTeamMember,
+    deactivateTeamMember,
+    reactivateTeamMember,
+    getDeactivatedTeamMembers,
     updateTeamMember,
     sendVerificationEmail,
 } from '../../../lib/rest/team';
@@ -35,15 +38,19 @@ const TeamSettings: PageWithAuth = () => {
     // State management
     const [lastTeamTableLimit, setLastTeamTableLimit] = useLocalStorage('lastTeamTableLimit', limitProp);
     const [loading, setLoading] = useState(true);
+    const [loadingDeactivated, setLoadingDeactivated] = useState(false);
     const [teamMembers, setTeamMembers] = useState<ExpandedUser[]>([]);
+    const [deactivatedMembers, setDeactivatedMembers] = useState<ExpandedUser[]>([]);
     const [metadata, setMetadata] = useState<any>(null);
+    const [showDeactivated, setShowDeactivated] = useState(false);
 
     // Modal and selection state
     const [showAddModal, setShowAddModal] = useState(false);
-    const [openDeleteConfirmation, setOpenDeleteConfirmation] = useState(false);
-    const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
-    const [deletingMember, setDeletingMember] = useState(false);
-    const [deletingMembers, setDeletingMembers] = useState<Set<string>>(new Set());
+    const [openDeactivateConfirmation, setOpenDeactivateConfirmation] = useState(false);
+    const [memberToDeactivate, setMemberToDeactivate] = useState<string | null>(null);
+    const [deactivatingMember, setDeactivatingMember] = useState(false);
+    const [deactivatingMembers, setDeactivatingMembers] = useState<Set<string>>(new Set());
+    const [reactivatingMembers, setReactivatingMembers] = useState<Set<string>>(new Set());
 
     // Pagination state
     const [sort, setSort] = useState<Sort>(sortProps);
@@ -53,6 +60,9 @@ const TeamSettings: PageWithAuth = () => {
     // Load team members on mount and when sort/pagination changes
     useEffect(() => {
         loadTeamMembers();
+        if (showDeactivated) {
+            loadDeactivatedMembers();
+        }
     }, []);
 
     useEffect(() => {
@@ -76,6 +86,19 @@ const TeamSettings: PageWithAuth = () => {
             notify({ title: 'Error', message: 'Failed to load team members', type: 'error' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDeactivatedMembers = async () => {
+        setLoadingDeactivated(true);
+        try {
+            const { deactivatedUsers } = await getDeactivatedTeamMembers();
+            setDeactivatedMembers(deactivatedUsers);
+        } catch (error) {
+            console.error('Error loading deactivated members:', error);
+            notify({ title: 'Error', message: 'Failed to load deactivated members', type: 'error' });
+        } finally {
+            setLoadingDeactivated(false);
         }
     };
 
@@ -187,21 +210,51 @@ const TeamSettings: PageWithAuth = () => {
         }
     };
 
-    const handleDeleteTeamMember = async (memberId: string) => {
-        setDeletingMember(true);
-        setDeletingMembers((prev) => new Set(prev).add(memberId));
+    const handleDeactivateTeamMember = async (memberId: string) => {
+        setDeactivatingMember(true);
+        setDeactivatingMembers((prev) => new Set(prev).add(memberId));
         try {
-            await deleteTeamMember(memberId);
-            notify({ title: 'Team member removed', message: 'Team member has been removed from your team' });
-            setOpenDeleteConfirmation(false);
-            setMemberToDelete(null);
+            const result = await deactivateTeamMember(memberId);
+            notify({
+                title: 'Team member deactivated',
+                message: result.deactivated
+                    ? 'Team member has been deactivated and removed from all carriers'
+                    : 'Team member has been removed from this carrier',
+            });
+            setOpenDeactivateConfirmation(false);
+            setMemberToDeactivate(null);
+            reloadTeamMembers({ sort, limit, offset });
+            if (showDeactivated) {
+                loadDeactivatedMembers();
+            }
+        } catch (error) {
+            console.error('Error deactivating team member:', error);
+            notify({ title: 'Error', message: error.message || 'Failed to deactivate team member', type: 'error' });
+        } finally {
+            setDeactivatingMember(false);
+            setDeactivatingMembers((prev) => {
+                const next = new Set(prev);
+                next.delete(memberId);
+                return next;
+            });
+        }
+    };
+
+    const handleReactivateTeamMember = async (memberId: string) => {
+        setReactivatingMembers((prev) => new Set(prev).add(memberId));
+        try {
+            await reactivateTeamMember(memberId);
+            notify({
+                title: 'Team member reactivated',
+                message: 'Team member has been reactivated and added back to your team',
+            });
+            loadDeactivatedMembers();
             reloadTeamMembers({ sort, limit, offset });
         } catch (error) {
-            console.error('Error deleting team member:', error);
-            notify({ title: 'Error', message: error.message || 'Failed to remove team member', type: 'error' });
+            console.error('Error reactivating team member:', error);
+            notify({ title: 'Error', message: error.message || 'Failed to reactivate team member', type: 'error' });
         } finally {
-            setDeletingMember(false);
-            setDeletingMembers((prev) => {
+            setReactivatingMembers((prev) => {
                 const next = new Set(prev);
                 next.delete(memberId);
                 return next;
@@ -296,135 +349,183 @@ const TeamSettings: PageWithAuth = () => {
                     onSubmit={handleAddTeamMember}
                 />
 
-                {/* Delete Confirmation Dialog */}
+                {/* Deactivate Confirmation Dialog */}
                 <SimpleDialog
-                    show={openDeleteConfirmation}
-                    title="Remove Team Member"
-                    description="Are you sure you want to remove this team member? They will lose access to your carrier account."
-                    primaryButtonText="Remove"
+                    show={openDeactivateConfirmation}
+                    title="Deactivate Team Member"
+                    description="Are you sure you want to deactivate this team member? They will lose access to your carrier account, but their data will be preserved. You can reactivate them later."
+                    primaryButtonText="Deactivate"
                     primaryButtonAction={() => {
-                        if (memberToDelete) {
-                            handleDeleteTeamMember(memberToDelete);
+                        if (memberToDeactivate) {
+                            handleDeactivateTeamMember(memberToDeactivate);
                         }
                     }}
                     secondaryButtonAction={() => {
-                        setOpenDeleteConfirmation(false);
-                        setMemberToDelete(null);
+                        setOpenDeactivateConfirmation(false);
+                        setMemberToDeactivate(null);
                     }}
                     onClose={() => {
-                        if (!deletingMember) {
-                            setOpenDeleteConfirmation(false);
-                            setMemberToDelete(null);
+                        if (!deactivatingMember) {
+                            setOpenDeactivateConfirmation(false);
+                            setMemberToDeactivate(null);
                         }
                     }}
-                    loading={deletingMember}
-                    loadingText="Removing member..."
+                    loading={deactivatingMember}
+                    loadingText="Deactivating member..."
                 />
 
                 {/* Header Section - Clean and minimal */}
                 <div className="mb-8">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex flex-col gap-4">
                         <div>
-                            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight mb-2">Team</h1>
-                            <p className="text-gray-500 leading-relaxed">
+                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">Team Management</h1>
+                            <p className="text-gray-600 text-lg leading-relaxed">
                                 Manage your team members and their access to your carrier account.
                             </p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowAddModal(true)}
-                            className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
-                        >
-                            <UserPlusIcon className="w-5 h-5 mr-2" />
-                            Add Member
-                        </button>
                     </div>
                 </div>
 
-                {/* Team Stats - Apple-style metrics */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                                <UserPlusIcon className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">Total Members</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? (
-                                        <div className="w-8 h-6 bg-gray-200 rounded animate-pulse"></div>
-                                    ) : (
-                                        teamMembers.length
-                                    )}
-                                </p>
-                            </div>
+                {/* Team Stats - Clean design without icons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                        <div className="text-center space-y-2">
+                            <p className="text-3xl font-bold text-gray-900">
+                                {loading ? (
+                                    <div className="w-10 h-8 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                                ) : (
+                                    teamMembers.length + deactivatedMembers.length
+                                )}
+                            </p>
+                            <p className="text-sm text-gray-600 font-medium">Total Members</p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">Active</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? (
-                                        <div className="w-8 h-6 bg-gray-200 rounded animate-pulse"></div>
-                                    ) : (
-                                        teamMembers.filter((member) => {
-                                            const hasAccount = member.accounts && member.accounts.length > 0;
-                                            const isEmailVerified =
-                                                member.emailVerified !== null && member.emailVerified !== undefined;
-                                            return isEmailVerified || hasAccount;
-                                        }).length
-                                    )}
-                                </p>
-                            </div>
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                        <div className="text-center space-y-2">
+                            <p className="text-3xl font-bold text-green-600">
+                                {loading ? (
+                                    <div className="w-10 h-8 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                                ) : (
+                                    teamMembers.filter((member) => {
+                                        const hasAccount = member.accounts && member.accounts.length > 0;
+                                        const isEmailVerified =
+                                            member.emailVerified !== null && member.emailVerified !== undefined;
+                                        return isEmailVerified || hasAccount;
+                                    }).length
+                                )}
+                            </p>
+                            <p className="text-sm text-gray-600 font-medium">Active</p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
-                                <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">Pending</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? (
-                                        <div className="w-8 h-6 bg-gray-200 rounded animate-pulse"></div>
-                                    ) : (
-                                        teamMembers.filter((member) => {
-                                            const hasAccount = member.accounts && member.accounts.length > 0;
-                                            const isEmailVerified =
-                                                member.emailVerified !== null && member.emailVerified !== undefined;
-                                            const isActive = isEmailVerified || hasAccount;
-                                            return !isActive;
-                                        }).length
-                                    )}
-                                </p>
-                            </div>
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                        <div className="text-center space-y-2">
+                            <p className="text-3xl font-bold text-amber-600">
+                                {loading ? (
+                                    <div className="w-10 h-8 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                                ) : (
+                                    teamMembers.filter((member) => {
+                                        const hasAccount = member.accounts && member.accounts.length > 0;
+                                        const isEmailVerified =
+                                            member.emailVerified !== null && member.emailVerified !== undefined;
+                                        const isActive = isEmailVerified || hasAccount;
+                                        return !isActive;
+                                    }).length
+                                )}
+                            </p>
+                            <p className="text-sm text-gray-600 font-medium">Pending</p>
                         </div>
                     </div>
+
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                        <div className="text-center space-y-2">
+                            <p className="text-3xl font-bold text-red-600">{deactivatedMembers.length}</p>
+                            <p className="text-sm text-gray-600 font-medium">Deactivated</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quick Actions Section - Improved layout */}
+                <div
+                    className="bg-white rounded-2xl p-8 mb-6 border border-gray-200"
+                    style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}
+                >
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">Quick Actions</h3>
+                            <p className="text-gray-600 text-base leading-relaxed max-w-2xl">
+                                Add new team members to your carrier account. Invite colleagues to collaborate and
+                                manage access permissions.
+                            </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddModal(true)}
+                                className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-lg whitespace-nowrap text-base"
+                            >
+                                <UserPlusIcon className="w-5 h-5 mr-3 flex-shrink-0" />
+                                Add New Member
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Subtle Tab Switch Section */}
+                <div className="mb-8">
+                    <Tab.Group
+                        selectedIndex={showDeactivated ? 1 : 0}
+                        onChange={(index) => {
+                            const shouldShowDeactivated = index === 1;
+                            setShowDeactivated(shouldShowDeactivated);
+                            if (shouldShowDeactivated) {
+                                loadDeactivatedMembers();
+                            }
+                        }}
+                    >
+                        <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1 max-w-md">
+                            <Tab
+                                className={({ selected }) =>
+                                    `w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200 focus:outline-none ${
+                                        selected
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                    }`
+                                }
+                            >
+                                Active Members
+                            </Tab>
+                            <Tab
+                                className={({ selected }) =>
+                                    `w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200 focus:outline-none ${
+                                        selected
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                    }`
+                                }
+                            >
+                                Deactivated
+                            </Tab>
+                        </Tab.List>
+                    </Tab.Group>
                 </div>
 
                 {/* Team Members */}
                 <TeamMembersCard
-                    teamMembers={teamMembers}
-                    loading={loading}
+                    teamMembers={showDeactivated ? deactivatedMembers : teamMembers}
+                    loading={showDeactivated ? loadingDeactivated : loading}
                     onDeleteMember={(memberId) => {
-                        setMemberToDelete(memberId);
-                        setOpenDeleteConfirmation(true);
+                        setMemberToDeactivate(memberId);
+                        setOpenDeactivateConfirmation(true);
                     }}
+                    onReactivateMember={showDeactivated ? handleReactivateTeamMember : undefined}
                     onRoleChange={handleRoleChange}
                     onSendVerificationEmail={handleSendVerificationEmail}
                     onUpdateMember={handleUpdateMember}
-                    deletingMembers={deletingMembers}
+                    deletingMembers={deactivatingMembers}
+                    showDeactivated={showDeactivated}
+                    reactivatingMembers={reactivatingMembers}
                 />
 
                 {/* Pagination - Clean and minimal */}
