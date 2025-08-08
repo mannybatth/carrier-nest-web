@@ -15,7 +15,7 @@ import LoadForm from '../../components/forms/load/LoadForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import type { AILoad, AICustomerDetails } from '../../interfaces/ai';
 import type { PageWithAuth } from '../../interfaces/auth';
 import type { ExpandedLoad } from '../../interfaces/models';

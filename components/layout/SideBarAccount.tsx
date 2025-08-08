@@ -8,7 +8,7 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import type React from 'react';
 import { Fragment } from 'react';
-import NotificationBell from '../../components/NotificationBell';
+import NotificationBell from '../notifications/NotificationBell';
 
 interface SideBarAccountProps {
     collapsed: boolean;

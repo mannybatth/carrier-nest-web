@@ -19,7 +19,7 @@ import React, { Fragment, useEffect, useState } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { ExpandedEquipment } from 'interfaces/models';
 import { deleteEquipmentById, getEquipmentById } from '../../lib/rest/equipment';
 import CustomerDetailsSkeleton from 'components/skeletons/CustomerDetailsSkeleton';

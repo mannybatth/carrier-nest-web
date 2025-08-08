@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
+import { useGlobalNotifications } from '../../contexts/GlobalNotificationContext';
 
 /**
  * Example component showing the notification system status

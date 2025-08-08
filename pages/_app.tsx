@@ -20,7 +20,7 @@ declare global {
 import { UserProvider } from '../components/context/UserContext';
 import ErrorBoundary from '../components/layout/ErrorBoundary';
 import Spinner from '../components/Spinner';
-import NotificationToastManager from '../components/NotificationToastManager';
+import NotificationToastManager from '../components/notifications/NotificationToastManager';
 import { SidebarProvider } from '../contexts/SidebarContext';
 import { GlobalNotificationProvider } from '../contexts/GlobalNotificationContext';
 import { useAuth } from '../hooks/useAuth';

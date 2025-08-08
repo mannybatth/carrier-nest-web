@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import EquipmentForm from '../../components/forms/equipment/EquipmentForm';
 import { getAllDrivers } from '../../lib/rest/driver';
 import { createEquipment } from '../../lib/rest/equipment';

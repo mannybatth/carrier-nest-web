@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
-import { NotificationPriority } from '../interfaces/notifications';
+import { useGlobalNotifications } from '../../contexts/GlobalNotificationContext';
+import { NotificationPriority } from '../../interfaces/notifications';
 import toast from 'react-hot-toast';
 
 interface NotificationToastProps {

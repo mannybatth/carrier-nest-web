@@ -14,7 +14,7 @@ import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadsTable, LoadsTableSkeleton } from '../../components/loads/LoadsTable';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import Pagination from '../../components/Pagination';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';

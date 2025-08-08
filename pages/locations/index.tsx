@@ -5,7 +5,7 @@ import React, { useEffect } from 'react';
 import { CustomersTableSkeleton } from '../../components/customers/CustomersTable';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { PaginationMetadata, Sort } from '../../interfaces/table';

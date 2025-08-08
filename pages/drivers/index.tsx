@@ -9,7 +9,7 @@ import ActivateDriverDialog from '../../components/dialogs/ActivateDriverDialog'
 import DeactivateDriverDialog from '../../components/dialogs/DeactivateDriverDialog';
 import DriversTable from '../../components/drivers/DriversTable';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { PaginationMetadata, Sort } from '../../interfaces/table';

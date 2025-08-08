@@ -2,7 +2,7 @@ import React, { Fragment, useState, useEffect } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { BellIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
-import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
+import { useGlobalNotifications } from '../../contexts/GlobalNotificationContext';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 

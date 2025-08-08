@@ -5,7 +5,7 @@ import Link from 'next/link';
 import React from 'react';
 import { useUserContext } from '../components/context/UserContext';
 import Layout from '../components/layout/Layout';
-import NotificationBell from '../components/NotificationBell';
+import NotificationBell from '../components/notifications/NotificationBell';
 import { PageWithAuth } from '../interfaces/auth';
 import { ExpandedLoad } from '../interfaces/models';
 import { getUpcomingLoads } from '../lib/rest/dashboard';

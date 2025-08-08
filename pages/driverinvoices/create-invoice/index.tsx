@@ -10,7 +10,7 @@ import { getAllAssignments } from 'lib/rest/assignment';
 import { DriverInvoiceLineItem, ExpandedDriverAssignment, NewDriverInvoice } from 'interfaces/models';
 import Spinner from 'components/Spinner';
 import Link from 'next/link';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import { createDriverInvoice, getNextDriverInvoiceNum } from 'lib/rest/driverinvoice';
 import AssignmentChargeTypeChangeDialog from 'components/driverinvoices/AssignmentChargeChange';
 import DriverRouteMap from 'components/DriverRouteMap';

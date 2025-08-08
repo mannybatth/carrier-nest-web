@@ -8,7 +8,7 @@ import SettingsLayout from '../../components/layout/SettingsLayout';
 import type { PageWithAuth } from '../../interfaces/auth';
 import { updateCarrier } from '../../lib/rest/carrier';
 import SettingsPageSkeleton from '../../components/skeletons/SettingsPageSkeleton';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { useUserContext } from '../../components/context/UserContext';
 import type { ExpandedCarrier } from 'interfaces/models';
 import { InformationCircleIcon, LockClosedIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';

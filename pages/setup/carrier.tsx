@@ -17,7 +17,7 @@ import { useRouter } from 'next/router';
 import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { createNewCarrier, isCarrierCodeUnique } from '../../lib/rest/carrier';
 import { createCheckoutSession } from '../../lib/rest/stripe';
 import { tenDigitPhone } from 'lib/helpers/regExpressions';

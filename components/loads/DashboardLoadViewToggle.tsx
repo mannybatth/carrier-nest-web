@@ -42,7 +42,7 @@ import SwitchWithLabel from 'components/switchWithLabel';
 import { getAssignmentById } from 'lib/rest/assignment';
 import AssignmentPopup from 'components/assignment/AssignmentPopup';
 import { updateRouteLegStatus } from 'lib/rest/routeLeg';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import { Route } from 'next';
 import { RouteLegStatus } from '@prisma/client';
 import Spinner from 'components/Spinner';

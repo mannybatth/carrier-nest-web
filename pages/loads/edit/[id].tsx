@@ -7,7 +7,7 @@ import LoadForm from '../../../components/forms/load/LoadForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import type { ExpandedLoad } from '../../../interfaces/models';
 import { getGeocoding, getRouteForCoords } from '../../../lib/mapbox/searchGeo';

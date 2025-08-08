@@ -24,7 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { formatTimeTo12Hour } from 'lib/helpers/format';
-import { notify } from '../../Notification';
+import { notify } from '../../notifications/Notification';
 
 type LoadAssignmentsSectionProps = {
     removingRouteLegWithId: string;

@@ -3,7 +3,7 @@
 import { createPortal } from 'react-dom';
 import { TrashIcon, PencilIcon, ArrowDownTrayIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline';
 import Layout from '../../components/layout/Layout';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import Spinner from 'components/Spinner';
 import { ExpandedDriverInvoice } from 'interfaces/models';
 import {

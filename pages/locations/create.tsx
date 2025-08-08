@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import LocationForm from '../../components/forms/location/LocationForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { Location } from '@prisma/client';
 import { createLocation } from 'lib/rest/locations';

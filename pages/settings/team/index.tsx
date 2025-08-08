@@ -8,7 +8,7 @@ import SettingsLayout from '../../../components/layout/SettingsLayout';
 import { PageWithAuth } from '../../../interfaces/auth';
 import TeamMembersCard from '../../../components/team/TeamMembersCard';
 import AddTeamMemberModal from '../../../components/team/AddTeamMemberModal';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import { Sort } from '../../../interfaces/table';
 import { ExpandedUser, UserRole, getRoleLabel } from '../../../interfaces/models';
 import { sortFromQuery } from '../../../lib/helpers/query';
