@@ -1,8 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect } from 'react';
+import { PageWithAuth } from '../../interfaces/auth';
 
-const VerifyRequest: React.FC = () => {
+const VerifyRequest: PageWithAuth = () => {
     useEffect(() => {
         document.documentElement.classList.add('h-full');
         return () => {
@@ -53,5 +54,8 @@ const VerifyRequest: React.FC = () => {
         </div>
     );
 };
+
+// Mark verify-request page as public
+VerifyRequest.authenticationEnabled = false;
 
 export default VerifyRequest;

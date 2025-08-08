@@ -175,38 +175,38 @@ export const DELETE = auth(async (req: NextAuthRequest, { params }: { params: { 
             // Check if user has any remaining carrier associations after removal
             const remainingCarriersCount = userToRemove.carriers.length - 1; // Subtract the one we just removed
 
-            // If user has no remaining carriers, delete the user entirely along with all related data
+            // If user has no remaining carriers, deactivate the user instead of deleting
             if (remainingCarriersCount === 0) {
-                // Delete all related data in a single transaction
-                await tx.teamInvitation.deleteMany({
-                    where: { email: userToRemove.email },
+                // Deactivate the user while preserving all data
+                await tx.user.update({
+                    where: { id: memberId },
+                    data: {
+                        isActive: false,
+                        deactivatedAt: new Date(),
+                        deactivatedBy: req.auth.user.id,
+                        deactivationReason: 'Removed from all carriers',
+                        defaultCarrierId: null, // Clear default carrier
+                    },
                 });
 
+                // Optionally invalidate all active sessions to force logout
                 await tx.session.deleteMany({
                     where: { userId: memberId },
                 });
 
-                await tx.account.deleteMany({
-                    where: { userId: memberId },
-                });
-
-                // Delete the user record itself (cascade delete handles other relations)
-                await tx.user.delete({
-                    where: { id: memberId },
-                });
-
-                return { completelyRemoved: true };
+                return { deactivated: true, completelyRemoved: false };
             }
 
-            return { completelyRemoved: false };
+            return { deactivated: false, completelyRemoved: false };
         });
 
         return NextResponse.json({
             code: 200,
             data: {
-                message: result.completelyRemoved
-                    ? 'Team member completely removed from system'
-                    : 'Team member removed successfully',
+                message: result.deactivated
+                    ? 'Team member deactivated (removed from all carriers)'
+                    : 'Team member removed from carrier successfully',
+                deactivated: result.deactivated,
             },
         });
     } catch (error) {

@@ -51,6 +51,10 @@ model User {
     isSiteAdmin             Boolean                  @default(false)
     defaultCarrierId        String?                  @map("default_carrier_id")
     role                    String                   @default("dispatcher")
+    isActive                Boolean                  @default(true)
+    deactivatedAt           DateTime?
+    deactivatedBy           String?
+    deactivationReason      String?
     accounts                Account[]
     createdInvoices         DriverInvoice[]          @relation("UserCreatedInvoices")
     invoices                Invoice[]
@@ -66,6 +70,7 @@ model User {
     carriers                Carrier[]                @relation("CarrierToUser")
 
     @@index([name, email, defaultCarrierId])
+    @@index([isActive, deactivatedAt])
 }
 
 model VerificationToken {

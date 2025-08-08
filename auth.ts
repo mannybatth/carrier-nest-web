@@ -77,8 +77,23 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
                 if (!driver) {
                     // If the driver is not found, throw an error.
+                    console.log(`[DRIVER_AUTH] Driver not found - Phone: ${phoneNumber}, Carrier: ${carrierCode}`);
                     throw new Error('Driver not found');
                 }
+
+                // Check if the driver is active before proceeding with authentication
+                if (!driver.active) {
+                    // Log clean message for deactivated driver attempt
+                    console.log(
+                        `[DRIVER_AUTH] Deactivated driver attempted sign-in - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
+                    );
+                    // For deactivated drivers, return null to trigger CredentialsSignin error
+                    // This will redirect to signin page with proper error handling
+                    return null;
+                }
+
+                // Log successful driver verification for active drivers
+                console.log(`[DRIVER_AUTH] Active driver verified - Driver ID: ${driver.id}, Phone: ${phoneNumber}`);
 
                 // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
@@ -94,8 +109,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                         // Store the generated code in the database linked to the driver's phone number
                         // with a short expiration time.
                         await storeCodeForDriver(driver.id, generatedCode);
+                        console.log(
+                            `[DRIVER_AUTH] SMS verification code sent - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
+                        );
                     } else {
                         // Process login of demo driver without PIN verification
+                        console.log(`[DRIVER_AUTH] Demo driver authenticated - Driver ID: ${driver.id}`);
                         return {
                             id: driver.id,
                             driverId: driver.id,
@@ -112,10 +131,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 const isValidCode = await verifyCodeForDriver(driver.id, code);
 
                 if (!isValidCode) {
+                    console.log(
+                        `[DRIVER_AUTH] Invalid verification code - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
+                    );
                     throw new Error('Invalid code');
                 }
 
                 // If the code is valid, return the driver object which will be used to create a session.
+                console.log(
+                    `[DRIVER_AUTH] Driver authentication successful - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
+                );
                 return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
             },
         }),
@@ -161,11 +186,70 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
             if (trigger === 'update') {
                 console.log('jwt trigger update');
-                const freshUser = await prisma.user.findUnique({
-                    where: { id: token.user.id },
-                });
-                if (freshUser) {
-                    token.user = freshUser as AuthUser;
+                if (token.driverId) {
+                    // For drivers, fetch from Driver table
+                    const freshDriver = await prisma.driver.findUnique({
+                        where: { id: token.user.id },
+                    });
+                    if (freshDriver) {
+                        // Map driver to AuthUser format
+                        token.user = {
+                            id: freshDriver.id,
+                            name: freshDriver.name,
+                            email: freshDriver.email,
+                            driverId: freshDriver.id,
+                            phoneNumber: freshDriver.phone,
+                            carrierId: freshDriver.carrierId,
+                        } as AuthUser;
+                    }
+                } else {
+                    // For regular users, fetch from User table
+                    const freshUser = await prisma.user.findUnique({
+                        where: { id: token.user.id },
+                    });
+                    if (freshUser) {
+                        token.user = freshUser as AuthUser;
+                    }
+                }
+            }
+
+            // Check if user/driver is still active on every JWT refresh
+            if (token.user?.id) {
+                // Check if this is a driver authentication (has driverId)
+                if (token.driverId) {
+                    // For drivers, check the Driver table
+                    const currentDriver = await prisma.driver.findUnique({
+                        where: { id: token.user.id },
+                        select: { active: true },
+                    });
+
+                    // If driver is deactivated, mark the token as invalid
+                    if (!currentDriver || !currentDriver.active) {
+                        console.log(`Driver ${token.user.id} is deactivated, marking token as invalid`);
+                        token.isDeactivated = true;
+                        token.error = 'ACCOUNT_DEACTIVATED';
+                    } else {
+                        // Remove any previous deactivation flags
+                        delete token.isDeactivated;
+                        delete token.error;
+                    }
+                } else {
+                    // For regular users, check the User table
+                    const currentUser = await prisma.user.findUnique({
+                        where: { id: token.user.id },
+                        select: { isActive: true, deactivatedAt: true },
+                    });
+
+                    // If user is deactivated, mark the token as invalid
+                    if (!currentUser || !currentUser.isActive) {
+                        console.log(`User ${token.user.id} is deactivated, marking token as invalid`);
+                        token.isDeactivated = true;
+                        token.error = 'ACCOUNT_DEACTIVATED';
+                    } else {
+                        // Remove any previous deactivation flags
+                        delete token.isDeactivated;
+                        delete token.error;
+                    }
                 }
             }
 
@@ -192,6 +276,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 console.log('session trigger update');
             }
 
+            // Check if token indicates deactivated user
+            if (token.isDeactivated || token.error === 'ACCOUNT_DEACTIVATED') {
+                console.log('Session callback: User is deactivated, returning null session');
+                return null;
+            }
+
             if (user) {
                 session.user = user as AuthUser;
             } else if (token?.user) {
@@ -207,6 +297,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             // console.log('callbacks signIn email:', email);
             // console.log('callbacks signIn credentials:', credentials);
             // console.log('------------------');
+
+            // Check if user account is deactivated during sign-in
+            if (user?.id) {
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { isActive: true, deactivatedAt: true },
+                });
+
+                if (currentUser && !currentUser.isActive) {
+                    console.log(`Deactivated user ${user.id} attempted to sign in`);
+                    // Return false to prevent sign-in and redirect to signin page with error
+                    return '/auth/signin?error=ACCOUNT_DEACTIVATED';
+                }
+            }
+
             return true;
         },
     },
@@ -259,6 +364,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         signIn: '/auth/signin',
         verifyRequest: '/auth/verify-request',
         error: '/auth/error',
+    },
+    logger: {
+        error(error) {
+            // Handle CredentialsSignin errors with clean logging
+            if (error.name === 'CredentialsSignin') {
+                // Log clean driver authentication failures
+                console.log(`[DRIVER_AUTH] Sign-in attempt failed - credentials rejected`);
+                return;
+            }
+            // Log all other errors normally
+            console.error(`[auth][error]`, error);
+        },
+        warn(code) {
+            console.warn(`[auth][warn] ${code}`);
+        },
+        debug(code, metadata) {
+            console.debug(`[auth][debug] ${code}`, metadata);
+        },
     },
 });
 

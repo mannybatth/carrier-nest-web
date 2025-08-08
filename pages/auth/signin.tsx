@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { appUrl } from 'lib/constants';
+import { PageWithAuth } from '../../interfaces/auth';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -19,6 +20,7 @@ type SignInErrorTypes =
     | 'EmailSignin'
     | 'CredentialsSignin'
     | 'SessionRequired'
+    | 'ACCOUNT_DEACTIVATED'
     | 'default';
 
 const errors: Record<SignInErrorTypes, string> = {
@@ -34,6 +36,7 @@ const errors: Record<SignInErrorTypes, string> = {
     EmailSignin: 'The sign-in email could not be sent. Please check your email and try again.',
     CredentialsSignin: 'Sign in failed. Please check the details you provided are correct and try again.',
     SessionRequired: 'A session is required to access this page. Please sign in.',
+    ACCOUNT_DEACTIVATED: 'Your account has been deactivated. Please contact your account administrator for assistance.',
     default: 'An unknown error occurred during sign in. Please try again.',
 };
 
@@ -42,7 +45,7 @@ type Props = {
     error: SignInErrorTypes;
 };
 
-const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
+const SignIn: PageWithAuth<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
@@ -93,15 +96,38 @@ const SignIn: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md mx-4">
                 <div className="bg-white py-8 px-4 shadow-sm rounded-lg sm:px-10 border border-gray-200">
                     {error && (
-                        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <XCircleIcon className="w-4 h-4 text-red-400" aria-hidden="true" />
+                        <div className="mb-6">
+                            {errorType === 'ACCOUNT_DEACTIVATED' ? (
+                                <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                                    <div className="text-center">
+                                        <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                                            <XCircleIcon className="w-6 h-6 text-red-600" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                            Account Unavailable
+                                        </h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                                            Your account has been temporarily deactivated.
+                                        </p>
+                                        <div className="bg-white rounded-lg p-4 border border-gray-100">
+                                            <p className="text-gray-700 text-sm">
+                                                Contact your account administrator to restore access.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-red-700">{error}</p>
+                            ) : (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <div className="flex">
+                                        <div className="flex-shrink-0">
+                                            <XCircleIcon className="w-4 h-4 text-red-400" aria-hidden="true" />
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-red-700">{error}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
 
@@ -266,5 +292,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
     };
 };
+
+// Mark signin page as public
+SignIn.authenticationEnabled = false;
 
 export default SignIn;

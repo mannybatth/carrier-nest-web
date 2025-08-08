@@ -6,19 +6,30 @@ import React, { useEffect, useState } from 'react';
 import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { PageWithAuth } from '../../interfaces/auth';
 
 type Props = {
     token: string;
     error?: string;
 };
 
-const Onboard: NextPage<Props> = ({ token, error: initialError }: Props) => {
+const Onboard: PageWithAuth<Props> = ({ token, error: initialError }: Props) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(initialError || '');
     const [success, setSuccess] = useState(false);
     const [name, setName] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [tokenValidation, setTokenValidation] = useState<{
+        isValidating: boolean;
+        isValid: boolean;
+        validationError: string;
+        invitationData?: any;
+    }>({
+        isValidating: true,
+        isValid: false,
+        validationError: '',
+    });
 
     useEffect(() => {
         document.documentElement.classList.add('h-full');
@@ -26,6 +37,49 @@ const Onboard: NextPage<Props> = ({ token, error: initialError }: Props) => {
             document.documentElement.classList.remove('h-full');
         };
     }, []);
+
+    // Validate token on component mount
+    useEffect(() => {
+        const validateToken = async () => {
+            if (!token) {
+                setTokenValidation({
+                    isValidating: false,
+                    isValid: false,
+                    validationError: 'Missing invitation token',
+                });
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/team/invitation/validate?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.valid) {
+                    setTokenValidation({
+                        isValidating: false,
+                        isValid: true,
+                        validationError: '',
+                        invitationData: data.invitation,
+                    });
+                } else {
+                    setTokenValidation({
+                        isValidating: false,
+                        isValid: false,
+                        validationError: data.error || 'Invalid invitation token',
+                    });
+                }
+            } catch (err) {
+                console.error('Token validation error:', err);
+                setTokenValidation({
+                    isValidating: false,
+                    isValid: false,
+                    validationError: 'Failed to validate invitation token',
+                });
+            }
+        };
+
+        validateToken();
+    }, [token]);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -73,18 +127,19 @@ const Onboard: NextPage<Props> = ({ token, error: initialError }: Props) => {
                     router.push('/auth/signin');
                 }, 10000);
             } else {
-                // If the invitation was already used, it might be a race condition
-                // In that case, treat it as success since the user likely completed the process
+                // Handle specific error cases
                 if (data.error && data.error.includes('already been used')) {
-                    console.log('Invitation already used - treating as success (likely race condition)');
-                    setSuccess(true);
-                    setTimeout(() => {
-                        router.push('/auth/signin');
-                    }, 10000);
+                    setError(
+                        'This invitation has already been used. If you already have an account, please sign in instead.',
+                    );
+                } else if (data.error && data.error.includes('expired')) {
+                    setError('This invitation has expired. Please contact your administrator for a new invitation.');
+                } else if (data.error && data.error.includes('not found')) {
+                    setError('This invitation is not valid. Please check the link or contact your administrator.');
                 } else {
-                    setError(data.error || 'Failed to complete onboarding');
-                    setIsSubmitted(false); // Allow retry for other errors
+                    setError(data.error || 'Failed to complete onboarding. Please try again.');
                 }
+                setIsSubmitted(false); // Allow retry for invitation errors
             }
         } catch (err) {
             console.error('Onboarding error:', err);
@@ -121,6 +176,69 @@ const Onboard: NextPage<Props> = ({ token, error: initialError }: Props) => {
         );
     }
 
+    // Show loading state while validating token
+    if (tokenValidation.isValidating) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                    <div className="text-center">
+                        <div className="mb-6">
+                            <div className="flex items-center justify-center">
+                                <img
+                                    src="/logo_truck.svg"
+                                    alt="CarrierNest Logo"
+                                    className="w-[75px] mx-auto mb-4 md:w-[100px] md:mb-6 lg:w-[125px] lg:mb-8"
+                                />
+                            </div>
+                        </div>
+                        <div className="animate-spin w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full mx-auto mb-4"></div>
+                        <h1 className="text-xl font-semibold text-gray-900">Validating invitation...</h1>
+                        <p className="mt-2 text-sm text-gray-600">Please wait while we verify your invitation.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if token is invalid
+    if (!tokenValidation.isValid) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                    <div className="text-center">
+                        <div className="mb-6">
+                            <div className="flex items-center justify-center">
+                                <img
+                                    src="/logo_truck.svg"
+                                    alt="CarrierNest Logo"
+                                    className="w-[75px] mx-auto mb-4 md:w-[100px] md:mb-6 lg:w-[125px] lg:mb-8"
+                                />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
+                            <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                                <XCircleIcon className="w-6 h-6 text-red-600" />
+                            </div>
+                            <h1 className="text-xl font-semibold text-gray-900 mb-2">Invitation Invalid</h1>
+                            <p className="text-gray-600 text-sm mb-4">{tokenValidation.validationError}</p>
+                            <div className="space-y-3">
+                                <Link
+                                    href="/auth/signin"
+                                    className="block w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 text-center"
+                                >
+                                    Go to Sign In
+                                </Link>
+                                <p className="text-xs text-gray-500">
+                                    Need a new invitation? Contact your team administrator.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -137,8 +255,17 @@ const Onboard: NextPage<Props> = ({ token, error: initialError }: Props) => {
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900">Complete Your Setup</h1>
                     <p className="mt-2 text-sm text-gray-600">
-                        You&apos;re almost ready! Just enter your name to complete your account setup.
+                        Welcome! You&apos;ve been invited to join{' '}
+                        <span className="font-medium text-gray-900">
+                            {tokenValidation.invitationData?.carrierName || 'the team'}
+                        </span>
+                        .
                     </p>
+                    {tokenValidation.invitationData?.inviterName && (
+                        <p className="mt-1 text-xs text-gray-500">
+                            Invited by {tokenValidation.invitationData.inviterName}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -260,5 +387,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
     };
 };
+
+// Mark onboard page as public
+Onboard.authenticationEnabled = false;
 
 export default Onboard;

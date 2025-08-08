@@ -27,7 +27,9 @@ type UserProviderProps = {
 };
 
 export function UserProvider({ children }: UserProviderProps) {
-    const { data: session, status } = useSession();
+    const { data: session, status } = useSession({
+        required: false, // Don't force refetch
+    });
     const [carriers, setCarriers] = useState<ExpandedCarrier[]>([]);
     const [defaultCarrier, setDefaultCarrier] = useState<ExpandedCarrier | null>(null);
     const [isProPlan, setIsProPlan] = useState(false);

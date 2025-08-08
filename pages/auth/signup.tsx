@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { appUrl } from 'lib/constants';
+import { PageWithAuth } from '../../interfaces/auth';
 
 type SignInErrorTypes =
     | 'Signin'
@@ -42,7 +43,7 @@ type Props = {
     error: SignInErrorTypes;
 };
 
-const SignUp: NextPage<Props> = ({ callbackUrl, error: errorType }: Props) => {
+const SignUp: PageWithAuth<Props> = ({ callbackUrl, error: errorType }: Props) => {
     const error = errorType && (errors[errorType] ?? errors.default);
     const [loadingSubmit, setLoadingSubmit] = React.useState(false);
 
@@ -308,5 +309,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
     };
 };
+
+// Mark signup page as public
+SignUp.authenticationEnabled = false;
 
 export default SignUp;

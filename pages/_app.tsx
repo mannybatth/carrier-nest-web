@@ -5,7 +5,7 @@ import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import 'polyfills';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -30,7 +30,10 @@ import '../styles/globals.css';
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, object> & Partial<AuthEnabledComponentConfig>;
 type ProtectedAppProps = AppProps<{ session: Session }> & { Component: NextComponentWithAuth };
 
-const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
+const AuthWrapper: React.FC<React.PropsWithChildren<{ component: NextComponentWithAuth }>> = ({
+    children,
+    component,
+}) => {
     const { status, session } = useAuth();
     const router = useRouter();
 
@@ -52,6 +55,15 @@ const AuthWrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
         }
     }, []);
 
+    // Check if this component requires authentication
+    const requiresAuth = component.authenticationEnabled !== false;
+
+    // For public pages (like homepage), render without auth check
+    if (!requiresAuth) {
+        return <>{children}</>;
+    }
+
+    // For protected pages, apply auth logic
     if (status === 'authenticated' && router.pathname === '/setup/carrier') {
         return <>{children}</>;
     }
@@ -81,8 +93,10 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
             <ErrorBoundary>
                 <SessionProvider
                     session={session}
-                    refetchInterval={5 * 60} // Refetch session every 5 minutes instead of default
-                    refetchOnWindowFocus={false} // Disable refetch on window focus to reduce duplicate calls
+                    refetchInterval={0} // Completely disable background refetching
+                    refetchOnWindowFocus={false} // Disable window focus refetch
+                    refetchWhenOffline={false} // Don't refetch when offline
+                    basePath="/api/auth" // Explicitly set basePath
                 >
                     <SidebarProvider>
                         <GlobalNotificationProvider>
@@ -147,8 +161,8 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
                                     }}
                                 />
                             </Head>
-                            {Component.authenticationEnabled ? (
-                                <AuthWrapper>
+                            {Component.authenticationEnabled !== false ? (
+                                <AuthWrapper component={Component}>
                                     <UserProvider>
                                         <Component {...pageProps} />
                                     </UserProvider>

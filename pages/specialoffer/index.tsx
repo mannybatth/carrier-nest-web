@@ -16,8 +16,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useEffect, useRef, useState } from 'react';
 import React from 'react';
+import { PageWithAuth } from '../../interfaces/auth';
 
-export default function Home() {
+const Home: PageWithAuth = () => {
     // Refs for scroll functionality
     const featuresRef = useRef<HTMLDivElement>(null);
     const pricingRef = useRef<HTMLDivElement>(null);
@@ -892,4 +893,9 @@ export default function Home() {
             </footer>
         </div>
     );
-}
+};
+
+// Mark special offer page as a public page that doesn't require authentication
+Home.authenticationEnabled = false;
+
+export default Home;

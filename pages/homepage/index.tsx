@@ -26,23 +26,19 @@ import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import PricingTable from 'components/PricingTable';
+import { PageWithAuth } from '../../interfaces/auth';
 
-export default function Homepage() {
-    // Mock session for demo - replace with actual auth
+const Homepage: PageWithAuth = () => {
+    // Session data for conditional rendering
     const { status, data: session } = useSession();
     const router = useRouter();
 
+    // If authenticated and has a carrier, redirect to main app
     React.useEffect(() => {
-        if (status === 'loading') return; // Do nothing while loading
-        //if (status === 'unauthenticated') signIn(); // If not authenticated, force log in
-        if (status === 'unauthenticated') router.replace('/homepage');
-        // If authenticated, but no default carrier, redirect to carrier setup
-        if (status === 'authenticated' && !session?.user?.defaultCarrierId) {
-            router.replace('/setup/carrier');
-        } else if (status === 'authenticated' && router.pathname === '/setup/carrier') {
+        if (status === 'authenticated' && session?.user?.defaultCarrierId) {
             router.replace('/');
         }
-    }, [status, session]);
+    }, [status, session, router]);
 
     // Refs for scroll functionality
     const featuresRef = useRef<HTMLDivElement>(null);
@@ -801,4 +797,9 @@ export default function Homepage() {
             )}
         </div>
     );
-}
+};
+
+// Mark homepage as a public page that doesn't require authentication
+Homepage.authenticationEnabled = false;
+
+export default Homepage;
