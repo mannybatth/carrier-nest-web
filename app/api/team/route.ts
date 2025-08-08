@@ -39,6 +39,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                             id: carrierId,
                         },
                     },
+                    isActive: true, // Only count active users
                 },
             }),
             prisma.user.findMany({
@@ -48,6 +49,7 @@ export const GET = auth(async (req: NextAuthRequest) => {
                             id: carrierId,
                         },
                     },
+                    isActive: true, // Only show active users
                 },
                 select: {
                     id: true,
