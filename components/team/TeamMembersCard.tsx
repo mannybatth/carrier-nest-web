@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import {
-    TrashIcon,
     UserCircleIcon,
     CheckCircleIcon,
     ChevronDownIcon,
     PaperAirplaneIcon,
     PencilIcon,
     XMarkIcon,
+    ArrowPathIcon,
+    UserMinusIcon,
+    UserPlusIcon,
+    ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { ExpandedUser, UserRole, getRoleDescription } from '../../interfaces/models';
 
@@ -18,6 +21,9 @@ interface TeamMembersCardProps {
     onSendVerificationEmail: (memberEmail: string) => Promise<void>;
     onUpdateMember: (memberId: string, data: { name?: string; email?: string }) => Promise<void>;
     deletingMembers?: Set<string>;
+    showDeactivated?: boolean;
+    onReactivateMember?: (memberId: string) => void;
+    reactivatingMembers?: Set<string>;
 }
 
 const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
@@ -28,12 +34,19 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
     onSendVerificationEmail,
     onUpdateMember,
     deletingMembers = new Set(),
+    showDeactivated = false,
+    onReactivateMember,
+    reactivatingMembers = new Set(),
 }) => {
     const [updatingRoles, setUpdatingRoles] = useState<Set<string>>(new Set());
     const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
     const [editingNames, setEditingNames] = useState<Set<string>>(new Set());
     const [editingNameValues, setEditingNameValues] = useState<Record<string, string>>({});
     const [updatingNames, setUpdatingNames] = useState<Set<string>>(new Set());
+    const [confirmingAction, setConfirmingAction] = useState<{
+        memberId: string;
+        action: 'deactivate' | 'reactivate';
+    } | null>(null);
 
     // Helper function to determine if a user is the original admin
     const isOriginalAdmin = (member: ExpandedUser) => {
@@ -125,6 +138,26 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
         }
     };
 
+    const handleConfirmAction = (memberId: string, action: 'deactivate' | 'reactivate') => {
+        setConfirmingAction({ memberId, action });
+    };
+
+    const handleConfirmedAction = () => {
+        if (!confirmingAction) return;
+
+        if (confirmingAction.action === 'deactivate') {
+            onDeleteMember(confirmingAction.memberId);
+        } else if (confirmingAction.action === 'reactivate' && onReactivateMember) {
+            onReactivateMember(confirmingAction.memberId);
+        }
+
+        setConfirmingAction(null);
+    };
+
+    const handleCancelAction = () => {
+        setConfirmingAction(null);
+    };
+
     const handleNameKeyPress = (e: React.KeyboardEvent, memberId: string) => {
         if (e.key === 'Enter') {
             saveNameEdit(memberId);
@@ -158,6 +191,16 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
     };
 
     const getUserStatus = (member: ExpandedUser) => {
+        // For deactivated users, show a specific deactivated status
+        if (showDeactivated) {
+            return {
+                label: 'Deactivated',
+                color: 'text-gray-600',
+                bgColor: 'bg-gray-50',
+                dotColor: 'bg-gray-500',
+            };
+        }
+
         // Check if user has authentication accounts (they've actually signed up/signed in)
         const hasAccount = member.accounts && member.accounts.length > 0;
 
@@ -273,9 +316,13 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                 <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
                     <UserCircleIcon className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">No team members</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {showDeactivated ? 'No deactivated members' : 'No team members'}
+                </h3>
                 <p className="text-gray-500 text-base leading-relaxed max-w-md mx-auto">
-                    Get started by adding your first team member. You can manage roles and permissions for each member.
+                    {showDeactivated
+                        ? 'All team members are currently active. Deactivated members will appear here when needed.'
+                        : 'Get started by adding your first team member. You can manage roles and permissions for each member.'}
                 </p>
             </div>
         );
@@ -393,8 +440,11 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                                                 </h3>
                                                 <button
                                                     onClick={() => startEditingName(member.id!, member.name || '')}
-                                                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-all opacity-0 group-hover/name:opacity-100 flex-shrink-0"
-                                                    title="Edit name"
+                                                    disabled={showDeactivated}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-all opacity-0 group-hover/name:opacity-100 flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title={
+                                                        showDeactivated ? 'Cannot edit deactivated user' : 'Edit name'
+                                                    }
                                                 >
                                                     <PencilIcon className="w-4 h-4" />
                                                 </button>
@@ -433,26 +483,43 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Actions - Delete Button */}
+                                {/* Actions - Deactivate/Reactivate Button */}
                                 <div className="flex-shrink-0">
-                                    <button
-                                        onClick={() => onDeleteMember(member.id!)}
-                                        disabled={deletingMembers.has(member.id!) || isOriginalAdmin(member)}
-                                        className={`p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed ${
-                                            isOriginalAdmin(member)
-                                                ? 'text-gray-300 cursor-not-allowed'
-                                                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                                        }`}
-                                        title={
-                                            isOriginalAdmin(member) ? 'Cannot remove original admin' : 'Remove member'
-                                        }
-                                    >
-                                        {deletingMembers.has(member.id!) ? (
-                                            <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                                        ) : (
-                                            <TrashIcon className="w-5 h-5" />
-                                        )}
-                                    </button>
+                                    {showDeactivated && onReactivateMember ? (
+                                        <button
+                                            onClick={() => handleConfirmAction(member.id!, 'reactivate')}
+                                            disabled={reactivatingMembers.has(member.id!)}
+                                            className="p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-green-500 hover:bg-green-50"
+                                            title="Reactivate member"
+                                        >
+                                            {reactivatingMembers.has(member.id!) ? (
+                                                <div className="w-5 h-5 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                                            ) : (
+                                                <UserPlusIcon className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleConfirmAction(member.id!, 'deactivate')}
+                                            disabled={deletingMembers.has(member.id!) || isOriginalAdmin(member)}
+                                            className={`p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed ${
+                                                isOriginalAdmin(member)
+                                                    ? 'text-gray-300 cursor-not-allowed'
+                                                    : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                                            }`}
+                                            title={
+                                                isOriginalAdmin(member)
+                                                    ? 'Cannot deactivate original admin'
+                                                    : 'Deactivate member'
+                                            }
+                                        >
+                                            {deletingMembers.has(member.id!) ? (
+                                                <div className="w-5 h-5 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
+                                            ) : (
+                                                <UserMinusIcon className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -467,9 +534,13 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                                         <select
                                             value={role}
                                             onChange={(e) => handleRoleChange(member.id!, e.target.value as UserRole)}
-                                            disabled={updatingRoles.has(member.id!) || isOriginalAdmin(member)}
+                                            disabled={
+                                                updatingRoles.has(member.id!) ||
+                                                isOriginalAdmin(member) ||
+                                                showDeactivated
+                                            }
                                             className={`w-full border-0 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 appearance-none transition-all ${
-                                                isOriginalAdmin(member)
+                                                isOriginalAdmin(member) || showDeactivated
                                                     ? 'bg-gray-100 cursor-not-allowed'
                                                     : 'bg-gray-50 focus:bg-white hover:bg-gray-100'
                                             }`}
@@ -495,10 +566,11 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
 
                                 {/* Action Button */}
                                 <div>
-                                    {status.label === 'Invited' || status.label === 'Pending Verification' ? (
+                                    {!showDeactivated &&
+                                    (status.label === 'Invited' || status.label === 'Pending Verification') ? (
                                         <button
                                             onClick={() => handleSendVerificationEmail(member.email!)}
-                                            disabled={sendingEmails.has(member.email!)}
+                                            disabled={sendingEmails.has(member.email!) || showDeactivated}
                                             className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                                         >
                                             {sendingEmails.has(member.email!) ? (
@@ -517,6 +589,11 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                                                 </>
                                             )}
                                         </button>
+                                    ) : showDeactivated ? (
+                                        <div className="w-full flex items-center justify-center px-4 py-3 bg-gray-50 text-gray-600 rounded-xl text-sm font-medium border border-gray-200">
+                                            <UserCircleIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                                            <span>Deactivated User</span>
+                                        </div>
                                     ) : (
                                         <div className="w-full flex items-center justify-center px-4 py-3 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-100">
                                             <CheckCircleIcon className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -529,6 +606,57 @@ const TeamMembersCard: React.FC<TeamMembersCardProps> = ({
                     </div>
                 );
             })}
+
+            {/* Confirmation Modal */}
+            {confirmingAction && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                        <div className="flex items-center mb-4">
+                            <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                                    confirmingAction.action === 'deactivate' ? 'bg-orange-100' : 'bg-green-100'
+                                }`}
+                            >
+                                {confirmingAction.action === 'deactivate' ? (
+                                    <ExclamationTriangleIcon className="w-5 h-5 text-orange-600" />
+                                ) : (
+                                    <UserPlusIcon className="w-5 h-5 text-green-600" />
+                                )}
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                {confirmingAction.action === 'deactivate'
+                                    ? 'Deactivate Team Member'
+                                    : 'Reactivate Team Member'}
+                            </h3>
+                        </div>
+
+                        <p className="text-gray-600 mb-6 leading-relaxed">
+                            {confirmingAction.action === 'deactivate'
+                                ? 'This team member will no longer be able to access the system. Their data will be preserved and they can be reactivated later.'
+                                : 'This team member will regain access to the system and be able to sign in again.'}
+                        </p>
+
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={handleCancelAction}
+                                className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmedAction}
+                                className={`flex-1 px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                                    confirmingAction.action === 'deactivate'
+                                        ? 'bg-orange-600 hover:bg-orange-700'
+                                        : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                            >
+                                {confirmingAction.action === 'deactivate' ? 'Deactivate' : 'Reactivate'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
