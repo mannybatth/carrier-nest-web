@@ -6,6 +6,7 @@ import { type Customer, LoadStopType, Prisma } from '@prisma/client';
 import PDFViewer from 'components/PDFViewer';
 import startOfDay from 'date-fns/startOfDay';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
+import { convertAITimeToTimeRange } from 'lib/helpers/ai-time-helpers';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState, useRef } from 'react';
@@ -470,6 +471,9 @@ class OCRMatcher {
             return matches.length > 0 ? matches[0] : null;
         }
 
+        // Enhanced address-anchored search for better proximity matching
+        const addressAnchors = this.findAddressAnchors(contextValue, ocrLines);
+
         // Optimized handling for location_name field type
         if (fieldType === 'location_name') {
             const combinedMatches = this.findBestMatches(contextValue, ocrLines, fieldType, 5);
@@ -486,21 +490,44 @@ class OCRMatcher {
             }
         }
 
+        // Enhanced city/state/zip combined matching to prevent false matches
+        if (fieldType.includes('city') || fieldType.includes('state') || fieldType.includes('zip')) {
+            const combinedMatch = this.findCombinedAddressMatch(searchValue, ocrLines, fieldType, addressAnchors);
+            if (combinedMatch) {
+                return combinedMatch;
+            }
+        }
+
+        // Enhanced reference number matching using address anchors
+        if (fieldType.includes('Numbers') || fieldType.includes('_reference')) {
+            const referenceMatch = this.findReferenceNearAddress(searchValue, ocrLines, fieldType, addressAnchors);
+            if (referenceMatch) {
+                return referenceMatch;
+            }
+        }
+
         // Find context matches with limited results for performance
         const contextMatches = this.findBestMatches(contextValue, ocrLines, 'context', 3);
-        if (contextMatches.length === 0) {
+
+        // Enhanced stop-type filtering based on field type
+        const stopTypeFromField = this.determineStopTypeFromField(fieldType);
+        const filteredContextMatches = stopTypeFromField
+            ? this.filterMatchesByStopType(contextMatches, stopTypeFromField)
+            : contextMatches;
+
+        if (filteredContextMatches.length === 0) {
             const matches = this.findBestMatches(searchValue, ocrLines, fieldType, 3);
             return matches.length > 0 ? matches[0] : null;
         }
 
-        // Optimized proximity matching
+        // Enhanced proximity matching with address-aware boosting
         let bestMatch: { line: Line; confidence: number; matchType: string } | null = null;
         let bestScore = 0;
 
-        // Use smaller proximity threshold for better performance
-        const proximityThreshold = fieldType.includes('_reference') || fieldType.includes('Numbers') ? 2 : 3;
+        // Adjusted proximity thresholds based on field type
+        const proximityThreshold = this.getProximityThreshold(fieldType);
 
-        for (const contextMatch of contextMatches) {
+        for (const contextMatch of filteredContextMatches) {
             const contextLine = contextMatch.line;
 
             // Get potential matches near this context
@@ -516,6 +543,10 @@ class OCRMatcher {
                 const distance = this.calculateSpatialDistance(match.line, contextLine);
                 let score = match.confidence * (1 - distance * 0.05); // Reduced penalty for better matches
 
+                // Enhanced address-based boosting
+                const addressBoost = this.calculateAddressProximityBoost(match.line, addressAnchors);
+                score *= 1 + addressBoost;
+
                 // Boost for reference numbers very close to location
                 if ((fieldType.includes('_reference') || fieldType.includes('Numbers')) && distance < 1.0) {
                     score *= 1.3;
@@ -529,6 +560,272 @@ class OCRMatcher {
         }
 
         return bestMatch || this.findBestMatches(searchValue, ocrLines, fieldType)[0] || null;
+    }
+
+    // Find street address locations to use as anchor points
+    private static findAddressAnchors(contextValue: string, ocrLines: Line[]): Line[] {
+        const streetAddressPatterns = [
+            /\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard|circle|ct|court|place|pl)\b/i,
+            /\b\d+\s+[A-Za-z\s]+\s+(st|ave|rd|ln|dr|way|blvd|ct|pl)\b/i,
+        ];
+
+        const addressLines = ocrLines.filter((line) => {
+            return streetAddressPatterns.some((pattern) => pattern.test(line.text));
+        });
+
+        // Also find lines that match parts of the context value that look like addresses
+        const contextWords = contextValue.toLowerCase().split(/\s+/);
+        const potentialStreetWords = contextWords.filter(
+            (word) =>
+                /^(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)$/i.test(word) ||
+                /^\d+$/.test(word),
+        );
+
+        if (potentialStreetWords.length > 0) {
+            const contextAddressLines = ocrLines.filter((line) => {
+                const lineWords = line.text.toLowerCase().split(/\s+/);
+                return potentialStreetWords.some((word) => lineWords.includes(word));
+            });
+            addressLines.push(...contextAddressLines);
+        }
+
+        // Remove duplicates and return
+        const uniqueAddresses = addressLines.filter(
+            (line, index, self) =>
+                self.findIndex((l) => l.text === line.text && l.pageNumber === line.pageNumber) === index,
+        );
+
+        return uniqueAddresses;
+    }
+
+    // Enhanced city/state/zip matching to prevent false positives
+    private static findCombinedAddressMatch(
+        searchValue: string,
+        ocrLines: Line[],
+        fieldType: string,
+        addressAnchors: Line[],
+    ): { line: Line; confidence: number; matchType: string } | null {
+        // For state fields, avoid matching random "CA" by looking for city, state, zip patterns
+        if (fieldType.includes('state') && searchValue.length === 2) {
+            // Look for complete address patterns: City, ST ZIP or City ST ZIP
+            const statePattern = new RegExp(`\\b\\w+[,\\s]+${searchValue}\\s+\\d{5}`, 'i');
+            const cityStatePattern = new RegExp(`\\b\\w+[,\\s]+${searchValue}\\b`, 'i');
+
+            // First priority: Complete city, state, zip pattern
+            let contextualMatches = ocrLines.filter((line) => statePattern.test(line.text));
+
+            // Second priority: City, state pattern (without zip)
+            if (contextualMatches.length === 0) {
+                contextualMatches = ocrLines.filter((line) => cityStatePattern.test(line.text));
+            }
+
+            // Third priority: Lines that contain the state code but have address-like context
+            if (contextualMatches.length === 0) {
+                const stateRegex = new RegExp(`\\b${searchValue}\\b`, 'i');
+                contextualMatches = ocrLines.filter((line) => {
+                    if (!stateRegex.test(line.text)) return false;
+
+                    // Check if line has address-like characteristics
+                    const hasZip = /\b\d{5}(-\d{4})?\b/.test(line.text);
+                    const hasStreetIndicators =
+                        /\b(street|st|avenue|ave|road|rd|lane|ln|drive|dr|way|blvd|boulevard)\b/i.test(line.text);
+                    const hasCommaOrMultipleWords = /,/.test(line.text) || line.text.split(/\s+/).length >= 3;
+
+                    return hasZip || hasStreetIndicators || hasCommaOrMultipleWords;
+                });
+            }
+
+            if (contextualMatches.length > 0) {
+                // Find the match closest to an address anchor
+                let bestMatch = contextualMatches[0];
+                let minDistance = Infinity;
+                let bestScore = 0.85;
+
+                if (addressAnchors.length > 0) {
+                    for (const match of contextualMatches) {
+                        for (const anchor of addressAnchors) {
+                            const distance = this.calculateSpatialDistance(match, anchor);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                bestMatch = match;
+                                // Boost confidence for matches near address anchors
+                                bestScore = distance < 2 ? 0.95 : distance < 4 ? 0.9 : 0.85;
+                            }
+                        }
+                    }
+                }
+
+                return {
+                    line: bestMatch,
+                    confidence: bestScore,
+                    matchType: 'combined_address',
+                };
+            }
+        }
+
+        // For city fields, look for city, state patterns
+        if (fieldType.includes('city')) {
+            const cityStatePattern = new RegExp(`\\b${searchValue}[,\\s]+[A-Z]{2}\\b`, 'i');
+            const cityStateZipPattern = new RegExp(`\\b${searchValue}[,\\s]+[A-Z]{2}\\s+\\d{5}`, 'i');
+
+            // First try with zip code
+            let matches = ocrLines.filter((line) => cityStateZipPattern.test(line.text));
+
+            // Fallback to city, state without zip
+            if (matches.length === 0) {
+                matches = ocrLines.filter((line) => cityStatePattern.test(line.text));
+            }
+
+            if (matches.length > 0) {
+                return {
+                    line: matches[0],
+                    confidence: 0.9,
+                    matchType: 'city_state_pattern',
+                };
+            }
+        }
+
+        // For zip codes, ensure they're in proper context
+        if (fieldType.includes('zip') && /^\d{5}(-\d{4})?$/.test(searchValue)) {
+            const zipPattern = new RegExp(`\\b[A-Z]{2}\\s+${searchValue}\\b`, 'i');
+            const cityStateZipPattern = new RegExp(`\\b\\w+[,\\s]+[A-Z]{2}\\s+${searchValue}\\b`, 'i');
+
+            // First try complete city, state, zip pattern
+            let matches = ocrLines.filter((line) => cityStateZipPattern.test(line.text));
+
+            // Fallback to state, zip pattern
+            if (matches.length === 0) {
+                matches = ocrLines.filter((line) => zipPattern.test(line.text));
+            }
+
+            if (matches.length > 0) {
+                return {
+                    line: matches[0],
+                    confidence: 0.9,
+                    matchType: 'state_zip_pattern',
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // Find reference numbers near address locations
+    private static findReferenceNearAddress(
+        searchValue: string,
+        ocrLines: Line[],
+        fieldType: string,
+        addressAnchors: Line[],
+    ): { line: Line; confidence: number; matchType: string } | null {
+        if (addressAnchors.length === 0) {
+            return null;
+        }
+
+        const referenceMatches = this.findBestMatches(searchValue, ocrLines, fieldType, 10);
+
+        if (referenceMatches.length === 0) {
+            return null;
+        }
+
+        // Find the reference match closest to any address anchor
+        let bestMatch = null;
+        let minDistance = Infinity;
+        let bestScore = 0;
+
+        for (const refMatch of referenceMatches) {
+            for (const anchor of addressAnchors) {
+                const distance = this.calculateSpatialDistance(refMatch.line, anchor);
+                // Boost score based on proximity to address
+                const proximityBoost = distance < 2 ? 0.3 : distance < 4 ? 0.2 : 0.1;
+                const score = refMatch.confidence * (1 + proximityBoost);
+
+                if (distance < 5 && score > bestScore) {
+                    // Within reasonable distance
+                    bestMatch = refMatch;
+                    bestScore = score;
+                    minDistance = distance;
+                }
+            }
+        }
+
+        if (bestMatch) {
+            return {
+                ...bestMatch,
+                confidence: bestScore,
+                matchType: 'address_anchored_reference',
+            };
+        }
+
+        return null;
+    }
+
+    // Get proximity threshold based on field type
+    private static getProximityThreshold(fieldType: string): number {
+        if (fieldType.includes('_reference') || fieldType.includes('Numbers')) {
+            return 2.5; // Tighter threshold for reference numbers
+        }
+        if (fieldType.includes('city') || fieldType.includes('state') || fieldType.includes('zip')) {
+            return 1.5; // Very tight for address components
+        }
+        if (fieldType.includes('date') || fieldType.includes('time')) {
+            return 3.5; // Looser for dates/times
+        }
+        return 3; // Default threshold
+    }
+
+    // Calculate boost based on proximity to address anchors
+    private static calculateAddressProximityBoost(line: Line, addressAnchors: Line[]): number {
+        if (addressAnchors.length === 0) {
+            return 0;
+        }
+
+        let minDistance = Infinity;
+        for (const anchor of addressAnchors) {
+            const distance = this.calculateSpatialDistance(line, anchor);
+            minDistance = Math.min(minDistance, distance);
+        }
+
+        // Boost based on proximity to nearest address
+        if (minDistance < 1) return 0.4; // Very close
+        if (minDistance < 2) return 0.3; // Close
+        if (minDistance < 3) return 0.2; // Moderate
+        if (minDistance < 5) return 0.1; // Far but relevant
+        return 0; // Too far
+    }
+
+    // Determine stop type from field name/type
+    private static determineStopTypeFromField(fieldType: string): 'pickup' | 'dropoff' | null {
+        if (fieldType.includes('shipper') || fieldType.includes('pickup')) {
+            return 'pickup';
+        }
+        if (fieldType.includes('receiver') || fieldType.includes('delivery') || fieldType.includes('dropoff')) {
+            return 'dropoff';
+        }
+        return null;
+    }
+
+    // Filter matches by stop type context
+    private static filterMatchesByStopType(
+        matches: { line: Line; confidence: number; matchType: string }[],
+        stopType: 'pickup' | 'dropoff',
+    ): { line: Line; confidence: number; matchType: string }[] {
+        return matches.filter((match) => {
+            const lineText = match.line.text.toLowerCase();
+            if (stopType === 'pickup') {
+                // For pickup, prefer lines with pickup keywords and avoid delivery keywords
+                const hasPickupKeywords = /\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText);
+                const hasDeliveryKeywords =
+                    /\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(lineText);
+                return hasPickupKeywords || !hasDeliveryKeywords;
+            } else if (stopType === 'dropoff') {
+                // For dropoff, prefer lines with delivery keywords and avoid pickup keywords
+                const hasDeliveryKeywords =
+                    /\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(lineText);
+                const hasPickupKeywords = /\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText);
+                return hasDeliveryKeywords || !hasPickupKeywords;
+            }
+            return true;
+        });
     }
 
     public static calculateSpatialDistance(line1: Line, line2: Line): number {
@@ -910,54 +1207,145 @@ class DateTimeFormatter {
         return { match: false, confidence: 0 };
     }
 
-    // Advanced time pattern matching
+    // Advanced time pattern matching with time range support
     static matchesTimePattern(lineText: string, searchTime: string): { match: boolean; confidence: number } {
         if (!searchTime) return { match: false, confidence: 0 };
 
-        const variations = this.generateTimeVariations(searchTime);
+        // Check if searchTime is a time range
+        const isTimeRange = searchTime.includes('-');
 
-        // Direct match - highest confidence
-        for (const variation of variations) {
-            if (lineText.includes(variation)) {
-                return { match: true, confidence: 1.0 };
+        if (isTimeRange) {
+            // Handle time range matching
+            const [startTime, endTime] = searchTime.split('-').map((t) => t.trim());
+
+            // Generate variations for the complete range
+            const rangeVariations = [
+                searchTime, // Original format
+                `${startTime} - ${endTime}`, // With spaces
+                `${startTime} to ${endTime}`, // With "to"
+                `from ${startTime} to ${endTime}`, // With "from...to"
+                `between ${startTime} and ${endTime}`, // With "between...and"
+                `${startTime}/${endTime}`, // With slash
+            ];
+
+            // Check for direct range matches first
+            for (const variation of rangeVariations) {
+                if (lineText.toLowerCase().includes(variation.toLowerCase())) {
+                    return { match: true, confidence: 0.95 };
+                }
+            }
+
+            // Check if line contains both start and end times
+            const startTimeVariations = this.generateTimeVariations(startTime);
+            const endTimeVariations = this.generateTimeVariations(endTime);
+
+            let hasStartTime = false;
+            let hasEndTime = false;
+
+            for (const startVar of startTimeVariations) {
+                if (lineText.includes(startVar)) {
+                    hasStartTime = true;
+                    break;
+                }
+            }
+
+            for (const endVar of endTimeVariations) {
+                if (lineText.includes(endVar)) {
+                    hasEndTime = true;
+                    break;
+                }
+            }
+
+            if (hasStartTime && hasEndTime) {
+                return { match: true, confidence: 0.9 };
+            } else if (hasStartTime || hasEndTime) {
+                return { match: true, confidence: 0.7 };
+            }
+        } else {
+            // Handle single time matching (existing logic)
+            const variations = this.generateTimeVariations(searchTime);
+
+            // Direct match - highest confidence
+            for (const variation of variations) {
+                if (lineText.includes(variation)) {
+                    return { match: true, confidence: 1.0 };
+                }
             }
         }
 
-        // Pattern-based time matching
-        const timePatterns = [/\b(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?\b/g, /\b(\d{3,4})\s*(hours?|hrs?|h)\b/gi];
+        // Pattern-based time matching for both single times and ranges
+        const timePatterns = [
+            /\b(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?\b/g, // Range pattern
+            /\b(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?\b/g, // Single time pattern
+            /\b(\d{3,4})\s*(hours?|hrs?|h)\b/gi, // Military time
+        ];
 
-        const searchMatch = searchTime.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/i);
-        if (!searchMatch) return { match: false, confidence: 0 };
+        if (isTimeRange) {
+            const [startTime, endTime] = searchTime.split('-').map((t) => t.trim());
+            const startMatch = startTime.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/i);
+            const endMatch = endTime.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/i);
 
-        const searchHours = parseInt(searchMatch[1]);
-        const searchMinutes = parseInt(searchMatch[2]);
-        const searchAmPm = searchMatch[3]?.toLowerCase();
+            if (!startMatch || !endMatch) return { match: false, confidence: 0 };
 
-        for (const pattern of timePatterns) {
+            const searchStartHours = parseInt(startMatch[1]);
+            const searchStartMinutes = parseInt(startMatch[2]);
+            const searchEndHours = parseInt(endMatch[1]);
+            const searchEndMinutes = parseInt(endMatch[2]);
+
+            // Check for range pattern
+            const rangePattern = timePatterns[0];
             let match;
-            while ((match = pattern.exec(lineText)) !== null) {
-                if (pattern.source.includes('hours')) {
-                    // Military time format
-                    const militaryTime = parseInt(match[1]);
-                    const hours = Math.floor(militaryTime / 100);
-                    const minutes = militaryTime % 100;
+            while ((match = rangePattern.exec(lineText)) !== null) {
+                const lineStartHours = parseInt(match[1]);
+                const lineStartMinutes = parseInt(match[2]);
+                const lineEndHours = parseInt(match[3]);
+                const lineEndMinutes = parseInt(match[4]);
 
-                    if (hours === searchHours && minutes === searchMinutes) {
-                        return { match: true, confidence: 0.9 };
-                    }
-                } else {
-                    // Regular time format
-                    const hours = parseInt(match[1]);
-                    const minutes = parseInt(match[2]);
-                    const ampm = match[3]?.toLowerCase();
+                if (
+                    lineStartHours === searchStartHours &&
+                    lineStartMinutes === searchStartMinutes &&
+                    lineEndHours === searchEndHours &&
+                    lineEndMinutes === searchEndMinutes
+                ) {
+                    return { match: true, confidence: 0.95 };
+                }
+            }
+        } else {
+            // Single time pattern matching (existing logic)
+            const searchMatch = searchTime.match(/^(\d{1,2}):(\d{2})(\s*(am|pm|AM|PM))?$/i);
+            if (!searchMatch) return { match: false, confidence: 0 };
 
-                    if (hours === searchHours && minutes === searchMinutes) {
-                        if (searchAmPm && ampm) {
-                            if (searchAmPm.includes(ampm.replace(/\s/g, ''))) {
-                                return { match: true, confidence: 0.95 };
+            const searchHours = parseInt(searchMatch[1]);
+            const searchMinutes = parseInt(searchMatch[2]);
+            const searchAmPm = searchMatch[3]?.toLowerCase();
+
+            for (let i = 1; i < timePatterns.length; i++) {
+                const pattern = timePatterns[i];
+                let match;
+                while ((match = pattern.exec(lineText)) !== null) {
+                    if (pattern.source.includes('hours')) {
+                        // Military time format
+                        const militaryTime = parseInt(match[1]);
+                        const hours = Math.floor(militaryTime / 100);
+                        const minutes = militaryTime % 100;
+
+                        if (hours === searchHours && minutes === searchMinutes) {
+                            return { match: true, confidence: 0.9 };
+                        }
+                    } else {
+                        // Regular time format
+                        const hours = parseInt(match[1]);
+                        const minutes = parseInt(match[2]);
+                        const ampm = match[3]?.toLowerCase();
+
+                        if (hours === searchHours && minutes === searchMinutes) {
+                            if (searchAmPm && ampm) {
+                                if (searchAmPm.includes(ampm.replace(/\s/g, ''))) {
+                                    return { match: true, confidence: 0.95 };
+                                }
+                            } else {
+                                return { match: true, confidence: 0.8 };
                             }
-                        } else {
-                            return { match: true, confidence: 0.8 };
                         }
                     }
                 }
@@ -1650,7 +2038,6 @@ const CreateLoad: PageWithAuth = () => {
                 }
             } catch (parseError) {
                 console.error('JSON parsing error:', parseError);
-                // console.log('Raw AI response:', aiResponse);
                 throw new Error(
                     'Failed to parse AI response. The service may be experiencing issues. Please try again.',
                 );
@@ -2365,7 +2752,18 @@ const CreateLoad: PageWithAuth = () => {
                 formHook.setValue('shipper.country', shipperStop.address?.country || null);
             }
             formHook.setValue('shipper.date', startOfDay(parseDate(shipperStop.date)));
-            formHook.setValue('shipper.time', shipperStop.time);
+
+            // Convert AI time string to TimeRangeValue format and back to string for storage
+            if (shipperStop.time) {
+                const shipperTimeRange = convertAITimeToTimeRange(shipperStop.time);
+                const timeString = shipperTimeRange.isRange
+                    ? `${shipperTimeRange.startTime}-${shipperTimeRange.endTime}`
+                    : shipperTimeRange.startTime;
+                formHook.setValue('shipper.time', timeString);
+            } else {
+                formHook.setValue('shipper.time', null);
+            }
+
             formHook.setValue('shipper.poNumbers', shipperStop.po_numbers?.join(', ') || null);
             formHook.setValue('shipper.pickUpNumbers', shipperStop.pickup_numbers?.join(', ') || null);
             formHook.setValue('shipper.referenceNumbers', shipperStop.reference_numbers?.join(', ') || null);
@@ -2383,7 +2781,18 @@ const CreateLoad: PageWithAuth = () => {
                 formHook.setValue('receiver.country', receiverStop.address?.country || null);
             }
             formHook.setValue('receiver.date', startOfDay(parseDate(receiverStop.date)));
-            formHook.setValue('receiver.time', receiverStop.time);
+
+            // Convert AI time string to TimeRangeValue format and back to string for storage
+            if (receiverStop.time) {
+                const receiverTimeRange = convertAITimeToTimeRange(receiverStop.time);
+                const timeString = receiverTimeRange.isRange
+                    ? `${receiverTimeRange.startTime}-${receiverTimeRange.endTime}`
+                    : receiverTimeRange.startTime;
+                formHook.setValue('receiver.time', timeString);
+            } else {
+                formHook.setValue('receiver.time', null);
+            }
+
             formHook.setValue('receiver.poNumbers', receiverStop.po_numbers?.join(', ') || null);
             formHook.setValue('receiver.pickUpNumbers', receiverStop.pickup_numbers?.join(', ') || null);
             formHook.setValue('receiver.referenceNumbers', receiverStop.reference_numbers?.join(', ') || null);
@@ -2392,6 +2801,15 @@ const CreateLoad: PageWithAuth = () => {
         // Select all stops in between as stops (filter out shipperStop and receiverStop from list by stop.name)
         const stops = load.stops.filter((stop) => stop.name !== shipperStop.name && stop.name !== receiverStop.name);
         stops.forEach((stop, index) => {
+            // Convert AI time string to TimeRangeValue format and back to string for storage
+            let timeString = null;
+            if (stop.time) {
+                const stopTimeRange = convertAITimeToTimeRange(stop.time);
+                timeString = stopTimeRange.isRange
+                    ? `${stopTimeRange.startTime}-${stopTimeRange.endTime}`
+                    : stopTimeRange.startTime;
+            }
+
             stopsFieldArray.append({
                 id: null,
                 type: LoadStopType.STOP,
@@ -2402,7 +2820,7 @@ const CreateLoad: PageWithAuth = () => {
                 zip: stop.address?.zip || null,
                 ...(stop.address?.country && { country: stop.address?.country || null }),
                 date: startOfDay(parseDate(stop.date)),
-                time: stop.time,
+                time: timeString,
                 stopIndex: index,
                 longitude: null,
                 latitude: null,
@@ -2426,12 +2844,21 @@ const CreateLoad: PageWithAuth = () => {
         event.currentTarget.style.backgroundColor = '#f0f9ff';
         event.currentTarget.style.borderColor = '#3b82f6';
 
-        const searchValue = fieldValue.trim();
-        const isDateField = fieldName.includes('date');
-        const isTimeField = fieldName.includes('time');
+        // Safely handle field value - it might be undefined, null, or an object for TimeRangeSelector
+        const searchValue = fieldValue && typeof fieldValue === 'string' ? fieldValue.trim() : '';
+        const isDateField = fieldName?.includes('date');
+        const isTimeField = fieldName?.includes('time');
+
+        // Early return if fieldName is undefined
+        if (!fieldName) {
+            return;
+        }
 
         // Determine field context
         const getFieldContext = (fieldName: string) => {
+            if (!fieldName) {
+                return { stopType: 'unknown', locationKey: null };
+            }
             if (fieldName.includes('shipper')) {
                 return { stopType: 'pickup', locationKey: 'shipper' };
             }
@@ -2491,30 +2918,50 @@ const CreateLoad: PageWithAuth = () => {
                 const contextValue = `${locationContext} ${stopTypeContext}`.trim();
 
                 if (isDateField) {
-                    // console.log('🔍 Debug: Date field without value - looking for dates near location context');
-                    // console.log('Location context:', locationContext);
+                    // Enhanced date field matching with stop-type specific context
 
-                    // Find location context lines first
-                    const locationMatches = OCRMatcher.findBestMatches(locationContext, ocrLines.lines, 'location', 3);
-                    // console.log('Location matches found:', locationMatches.length);
+                    // Find location context lines first with enhanced stop-type filtering
+                    const locationMatches = OCRMatcher.findBestMatches(locationContext, ocrLines.lines, 'location', 5);
 
-                    if (locationMatches.length > 0) {
+                    // Filter location matches to prefer ones with stop-type specific keywords
+                    const contextualLocationMatches = locationMatches.filter((match) => {
+                        const lineText = match.line.text.toLowerCase();
+                        if (stopType === 'pickup') {
+                            // For pickup, look for pickup/shipper related keywords
+                            return (
+                                /\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText) ||
+                                !/\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(
+                                    lineText,
+                                )
+                            );
+                        } else if (stopType === 'dropoff') {
+                            // For dropoff/receiver, look for delivery related keywords
+                            return (
+                                /\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(
+                                    lineText,
+                                ) || !/\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText)
+                            );
+                        }
+                        return true; // For stops, include all matches
+                    });
+
+                    const finalLocationMatches =
+                        contextualLocationMatches.length > 0 ? contextualLocationMatches : locationMatches;
+
+                    if (finalLocationMatches.length > 0) {
                         // Look for date patterns near the location
                         let bestDateMatch = null;
                         let minDistance = Infinity;
 
-                        for (const locationMatch of locationMatches) {
+                        for (const locationMatch of finalLocationMatches) {
                             // Find all lines with date patterns
                             const dateLines = ocrLines.lines.filter((line) =>
                                 OCRMatcher.hasDatePatternPublic(line.text),
                             );
 
-                            // console.log('Date pattern lines found:', dateLines.length);
-
                             // Find closest date to this location
                             for (const dateLine of dateLines) {
                                 const distance = OCRMatcher.calculateSpatialDistance(dateLine, locationMatch.line);
-                                // console.log(`Date line: "${dateLine.text}" - distance: ${distance}`);
 
                                 if (distance < minDistance && distance < 5) {
                                     // Within reasonable distance
@@ -2525,7 +2972,6 @@ const CreateLoad: PageWithAuth = () => {
                         }
 
                         if (bestDateMatch) {
-                            // console.log('🎯 Best contextual date match:', bestDateMatch.text);
                             setOcrVertices([bestDateMatch.boundingPoly.normalizedVertices]);
                             setOcrVerticesPage(bestDateMatch.pageNumber);
                             return;
@@ -2534,12 +2980,88 @@ const CreateLoad: PageWithAuth = () => {
                 }
 
                 if (isTimeField) {
-                    // console.log('🔍 Debug: Time field without value - looking for times near location context');
-                    const timeMatch = OCRMatcher.findContextualMatch('', ocrLines.lines, locationContext, 'time');
-                    if (timeMatch && timeMatch.confidence > 0.3) {
-                        // console.log('🎯 Best contextual time match:', timeMatch.line.text);
-                        setOcrVertices([timeMatch.line.boundingPoly.normalizedVertices]);
-                        setOcrVerticesPage(timeMatch.line.pageNumber);
+                    // Enhanced time field matching with stop-type specific context
+
+                    // Look for time patterns near location context
+                    let bestTimeMatch = null;
+                    let highestConfidence = 0;
+
+                    // Find location context lines first with enhanced stop-type filtering
+                    const locationMatches = OCRMatcher.findBestMatches(locationContext, ocrLines.lines, 'location', 5);
+
+                    // Filter location matches to prefer ones with stop-type specific keywords
+                    const contextualLocationMatches = locationMatches.filter((match) => {
+                        const lineText = match.line.text.toLowerCase();
+                        if (stopType === 'pickup') {
+                            // For pickup, look for pickup/shipper related keywords
+                            return (
+                                /\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText) ||
+                                !/\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(
+                                    lineText,
+                                )
+                            );
+                        } else if (stopType === 'dropoff') {
+                            // For dropoff/receiver, look for delivery related keywords
+                            return (
+                                /\b(delivery|deliver|drop.*off|receiver|destination|consignee|to|unload)/i.test(
+                                    lineText,
+                                ) || !/\b(pickup|pick.*up|shipper|origin|sender|from|load|collect)/i.test(lineText)
+                            );
+                        }
+                        return true; // For stops, include all matches
+                    });
+
+                    const finalLocationMatches =
+                        contextualLocationMatches.length > 0 ? contextualLocationMatches : locationMatches;
+
+                    if (finalLocationMatches.length > 0) {
+                        for (const locationMatch of finalLocationMatches) {
+                            // Look for various time patterns near the location
+                            const nearbyLines = ocrLines.lines.filter((line) => {
+                                const distance = OCRMatcher.calculateSpatialDistance(line, locationMatch.line);
+                                return distance < 3; // Within reasonable distance
+                            });
+
+                            for (const line of nearbyLines) {
+                                const text = line.text;
+                                let confidence = 0;
+
+                                // Check for time range patterns (HH:MM-HH:MM)
+                                if (/\b\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\b/.test(text)) {
+                                    confidence = 0.9;
+                                }
+                                // Check for single time patterns (HH:MM)
+                                else if (/\b\d{1,2}:\d{2}(\s*(AM|PM))?\b/i.test(text)) {
+                                    confidence = 0.8;
+                                }
+                                // Check for time words/patterns
+                                else if (/\b(hours|hrs|time|between|from|to|until|after|before)\b/i.test(text)) {
+                                    confidence = 0.6;
+                                }
+                                // Check for business hours patterns
+                                else if (/\b(business\s+hours|office\s+hours|open|closed)\b/i.test(text)) {
+                                    confidence = 0.7;
+                                }
+
+                                if (confidence > highestConfidence) {
+                                    highestConfidence = confidence;
+                                    bestTimeMatch = line;
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback to general contextual match
+                    if (!bestTimeMatch) {
+                        const timeMatch = OCRMatcher.findContextualMatch('', ocrLines.lines, locationContext, 'time');
+                        if (timeMatch && timeMatch.confidence > 0.3) {
+                            bestTimeMatch = timeMatch.line;
+                        }
+                    }
+
+                    if (bestTimeMatch) {
+                        setOcrVertices([bestTimeMatch.boundingPoly.normalizedVertices]);
+                        setOcrVerticesPage(bestTimeMatch.pageNumber);
                         return;
                     }
                 }
@@ -2554,7 +3076,7 @@ const CreateLoad: PageWithAuth = () => {
         // Build context value for other fields
         let contextValue = '';
 
-        // Enhanced address field handling
+        // Enhanced address field handling with combined city/state/zip search
         if (['city', 'state', 'zip', 'street'].some((name) => fieldName.includes(name))) {
             const lastDotIndex = fieldName.lastIndexOf('.');
             const fieldPrefix = fieldName.substring(0, lastDotIndex);
@@ -2574,25 +3096,37 @@ const CreateLoad: PageWithAuth = () => {
                 .filter(Boolean)
                 .join(' ');
 
+            // Enhanced context building with address anchor detection
             if (fieldName.includes('city') || fieldName.includes('state') || fieldName.includes('zip')) {
+                // For city/state/zip, use street address as primary context
                 contextValue = [addressComponents.name, addressComponents.street].filter(Boolean).join(' ');
+
+                // Add combined city/state/zip pattern for better matching
+                const availableComponents = [
+                    addressComponents.city,
+                    addressComponents.state,
+                    addressComponents.zip,
+                ].filter(Boolean);
+                if (availableComponents.length > 1) {
+                    contextValue += ' ' + availableComponents.join(' ');
+                }
             } else if (fieldName.includes('street')) {
                 contextValue = [addressComponents.name, cityStateZip].filter(Boolean).join(' ');
             }
 
-            // Add stop type context
+            // Add stop type context with enhanced keywords
             if (stopType !== 'unknown') {
                 const stopTypeKeywords =
                     stopType === 'pickup'
-                        ? 'pickup origin shipper'
+                        ? 'pickup origin shipper pick-up collection'
                         : stopType === 'dropoff'
-                        ? 'delivery destination receiver consignee'
-                        : 'stop';
+                        ? 'delivery destination receiver consignee drop-off unload'
+                        : 'stop intermediate waypoint';
                 contextValue = `${contextValue} ${stopTypeKeywords}`.trim();
             }
         }
 
-        // Enhanced reference field handling
+        // Enhanced reference field handling with address-anchored search
         if (['poNumbers', 'pickUpNumbers', 'referenceNumbers'].some((name) => fieldName.includes(name))) {
             const lastDotIndex = fieldName.lastIndexOf('.');
             const fieldPrefix = fieldName.substring(0, lastDotIndex);
@@ -2611,19 +3145,27 @@ const CreateLoad: PageWithAuth = () => {
             const cityStateZip = [locationData.city, locationData.state, locationData.zip].filter(Boolean).join(' ');
             const locationContext = [locationData.name, locationData.street, cityStateZip].filter(Boolean).join(' ');
 
+            // Enhanced stop type context with more specific keywords
             let stopTypeContext = '';
             if (stopType === 'pickup') {
-                stopTypeContext = 'pickup pick up shipper origin PU';
+                stopTypeContext = 'pickup pick up shipper origin PU collection load';
             } else if (stopType === 'dropoff') {
-                stopTypeContext = 'delivery drop off receiver destination consignee SO';
+                stopTypeContext = 'delivery drop off receiver destination consignee SO unload discharge';
             } else if (stopType === 'stop') {
-                stopTypeContext = 'stop';
+                stopTypeContext = 'stop intermediate waypoint';
             }
 
-            contextValue = `${locationContext} ${stopTypeContext}`.trim();
+            // Enhanced context with reference-specific keywords
+            const referenceKeywords = fieldName.includes('poNumbers')
+                ? 'PO purchase order'
+                : fieldName.includes('pickUpNumbers')
+                ? 'pickup number pick up'
+                : 'reference ref number';
+
+            contextValue = `${locationContext} ${stopTypeContext} ${referenceKeywords}`.trim();
         }
 
-        // Enhanced company name handling
+        // Enhanced company name handling with address proximity
         if (fieldName.includes('name')) {
             const lastDotIndex = fieldName.lastIndexOf('.');
             const fieldPrefix = fieldName.substring(0, lastDotIndex);
@@ -2641,13 +3183,13 @@ const CreateLoad: PageWithAuth = () => {
             const cityStateZip = [locationData.city, locationData.state, locationData.zip].filter(Boolean).join(' ');
             contextValue = [locationData.street, cityStateZip].filter(Boolean).join(' ');
 
-            // Add stop type context
+            // Enhanced stop type context with company-specific keywords
             if (stopType === 'pickup') {
-                contextValue += ' pickup origin shipper';
+                contextValue += ' pickup origin shipper sender consignor company facility';
             } else if (stopType === 'dropoff') {
-                contextValue += ' delivery destination receiver consignee';
+                contextValue += ' delivery destination receiver consignee company facility warehouse';
             } else if (stopType === 'stop') {
-                contextValue += ' stop';
+                contextValue += ' stop company facility location';
             }
         }
 
@@ -2724,37 +3266,90 @@ const CreateLoad: PageWithAuth = () => {
         }
 
         if (!bestMatch && isTimeField && searchValue) {
-            const timeMatches = ocrLines.lines
-                .map((line) => ({
-                    line,
-                    ...DateTimeFormatter.matchesTimePattern(line.text, searchValue),
-                }))
-                .filter((result) => result.match && result.confidence > 0.5)
-                .sort((a, b) => b.confidence - a.confidence);
+            // Helper function to convert 24-hour to 12-hour format
+            const convertTo12Hour = (time24: string): string => {
+                if (!time24 || !time24.includes(':')) return time24;
 
-            if (timeMatches.length > 0) {
-                bestMatch = {
-                    line: timeMatches[0].line,
-                    confidence: timeMatches[0].confidence,
-                    matchType: 'time_pattern',
-                };
+                const [hours, minutes] = time24.split(':');
+                const hour = parseInt(hours, 10);
+
+                if (hour === 0) return `12:${minutes} AM`;
+                if (hour < 12) return `${hour}:${minutes} AM`;
+                if (hour === 12) return `12:${minutes} PM`;
+                return `${hour - 12}:${minutes} PM`;
+            };
+
+            // Parse time range or single time using AI time helper
+            const timeRangeValue = convertAITimeToTimeRange(searchValue);
+            let timeSearchTerms: string[] = [];
+
+            if (timeRangeValue.isRange && timeRangeValue.endTime) {
+                // For time ranges, search for multiple variations
+                timeSearchTerms = [
+                    // Original format
+                    searchValue,
+                    // Standard range format
+                    `${timeRangeValue.startTime}-${timeRangeValue.endTime}`,
+                    // Range with spaces
+                    `${timeRangeValue.startTime} - ${timeRangeValue.endTime}`,
+                    // Individual times
+                    timeRangeValue.startTime,
+                    timeRangeValue.endTime,
+                    // 12-hour format variations
+                    convertTo12Hour(timeRangeValue.startTime),
+                    convertTo12Hour(timeRangeValue.endTime),
+                    `${convertTo12Hour(timeRangeValue.startTime)} - ${convertTo12Hour(timeRangeValue.endTime)}`,
+                    // Common range patterns
+                    `${timeRangeValue.startTime} to ${timeRangeValue.endTime}`,
+                    `between ${timeRangeValue.startTime} and ${timeRangeValue.endTime}`,
+                    // Without colons
+                    `${timeRangeValue.startTime.replace(':', '')}-${timeRangeValue.endTime.replace(':', '')}`,
+                ];
+            } else {
+                // For single times, search for variations
+                timeSearchTerms = [
+                    searchValue,
+                    timeRangeValue.startTime,
+                    convertTo12Hour(timeRangeValue.startTime),
+                    timeRangeValue.startTime.replace(':', ''), // Without colon
+                ];
+            }
+
+            // Remove duplicates and filter out empty strings
+            const uniqueTerms = new Set(timeSearchTerms);
+            timeSearchTerms = Array.from(uniqueTerms).filter(Boolean);
+
+            let highestConfidence = 0;
+            let bestTimeMatch = null;
+
+            // Search for each time variation
+            for (const timeSearchTerm of timeSearchTerms) {
+                const timeMatches = ocrLines.lines
+                    .map((line) => ({
+                        line,
+                        ...DateTimeFormatter.matchesTimePattern(line.text, timeSearchTerm),
+                    }))
+                    .filter((result) => result.match && result.confidence > 0.3)
+                    .sort((a, b) => b.confidence - a.confidence);
+
+                if (timeMatches.length > 0 && timeMatches[0].confidence > highestConfidence) {
+                    highestConfidence = timeMatches[0].confidence;
+                    bestTimeMatch = {
+                        line: timeMatches[0].line,
+                        confidence: timeMatches[0].confidence,
+                        matchType: 'time_pattern',
+                    };
+                }
+            }
+
+            if (bestTimeMatch) {
+                bestMatch = bestTimeMatch;
             }
         }
 
         // Use contextual matching with optimized OCRMatcher
         if (!bestMatch) {
-            // console.log('🔍 Debug: Using contextual matching');
-            // console.log('Search value:', searchValue);
-            // console.log('Context value:', contextValue);
-            // console.log('Field name:', fieldName);
-
             bestMatch = OCRMatcher.findContextualMatch(searchValue, ocrLines.lines, contextValue, fieldName);
-
-            if (bestMatch) {
-                // console.log('🎯 Contextual match found:', bestMatch.line.text, 'confidence:', bestMatch.confidence);
-            } else {
-                // console.log('❌ No contextual match found');
-            }
         }
 
         // Enhanced fallback for company names
