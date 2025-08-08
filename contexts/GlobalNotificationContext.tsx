@@ -59,7 +59,9 @@ const STATE_KEY = 'carrier-nest-notification-state';
 const TOAST_SHOWN_KEY = 'carrier-nest-toast-shown';
 
 export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProps> = ({ children }) => {
-    const { data: session } = useSession();
+    const { data: session } = useSession({
+        required: false, // Don't force refetch
+    });
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
