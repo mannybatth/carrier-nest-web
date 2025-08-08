@@ -98,6 +98,45 @@ export const deleteTeamMember = async (memberId: string) => {
     return result.data;
 };
 
+export const deactivateTeamMember = async (memberId: string) => {
+    const response = await fetch(`${apiUrl}/team/${memberId}`, {
+        method: 'DELETE',
+    });
+
+    const result: JSONResponse<any> = await response.json();
+
+    if (result.errors) {
+        throw new Error(result.errors.map((e) => e.message).join(', '));
+    }
+
+    return result.data;
+};
+
+export const reactivateTeamMember = async (memberId: string) => {
+    const response = await fetch(`${apiUrl}/team/${memberId}/reactivate`, {
+        method: 'POST',
+    });
+
+    const result: JSONResponse<any> = await response.json();
+
+    if (result.errors) {
+        throw new Error(result.errors.map((e) => e.message).join(', '));
+    }
+
+    return result.data;
+};
+
+export const getDeactivatedTeamMembers = async () => {
+    const response = await fetch(`${apiUrl}/team/deactivated`);
+    const result: JSONResponse<{ deactivatedUsers: ExpandedUser[]; count: number }> = await response.json();
+
+    if (result.errors) {
+        throw new Error(result.errors.map((e) => e.message).join(', '));
+    }
+
+    return result.data;
+};
+
 export const updateTeamMember = async (memberId: string, memberData: Partial<CreateTeamMemberData>) => {
     const response = await fetch(`${apiUrl}/team/${memberId}`, {
         method: 'PUT',
