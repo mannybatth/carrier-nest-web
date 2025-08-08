@@ -8,7 +8,7 @@ import InvoiceForm from '../../../components/forms/invoice/InvoiceForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
 import { LoadCard } from '../../../components/loads/LoadCard';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedInvoice } from '../../../interfaces/models';
 import { createInvoice, getNextInvoiceNum } from '../../../lib/rest/invoice';

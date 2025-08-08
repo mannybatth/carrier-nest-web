@@ -6,7 +6,7 @@ import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import InvoicesTable from '../../components/invoices/InvoicesTable';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import Pagination from '../../components/Pagination';
 import AccountingStatsSkeleton from '../../components/skeletons/AccountingStatsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';

@@ -5,7 +5,7 @@ import { ArrowPathIcon, PencilSquareIcon, EyeIcon, ChevronRightIcon } from '@her
 import Link from 'next/link';
 import Spinner from 'components/Spinner';
 import { getAllAssignments, getAssignmentById } from 'lib/rest/assignment';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import DateRangePicker from '../DateRangePicker';
 import dayjs from 'dayjs';
 import type { ExpandedDriverAssignment } from 'interfaces/models';

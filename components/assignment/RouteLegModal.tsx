@@ -18,7 +18,7 @@ import { LoadingOverlay } from '../LoadingOverlay';
 import { useLoadContext } from '../context/LoadContext';
 import { type LoadStop, Prisma, type Route } from '@prisma/client';
 import type { ExpandedRouteLeg, ExpandedRouteLegLocation } from 'interfaces/models';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import type { CreateAssignmentRequest, DriverWithCharge, UpdateAssignmentRequest } from 'interfaces/assignment';
 import RouteLegDriverSelection from './RouteLegDriverSelection';
 import RouteLegLocationSelection from './RouteLegLocationSelection';

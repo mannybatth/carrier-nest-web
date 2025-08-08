@@ -10,7 +10,7 @@ import {
     ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { CheckIcon, MapIcon } from '@heroicons/react/24/solid';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import Spinner from 'components/Spinner';
 import DriverInvoiceApprovalSkeleton from 'components/skeletons/DriverInvoiceApprovalSkeleton';
 import { ExpandedDriverInvoice } from 'interfaces/models';

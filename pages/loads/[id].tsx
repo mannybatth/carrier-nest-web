@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { ChangeEvent, useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { LoadProvider, useLoadContext } from '../../components/context/LoadContext';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 
 // Lazy load expensive components for better performance
 const RouteLegModal = lazy(() => import('components/assignment/RouteLegModal'));

@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import React, { ChangeEvent, Fragment, useEffect, useRef, useState } from 'react';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedDriverAssignment, ExpandedLoadDocument } from '../../interfaces/models';
 import { hoursToReadable } from '../../lib/helpers/time';

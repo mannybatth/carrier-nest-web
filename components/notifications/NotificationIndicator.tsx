@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
+import { useGlobalNotifications } from '../../contexts/GlobalNotificationContext';
 
 export default function NotificationIndicator() {
     const { notifications, unreadCount } = useGlobalNotifications();

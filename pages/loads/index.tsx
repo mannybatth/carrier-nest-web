@@ -4,7 +4,7 @@ import React, { useEffect, Fragment } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import Layout from '../../components/layout/Layout';
 import { LoadsTableSkeleton } from '../../components/loads/LoadsTable';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import Pagination from '../../components/Pagination';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedLoad } from '../../interfaces/models';

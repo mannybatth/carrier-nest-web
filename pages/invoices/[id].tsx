@@ -12,7 +12,7 @@ import InvoiceStatusBadge from '../../components/invoices/InvoiceStatusBadge';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
 import { LoadCard } from '../../components/loads/LoadCard';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import InvoiceDetailsSkeleton from '../../components/skeletons/InvoiceDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { ExpandedInvoice, ExpandedLoad } from '../../interfaces/models';

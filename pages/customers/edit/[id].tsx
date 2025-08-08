@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import CustomerForm from '../../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import CustomerEditSkeleton from '../../../components/skeletons/CustomerEditSkeleton';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { updateCustomer } from '../../../lib/rest/customer';

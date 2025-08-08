@@ -20,7 +20,7 @@ import SettingsLayout from '../../../components/layout/SettingsLayout';
 import { PageWithAuth } from '../../../interfaces/auth';
 //import { useELDApi } from '../../../lib/eld/ELDApiClient';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 
 // Provider brand colors for consistent design
 const getProviderBrandColor = (providerId: string) => {

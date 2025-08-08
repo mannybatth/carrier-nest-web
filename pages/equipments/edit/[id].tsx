@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../../../components/layout/Layout';
 import { getAllDrivers } from '../../../lib/rest/driver';
 import { updateEquipment } from '../../../lib/rest/equipment';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import EquipmentForm from '../../../components/forms/equipment/EquipmentForm';
 import { useForm } from 'react-hook-form';
 import { ExpandedEquipment } from 'interfaces/models';

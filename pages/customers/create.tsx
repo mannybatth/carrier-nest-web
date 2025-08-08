@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import CustomerForm from '../../components/forms/customer/CustomerForm';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { PageWithAuth } from '../../interfaces/auth';
 import { createCustomer } from '../../lib/rest/customer';
 import { Customer } from '@prisma/client';

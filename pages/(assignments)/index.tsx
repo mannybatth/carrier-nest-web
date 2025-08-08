@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import { ExpandedDriverAssignment } from '../../interfaces/models';
 import Pagination from '../../components/Pagination';
 import { PaginationMetadata, Sort } from '../../interfaces/table';

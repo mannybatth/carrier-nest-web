@@ -6,7 +6,7 @@ import React, { Fragment, useEffect } from 'react';
 import SimpleDialog from '../../components/dialogs/SimpleDialog';
 import BreadCrumb from '../../components/layout/BreadCrumb';
 import Layout from '../../components/layout/Layout';
-import { notify } from '../../components/Notification';
+import { notify } from '../../components/notifications/Notification';
 import CustomerDetailsSkeleton from '../../components/skeletons/CustomerDetailsSkeleton';
 import { PageWithAuth } from '../../interfaces/auth';
 import { Location } from '@prisma/client';

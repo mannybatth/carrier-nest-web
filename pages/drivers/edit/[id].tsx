@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import DriverForm from '../../../components/forms/driver/DriverForm';
 import BreadCrumb from '../../../components/layout/BreadCrumb';
 import Layout from '../../../components/layout/Layout';
-import { notify } from '../../../components/Notification';
+import { notify } from '../../../components/notifications/Notification';
 import { PageWithAuth } from '../../../interfaces/auth';
 import { ExpandedDriver } from '../../../interfaces/models';
 import { updateDriver } from '../../../lib/rest/driver';

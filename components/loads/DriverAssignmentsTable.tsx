@@ -30,7 +30,7 @@ import {
 import type { ExpandedDriverAssignment, ExpandedDriver } from '../../interfaces/models';
 import type { Sort } from '../../interfaces/table';
 import { RouteLegStatus } from '@prisma/client';
-import { notify } from '../Notification';
+import { notify } from '../notifications/Notification';
 
 // Helper functions
 const formatDate = (dateString: string) => {

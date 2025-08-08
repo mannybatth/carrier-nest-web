@@ -2,7 +2,7 @@
 
 import { SubscriptionPlan } from '@prisma/client';
 import { useUserContext } from 'components/context/UserContext';
-import { notify } from 'components/Notification';
+import { notify } from 'components/notifications/Notification';
 import {
     createBillingPortalSession,
     createCheckoutSession,
