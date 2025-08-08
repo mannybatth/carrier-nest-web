@@ -59,14 +59,14 @@ Output Format:
                 "country": string or null
             },
             "date": string or null (use MM/DD/YYYY format, replace - with / if necessary),
-            "time": string or null,
+            "time": string or null, // Format: "HH:MM" for specific time OR "HH:MM-HH:MM" for range (no spaces)
             "po_numbers": ["<po_number_1>", "<po_number_2>", ...] or null,
             "pickup_numbers": ["<pickup_number_1>", "<pickup_number_2>", ...] or null,
             "reference_numbers": ["<reference_number_1>", "<reference_number_2>", ...] or null
         },
         ... (repeat this structure for each stop regardless if it appears multiple times)
     ],
-    "rate": number or null,
+    "rate": number or null, // always use decimal format (e.g., 800.00) without currency symbols
     "invoice_emails": ["<invoice_email_1>", "<invoice_email_2>", ...] or null,
     "customer_details": {
         "name": string or null,
@@ -92,7 +92,21 @@ Extraction Guidelines:
     - Details:
         - Name & Address: Capture the entity's name along with its complete address.
         - Date: Extract the date ensuring it follows the MM/DD/YYYY format. Be on the lookout for nearby contextual clues (like "Date:") to accurately identify it.
-        - Time: The shipping/receiving hours for the shipment. The extracted time should strictly be in the 24-hour format. If a range is provided, it should appear in the format "HH:mm - HH:mm", for instance, "05:00 - 20:00". If the time is accompanied by a date within the range (like "2023-06-01 05:00 - 2023-07-08 20:00"), only the time portion should be extracted, omitting the date.
+        - Time: The shipping/receiving hours for the shipment. CRITICAL TIME FORMAT REQUIREMENTS:
+            * For SPECIFIC TIMES: Extract in 24-hour format as "HH:MM" (e.g., "14:30", "09:00")
+            * For TIME RANGES: Format as "HH:MM-HH:MM" (e.g., "09:00-17:00", "14:00-18:00")
+            * NO SPACES around the dash in ranges
+            * Convert 12-hour format to 24-hour: "2:30 PM" becomes "14:30", "9 AM" becomes "09:00"
+            * Common patterns to recognize:
+              - "Between 9 AM - 5 PM" → "09:00-17:00"
+              - "8:00 AM to 4:00 PM" → "08:00-16:00"
+              - "Anytime after 10 AM" → "10:00"
+              - "Before 3 PM" → "15:00"
+              - "9-5" → "09:00-17:00"
+              - "Business hours" → "09:00-17:00"
+            * If multiple time formats exist, prioritize the most specific one
+            * If uncertain between specific time vs range, default to specific time format
+            * OCR may introduce errors - be flexible with spacing and punctuation but maintain output format
 5. Rate: Look for "Total", "Rate", "Amount". Extract the complete amount including any additional fees. Represent the value numerically.
 6. Invoice Emails: Extract all emails where invoices should be sent. If none are found, use 'null'.
 7. Customer Details: Extract comprehensive broker information as customer details (since you invoice the broker who generated this rate confirmation):
