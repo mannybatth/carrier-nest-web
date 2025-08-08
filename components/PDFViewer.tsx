@@ -20,6 +20,56 @@ const Worker = dynamic(async () => (await import('@react-pdf-viewer/core')).Work
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
+// Enhanced OCR Box Animations - Apple-inspired clean design
+const OCR_BOX_STYLES = `
+<style>
+  @keyframes subtle-glow {
+    0% {
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.8), 0 0 8px rgba(0, 122, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 1), 0 0 12px rgba(0, 122, 255, 0.5);
+    }
+    100% {
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.8), 0 0 8px rgba(0, 122, 255, 0.3);
+    }
+  }
+
+  @keyframes overlay-fade-in-out {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes highlight-scale-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .ocr-overlay {
+    animation: overlay-fade-in-out 2s ease-out forwards;
+  }
+
+  .ocr-highlight-box {
+    animation: highlight-scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), subtle-glow 2s ease-in-out infinite;
+  }
+</style>
+`;
+
+// Inject styles into document head
+if (typeof document !== 'undefined' && !document.getElementById('ocr-box-styles')) {
+    const styleElement = document.createElement('div');
+    styleElement.id = 'ocr-box-styles';
+    styleElement.innerHTML = OCR_BOX_STYLES;
+    document.head.appendChild(styleElement);
+}
+
 // Types
 interface OCRVertex {
     x: number;
@@ -105,7 +155,7 @@ const ProcessingIndicator: React.FC<{ progress: number }> = React.memo(({ progre
 
 ProcessingIndicator.displayName = 'ProcessingIndicator';
 
-// OCR Box component - EXACT original logic restored
+// OCR Box component - Clean Apple-inspired design
 const OCRBox: React.FC<{
     vertices: OCRVertex[];
     scrollToPage: number;
@@ -125,24 +175,9 @@ const OCRBox: React.FC<{
     // If page boundary is not available, return null
     if (!pagesBoundary) return null;
 
-    // ORIGINAL LOGIC: Check if page is in view relative to WINDOW (not container)
-    const isPageInView =
-        pagesBoundary.top >= 0 &&
-        pagesBoundary.left >= 0 &&
-        pagesBoundary.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        pagesBoundary.right <= (window.innerWidth || document.documentElement.clientWidth);
-
     const pages = containerRef.current?.querySelectorAll('.rpv-core__page-layer');
 
-    // ORIGINAL LOGIC: Use window.scrollTo if page is not in view
-    if (!isPageInView && (scrollToPage === 0 || scrollToPage)) {
-        window.scrollTo({
-            top: pages?.[scrollToPage]?.getBoundingClientRect().y + window.scrollY,
-            behavior: 'smooth',
-        });
-    }
-
-    // ORIGINAL coordinate calculations
+    // Calculate coordinates
     const xMin = Math.min(...vertices.map((v) => v.x * pagesBoundary.width + 5.5));
     const yMin = Math.min(
         ...vertices.map(
@@ -156,40 +191,138 @@ const OCRBox: React.FC<{
         ),
     );
 
+    // Enhanced logic to ensure container is always visible when rendered
+    const ensureContainerVisible = useCallback(() => {
+        // Use setTimeout to ensure DOM is fully updated
+        setTimeout(() => {
+            const containerElement = document.getElementById(`ocr-box-${xMin}-${yMin}`);
+            if (!containerElement) return;
+
+            const rect = containerElement.getBoundingClientRect();
+            const padding = 20;
+            const viewportHeight = window.innerHeight;
+
+            // Check if container is outside viewport bounds
+            const isAboveViewport = rect.top < padding;
+            const isBelowViewport = rect.bottom > viewportHeight - padding;
+
+            if (isAboveViewport || isBelowViewport) {
+                const containerTop = rect.top + window.scrollY;
+                const containerHeight = rect.height;
+
+                let targetScrollTop;
+
+                if (isAboveViewport) {
+                    // Scroll up to show container with top padding
+                    targetScrollTop = containerTop - padding;
+                } else if (isBelowViewport) {
+                    // Scroll down to show container with bottom padding
+                    if (containerHeight + 2 * padding > viewportHeight) {
+                        // If container is larger than viewport, align top with padding
+                        targetScrollTop = containerTop - padding;
+                    } else {
+                        // Position container so bottom is visible with padding
+                        targetScrollTop = containerTop - (viewportHeight - containerHeight - padding);
+                    }
+                }
+
+                window.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: 'smooth',
+                });
+            }
+        }, 200);
+    }, [xMin, yMin]);
+
+    // Run visibility check when component mounts and when scroll position changes
+    useEffect(() => {
+        ensureContainerVisible();
+
+        // Also check when window is resized
+        const handleResize = () => ensureContainerVisible();
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [ensureContainerVisible]);
+
     // Get width and height of the box
     const width = xMax - xMin;
     const height = yMax - yMin;
 
     return (
-        <div key={`${xMin}-${yMin}-container`} className="relative">
-            <ChevronDoubleRightIcon
-                key={`${xMin}-${yMin}-icon`}
-                className="z-[9999] relative -left-[14px] animate-pulse"
-                width={28}
-                height={28}
-                color="#007AFF"
+        <>
+            {/* Overlay sections that cover everything except the highlighted area */}
+            {/* Top overlay */}
+            <div
+                className="absolute z-[999] pointer-events-none ocr-overlay"
                 style={{
-                    top: `${Math.round(yMin) + height * 0.6 - 14}px`,
-                    position: 'absolute',
-                    filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.8))',
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    height: `${yMin - 4}px`,
+                    background: 'rgba(255, 255, 255, 0.75)',
+                    backdropFilter: 'blur(1px)',
                 }}
             />
 
+            {/* Bottom overlay */}
             <div
-                key={`${xMin}-${yMin}`}
-                id="ocr-box"
-                className="absolute z-[1000] transition-all animate-pulse pointer-events-none rounded-sm"
+                className="absolute z-[999] pointer-events-none ocr-overlay"
                 style={{
-                    left: `${xMin}px`,
-                    top: `${yMin}px`,
-                    width: `${width}px`,
-                    height: `${height}px`,
-                    background: 'rgba(0, 122, 255, 0.2)',
-                    boxShadow: '0 0 0 2px rgba(0, 122, 255, 0.8), 0 0 10px rgba(0, 122, 255, 0.4)',
-                    backdropFilter: 'brightness(1.2)',
+                    left: 0,
+                    top: `${yMax + 4}px`,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(255, 255, 255, 0.75)',
+                    backdropFilter: 'blur(1px)',
                 }}
             />
-        </div>
+
+            {/* Left overlay */}
+            <div
+                className="absolute z-[999] pointer-events-none ocr-overlay"
+                style={{
+                    left: 0,
+                    top: `${yMin - 4}px`,
+                    width: `${xMin - 4}px`,
+                    height: `${height + 8}px`,
+                    background: 'rgba(255, 255, 255, 0.75)',
+                    backdropFilter: 'blur(1px)',
+                }}
+            />
+
+            {/* Right overlay */}
+            <div
+                className="absolute z-[999] pointer-events-none ocr-overlay"
+                style={{
+                    left: `${xMax + 4}px`,
+                    top: `${yMin - 4}px`,
+                    right: 0,
+                    height: `${height + 8}px`,
+                    background: 'rgba(255, 255, 255, 0.75)',
+                    backdropFilter: 'blur(1px)',
+                }}
+            />
+
+            {/* Clean highlighted box frame - only border, no background to keep text clear */}
+            <div
+                key={`${xMin}-${yMin}`}
+                id={`ocr-box-${xMin}-${yMin}`}
+                className="absolute z-[1000] pointer-events-none ocr-highlight-box"
+                style={{
+                    left: `${xMin - 4}px`,
+                    top: `${yMin - 4}px`,
+                    width: `${width + 8}px`,
+                    height: `${height + 8}px`,
+                    border: '2px solid #007AFF',
+                    borderRadius: '6px',
+                    boxShadow: '0 0 0 1px rgba(0, 122, 255, 0.3), 0 0 8px rgba(0, 122, 255, 0.2)',
+                    background: 'transparent', // Keep text area completely clear
+                }}
+            />
+        </>
     );
 });
 
@@ -238,6 +371,48 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
 
         return () => clearInterval(interval);
     }, [isProcessing]);
+
+    // Ensure OCR boxes are visible when they change
+    useEffect(() => {
+        if (ocrVertices && ocrVertices.length > 0 && isPdfLoaded) {
+            // Use a longer timeout to ensure PDF and OCR boxes are fully rendered
+            setTimeout(() => {
+                const allOcrBoxes = document.querySelectorAll('[id^="ocr-box-"]');
+                if (allOcrBoxes.length > 0) {
+                    const lastBox = allOcrBoxes[allOcrBoxes.length - 1];
+                    const rect = lastBox.getBoundingClientRect();
+                    const padding = 20;
+                    const viewportHeight = window.innerHeight;
+
+                    // Check if the most recent box is outside viewport bounds
+                    const isAboveViewport = rect.top < padding;
+                    const isBelowViewport = rect.bottom > viewportHeight - padding;
+
+                    if (isAboveViewport || isBelowViewport) {
+                        const boxTop = rect.top + window.scrollY;
+                        const boxHeight = rect.height;
+
+                        let targetScrollTop;
+
+                        if (isAboveViewport) {
+                            targetScrollTop = boxTop - padding;
+                        } else if (isBelowViewport) {
+                            if (boxHeight + 2 * padding > viewportHeight) {
+                                targetScrollTop = boxTop - padding;
+                            } else {
+                                targetScrollTop = boxTop - (viewportHeight - boxHeight - padding);
+                            }
+                        }
+
+                        window.scrollTo({
+                            top: Math.max(0, targetScrollTop),
+                            behavior: 'smooth',
+                        });
+                    }
+                }
+            }, 500);
+        }
+    }, [ocrVertices, isPdfLoaded]);
 
     // Handle document load - EXACT original logic
     const handleDocumentLoad = useCallback(
