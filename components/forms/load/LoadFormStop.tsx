@@ -1,6 +1,6 @@
 'use client';
 
-import { Combobox, Disclosure, Transition } from '@headlessui/react';
+import { Combobox, Disclosure, Transition, Listbox } from '@headlessui/react';
 import { CheckCircleIcon, ChevronUpDownIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import { LoadStopType } from '@prisma/client';
@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import * as iso3166 from 'iso-3166-2';
-import React, { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState, Fragment, useRef } from 'react';
 import {
     type Control,
     Controller,
@@ -24,6 +24,8 @@ import type { ExpandedLoad } from '../../../interfaces/models';
 import { useDebounce } from '../../../lib/debounce';
 import { queryLocations } from '../../../lib/rest/maps';
 import Spinner from '../../Spinner';
+import TimeRangeSelector from '../../TimeRangeSelector';
+import { type TimeRangeValue, stringToTimeRange, timeRangeToString } from '../../../lib/helpers/time-range-utils';
 
 export type LoadFormStopProps = {
     type: LoadStopType;
@@ -61,6 +63,10 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
     const debouncedLocationSearchTerm = useDebounce(locationSearchTerm, 500);
     const [selectedLocation, setSelectedLocation] = useState<LocationEntry>(null);
 
+    // Store initial time value for reset functionality in edit mode
+    const [initialTimeValue, setInitialTimeValue] = useState<TimeRangeValue | undefined>(undefined);
+    const hasSetInitialValue = useRef(false);
+
     const fieldId = (name: string): any => {
         if (props.type === LoadStopType.SHIPPER) {
             return `shipper.${name}`;
@@ -70,6 +76,24 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
             return `stops.${index}.${name}`;
         }
     };
+
+    // Watch the time field to capture initial value when it's first populated
+    const currentTimeFieldValue = watch(fieldId('time'));
+
+    // Initialize the initial time value when the field gets its first meaningful value
+    useEffect(() => {
+        if (!hasSetInitialValue.current && currentTimeFieldValue && currentTimeFieldValue !== '') {
+            const timeRangeValue =
+                typeof currentTimeFieldValue === 'string'
+                    ? stringToTimeRange(currentTimeFieldValue)
+                    : currentTimeFieldValue;
+
+            if (timeRangeValue && (timeRangeValue.startTime !== '' || timeRangeValue.endTime !== '')) {
+                setInitialTimeValue(timeRangeValue);
+                hasSetInitialValue.current = true;
+            }
+        }
+    }, [currentTimeFieldValue]); // Watch for changes to the time field value
 
     const watchCity = watch(fieldId('city'));
     const watchState = watch(fieldId('state'));
@@ -325,23 +349,58 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                 </div>
 
                 <div>
-                    <label htmlFor={fieldId('time')} className="block text-sm text-gray-500 mb-2">
-                        {props.type === LoadStopType.RECEIVER
-                            ? 'Drop Off Time'
-                            : props.type === LoadStopType.SHIPPER
-                            ? 'Pick Up Time'
-                            : 'Time'}
-                    </label>
-                    <input
-                        {...register(fieldId('time'), { required: 'Time is required' })}
-                        type="text"
-                        id={fieldId('time')}
-                        placeholder="e.g. 14:00"
-                        className="w-full px-4 py-3 bg-gray-50 text-gray-900 font-semibold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                        onMouseEnter={mouseHoverOverField}
-                        onMouseLeave={mouseHoverOutField}
+                    <Controller
+                        name={fieldId('time')}
+                        control={control}
+                        rules={{
+                            required: 'Time is required',
+                            validate: (value) => {
+                                if (typeof value === 'string') {
+                                    return value.trim() !== '' || 'Time is required';
+                                }
+                                if (typeof value === 'object') {
+                                    return (
+                                        (value.startTime && value.startTime.trim() !== '') || 'Start time is required'
+                                    );
+                                }
+                                return 'Time is required';
+                            },
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                            <TimeRangeSelector
+                                value={
+                                    field.value
+                                        ? typeof field.value === 'string'
+                                            ? stringToTimeRange(field.value)
+                                            : field.value
+                                        : undefined
+                                }
+                                initialValue={initialTimeValue}
+                                onChange={(timeRange) => {
+                                    // Store as string for backward compatibility
+                                    if (timeRange.isRange && timeRange.endTime) {
+                                        field.onChange(`${timeRange.startTime}-${timeRange.endTime}`);
+                                    } else if (timeRange.startTime) {
+                                        field.onChange(timeRange.startTime);
+                                    } else {
+                                        field.onChange('');
+                                    }
+                                }}
+                                label={
+                                    props.type === LoadStopType.RECEIVER
+                                        ? 'Drop Off Time (24H)'
+                                        : props.type === LoadStopType.SHIPPER
+                                        ? 'Pick Up Time (24H)'
+                                        : 'Time (24H)'
+                                }
+                                placeholder="(e.g. 14:00 or 09:00-17:00)"
+                                error={error?.message}
+                                name={fieldId('time')}
+                                onMouseEnter={mouseHoverOverField}
+                                onMouseLeave={mouseHoverOutField}
+                            />
+                        )}
                     />
-                    {errorMessage(errors, 'time')}
                 </div>
             </div>
 
@@ -524,17 +583,82 @@ const LoadFormStop: React.FC<LoadFormStopProps> = ({
                     defaultValue="US"
                     render={({ field, fieldState: { error } }) => (
                         <>
-                            <select
-                                {...field}
-                                id={fieldId('country')}
-                                className="w-full px-4 py-3 bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                            >
-                                {countryCodes.map((countryCode) => (
-                                    <option key={countryCode.code} value={countryCode.code}>
-                                        {countryCode.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <Listbox value={field.value} onChange={field.onChange}>
+                                <div className="relative">
+                                    <Listbox.Button
+                                        id={fieldId('country')}
+                                        className="w-full px-4 py-3 bg-gray-50/80 backdrop-blur-xl text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/90 transition-all text-left rounded-md shadow-sm ring-1 ring-gray-200/60"
+                                    >
+                                        <span className="block truncate">
+                                            {field.value
+                                                ? countryCodes.find((country) => country.code === field.value)?.name ||
+                                                  'Select Country'
+                                                : 'Select Country'}
+                                        </span>
+                                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                            <svg
+                                                className="h-5 w-5 text-gray-400"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04L10 14.148l2.7-1.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                        </span>
+                                    </Listbox.Button>
+                                    <Transition
+                                        leave="transition ease-in duration-100"
+                                        leaveFrom="opacity-100"
+                                        leaveTo="opacity-0"
+                                    >
+                                        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white/90 backdrop-blur-xl py-1 text-base shadow-lg ring-1 ring-gray-200/60 focus:outline-none sm:text-sm">
+                                            {countryCodes.map((countryCode) => (
+                                                <Listbox.Option
+                                                    key={countryCode.code}
+                                                    value={countryCode.code}
+                                                    className={({ active }) =>
+                                                        `relative cursor-default select-none py-2 pl-3 pr-9 ${
+                                                            active ? 'bg-blue-50/80 text-blue-900' : 'text-gray-900'
+                                                        }`
+                                                    }
+                                                >
+                                                    {({ selected }) => (
+                                                        <>
+                                                            <span
+                                                                className={`block truncate font-semibold ${
+                                                                    selected ? 'font-bold' : 'font-semibold'
+                                                                }`}
+                                                            >
+                                                                {countryCode.name}
+                                                            </span>
+                                                            {selected ? (
+                                                                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                                                    <svg
+                                                                        className="h-5 w-5"
+                                                                        viewBox="0 0 20 20"
+                                                                        fill="currentColor"
+                                                                        aria-hidden="true"
+                                                                    >
+                                                                        <path
+                                                                            fillRule="evenodd"
+                                                                            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                                                            clipRule="evenodd"
+                                                                        />
+                                                                    </svg>
+                                                                </span>
+                                                            ) : null}
+                                                        </>
+                                                    )}
+                                                </Listbox.Option>
+                                            ))}
+                                        </Listbox.Options>
+                                    </Transition>
+                                </div>
+                            </Listbox>
                             {error && <p className="mt-1 text-sm text-red-600">{error.message}</p>}
                         </>
                     )}
