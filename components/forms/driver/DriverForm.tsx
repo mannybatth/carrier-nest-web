@@ -727,6 +727,47 @@ const DriverForm: React.FC<Props> = ({
                                 </div>
                             </div>
 
+                            {/* Base Guarantee Amount Section */}
+                            <div>
+                                <label
+                                    htmlFor="baseGuaranteeAmount"
+                                    className="block text-sm font-semibold text-gray-900 mb-2"
+                                >
+                                    Base Guarantee Amount
+                                </label>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    Optional minimum guaranteed amount per pay period (weekly/monthly)
+                                </p>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-base font-medium text-gray-500">
+                                        $
+                                    </span>
+                                    <input
+                                        {...register('baseGuaranteeAmount', {
+                                            setValueAs: (value) => (value === '' ? null : parseFloat(value)),
+                                            validate: (value) => {
+                                                if (value !== null && value !== undefined && Number(value) < 0) {
+                                                    return 'Base guarantee amount cannot be negative';
+                                                }
+                                                return true;
+                                            },
+                                        })}
+                                        type="number"
+                                        id="baseGuaranteeAmount"
+                                        step="0.01"
+                                        min="0"
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="block w-full px-4 py-4 pl-8 text-base border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 bg-white hover:border-gray-400 placeholder-gray-400 font-medium"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                {errors.baseGuaranteeAmount && (
+                                    <p className="mt-2 text-sm text-red-600 font-medium">
+                                        {errors.baseGuaranteeAmount?.message}
+                                    </p>
+                                )}
+                            </div>
+
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mt-6">
                                 <div className="text-left">
                                     <h4 className="text-sm font-semibold text-gray-700 mb-2">Pay Configuration Tips</h4>
