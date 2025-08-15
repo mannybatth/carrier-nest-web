@@ -246,6 +246,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
                             name: true,
                             email: true,
                             phone: true,
+                            active: true,
                             devices: {
                                 select: {
                                     fcmToken: true,
@@ -730,6 +731,7 @@ async function getExpandedRoute(loadId: string) {
                                     name: true,
                                     email: true,
                                     phone: true,
+                                    active: true,
                                     devices: {
                                         select: {
                                             fcmToken: true,
