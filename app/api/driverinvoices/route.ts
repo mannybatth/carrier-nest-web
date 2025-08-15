@@ -172,6 +172,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
             invoiceNum,
             assignments = [],
             lineItems = [],
+            expenses = [], // Extract expenses from request body
         } = body;
 
         const carrierId = session.user.defaultCarrierId;
@@ -221,6 +222,37 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 { code: 400, errors: [{ message: 'One or more assignments are invalid or unauthorized' }] },
                 { status: 400 },
             );
+        }
+
+        // Validate expenses if provided
+        if (expenses && expenses.length > 0) {
+            const expenseIds = expenses.map((e: any) => e.id);
+            const existingExpenses = await prisma.expense.findMany({
+                where: {
+                    id: { in: expenseIds },
+                    driverId,
+                    carrierId,
+                    approvalStatus: 'APPROVED',
+                    paidBy: 'DRIVER', // Ensure only driver-paid expenses
+                    driverInvoiceId: null, // Ensure expense is not already attached to another invoice
+                },
+                select: { id: true },
+            });
+
+            if (existingExpenses.length !== expenseIds.length) {
+                return NextResponse.json(
+                    {
+                        code: 400,
+                        errors: [
+                            {
+                                message:
+                                    'One or more expenses are invalid, not approved, not driver-paid, or already attached to another invoice',
+                            },
+                        ],
+                    },
+                    { status: 400 },
+                );
+            }
         }
 
         const invoice = await prisma.driverInvoice.create({
@@ -339,8 +371,40 @@ export const POST = auth(async (req: NextAuthRequest) => {
             return acc.add(item.amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
         }, new Prisma.Decimal(0));
 
-        // Final total calculation with financial rounding
-        const totalAmount = assignmentTotal.add(lineItemsTotal).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        // Handle driver expenses connection and calculate total
+        let expensesTotal = new Prisma.Decimal(0);
+        if (expenses && expenses.length > 0) {
+            const expenseIds = expenses.map((e: any) => e.id);
+
+            // Connect expenses to the driver invoice
+            await prisma.expense.updateMany({
+                where: {
+                    id: { in: expenseIds },
+                    driverId,
+                    carrierId,
+                    approvalStatus: 'APPROVED',
+                    paidBy: 'DRIVER',
+                },
+                data: {
+                    driverInvoiceId: invoice.id,
+                },
+            });
+
+            // Calculate expenses total with proper financial rounding
+            expensesTotal = expenses.reduce((acc: Prisma.Decimal, expense: any) => {
+                const expenseAmount = new Prisma.Decimal(expense.amount).toDecimalPlaces(
+                    2,
+                    Prisma.Decimal.ROUND_HALF_UP,
+                );
+                return acc.add(expenseAmount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+            }, new Prisma.Decimal(0));
+        }
+
+        // Final total calculation including expenses with financial rounding
+        const totalAmount = assignmentTotal
+            .add(lineItemsTotal)
+            .add(expensesTotal)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
         await prisma.driverInvoice.update({
             where: { id: invoice.id },

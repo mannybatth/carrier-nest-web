@@ -171,33 +171,17 @@ const LoadDetailsDocuments: React.FC<LoadDetailsDocumentsProps> = ({
                         />
 
                         {/* Other Documents */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-gray-600 tracking-tight">Other Documents</h3>
-                            {loadDocuments.length > 0 ? (
-                                <div className="bg-white rounded-xl border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                                    <div className="divide-y divide-gray-100/60">
-                                        {loadDocuments.map((doc) => (
-                                            <DocumentItem
-                                                key={doc.id}
-                                                document={doc}
-                                                openDocument={openDocument}
-                                                setDocumentIdToDelete={setDocumentIdToDelete}
-                                                setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
-                                                disabled={docsLoading}
-                                                isDeleting={deletingDocumentId === doc.id}
-                                                isPendingDeletion={documentIdToDelete === doc.id}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="bg-gray-50/50 rounded-xl border border-gray-100/50 border-dashed">
-                                    <p className="text-sm text-gray-500 text-center py-8 font-medium">
-                                        No other documents
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                        <DocumentSection
+                            title="Other Documents"
+                            documents={loadDocuments}
+                            openDocument={openDocument}
+                            setDocumentIdToDelete={setDocumentIdToDelete}
+                            setOpenDeleteDocumentConfirmation={setOpenDeleteDocumentConfirmation}
+                            emptyMessage="No other documents"
+                            disabled={docsLoading}
+                            deletingDocumentId={deletingDocumentId}
+                            documentIdToDelete={documentIdToDelete}
+                        />
                     </div>
                 </div>
             </div>
@@ -240,6 +224,12 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
     deletingDocumentId,
     documentIdToDelete,
 }) => {
+    const [showAll, setShowAll] = useState(false);
+    const maxVisibleDocs = 2;
+    const shouldShowMore = documents.length > maxVisibleDocs;
+    const visibleDocuments = showAll ? documents : documents.slice(0, maxVisibleDocs);
+    const hiddenCount = documents.length - maxVisibleDocs;
+
     return (
         <div className="space-y-4">
             <h3 className="text-sm font-medium text-gray-600 tracking-tight">{title}</h3>
@@ -247,7 +237,7 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
             {documents.length > 0 ? (
                 <div className="bg-white rounded-xl border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                     <div className="divide-y divide-gray-100/60">
-                        {documents.map((doc) => (
+                        {visibleDocuments.map((doc) => (
                             <DocumentItem
                                 key={doc.id}
                                 document={doc}
@@ -259,6 +249,30 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
                                 isPendingDeletion={documentIdToDelete === doc.id}
                             />
                         ))}
+
+                        {shouldShowMore && !showAll && (
+                            <>
+                                <div className="border-t border-gray-100/60">
+                                    <button
+                                        onClick={() => setShowAll(true)}
+                                        className="w-full px-4 py-3 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors duration-200 text-center font-medium"
+                                    >
+                                        Show {hiddenCount} more document{hiddenCount > 1 ? 's' : ''}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {showAll && shouldShowMore && (
+                            <div className="border-t border-gray-100/60">
+                                <button
+                                    onClick={() => setShowAll(false)}
+                                    className="w-full px-4 py-3 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50/50 transition-colors duration-200 text-center font-medium"
+                                >
+                                    Show less
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (

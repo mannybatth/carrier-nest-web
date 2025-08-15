@@ -129,6 +129,7 @@ export const PATCH = auth(async (req: NextAuthRequest, context: { params: { id: 
                                     name: true,
                                     email: true,
                                     phone: true,
+                                    active: true,
                                 },
                             },
                             chargeType: true,

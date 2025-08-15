@@ -1,8 +1,7 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircleIcon, ChevronRightIcon, UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
+import BreadCrumb from 'components/layout/BreadCrumb';
 import { getAllDrivers } from 'lib/rest/driver';
 import React from 'react';
 import { Driver, Prisma } from '@prisma/client';
@@ -18,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useUserContext } from 'components/context/UserContext';
 import { calculateHaversineDistance } from 'lib/helpers/distance';
 import { useMileCalculation } from 'hooks/useMileCalculation';
+import { useExpenseLoader } from 'hooks/useExpenseLoader';
 import InvoiceStepper from 'components/InvoiceStepper';
 import { createInvoiceSteps } from 'lib/constants/stepper';
 import { InvoiceReview } from 'components/driverinvoices/InvoiceReview';
@@ -25,10 +25,12 @@ import { financialCalculation, financialAdd, calculateAssignmentAmount, safeNumb
 import AdditionalItems from 'components/driverinvoices/AdditionalItems';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
+import { useSession } from 'next-auth/react';
 
 const CreateDriverInvoicePage = () => {
     const router = useRouter();
     const { defaultCarrier } = useUserContext();
+    const { data: session } = useSession();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<NewDriverInvoice>({
@@ -38,6 +40,7 @@ const CreateDriverInvoicePage = () => {
         driverId: '',
         assignments: [],
         lineItems: [],
+        expenses: [], // Initialize expenses array
     });
     const [newLineItem, setNewLineItem] = useState<DriverInvoiceLineItem>({ description: '', amount: '' });
     const [totalAmount, setTotalAmount] = useState('0.00');
@@ -57,6 +60,10 @@ const CreateDriverInvoicePage = () => {
         assignments: invoice.assignments,
         calculateHaversineDistance,
     });
+
+    // Expense loading hook
+    const { approvedExpenses, loadingExpenses, loadApprovedExpenses, resetExpenses, clearLoadedCache } =
+        useExpenseLoader();
 
     const [showMileCalculationStep, setShowMileCalculationStep] = useState(false);
 
@@ -101,7 +108,32 @@ const CreateDriverInvoicePage = () => {
         loadDrivers();
     }, []);
 
-    // Calculate total amount whenever assignments, line items, or empty miles change
+    // Load expenses when user reaches Additional Items step (only once)
+    useEffect(() => {
+        const isAdditionalItemsStep = currentStep === 3;
+
+        if (isAdditionalItemsStep && invoice.driverId && invoice.fromDate && invoice.toDate) {
+            const fromDate = typeof invoice.fromDate === 'string' ? new Date(invoice.fromDate) : invoice.fromDate;
+            const toDate = typeof invoice.toDate === 'string' ? new Date(invoice.toDate) : invoice.toDate;
+            loadApprovedExpenses(invoice.driverId, fromDate, toDate, invoice as any, 'create');
+        }
+
+        // Clear cache when user goes back to step 1 (restart flow)
+        if (currentStep === 1) {
+            clearLoadedCache();
+        }
+    }, [currentStep, invoice.driverId, invoice.fromDate, invoice.toDate, loadApprovedExpenses, clearLoadedCache]);
+
+    // Function to manually refresh expenses
+    const handleRefreshExpenses = useCallback(() => {
+        if (invoice.driverId && invoice.fromDate && invoice.toDate) {
+            const fromDate = typeof invoice.fromDate === 'string' ? new Date(invoice.fromDate) : invoice.fromDate;
+            const toDate = typeof invoice.toDate === 'string' ? new Date(invoice.toDate) : invoice.toDate;
+            loadApprovedExpenses(invoice.driverId, fromDate, toDate, invoice as any, 'create', true); // Force refresh
+        }
+    }, [invoice.driverId, invoice.fromDate, invoice.toDate, invoice, loadApprovedExpenses]);
+
+    // Calculate total amount whenever assignments, line items, expenses, or empty miles change
     useEffect(() => {
         let total = 0;
 
@@ -128,8 +160,14 @@ const CreateDriverInvoicePage = () => {
             total = financialAdd(total, itemAmount);
         });
 
+        // Add up expense amounts with financial precision
+        invoice.expenses.forEach((expense) => {
+            const expenseAmount = safeNumber(expense.amount);
+            total = financialAdd(total, expenseAmount);
+        });
+
         setTotalAmount(financialCalculation(total).toFixed(2));
-    }, [invoice.assignments, invoice.lineItems, emptyMiles]);
+    }, [invoice.assignments, invoice.lineItems, invoice.expenses, emptyMiles]);
 
     // Calculate empty miles when mile-based assignments change
     useEffect(() => {
@@ -371,7 +409,9 @@ const CreateDriverInvoicePage = () => {
                 return;
             }
 
-            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+            const approvalUrl = `${window.location.origin}/driverinvoices/${invoiceId}/approval${
+                defaultCarrier.carrierCode ? `?carrierCode=${encodeURIComponent(defaultCarrier.carrierCode)}` : ''
+            }`;
 
             // Prefer email if available, otherwise use SMS
             if (selectedDriver.email && selectedDriver.email.trim() !== '') {
@@ -387,6 +427,8 @@ const CreateDriverInvoicePage = () => {
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'create',
                     }),
                 });
                 notify({
@@ -407,6 +449,8 @@ const CreateDriverInvoicePage = () => {
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'create',
                     }),
                 });
                 notify({
@@ -496,7 +540,7 @@ const CreateDriverInvoicePage = () => {
             }
         >
             <>
-                <div className="py-1 sm:py-2 mx-auto max-w-full px-2 sm:px-4">
+                <div className="py-1 sm:py-2 mx-auto max-w-7xl px-2 sm:px-4">
                     {' '}
                     {/* Changed from max-w-7xl to max-w-full for wider layout */}
                     {showAssignmentChargeChangeDialog && (
@@ -510,75 +554,139 @@ const CreateDriverInvoicePage = () => {
                     )}
                     <div className="max-w-full mx-auto px-3 sm:px-6 bg-white rounded-lg shadow-none mt-2 sm:mt-4">
                         {' '}
-                        {/* Changed from max-w-6xl to max-w-full */}
-                        <div className="mb-4 sm:mb-8 static top-0 bg-white py-1 sm:py-2">
-                            <nav className="flex" aria-label="Breadcrumb">
-                                <ol className="flex items-center space-x-1 sm:space-x-2">
-                                    <li>
-                                        <Link
-                                            href="/driverinvoices"
-                                            className="text-gray-500 hover:text-gray-700 text-sm sm:text-base"
-                                        >
-                                            Driver Invoices
-                                        </Link>
-                                    </li>
-                                    <li className="flex items-center">
-                                        <svg
-                                            className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                        <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
-                                            Create Driver Invoice
-                                        </span>
-                                    </li>
-                                </ol>
-                            </nav>
+                        {/* Breadcrumb */}
+                        <div className="mb-4  bg-white/80 backdrop-blur-sm rounded-xl ">
+                            <BreadCrumb
+                                paths={[
+                                    { label: 'Dashboard', href: '/' },
+                                    { label: 'Driver Invoices', href: '/driverinvoices' },
+                                    { label: 'Create Driver Invoice' },
+                                ]}
+                            />
                         </div>
-                        <h1 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-10 text-center bg-white p-2 sm:p-4 rounded-lg">
-                            Create Driver Invoice
-                        </h1>
-                        {/* Invoice Stepper Component */}
-                        <InvoiceStepper
-                            currentStep={currentStep}
-                            steps={createInvoiceSteps}
-                            showMileCalculationStep={showMileCalculationStep}
-                            mode="create"
-                        />
-                        <div className="border border-gray-100 rounded-lg shadow-sm">
+                        {/* Beautiful Header Section */}
+                        <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-0 relative">
+                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-xl shadow-gray-900/5 p-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-baseline space-x-3">
+                                            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                                                Create Driver Invoice
+                                            </h1>
+                                            <div className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200/50">
+                                                    <svg
+                                                        className="w-3 h-3 mr-1.5"
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                    New Invoice
+                                                </span>
+                                                <span className="text-gray-300">•</span>
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                    Step {currentStep} of {createInvoiceSteps.length}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p className="mt-3 text-lg text-gray-600 font-medium">
+                                            Create a new driver invoice with assignments, expenses, and line items
+                                        </p>
+                                    </div>
+                                    <div className="ml-8 flex items-center space-x-3">
+                                        {invoice.driverId && (
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-gray-500">Selected Driver</p>
+                                                <p className="text-lg font-semibold text-gray-900">
+                                                    {allDrivers.find((d) => d.id === invoice.driverId)?.name ||
+                                                        'Unknown'}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {totalAmount !== '0.00' && (
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-gray-500">Current Total</p>
+                                                <p className="text-2xl font-bold text-green-600">${totalAmount}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Mobile Header */}
+                        <div className="block px-5 mb-6 md:hidden sm:px-6">
+                            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg p-6">
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Driver Invoice</h1>
+                                <div className="flex items-center space-x-2 text-sm font-medium text-gray-500 mb-3">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                                        New Invoice
+                                    </span>
+                                    <span className="text-gray-300">•</span>
+                                    <span>
+                                        Step {currentStep} of {createInvoiceSteps.length}
+                                    </span>
+                                </div>
+                                {invoice.driverId && (
+                                    <div className="flex justify-between items-center pt-3 border-t border-gray-200/50">
+                                        <div>
+                                            <p className="text-sm text-gray-500">Driver</p>
+                                            <p className="font-semibold text-gray-900">
+                                                {allDrivers.find((d) => d.id === invoice.driverId)?.name || 'Unknown'}
+                                            </p>
+                                        </div>
+                                        {totalAmount !== '0.00' && (
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-500">Total</p>
+                                                <p className="text-xl font-bold text-green-600">${totalAmount}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {/* Invoice Stepper Component - Sticky */}
+                        <div className="sticky top-4 z-40 mb-6">
+                            <InvoiceStepper
+                                currentStep={currentStep}
+                                steps={createInvoiceSteps}
+                                showMileCalculationStep={showMileCalculationStep}
+                                mode="create"
+                            />
+                        </div>
+                        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg overflow-hidden">
                             {/* Step 1: Select Driver */}
                             {currentStep === 1 && (
-                                <div className="bg-gray-50 p-3 sm:p-6 rounded-lg">
-                                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
-                                        Select Driver
-                                    </h2>
+                                <div className="p-6 sm:p-8">
+                                    {/* Header */}
+                                    <div className="mb-6 sm:mb-8">
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Driver</h2>
+                                        <p className="text-gray-600">Choose the driver for this invoice</p>
+                                    </div>
 
                                     {loadingAllDrivers ? (
-                                        <div className="flex items-center justify-center w-full p-2 sm:p-4 font-bold text-sm sm:text-base">
-                                            <Spinner /> Loading Drivers
+                                        <div className="flex items-center justify-center w-full p-8 font-medium text-gray-600">
+                                            <Spinner />
+                                            <span className="ml-3">Loading drivers...</span>
                                         </div>
                                     ) : allDrivers.length === 0 ? (
-                                        <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                                        <div className="flex-1 flex items-center justify-center min-h-[300px]">
                                             <div className="flex flex-col items-center text-center space-y-6 px-8 py-12 max-w-sm mx-auto">
                                                 {/* Icon with subtle background */}
-                                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                                    <UserIcon className="w-8 h-8 text-gray-400" />
+                                                <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center shadow-inner">
+                                                    <UserIcon className="w-10 h-10 text-gray-400" />
                                                 </div>
 
                                                 {/* Main message */}
-                                                <div className="space-y-2">
-                                                    <h3 className="text-lg font-medium text-gray-900">
+                                                <div className="space-y-3">
+                                                    <h3 className="text-xl font-semibold text-gray-900">
                                                         No Active Drivers
                                                     </h3>
-                                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                                    <p className="text-gray-500 leading-relaxed">
                                                         Add active drivers to your team before creating an invoice.
                                                     </p>
                                                 </div>
@@ -586,58 +694,130 @@ const CreateDriverInvoicePage = () => {
                                                 {/* Action button */}
                                                 <Link
                                                     href="/drivers"
-                                                    className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:-translate-y-0.5"
                                                 >
+                                                    <UserIcon className="w-5 h-5 mr-2" />
                                                     Manage Drivers
                                                 </Link>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                                        <div className="space-y-3">
                                             {allDrivers.map((driver) => (
-                                                <div
+                                                <label
                                                     key={driver.id}
-                                                    className={`p-3 sm:p-4 border rounded-lg cursor-pointer transition-all ${
+                                                    className={`group relative flex items-center p-4 sm:p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md ${
                                                         invoice.driverId === driver.id
-                                                            ? 'border-blue-400 bg-blue-50 shadow-md'
-                                                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                                                            ? 'border-blue-500 bg-gradient-to-r from-blue-50/80 to-blue-100/50 shadow-lg shadow-blue-100/50'
+                                                            : 'border-gray-200/60 bg-white/60 hover:border-blue-300/60 hover:bg-blue-50/30'
                                                     }`}
-                                                    onClick={() => handleDriverSelect(driver.id)}
                                                 >
-                                                    <div className="flex items-center">
-                                                        <div className="bg-gray-200 rounded-full p-1.5 sm:p-2 mr-2 sm:mr-3">
-                                                            <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                                                    {/* Custom Radio Button */}
+                                                    <div className="relative flex items-center justify-center mr-4">
+                                                        <input
+                                                            type="radio"
+                                                            name="driver"
+                                                            value={driver.id}
+                                                            checked={invoice.driverId === driver.id}
+                                                            onChange={() => handleDriverSelect(driver.id)}
+                                                            className="sr-only"
+                                                        />
+                                                        <div
+                                                            className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
+                                                                invoice.driverId === driver.id
+                                                                    ? 'border-blue-500 bg-blue-500 shadow-lg shadow-blue-500/30'
+                                                                    : 'border-gray-300 bg-white group-hover:border-blue-400'
+                                                            }`}
+                                                        >
+                                                            {invoice.driverId === driver.id && (
+                                                                <div className="w-full h-full rounded-full bg-white/20 flex items-center justify-center">
+                                                                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className="font-medium text-gray-800 capitalize text-sm sm:text-base truncate">
-                                                                {driver.name.toLowerCase()}
-                                                            </h3>
-                                                            <p className="text-xs sm:text-sm text-gray-500 truncate">
+                                                    </div>
+
+                                                    {/* Driver Avatar */}
+                                                    <div
+                                                        className={`flex items-center justify-center w-12 h-12 rounded-xl mr-4 transition-all duration-300 ${
+                                                            invoice.driverId === driver.id
+                                                                ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30'
+                                                                : 'bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-blue-100 group-hover:to-blue-200'
+                                                        }`}
+                                                    >
+                                                        <UserIcon
+                                                            className={`w-6 h-6 transition-colors duration-300 ${
+                                                                invoice.driverId === driver.id
+                                                                    ? 'text-white'
+                                                                    : 'text-gray-500 group-hover:text-blue-600'
+                                                            }`}
+                                                        />
+                                                    </div>
+
+                                                    {/* Driver Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3
+                                                            className={`font-semibold text-lg capitalize transition-colors duration-300 ${
+                                                                invoice.driverId === driver.id
+                                                                    ? 'text-gray-900'
+                                                                    : 'text-gray-800 group-hover:text-gray-900'
+                                                            }`}
+                                                        >
+                                                            {driver.name.toLowerCase()}
+                                                        </h3>
+                                                        <div className="mt-1 space-y-1">
+                                                            <p
+                                                                className={`text-sm transition-colors duration-300 ${
+                                                                    invoice.driverId === driver.id
+                                                                        ? 'text-blue-700'
+                                                                        : 'text-gray-500 group-hover:text-gray-600'
+                                                                }`}
+                                                            >
                                                                 {driver.email}
                                                             </p>
-                                                            <p className="text-xs sm:text-sm text-gray-500">
-                                                                {driver.phone}
-                                                            </p>
+                                                            {driver.phone && (
+                                                                <p
+                                                                    className={`text-sm transition-colors duration-300 ${
+                                                                        invoice.driverId === driver.id
+                                                                            ? 'text-blue-600'
+                                                                            : 'text-gray-500 group-hover:text-gray-600'
+                                                                    }`}
+                                                                >
+                                                                    {driver.phone}
+                                                                </p>
+                                                            )}
                                                         </div>
-                                                        {invoice.driverId === driver.id && (
-                                                            <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 ml-auto flex-shrink-0" />
-                                                        )}
                                                     </div>
-                                                </div>
+
+                                                    {/* Selected Indicator */}
+                                                    {invoice.driverId === driver.id && (
+                                                        <div className="ml-4 flex items-center justify-center w-8 h-8 rounded-full bg-green-500 shadow-lg shadow-green-500/30">
+                                                            <CheckCircleIcon className="w-5 h-5 text-white" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Selection Overlay */}
+                                                    {invoice.driverId === driver.id && (
+                                                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-transparent pointer-events-none"></div>
+                                                    )}
+                                                </label>
                                             ))}
                                         </div>
                                     )}
-                                    <div className="mt-4 sm:mt-6 flex justify-end">
+
+                                    {/* Navigation */}
+                                    <div className="mt-8 pt-6 border-t border-gray-200/50 flex justify-end">
                                         <button
                                             onClick={nextStep}
                                             disabled={allDrivers.length === 0 || !invoice.driverId}
-                                            className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center text-sm sm:text-base ${
+                                            className={`inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
                                                 allDrivers.length === 0 || !invoice.driverId
-                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:-translate-y-0.5'
                                             }`}
                                         >
-                                            Next <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                                            Continue
+                                            <ChevronRightIcon className="w-5 h-5 ml-2" />
                                         </button>
                                     </div>
                                 </div>
@@ -1218,7 +1398,7 @@ const CreateDriverInvoicePage = () => {
                                             Compensation Summary
                                         </h3>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                                             <div className="bg-green-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-green-200/30">
                                                 <p className="text-xs sm:text-sm font-semibold text-green-800 mb-2">
                                                     Assignment Miles
@@ -1248,6 +1428,32 @@ const CreateDriverInvoicePage = () => {
                                                         .toFixed(1)}
                                                 </p>
                                                 <p className="text-xs text-amber-600 mt-1">Total Empty Miles</p>
+                                            </div>
+                                            <div className="bg-purple-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-purple-200/30">
+                                                <p className="text-xs sm:text-sm font-semibold text-purple-800 mb-2">
+                                                    Total Miles
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-bold text-purple-900">
+                                                    {(() => {
+                                                        const assignmentMiles = invoice.assignments
+                                                            .filter((a) => a.chargeType === 'PER_MILE')
+                                                            .reduce(
+                                                                (total, a) =>
+                                                                    total +
+                                                                    Number(
+                                                                        a.billedDistanceMiles ||
+                                                                            a.routeLeg.distanceMiles,
+                                                                    ),
+                                                                0,
+                                                            );
+                                                        const totalEmptyMiles = Object.values(emptyMiles).reduce(
+                                                            (total, miles) => total + miles,
+                                                            0,
+                                                        );
+                                                        return (assignmentMiles + totalEmptyMiles).toFixed(1);
+                                                    })()}
+                                                </p>
+                                                <p className="text-xs text-purple-600 mt-1">Combined Distance</p>
                                             </div>
                                             <div className="bg-blue-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-blue-200/30">
                                                 <p className="text-xs sm:text-sm font-semibold text-blue-800 mb-2">
@@ -1349,6 +1555,10 @@ const CreateDriverInvoicePage = () => {
                                     mode="create"
                                     nextButtonText="Review Invoice"
                                     emptyMiles={emptyMiles}
+                                    allDrivers={allDrivers}
+                                    approvedExpenses={approvedExpenses}
+                                    loadingExpenses={loadingExpenses}
+                                    onRefreshExpenses={handleRefreshExpenses}
                                 />
                             )}
                             {/* Step 4: Review & Create */}

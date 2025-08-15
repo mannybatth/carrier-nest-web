@@ -4,6 +4,7 @@ import { PaperClipIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/out
 import { DocumentMagnifyingGlassIcon, ExclamationCircleIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { type Customer, LoadStopType, Prisma } from '@prisma/client';
 import PDFViewer from 'components/PDFViewer';
+import FileUpload from 'components/FileUpload';
 import startOfDay from 'date-fns/startOfDay';
 import { addColonToTimeString, convertRateToNumber } from 'lib/helpers/ratecon-vertex-helpers';
 import { convertAITimeToTimeRange } from 'lib/helpers/ai-time-helpers';
@@ -1807,7 +1808,7 @@ const CreateLoad: PageWithAuth = () => {
             const pdfBytes = await pdfDoc.save();
 
             // Create a File object from the PDF bytes with standardized naming
-            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
             const fileName = generateRateconFilename();
             const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
@@ -3694,155 +3695,41 @@ const CreateLoad: PageWithAuth = () => {
                                 {/* Tab Content */}
                                 {uploadMode === 'file' ? (
                                     /* File Upload Area */
-                                    <div
-                                        onDragEnter={handleDrag}
-                                        onDragLeave={handleDrag}
-                                        onDragOver={handleDrag}
-                                        onDrop={handleDrop}
-                                        className={`flex flex-col items-center justify-center p-4 md:p-6 lg:p-8 transition-all duration-200 ${
-                                            dragActive ? 'bg-blue-50 border-blue-200' : 'bg-white'
-                                        }`}
-                                    >
-                                        <div className="text-center w-full max-w-sm">
-                                            <div
-                                                className={`mx-auto h-12 w-12 md:h-16 md:w-16 rounded-full flex items-center justify-center mb-3 md:mb-4 transition-colors duration-200 ${
-                                                    dragActive ? 'bg-blue-100' : 'bg-gray-100'
-                                                }`}
-                                            >
-                                                <svg
-                                                    className={`h-6 w-6 md:h-8 md:w-8 transition-colors duration-200 ${
-                                                        dragActive ? 'text-blue-500' : 'text-gray-400'
-                                                    }`}
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                                    />
-                                                </svg>
-                                            </div>
-                                            <h3
-                                                className={`text-base md:text-lg font-medium mb-2 transition-colors duration-200 ${
-                                                    dragActive ? 'text-blue-700' : 'text-gray-900'
-                                                }`}
-                                            >
-                                                {dragActive ? 'Drop your files here' : 'Upload documents'}
-                                            </h3>
-                                            <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
-                                                Drag and drop files here, or click to browse
-                                            </p>
-
-                                            <div className="space-y-3 md:space-y-4">
-                                                <button
-                                                    type="button"
-                                                    disabled={isProcessingText || isProcessingImages}
-                                                    className={`w-full sm:w-auto inline-flex items-center justify-center px-4 md:px-6 py-3 md:py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 shadow-sm min-h-[44px] ${
-                                                        isProcessingText || isProcessingImages
-                                                            ? 'opacity-50 cursor-not-allowed'
-                                                            : ''
-                                                    }`}
-                                                    onClick={() =>
-                                                        !(isProcessingText || isProcessingImages) &&
-                                                        document.getElementById('file-upload').click()
-                                                    }
-                                                >
-                                                    <ArrowUpTrayIcon className="mr-2 h-5 w-5" />
-                                                    Choose Files
-                                                </button>
-
-                                                <input
-                                                    id="file-upload"
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept="application/pdf,image/jpeg,image/jpg,image/png"
-                                                    multiple
-                                                    disabled={isProcessingText || isProcessingImages}
-                                                    onChange={handleFileInput}
-                                                />
-
-                                                {/* File limits info */}
-                                                <div className="text-center text-xs text-gray-500 space-y-1">
-                                                    <p>1 PDF (auto-processes) or up to 3 images</p>
-                                                    <p>Total size limit: 10MB</p>
-                                                </div>
-
-                                                {/* Supported formats */}
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 mb-2">Supported formats:</p>
-                                                    <div className="flex flex-wrap justify-center gap-2">
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            PDF
-                                                        </span>
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            JPEG
-                                                        </span>
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            PNG
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Selected Images Display */}
-                                                {selectedImages.length > 0 && (
-                                                    <div className="mt-4 md:mt-6 p-3 md:p-4 bg-gray-50 rounded-lg">
-                                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2">
-                                                            <h4 className="text-sm font-medium text-gray-900">
-                                                                Selected Images ({selectedImages.length}/{MAX_IMAGES})
-                                                            </h4>
-                                                            {canProcessImages &&
-                                                                !isProcessingText &&
-                                                                !isProcessingImages && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={processImages}
-                                                                        className="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 min-h-[36px]"
-                                                                    >
-                                                                        Process Images
-                                                                    </button>
-                                                                )}
-                                                        </div>
-                                                        <div className="grid grid-cols-1 gap-2">
-                                                            {selectedImages.map((file, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="relative bg-white p-3 rounded border"
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex-1 min-w-0 pr-2">
-                                                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                                                                {file.name}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500">
-                                                                                {Math.round(file.size / 1024)} KB
-                                                                            </p>
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => removeImage(index)}
-                                                                            disabled={
-                                                                                isProcessingText || isProcessingImages
-                                                                            }
-                                                                            className={`flex-shrink-0 p-2 text-red-400 hover:text-red-600 min-h-[40px] min-w-[40px] flex items-center justify-center ${
-                                                                                isProcessingText || isProcessingImages
-                                                                                    ? 'opacity-50 cursor-not-allowed'
-                                                                                    : ''
-                                                                            }`}
-                                                                        >
-                                                                            <TrashIcon className="h-4 w-4" />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <FileUpload
+                                        config={{
+                                            acceptedTypes: ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+                                            acceptAttribute: 'application/pdf,image/jpeg,image/jpg,image/png',
+                                            maxFileSize: 10 * 1024 * 1024, // 10MB
+                                            maxFileCount: 3,
+                                            autoProcess: false,
+                                            allowMultiple: true,
+                                            showProcessButton: true,
+                                            processButtonText: 'Process Images',
+                                            title: 'Upload documents',
+                                            description: 'Drag and drop files here, or click to browse',
+                                            dragDescription: 'Drop your files here',
+                                            fileLimitsText: [
+                                                '1 PDF (auto-processes) or up to 3 images',
+                                                'Total size limit: 10MB',
+                                            ],
+                                            supportedFormatsTitle: 'Supported formats:',
+                                            fileFormats: [
+                                                { name: 'PDF', color: 'bg-blue-100 text-blue-800' },
+                                                { name: 'JPEG', color: 'bg-green-100 text-green-800' },
+                                                { name: 'PNG', color: 'bg-green-100 text-green-800' },
+                                            ],
+                                            compact: false,
+                                            showUploadedFiles: true,
+                                            uploadedFilesTitle: 'Selected Images',
+                                        }}
+                                        files={selectedImages}
+                                        onFilesChange={(files) => setSelectedImages(files)}
+                                        onFileProcess={processImages}
+                                        disabled={isProcessingText || isProcessingImages}
+                                        processing={isProcessingImages}
+                                        dragActive={dragActive}
+                                        onDragStateChange={setDragActive}
+                                    />
                                 ) : (
                                     /* Text Paste Area */
                                     <div className="p-4 md:p-6">

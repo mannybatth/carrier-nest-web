@@ -220,92 +220,181 @@ const InvoiceStepper: React.FC<StepperProps> = ({
     };
 
     return (
-        <div className="mb-4 sm:mb-8 mx-2 sm:mx-4 lg:mx-6">
-            {/* Mobile Progress Bar */}
-            <div className="sm:hidden mb-4">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs sm:text-sm font-medium text-gray-900">
-                        Step {getCurrentStepForDisplay()} of 4
-                    </span>
-                    <span className="text-xs sm:text-sm text-gray-500">{getCurrentStepLabel()}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                    <div
-                        className="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-500 ease-out"
-                        style={{
-                            width: `${((currentStep === 2.5 ? 2.5 : currentStep) / 4) * 100}%`,
-                        }}
-                    ></div>
+        <div className="mb-6">
+            {/* Mobile Stepper - Compact and Clean */}
+            <div className="block lg:hidden mx-4 sm:mx-6">
+                <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm p-4">
+                    {/* Progress Info */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                                <span className="text-sm font-semibold">{getCurrentStepForDisplay()}</span>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-900">{getCurrentStepLabel()}</h3>
+                                <p className="text-xs text-gray-500">
+                                    Step {getCurrentStepForDisplay()} of {showMileCalculationStep ? 5 : 4}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500">Progress</div>
+                            <div className="text-sm font-semibold text-blue-600">
+                                {Math.round(
+                                    ((currentStep === 2.5 ? 2.5 : currentStep) / (showMileCalculationStep ? 5 : 4)) *
+                                        100,
+                                )}
+                                %
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200/70 rounded-full h-1.5">
+                        <div
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-1.5 rounded-full transition-all duration-500 ease-out"
+                            style={{
+                                width: `${
+                                    ((currentStep === 2.5 ? 2.5 : currentStep) / (showMileCalculationStep ? 5 : 4)) *
+                                    100
+                                }%`,
+                            }}
+                        ></div>
+                    </div>
                 </div>
             </div>
 
-            {/* Desktop Stepper */}
-            <div className="hidden sm:flex items-center justify-center">
-                {steps.map((step, index) => (
-                    <React.Fragment key={step.id}>
-                        {/* Step */}
-                        <div className="flex flex-col items-center group">
-                            <div className="relative">
-                                <div
-                                    className={`flex items-center justify-center w-10 h-10 lg:w-12 lg:h-12 rounded-full transition-all duration-300 ${getStepClasses(
-                                        step.id,
-                                    )}`}
-                                >
-                                    {getStepStatus(step.id) === 'completed' ? (
-                                        <svg
-                                            className="w-4 h-4 lg:w-6 lg:h-6"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M5 13l4 4L19 7"
-                                            />
-                                        </svg>
-                                    ) : (
-                                        <step.icon className="w-6 h-6" />
-                                    )}
-                                </div>
-                            </div>
-                            <div className="mt-3 text-center">
-                                <div
-                                    className={`text-sm font-medium transition-colors duration-300 ${getTextClasses(
-                                        step.id,
-                                    )}`}
-                                >
-                                    {getStepTitle(step.id)}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">{getStepDescription(step.id)}</div>
-                            </div>
-                        </div>
-
-                        {/* Connector */}
-                        {index < steps.length - 1 && (
-                            <>
-                                {/* Mile Calculation Step after step 1 in edit mode or step 2 in create mode */}
-                                {((mode === 'edit' && step.id === 1) || (mode === 'create' && step.id === 2)) &&
-                                    renderMileCalculationStep()}
-
-                                {/* Regular connector - but skip it after step 1 in edit mode or step 2 in create mode if mile calculation is shown */}
-                                {!(
-                                    ((mode === 'edit' && step.id === 1) || (mode === 'create' && step.id === 2)) &&
-                                    showMileCalculationStep
-                                ) && (
-                                    <div className="flex-1 mx-4 h-0.5 bg-gray-200 relative">
+            {/* Desktop Stepper - Compact Horizontal Flow */}
+            <div className="hidden lg:block ">
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm py-4 px-8">
+                    <div className="flex items-center justify-between">
+                        {/* Steps Container */}
+                        <div className="flex items-center space-x-1 flex-1">
+                            {steps.map((step, index) => (
+                                <React.Fragment key={step.id}>
+                                    {/* Step */}
+                                    <div className="flex items-center space-x-2">
                                         <div
-                                            className={`absolute left-0 top-0 h-full bg-blue-600 transition-all duration-500 ${getConnectorClasses(
-                                                step.id,
-                                            )}`}
-                                        ></div>
+                                            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ${
+                                                getStepStatus(step.id) === 'completed'
+                                                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm'
+                                                    : getStepStatus(step.id) === 'current'
+                                                    ? step.id === 4
+                                                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm'
+                                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm'
+                                                    : 'bg-gray-100 text-gray-400'
+                                            }`}
+                                        >
+                                            {getStepStatus(step.id) === 'completed' ? (
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2.5}
+                                                        d="M5 13l4 4L19 7"
+                                                    />
+                                                </svg>
+                                            ) : (
+                                                <span className="text-sm font-semibold">{step.id}</span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm">
+                                            <div className={`font-medium ${getTextClasses(step.id)}`}>
+                                                {getStepTitle(step.id)}
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                            </>
-                        )}
-                    </React.Fragment>
-                ))}
+
+                                    {/* Mile Calculation Step */}
+                                    {((mode === 'edit' && step.id === 1) || (mode === 'create' && step.id === 2)) &&
+                                        showMileCalculationStep &&
+                                        index < steps.length - 1 && (
+                                            <>
+                                                {/* Connector */}
+                                                <div className="flex-1 h-px bg-gray-200 mx-2 min-w-4"></div>
+
+                                                {/* Mile Step */}
+                                                <div className="flex items-center space-x-2">
+                                                    <div
+                                                        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ${
+                                                            currentStep > 2.5
+                                                                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm'
+                                                                : currentStep === 2.5
+                                                                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'
+                                                                : 'bg-gray-100 text-gray-400'
+                                                        }`}
+                                                    >
+                                                        {currentStep > 2.5 ? (
+                                                            <svg
+                                                                className="w-4 h-4"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2.5}
+                                                                    d="M5 13l4 4L19 7"
+                                                                />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg
+                                                                className="w-4 h-4"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7"
+                                                                />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-sm">
+                                                        <div
+                                                            className={`font-medium ${
+                                                                currentStep > 2.5
+                                                                    ? 'text-green-700'
+                                                                    : currentStep === 2.5
+                                                                    ? 'text-purple-600'
+                                                                    : 'text-gray-400'
+                                                            }`}
+                                                        >
+                                                            Calculate Miles
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                    {/* Connector */}
+                                    {index < steps.length - 1 &&
+                                        !(
+                                            ((mode === 'edit' && step.id === 1) ||
+                                                (mode === 'create' && step.id === 2)) &&
+                                            showMileCalculationStep
+                                        ) && <div className="flex-1 h-px bg-gray-200 mx-2 min-w-4"></div>}
+
+                                    {/* Final connector after mile calculation */}
+                                    {((mode === 'edit' && step.id === 1) || (mode === 'create' && step.id === 2)) &&
+                                        showMileCalculationStep &&
+                                        index < steps.length - 1 && (
+                                            <div className="flex-1 h-px bg-gray-200 mx-2 min-w-4"></div>
+                                        )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

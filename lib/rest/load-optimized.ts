@@ -14,11 +14,11 @@ export const getLoadByIdOptimized = async (
 ): Promise<ExpandedLoad> => {
     const { expandCarrier = false, fields, includeActivity = false, lightweight = false } = options || {};
 
-    let expand = 'customer,shipper,receiver,stops,invoice,driverAssignments,documents,route,additionalStops';
+    let expand = 'customer,shipper,receiver,stops,invoice,driverAssignments,documents,route,additionalStops,expenses';
 
     // Lightweight mode for faster initial load
     if (lightweight) {
-        expand = 'customer,shipper,receiver,invoice,stops'; // Essential data including stops for route display
+        expand = 'customer,shipper,receiver,invoice,stops,expenses'; // Essential data including stops for route display and expenses
     }
 
     if (expandCarrier) {

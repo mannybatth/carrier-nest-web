@@ -9,6 +9,7 @@ import {
     DocumentDuplicateIcon,
     TrashIcon,
     EllipsisHorizontalIcon,
+    PlusIcon,
 } from '@heroicons/react/24/outline';
 import classNames from 'classnames';
 import { ExpandedLoad } from 'interfaces/models';
@@ -21,6 +22,7 @@ type ActionsDropdownProps = {
     viewInvoiceClicked?: () => void;
     createInvoiceClicked?: () => void;
     addAssignmentClicked: () => void;
+    addExpenseClicked?: () => void;
     downloadCombinedPDF: () => void;
     makeCopyOfLoadClicked: () => void;
     deleteLoadClicked: () => void;
@@ -33,6 +35,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     viewInvoiceClicked,
     createInvoiceClicked,
     addAssignmentClicked,
+    addExpenseClicked,
     downloadCombinedPDF,
     makeCopyOfLoadClicked,
     deleteLoadClicked,
@@ -156,6 +159,34 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
                                         )}
                                     />
                                     Add Assignment
+                                </button>
+                            )}
+                        </Menu.Item>
+
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        addExpenseClicked?.();
+                                    }}
+                                    className={classNames(
+                                        'group w-full flex items-center px-3 py-2 text-sm text-left transition-all duration-200 backdrop-blur-xl rounded-lg mx-1 my-0.5',
+                                        'transform hover:scale-[1.02] hover:shadow-md hover:shadow-green-500/20',
+                                        active
+                                            ? 'bg-green-500/80 text-white backdrop-blur-2xl scale-[1.02] shadow-md shadow-green-500/30'
+                                            : 'text-gray-900 hover:bg-white/60 hover:backdrop-blur-2xl',
+                                    )}
+                                >
+                                    <PlusIcon
+                                        className={classNames(
+                                            'w-4 h-4 mr-3 transition-all duration-200',
+                                            active
+                                                ? 'text-white scale-110'
+                                                : 'text-green-500 group-hover:text-green-600 group-hover:scale-110',
+                                        )}
+                                    />
+                                    Add Expense
                                 </button>
                             )}
                         </Menu.Item>

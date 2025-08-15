@@ -14,7 +14,7 @@ const CompensationSummary: React.FC<CompensationSummaryProps> = ({ assignments, 
                 Compensation Summary
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="bg-green-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-green-200/30">
                     <p className="text-xs sm:text-sm font-semibold text-green-800 mb-2">Assignment Miles</p>
                     <p className="text-xl sm:text-2xl font-bold text-green-900">
@@ -51,6 +51,43 @@ const CompensationSummary: React.FC<CompensationSummaryProps> = ({ assignments, 
                             .toFixed(1)}
                     </p>
                     <p className="text-xs text-amber-600 mt-1">Total Empty Miles</p>
+                </div>
+                <div className="bg-purple-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-purple-200/30">
+                    <p className="text-xs sm:text-sm font-semibold text-purple-800 mb-2">Total Miles</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-900">
+                        {(() => {
+                            const assignmentMiles = assignments
+                                .filter((a) => a.chargeType === 'PER_MILE')
+                                .reduce(
+                                    (total, a) => total + Number(a.billedDistanceMiles || a.routeLeg.distanceMiles),
+                                    0,
+                                );
+
+                            const totalEmptyMiles = assignments
+                                .filter((a) => a.chargeType === 'PER_MILE')
+                                .reduce((total, a) => {
+                                    // Get empty miles for this assignment
+                                    let emptyMilesForAssignment = 0;
+
+                                    // Use the emptyMiles from the assignment object if available,
+                                    // otherwise fall back to the state
+                                    if (a.emptyMiles && Number(a.emptyMiles) > 0) {
+                                        emptyMilesForAssignment = Number(a.emptyMiles);
+                                    } else {
+                                        // Find empty miles for this assignment from state
+                                        const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                            key.startsWith(`${a.id}-to-`),
+                                        );
+                                        emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+                                    }
+
+                                    return total + emptyMilesForAssignment;
+                                }, 0);
+
+                            return (assignmentMiles + totalEmptyMiles).toFixed(1);
+                        })()}
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">Combined Distance</p>
                 </div>
                 <div className="bg-blue-50/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl text-center border border-blue-200/30">
                     <p className="text-xs sm:text-sm font-semibold text-blue-800 mb-2">Total Pay</p>

@@ -123,7 +123,7 @@ const DriverInvoicesTable: React.FC<Props> = ({
                     {
                         title: 'Edit',
                         onClick: () => {
-                            router.push(`/driverinvoices/edit/${invoice.id}`);
+                            router.push(`/driverinvoices/${invoice.id}/edit`);
                         },
                     },
                     invoice.status === 'APPROVED' || invoice.status === 'PENDING'

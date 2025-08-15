@@ -66,6 +66,10 @@ model User {
     notifications           Notification[]
     notificationPreferences NotificationPreference[]
     sessions                Session[]
+    expensesIncurred        Expense[]                @relation("ExpenseIncurredBy")
+    expensesApproved        Expense[]                @relation("ExpenseApprovedBy")
+    expensesCreated         Expense[]                @relation("ExpenseCreatedBy")
+    expensesUpdated         Expense[]                @relation("ExpenseUpdatedBy")
     defaultCarrier          Carrier?                 @relation("defaultCarrier", fields: [defaultCarrierId], references: [id])
     carriers                Carrier[]                @relation("CarrierToUser")
 
@@ -145,6 +149,7 @@ model Carrier {
     notificationPreferences NotificationPreference[]
     subscription            Subscription?
     teamInvitations         TeamInvitation[]
+    expenses                Expense[]
     defaultCarrierUsers     User[]                   @relation("defaultCarrier")
     users                   User[]                   @relation("CarrierToUser")
 
@@ -195,6 +200,7 @@ model Load {
     loadDocuments      LoadDocument[]      @relation("load")
     stops              LoadStop[]
     notifications      Notification[]
+    expenses           Expense[]
     route              Route?
 
     @@unique([carrierId, refNum])
@@ -321,6 +327,7 @@ model Equipment {
     year            Int?
     carrier         Carrier         @relation(fields: [carrierId], references: [id], onDelete: Cascade)
     drivers         Driver[]        @relation("DriverToEquipment")
+    expenses        Expense[]
 }
 
 model Invoice {
@@ -431,32 +438,34 @@ model Device {
 }
 
 model Driver {
-    id                String                  @id @default(cuid())
-    createdAt         DateTime                @default(now())
-    updatedAt         DateTime                @updatedAt
-    name              String
-    email             String?
-    phone             String
-    active            Boolean                 @default(true)
-    type              DriverType              @default(DRIVER)
-    carrierId         String
-    smsCode           String?
-    smsCodeExpiry     DateTime?
-    defaultFixedPay   Decimal?
-    perMileRate       Decimal?
-    takeHomePercent   Decimal?
-    defaultChargeType ChargeType?
-    perHourRate       Decimal?
-    devices           Device[]
-    carrier           Carrier                 @relation(fields: [carrierId], references: [id], onDelete: Cascade)
-    assignments       DriverAssignment[]
-    driverInvoices    DriverInvoice[]         @relation("DriverInvoices")
-    invoiceLineItems  DriverInvoiceLineItem[]
-    payments          DriverPayment[]
-    actionActivity    LoadActivity[]          @relation("actionDriver")
-    actorActivity     LoadActivity[]          @relation("actorDriver")
-    loadDocuments     LoadDocument[]
-    equipments        Equipment[]             @relation("DriverToEquipment")
+    id                  String                  @id @default(cuid())
+    createdAt           DateTime                @default(now())
+    updatedAt           DateTime                @updatedAt
+    name                String
+    email               String?
+    phone               String
+    active              Boolean                 @default(true)
+    type                DriverType              @default(DRIVER)
+    carrierId           String
+    smsCode             String?
+    smsCodeExpiry       DateTime?
+    defaultFixedPay     Decimal?
+    perMileRate         Decimal?
+    takeHomePercent     Decimal?
+    defaultChargeType   ChargeType?
+    perHourRate         Decimal?
+    baseGuaranteeAmount Decimal?
+    devices             Device[]
+    carrier             Carrier                 @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    assignments         DriverAssignment[]
+    driverInvoices      DriverInvoice[]         @relation("DriverInvoices")
+    invoiceLineItems    DriverInvoiceLineItem[]
+    payments            DriverPayment[]
+    actionActivity      LoadActivity[]          @relation("actionDriver")
+    actorActivity       LoadActivity[]          @relation("actorDriver")
+    loadDocuments       LoadDocument[]
+    equipments          Equipment[]             @relation("DriverToEquipment")
+    expenses            Expense[]
 
     @@index([name, carrierId])
 }
@@ -505,6 +514,7 @@ model DriverAssignment {
     invoiceId           String?
     emptyMiles          Decimal?
     assignmentPayments  AssignmentPayment[]
+    expenses            Expense[]
     driver              Driver              @relation(fields: [driverId], references: [id], onDelete: Cascade)
     invoice             DriverInvoice?      @relation("InvoiceAssignments", fields: [invoiceId], references: [id])
     load                Load?               @relation(fields: [loadId], references: [id], onDelete: Cascade)
@@ -543,6 +553,7 @@ model DriverInvoice {
     driver      Driver                  @relation("DriverInvoices", fields: [driverId], references: [id])
     lineItems   DriverInvoiceLineItem[]
     payments    DriverInvoicePayment[]
+    expenses    Expense[]
 
     @@unique([carrierId, invoiceNum])
 }
@@ -732,4 +743,105 @@ enum NotificationPriority {
 enum DriverType {
     DRIVER
     OWNER_OPERATOR
+}
+
+enum ExpenseApprovalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+enum ExpensePaidBy {
+    COMPANY
+    DRIVER
+}
+
+model ExpenseCategory {
+    id           String    @id @default(cuid())
+    group        String
+    name         String
+    isActive     Boolean   @default(true)
+    displayOrder Int       @default(0)
+    expenses     Expense[]
+
+    @@unique([group, name])
+}
+
+model Document {
+    id           String            @id @default(cuid())
+    fileName     String
+    mimeType     String
+    sizeBytes    Int
+    storageUrl   String // S3/Blob path
+    uploadedBy   String? // User.id
+    uploadedAt   DateTime          @default(now())
+    expenseLinks ExpenseDocument[]
+}
+
+model ExpenseDocument {
+    id         String   @id @default(cuid())
+    expenseId  String
+    documentId String
+    expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+    document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+    @@unique([expenseId, documentId])
+}
+
+model Expense {
+    id                 String                @id @default(cuid())
+    carrierId          String
+    carrier            Carrier               @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+    loadId             String?
+    driverId           String?
+    driverAssignmentId String?
+    userId             String?
+    equipmentId        String?
+    load               Load?                 @relation(fields: [loadId], references: [id], onDelete: SetNull)
+    driver             Driver?               @relation(fields: [driverId], references: [id], onDelete: SetNull)
+    driverAssignment   DriverAssignment?     @relation(fields: [driverAssignmentId], references: [id], onDelete: SetNull)
+    user               User?                 @relation("ExpenseIncurredBy", fields: [userId], references: [id], onDelete: SetNull)
+    equipment          Equipment?            @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+    categoryId         String
+    category           ExpenseCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+    amount             Decimal
+    receiptDate        DateTime?
+    currencyCode       String?               @db.Char(3)
+    paidBy             ExpensePaidBy         @default(COMPANY)
+    driverInvoiceId    String?
+    driverInvoice      DriverInvoice?        @relation(fields: [driverInvoiceId], references: [id], onDelete: SetNull)
+    reimbursedAt       DateTime?
+    approvalStatus     ExpenseApprovalStatus @default(PENDING)
+    approvedById       String?
+    approvedBy         User?                 @relation("ExpenseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+    approvedAt         DateTime?
+    rejectionReason    String?
+    street             String?
+    city               String?
+    state              String?
+    postalCode         String?
+    country            String?
+    description        String?
+    vendorName         String?
+    documents          ExpenseDocument[]
+    createdById        String?
+    createdBy          User?                 @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+    updatedById        String?
+    updatedBy          User?                 @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+    createdAt          DateTime              @default(now())
+    updatedAt          DateTime              @updatedAt
+    deletedAt          DateTime?
+
+    @@index([loadId])
+    @@index([driverId])
+    @@index([driverAssignmentId])
+    @@index([userId])
+    @@index([equipmentId])
+    @@index([categoryId])
+    @@index([approvalStatus, approvedAt])
+    @@index([paidBy, driverInvoiceId])
+    @@index([carrierId, approvalStatus]) // Essential: Common filter combination
+    @@index([carrierId, createdAt]) // Essential: Date range queries and sorting
+    @@index([carrierId, paidBy]) // Useful: Payment filtering
+    @@index([deletedAt]) // Essential: Soft delete optimization
 }

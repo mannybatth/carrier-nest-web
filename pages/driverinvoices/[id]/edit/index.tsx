@@ -1,8 +1,7 @@
-'use client';
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
+import BreadCrumb from 'components/layout/BreadCrumb';
 import { getAllDrivers } from 'lib/rest/driver';
 import type { Driver } from '@prisma/client';
 import { getAllAssignments } from 'lib/rest/assignment';
@@ -20,6 +19,7 @@ import MileCalculation from 'components/driverinvoices/MileCalculation';
 import CompensationSummary from 'components/driverinvoices/CompensationSummary';
 import { calculateHaversineDistance } from 'lib/helpers/distance';
 import { useMileCalculation } from 'hooks/useMileCalculation';
+import { useExpenseLoader } from 'hooks/useExpenseLoader';
 import { PageWithAuth } from 'interfaces/auth';
 import InvoiceStepper from 'components/InvoiceStepper';
 import { editInvoiceSteps } from 'lib/constants/stepper';
@@ -28,10 +28,12 @@ import AdditionalItems from 'components/driverinvoices/AdditionalItems';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
 import dayjs from 'dayjs';
+import { useSession } from 'next-auth/react';
 
 const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } }) => {
     const router = useRouter();
     const { defaultCarrier } = useUserContext();
+    const { data: session } = useSession();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<ExpandedDriverInvoice>(undefined);
@@ -60,6 +62,10 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         calculateHaversineDistance,
     });
 
+    // Expense loading hook
+    const { approvedExpenses, loadingExpenses, loadApprovedExpenses, resetExpenses, clearLoadedCache } =
+        useExpenseLoader();
+
     const [showMileCalculationStep, setShowMileCalculationStep] = useState(false);
 
     const [loading, setLoading] = useState(true);
@@ -80,7 +86,41 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
         if (invoiceId) loadInvoiceData();
     }, [router.query]);
 
-    // Calculate total amount whenever assignments or line items change
+    // Load expenses when user reaches Additional Items step (only once)
+    useEffect(() => {
+        const isAdditionalItemsStep = currentStep === (showMileCalculationStep ? 3 : 2);
+
+        if (isAdditionalItemsStep && invoice?.driverId && invoice?.fromDate && invoice?.toDate) {
+            const fromDate = typeof invoice.fromDate === 'string' ? new Date(invoice.fromDate) : invoice.fromDate;
+            const toDate = typeof invoice.toDate === 'string' ? new Date(invoice.toDate) : invoice.toDate;
+            loadApprovedExpenses(invoice.driverId, fromDate, toDate, invoice, 'edit');
+        }
+
+        // Clear cache when user goes back to step 1 (restart flow)
+        if (currentStep === 1) {
+            clearLoadedCache();
+        }
+    }, [
+        currentStep,
+        showMileCalculationStep,
+        invoice?.driverId,
+        invoice?.fromDate,
+        invoice?.toDate,
+        invoice?.id,
+        loadApprovedExpenses,
+        clearLoadedCache,
+    ]);
+
+    // Function to manually refresh expenses
+    const handleRefreshExpenses = useCallback(() => {
+        if (invoice?.driverId && invoice?.fromDate && invoice?.toDate) {
+            const fromDate = typeof invoice.fromDate === 'string' ? new Date(invoice.fromDate) : invoice.fromDate;
+            const toDate = typeof invoice.toDate === 'string' ? new Date(invoice.toDate) : invoice.toDate;
+            loadApprovedExpenses(invoice.driverId, fromDate, toDate, invoice, 'edit', true); // Force refresh
+        }
+    }, [invoice?.driverId, invoice?.fromDate, invoice?.toDate, invoice?.id, invoice, loadApprovedExpenses]);
+
+    // Calculate total amount whenever assignments, line items, or expenses change
     useEffect(() => {
         if (!invoice) return;
 
@@ -133,8 +173,15 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
             total += Number(item.amount);
         });
 
+        // Add up expenses
+        if (invoice.expenses) {
+            invoice.expenses.forEach((expense) => {
+                total += Number(expense.amount);
+            });
+        }
+
         setTotalAmount(total.toFixed(2));
-    }, [invoice, invoice?.assignments, invoice?.lineItems, emptyMiles]);
+    }, [invoice, invoice?.assignments, invoice?.lineItems, invoice?.expenses, emptyMiles]);
 
     // Set mile calculation step visibility based on invoice assignments
     useEffect(() => {
@@ -414,8 +461,9 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                 console.error('Driver not found for notification');
                 return;
             }
-
-            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+            const approvalUrl = `${window.location.origin}/driverinvoices/${invoiceId}/approval${
+                defaultCarrier.carrierCode ? `?carrierCode=${encodeURIComponent(defaultCarrier.carrierCode)}` : ''
+            }`;
 
             // Prefer email if available, otherwise use SMS
             if (selectedDriver.email && selectedDriver.email.trim() !== '') {
@@ -431,6 +479,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'update',
                     }),
                 });
                 notify({
@@ -451,6 +501,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'update',
                     }),
                 });
                 notify({
@@ -635,82 +687,124 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         />
                     )}
 
-                    {/* Apple-style Breadcrumb */}
-                    <div className="mb-4 sm:mb-8 bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-200/30">
-                        <nav className="flex" aria-label="Breadcrumb">
-                            <ol className="flex items-center space-x-1 sm:space-x-2">
-                                <li>
-                                    <Link
-                                        href="/driverinvoices"
-                                        className="text-gray-500 hover:text-gray-700 text-sm sm:text-base transition-colors"
-                                    >
-                                        Driver Invoices
-                                    </Link>
-                                </li>
-                                <li className="flex items-center">
-                                    <svg
-                                        className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                    <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
-                                        Edit Invoice #{invoice?.invoiceNum}
-                                    </span>
-                                </li>
-                            </ol>
-                        </nav>
+                    {/* Breadcrumb */}
+                    <div className=" mb-4 bg-white/80 backdrop-blur-sm rounded-xl  ">
+                        <BreadCrumb
+                            paths={[
+                                { label: 'Dashboard', href: '/' },
+                                { label: 'Driver Invoices', href: '/driverinvoices' },
+                                { label: `Edit Invoice #${invoice?.invoiceNum}` },
+                            ]}
+                        />
                     </div>
 
                     <div className="space-y-4 sm:space-y-6">
-                        {/* Header Card */}
-                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
-                            <div className="text-center">
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                                    Edit Driver Invoice
-                                </h1>
-                                <p className="text-gray-600">Modify invoice details, assignments, and line items</p>
+                        {/* Beautiful Apple-style Header */}
+                        <div className="hidden md:block  mb-6 ">
+                            <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm relative overflow-hidden">
+                                {/* Gradient background overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-white/60 to-purple-50/30 pointer-events-none" />
+
+                                <div className="relative p-8 sm:p-10">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-baseline space-x-3">
+                                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                                                    Edit Driver Invoice
+                                                </h1>
+                                                <div className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-200/50">
+                                                        <svg
+                                                            className="w-3 h-3 mr-1.5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                            />
+                                                        </svg>
+                                                        Editing Mode
+                                                    </span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                        Invoice #{invoice?.invoiceNum}
+                                                    </span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                        Step {currentStep} of {editInvoiceSteps.length}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="mt-3 text-lg text-gray-600 font-medium">
+                                                Modify invoice assignments, line items, and driver compensation details
+                                            </p>
+                                        </div>
+                                        <div className="ml-8 flex items-center space-x-3">
+                                            {invoice?.driver && (
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-gray-500">Driver</p>
+                                                    <p className="text-lg font-semibold text-gray-900 capitalize">
+                                                        {invoice.driver.name.toLowerCase()}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {totalAmount !== '0.00' && (
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-gray-500">Current Total</p>
+                                                    <p className="text-2xl font-bold text-green-600">${totalAmount}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Mobile Header */}
+                        <div className="block px-5 mb-6 md:hidden sm:px-6">
+                            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg p-6">
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Driver Invoice</h1>
+                                <div className="flex items-center space-x-2 text-sm font-medium text-gray-500 mb-3">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                                        Editing
+                                    </span>
+                                    <span className="text-gray-300">•</span>
+                                    <span>Invoice #{invoice?.invoiceNum}</span>
+                                    <span className="text-gray-300">•</span>
+                                    <span>
+                                        Step {currentStep} of {editInvoiceSteps.length}
+                                    </span>
+                                </div>
+                                {invoice?.driver && (
+                                    <div className="flex justify-between items-center pt-3 border-t border-gray-200/50">
+                                        <div>
+                                            <p className="text-sm text-gray-500">Driver</p>
+                                            <p className="font-semibold text-gray-900 capitalize">
+                                                {invoice.driver.name.toLowerCase()}
+                                            </p>
+                                        </div>
+                                        {totalAmount !== '0.00' && (
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-500">Total</p>
+                                                <p className="text-xl font-bold text-green-600">${totalAmount}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Invoice Stepper Component */}
-                        <InvoiceStepper
-                            currentStep={currentStep}
-                            steps={editInvoiceSteps}
-                            showMileCalculationStep={showMileCalculationStep}
-                            mode="edit"
-                        />
-
-                        {/* Driver Information */}
-                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <div className="bg-blue-100 rounded-xl p-3">
-                                        <UserIcon className="w-6 h-6 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                                            {invoice.driver.name.toLowerCase()}
-                                        </h3>
-                                        <p className="text-sm text-gray-600">{invoice.driver.email}</p>
-                                        <p className="text-sm text-gray-600">{invoice.driver.phone}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="bg-blue-50/50 px-4 py-2 rounded-xl border border-blue-200/40">
-                                        <p className="text-sm font-medium text-blue-700">
-                                            Invoice #{invoice.invoiceNum}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Invoice Stepper Component - Sticky */}
+                        <div className="sticky top-4 z-40 mb-6">
+                            <InvoiceStepper
+                                currentStep={currentStep}
+                                steps={editInvoiceSteps}
+                                showMileCalculationStep={showMileCalculationStep}
+                                mode="edit"
+                            />
                         </div>
 
                         <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm relative">
@@ -880,6 +974,10 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                                     mode="edit"
                                     nextButtonText="Review Changes"
                                     emptyMiles={emptyMiles}
+                                    allDrivers={allDrivers}
+                                    approvedExpenses={approvedExpenses}
+                                    loadingExpenses={loadingExpenses}
+                                    onRefreshExpenses={handleRefreshExpenses}
                                 />
                             )}
 
@@ -922,105 +1020,140 @@ const InvoiceSkeleton = () => {
         >
             <div className="min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/20">
                 <div className="py-4 sm:py-6 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-                        {/* Breadcrumb Skeleton */}
-                        <div className="bg-white/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4">
-                            <nav className="flex items-center space-x-2" aria-label="Breadcrumb">
-                                <div className="h-4 w-20 bg-gray-200/80 rounded animate-pulse" />
-                                <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
-                                <div className="h-4 w-24 bg-gray-200/80 rounded animate-pulse" />
-                                <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
-                                <div className="h-4 w-32 bg-gray-200/80 rounded animate-pulse" />
-                            </nav>
-                        </div>
+                    {/* Breadcrumb Skeleton */}
+                    <div className="bg-white/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4 mb-4 sm:mb-6">
+                        <nav className="flex items-center space-x-2" aria-label="Breadcrumb">
+                            <div className="h-4 w-20 bg-gray-200/80 rounded animate-pulse" />
+                            <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
+                            <div className="h-4 w-24 bg-gray-200/80 rounded animate-pulse" />
+                            <div className="h-3 w-3 bg-gray-200/60 rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-gray-200/80 rounded animate-pulse" />
+                        </nav>
+                    </div>
 
-                        {/* Header Card Skeleton */}
-                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 animate-pulse">
-                            <div className="text-center">
-                                <div className="h-8 w-64 bg-gray-200/80 rounded-lg mx-auto mb-2" />
-                                <div className="h-4 w-48 bg-gray-200/60 rounded mx-auto" />
+                    <div className="space-y-4 sm:space-y-6">
+                        {/* Beautiful Apple-style Header Skeleton */}
+                        <div className="hidden md:block mb-6">
+                            <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm relative overflow-hidden animate-pulse">
+                                {/* Gradient background overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-white/60 to-purple-50/30 pointer-events-none" />
+
+                                <div className="relative p-8 sm:p-10">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-baseline space-x-3 mb-3">
+                                                <div className="h-10 w-64 bg-gray-200/80 rounded-lg" />
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="h-6 w-24 bg-amber-200/80 rounded-full" />
+                                                    <div className="h-3 w-3 bg-gray-200/60 rounded-full" />
+                                                    <div className="h-6 w-28 bg-gray-200/80 rounded-full" />
+                                                    <div className="h-3 w-3 bg-gray-200/60 rounded-full" />
+                                                    <div className="h-6 w-20 bg-gray-200/80 rounded-full" />
+                                                </div>
+                                            </div>
+                                            <div className="h-6 w-96 bg-gray-200/60 rounded-lg" />
+                                        </div>
+                                        <div className="ml-8 flex items-center space-x-3">
+                                            <div className="text-right space-y-1">
+                                                <div className="h-4 w-12 bg-gray-200/60 rounded" />
+                                                <div className="h-5 w-20 bg-gray-200/80 rounded" />
+                                            </div>
+                                            <div className="text-right space-y-1">
+                                                <div className="h-4 w-20 bg-gray-200/60 rounded" />
+                                                <div className="h-6 w-16 bg-green-200/80 rounded" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Stepper Skeleton */}
-                        <div className="mb-4 sm:mb-8 mx-2 sm:mx-4 lg:mx-6">
-                            {/* Mobile Progress Bar Skeleton */}
-                            <div className="sm:hidden mb-4 animate-pulse">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="h-4 w-16 bg-gray-200/80 rounded" />
+                        {/* Mobile Header Skeleton */}
+                        <div className="block px-5 mb-6 md:hidden sm:px-6">
+                            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg p-6 animate-pulse">
+                                <div className="h-7 w-48 bg-gray-200/80 rounded-lg mb-2" />
+                                <div className="flex items-center space-x-2 mb-3">
+                                    <div className="h-5 w-16 bg-amber-200/80 rounded-full" />
+                                    <div className="h-3 w-3 bg-gray-200/60 rounded-full" />
                                     <div className="h-4 w-24 bg-gray-200/80 rounded" />
+                                    <div className="h-3 w-3 bg-gray-200/60 rounded-full" />
+                                    <div className="h-4 w-16 bg-gray-200/80 rounded" />
                                 </div>
-                                <div className="w-full bg-gray-200/60 rounded-full h-2">
-                                    <div className="bg-blue-300/60 h-2 rounded-full w-1/3" />
-                                </div>
-                            </div>
-
-                            {/* Desktop Stepper Skeleton */}
-                            <div className="hidden sm:flex items-center justify-center animate-pulse">
-                                {/* Step 1 */}
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
-                                    <div className="mt-3 text-center">
-                                        <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
-                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                <div className="flex justify-between items-center pt-3 border-t border-gray-200/50">
+                                    <div className="space-y-1">
+                                        <div className="h-3 w-10 bg-gray-200/60 rounded" />
+                                        <div className="h-4 w-20 bg-gray-200/80 rounded" />
                                     </div>
-                                </div>
-
-                                {/* Connector 1 */}
-                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60 relative">
-                                    <div className="absolute left-0 top-0 h-full bg-blue-300/60 w-full" />
-                                </div>
-
-                                {/* Mile Calculation Step Skeleton */}
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
-                                    <div className="mt-3 text-center">
-                                        <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
-                                        <div className="h-3 w-20 bg-gray-200/60 rounded" />
-                                    </div>
-                                </div>
-
-                                {/* Connector 2 */}
-                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
-
-                                {/* Step 3 */}
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
-                                    <div className="mt-3 text-center">
-                                        <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
-                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
-                                    </div>
-                                </div>
-
-                                {/* Connector 3 */}
-                                <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
-
-                                {/* Step 4 */}
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
-                                    <div className="mt-3 text-center">
-                                        <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
-                                        <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                    <div className="text-right space-y-1">
+                                        <div className="h-3 w-8 bg-gray-200/60 rounded" />
+                                        <div className="h-5 w-16 bg-green-200/80 rounded" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Driver Information Skeleton */}
-                        <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 animate-pulse">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <div className="bg-blue-100/80 rounded-xl p-3">
-                                        <div className="h-6 w-6 bg-gray-200/80 rounded" />
+                        {/* Sticky Stepper Skeleton */}
+                        <div className="sticky top-4 z-40 mb-6">
+                            <div className="mb-4 sm:mb-8 mx-2 sm:mx-4 lg:mx-6">
+                                {/* Mobile Progress Bar Skeleton */}
+                                <div className="sm:hidden mb-4 animate-pulse">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="h-4 w-16 bg-gray-200/80 rounded" />
+                                        <div className="h-4 w-24 bg-gray-200/80 rounded" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="h-5 w-36 bg-gray-200/80 rounded" />
-                                        <div className="h-3 w-28 bg-gray-200/60 rounded" />
-                                        <div className="h-3 w-32 bg-gray-200/60 rounded" />
+                                    <div className="w-full bg-gray-200/60 rounded-full h-2">
+                                        <div className="bg-blue-300/60 h-2 rounded-full w-1/3" />
                                     </div>
                                 </div>
-                                <div className="hidden sm:block">
-                                    <div className="h-4 w-20 bg-gray-200/60 rounded" />
+
+                                {/* Desktop Stepper Skeleton */}
+                                <div className="hidden sm:flex items-center justify-center animate-pulse">
+                                    {/* Step 1 */}
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
+                                        <div className="mt-3 text-center">
+                                            <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
+                                            <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                        </div>
+                                    </div>
+
+                                    {/* Connector 1 */}
+                                    <div className="flex-1 mx-4 h-0.5 bg-gray-200/60 relative">
+                                        <div className="absolute left-0 top-0 h-full bg-blue-300/60 w-full" />
+                                    </div>
+
+                                    {/* Mile Calculation Step Skeleton */}
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-200/80 rounded-full" />
+                                        <div className="mt-3 text-center">
+                                            <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
+                                            <div className="h-3 w-20 bg-gray-200/60 rounded" />
+                                        </div>
+                                    </div>
+
+                                    {/* Connector 2 */}
+                                    <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
+
+                                    {/* Step 3 */}
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
+                                        <div className="mt-3 text-center">
+                                            <div className="h-4 w-20 bg-gray-200/80 rounded mb-1" />
+                                            <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                        </div>
+                                    </div>
+
+                                    {/* Connector 3 */}
+                                    <div className="flex-1 mx-4 h-0.5 bg-gray-200/60" />
+
+                                    {/* Step 4 */}
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200/60 rounded-full" />
+                                        <div className="mt-3 text-center">
+                                            <div className="h-4 w-24 bg-gray-200/80 rounded mb-1" />
+                                            <div className="h-3 w-16 bg-gray-200/60 rounded" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

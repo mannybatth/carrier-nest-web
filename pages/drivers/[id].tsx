@@ -360,21 +360,12 @@ const DriverDetailsPage: PageWithAuth = () => {
     // Function to fetch fresh subscription seat data
     const fetchSubscriptionInfo = async () => {
         try {
-            console.log('Fetching all drivers for seat calculation (matching drivers listing page approach)...');
-
             // Use the same approach as drivers listing page - fetch all drivers and calculate
             const allDrivers = await getAllDriversForSeatCalculation();
             setAllDriversForSeatCalculation(allDrivers);
 
             // Calculate seats the same way as drivers listing page
             const seatInfo = calculateAvailableSeats(allDrivers, defaultCarrier);
-
-            console.log('[Driver Details Page] Using drivers listing approach:', {
-                totalDrivers: allDrivers.length,
-                activeDrivers: seatInfo.usedSeats,
-                totalSeats: seatInfo.totalSeats,
-                availableSeats: seatInfo.availableSeats,
-            });
 
             setSubscriptionSeats(seatInfo);
         } catch (error) {
@@ -396,10 +387,6 @@ const DriverDetailsPage: PageWithAuth = () => {
 
         // Debug: log what we would calculate using UserContext like the drivers listing page
         const totalSeats = defaultCarrier?.subscription?.numberOfDrivers || 1;
-        console.log(
-            `[Driver Details Page] Total seats from UserContext: ${totalSeats}, Current driver active: ${driver?.active}`,
-        );
-        console.log(`[Driver Details Page] About to fetch all drivers to match drivers listing approach`);
     };
 
     const confirmActivateDriver = async () => {
@@ -875,6 +862,30 @@ const DriverDetailsPage: PageWithAuth = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Base Guarantee Amount */}
+                                            {driver.baseGuaranteeAmount && (
+                                                <div className="bg-gray-50/70 rounded-lg p-3 border border-gray-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <CurrencyDollarIcon className="w-3.5 h-3.5 text-green-500" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs text-gray-500 mb-0.5">
+                                                                Base Guarantee
+                                                            </p>
+                                                            <p className="text-xs text-green-700 font-semibold">
+                                                                $
+                                                                {Number(driver.baseGuaranteeAmount).toLocaleString(
+                                                                    'en-US',
+                                                                    {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    },
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Driver App Status */}
                                             <div className="bg-gray-50/70 rounded-lg p-3 border border-gray-100">

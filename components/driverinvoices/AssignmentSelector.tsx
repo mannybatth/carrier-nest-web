@@ -208,6 +208,42 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
             .join(' -> \n');
     };
 
+    // Function to select all assignments within the invoice period
+    const handleSelectAllWithinPeriod = () => {
+        if (!invoice?.fromDate || !invoice?.toDate) {
+            return;
+        }
+
+        // Filter assignments that are within the period and not already selected
+        const assignmentsWithinPeriod = allAssignments.filter((assignment) => {
+            const completedDate = assignment.routeLeg.endedAt;
+            const isAlreadySelected = selectedAssignments.some((a) => a.id === assignment.id);
+
+            if (!completedDate || isAlreadySelected) return false;
+
+            // Check if assignment is within invoice period (same logic as in the rendering)
+            const completed = new Date(completedDate);
+            const fromDateStr =
+                typeof invoice.fromDate === 'string' ? invoice.fromDate : invoice.fromDate.toISOString().split('T')[0];
+            const toDateStr =
+                typeof invoice.toDate === 'string' ? invoice.toDate : invoice.toDate.toISOString().split('T')[0];
+            const [fromYear, fromMonth, fromDay] = fromDateStr.split('-').map(Number);
+            const [toYear, toMonth, toDay] = toDateStr.split('-').map(Number);
+            const fromDate = new Date(fromYear, fromMonth - 1, fromDay, 0, 0, 0, 0);
+            const toDate = new Date(toYear, toMonth - 1, toDay, 23, 59, 59, 999);
+            return completed >= fromDate && completed <= toDate;
+        });
+
+        if (assignmentsWithinPeriod.length === 0) {
+            return;
+        }
+
+        // Select all assignments within the period
+        assignmentsWithinPeriod.forEach((assignment) => {
+            onAssignmentToggle(assignment.id);
+        });
+    };
+
     // Unified enhanced layout for both create and edit modes
     return (
         <div>
@@ -346,6 +382,55 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                     </div>
                 )}
 
+                {/* Select All Button - Show when period is selected and assignments are available */}
+                {shouldShowAssignments &&
+                    invoice?.fromDate &&
+                    invoice?.toDate &&
+                    !loadingAssignments &&
+                    allAssignments.length > 0 && (
+                        <div className="mb-4">
+                            <div className="bg-gray-50/50 p-3 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <svg
+                                            className="w-4 h-4 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                        <span className="text-sm text-gray-500 font-medium">
+                                            Quick Selection Helper
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={handleSelectAllWithinPeriod}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                        Select All Within Period
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Select all unselected assignments completed within the invoice period
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                 {!shouldShowAssignments && mode === 'create' ? (
                     <div className="flex items-center justify-center w-full p-8 bg-gray-50 rounded-xl border border-gray-200">
                         <div className="text-center">
@@ -452,7 +537,7 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                     key={assignment.id}
                                     className={`backdrop-blur-xl rounded-xl p-3 sm:p-4 border transition-all duration-200 cursor-pointer hover:shadow-md ${
                                         isSelected
-                                            ? 'border-blue-300/60 bg-blue-50/30'
+                                            ? 'border-blue-400/40 bg-gradient-to-br from-blue-50/60 via-blue-50/40 to-indigo-50/30 shadow-sm ring-1 ring-blue-200/30'
                                             : isWithinPeriod
                                             ? 'bg-green-50/60 border-green-200/50 hover:border-green-300/60 hover:bg-green-50/80'
                                             : 'bg-white/50 border-gray-200/40 hover:border-gray-300/60'
@@ -468,7 +553,7 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     onChange={() => onAssignmentToggle(assignment.id)}
-                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500/30 focus:ring-offset-0 border-gray-300 rounded shadow-sm transition-all"
                                                 />
                                                 <div className="flex-1 min-w-0">
                                                     <Link
@@ -707,7 +792,7 @@ const AssignmentSelector: React.FC<AssignmentSelectorProps> = ({
                                                 type="checkbox"
                                                 checked={isSelected}
                                                 onChange={() => onAssignmentToggle(assignment.id)}
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500/30 focus:ring-offset-0 border-gray-300 rounded shadow-sm transition-all"
                                             />
                                         </div>{' '}
                                         {/* Order Number */}

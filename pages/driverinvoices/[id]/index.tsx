@@ -2,7 +2,8 @@
 
 import { createPortal } from 'react-dom';
 import { TrashIcon, PencilIcon, ArrowDownTrayIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../../components/layout/Layout';
+import BreadCrumb from '../../../components/layout/BreadCrumb';
 import { notify } from 'components/notifications/Notification';
 import Spinner from 'components/Spinner';
 import { ExpandedDriverInvoice } from 'interfaces/models';
@@ -22,6 +23,15 @@ import { de } from 'date-fns/locale';
 import { downloadDriverInvoice } from 'components/driverinvoices/driverInvoicePdf';
 import { formatPhoneNumber } from 'lib/helpers/format';
 
+const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
+};
+
 const InvoiceDetailsPage: PageWithAuth = () => {
     const router = useRouter();
     const [invoice, setInvoice] = useState<ExpandedDriverInvoice | null>(null);
@@ -37,6 +47,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
 
     const [assignmentsTotal, setAssignmentsTotal] = useState(0);
     const [lineItemsTotal, setLineItemsTotal] = useState(0);
+    const [expensesTotal, setExpensesTotal] = useState(0);
     const [deletingInvoice, setDeletingInvoice] = useState(false);
     const invoiceId = router.query.id as string;
     const [showPaymentActionsDropdown, setShowPaymentActionsDropdown] = useState('');
@@ -83,6 +94,16 @@ const InvoiceDetailsPage: PageWithAuth = () => {
         });
 
         setLineItemsTotal(Number(lineItemsTotal.toFixed(2)));
+
+        let expensesTotal = 0;
+        // Add up driver expenses
+        if (invoice.expenses && invoice.expenses.length > 0) {
+            invoice.expenses.forEach((expense) => {
+                expensesTotal += Number(expense.amount);
+            });
+        }
+
+        setExpensesTotal(Number(expensesTotal.toFixed(2)));
     }, [invoice]);
 
     // Get invoice data on mount
@@ -95,7 +116,6 @@ const InvoiceDetailsPage: PageWithAuth = () => {
 
             // Retry up to 3 times with increasing delays for newly created invoices
             if (retryCount < 3) {
-                console.log(`Retrying invoice fetch... attempt ${retryCount + 1}`);
                 setTimeout(() => {
                     getInvoiceData(retryCount + 1);
                 }, (retryCount + 1) * 1000); // 1s, 2s, 3s delays
@@ -344,41 +364,189 @@ const InvoiceDetailsPage: PageWithAuth = () => {
             }
         >
             <>
-                <div className="min-h-screen bg-gray-50/30">
+                <div className="relative max-w-7xl py-2 mx-auto px-4 md:px-8 lg:px-8">
                     {invoice ? (
-                        <div className="max-w-7xl mx-auto p-3 sm:p-6 bg-transparent">
-                            {/* Apple-style Breadcrumb */}
-                            <div className="mb-4 sm:mb-8 bg-white/80 backdrop-blur-sm rounded-xl ">
-                                <nav className="flex" aria-label="Breadcrumb">
-                                    <ol className="flex items-center space-x-1 sm:space-x-2">
-                                        <li>
-                                            <Link
-                                                href="/driverinvoices"
-                                                className="text-gray-500 hover:text-gray-700 text-sm sm:text-base transition-colors"
-                                            >
-                                                Driver Invoices
+                        <>
+                            {/* Breadcrumb */}
+                            <div className="px-5 sm:px-6 md:px-0 mb-0 md:mb-6">
+                                <BreadCrumb
+                                    paths={[
+                                        { label: 'Dashboard', href: '/' },
+                                        { label: 'Driver Invoices', href: '/driverinvoices' },
+                                        { label: `Invoice #${invoice?.invoiceNum}` },
+                                    ]}
+                                />
+                            </div>
+
+                            {/* Beautiful Header Section */}
+                            <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-0 relative">
+                                <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-xl shadow-gray-900/5 p-8">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-baseline space-x-3">
+                                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                                                    Driver Invoice Details
+                                                </h1>
+                                                <div className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                        Invoice #{invoice?.invoiceNum}
+                                                    </span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                                                        {invoice?.driver?.name}
+                                                    </span>
+                                                    <span className="text-gray-300">•</span>
+                                                    {invoiceStatusBadge(invoice?.status)}
+                                                </div>
+                                            </div>
+                                            <p className="mt-3 text-lg text-gray-600 font-medium">
+                                                Manage driver invoice details, payments, and documentation
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sticky Toolbar Section */}
+                            <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-0 sticky top-2 z-10">
+                                <div className="bg-white/90 backdrop-blur-xl rounded-xl border border-gray-200/50 shadow-lg shadow-gray-900/5 p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <Link href={`/driverinvoices/${invoice.id}/edit`}>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500/90 to-blue-600/90 backdrop-blur-xl rounded-xl border border-blue-400/30 hover:from-blue-600/95 hover:to-blue-700/95 hover:border-blue-300/40 focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-blue-100/30 transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none"
+                                                >
+                                                    <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-white/20 backdrop-blur-sm shadow-inner">
+                                                        <PencilIcon className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                                                    </div>
+                                                    Edit Invoice
+                                                </button>
                                             </Link>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <svg
-                                                className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-xl rounded-xl border border-green-400/30 hover:from-green-600/95 hover:to-green-700/95 hover:border-green-300/40 focus:ring-2 focus:ring-green-400/50 focus:ring-offset-2 focus:ring-offset-green-100/30 transition-all duration-300 shadow-xl shadow-green-500/25 disabled:opacity-50 disabled:shadow-none"
+                                                onClick={handleDownloadInvoice}
+                                                disabled={isDownloading}
+                                            >
+                                                <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-white/20 backdrop-blur-sm shadow-inner">
+                                                    <ArrowDownTrayIcon className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                                                </div>
+                                                {isDownloading ? 'Downloading...' : 'Download PDF'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-50/70 hover:bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200/50 hover:border-slate-300/60 focus:ring-2 focus:ring-slate-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-slate-300/10 hover:shadow-md hover:shadow-slate-300/15 disabled:opacity-50 disabled:shadow-none"
+                                                onClick={() => setShowAddPaymentDialog(true)}
+                                            >
+                                                <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-slate-100/60 backdrop-blur-sm">
+                                                    <svg
+                                                        className="w-3.5 h-3.5 text-slate-500"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                Add Payment
+                                            </button>
+                                        </div>
+
+                                        {/* Status Change and Actions on the right side */}
+                                        <div className="flex items-center space-x-3">
+                                            <button
+                                                type="button"
+                                                className={`inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 shadow-sm disabled:opacity-50 disabled:shadow-none ${
+                                                    invoice.status === 'PENDING'
+                                                        ? 'text-blue-600 bg-blue-50/70 hover:bg-blue-100/80 border-blue-200/50 hover:border-blue-300/60 focus:ring-2 focus:ring-blue-300/20'
+                                                        : 'text-orange-600 bg-orange-50/70 hover:bg-orange-100/80 border-orange-200/50 hover:border-orange-300/60 focus:ring-2 focus:ring-orange-300/20'
+                                                }`}
+                                                onClick={handleStatusChange}
+                                                disabled={updatingStatus}
+                                            >
+                                                {updatingStatus ? (
+                                                    <Spinner />
+                                                ) : invoice.status === 'PENDING' ? (
+                                                    'Approve Invoice'
+                                                ) : (
+                                                    'Mark as Pending'
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50/70 hover:bg-red-100/80 backdrop-blur-sm rounded-xl border border-red-200/50 hover:border-red-300/60 focus:ring-2 focus:ring-red-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-red-300/10 hover:shadow-md hover:shadow-red-300/15"
+                                                onClick={() => setShowDeleteInvoiceDialog(true)}
+                                            >
+                                                <TrashIcon className="w-4 h-4 mr-2" />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-8">
+                                {/* Main Invoice Card */}
+
+                                {/* All existing dialogs and modals */}
+                                {showDeleteInvoiceDialog && (
+                                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                                        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                                            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                                                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                                            </div>
+                                            <span
+                                                className="hidden sm:inline-block sm:align-middle sm:h-screen"
                                                 aria-hidden="true"
                                             >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span className="ml-1 sm:ml-2 text-gray-700 font-medium text-sm sm:text-base">
-                                                Invoice #{invoice?.invoiceNum}
+                                                &#8203;
                                             </span>
-                                        </li>
-                                    </ol>
-                                </nav>
+                                            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                                                <div>
+                                                    <div className="mt-3 text-center sm:mt-0 sm:text-left">
+                                                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                                            Delete Invoice
+                                                        </h3>
+                                                        <div className="mt-2">
+                                                            <p className="text-sm text-gray-500">
+                                                                Are you sure you want to delete this invoice? This
+                                                                action cannot be undone.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {deletingInvoice ? (
+                                                    <div className="flex items-center justify-center w-full p-3  text-red-600">
+                                                        <Spinner /> Deleting Invoice
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                                        <button
+                                                            type="button"
+                                                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                                            onClick={handleDeleteInvoice}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                                                            onClick={() => setShowDeleteInvoiceDialog(false)}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             {showDeleteInvoiceDialog && (
                                 <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -745,167 +913,6 @@ const InvoiceDetailsPage: PageWithAuth = () => {
 
                             {invoice && (
                                 <div className="space-y-4 sm:space-y-6">
-                                    {/* Action Toolbar */}
-                                    <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-6">
-                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">
-                                                Quick Actions
-                                            </h3>
-                                            <div className="text-right">
-                                                <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                                    {formatCurrency(Number(invoice.totalAmount))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons - Reordered: Delete, Edit, Download PDF, Approve, Add Payment */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end gap-2 sm:gap-3">
-                                            {/* Delete - First */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowDeleteInvoiceDialog(true)}
-                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                            >
-                                                <TrashIcon className="w-4 h-4 mr-2" />
-                                                <span className="truncate">Delete</span>
-                                            </button>
-
-                                            {/* Edit Invoice - Second */}
-                                            <button
-                                                type="button"
-                                                onClick={() => router.push(`/driverinvoices/edit/${invoice.id}`)}
-                                                disabled={!invoice.driver?.active}
-                                                className={`inline-flex items-center justify-center px-3 py-2 sm:px-4 border text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-                                                    !invoice.driver?.active
-                                                        ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-blue-500'
-                                                }`}
-                                                title={
-                                                    !invoice.driver?.active
-                                                        ? 'Cannot edit invoice for inactive driver'
-                                                        : 'Edit Invoice'
-                                                }
-                                            >
-                                                <PencilIcon className="w-4 h-4 mr-2" />
-                                                <span className="truncate">Edit Invoice</span>
-                                            </button>
-
-                                            {/* Download PDF - Third */}
-                                            <button
-                                                type="button"
-                                                onClick={handleDownloadInvoice}
-                                                disabled={isDownloading}
-                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {isDownloading ? (
-                                                    <svg
-                                                        className="w-4 h-4 mr-2 animate-spin"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <circle
-                                                            className="opacity-25"
-                                                            cx="12"
-                                                            cy="12"
-                                                            r="10"
-                                                            stroke="currentColor"
-                                                            strokeWidth="4"
-                                                        ></circle>
-                                                        <path
-                                                            className="opacity-75"
-                                                            fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                        ></path>
-                                                    </svg>
-                                                ) : (
-                                                    <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
-                                                )}
-                                                <span className="truncate">
-                                                    {isDownloading ? 'Downloading...' : 'Download PDF'}
-                                                </span>
-                                            </button>
-
-                                            {/* Approve/Pending Toggle - Fourth */}
-                                            {(invoice.status === 'APPROVED' || invoice.status === 'PENDING') && (
-                                                <button
-                                                    type="button"
-                                                    disabled={updatingStatus}
-                                                    onClick={handleStatusChange}
-                                                    className={`inline-flex items-center justify-center px-3 py-2 sm:px-4 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1 ${
-                                                        invoice.status === 'PENDING'
-                                                            ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
-                                                            : 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500'
-                                                    }`}
-                                                >
-                                                    {updatingStatus ? (
-                                                        <svg
-                                                            className="w-4 h-4 mr-2 animate-spin"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <circle
-                                                                className="opacity-25"
-                                                                cx="12"
-                                                                cy="12"
-                                                                r="10"
-                                                                stroke="currentColor"
-                                                                strokeWidth="4"
-                                                            ></circle>
-                                                            <path
-                                                                className="opacity-75"
-                                                                fill="currentColor"
-                                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                            ></path>
-                                                        </svg>
-                                                    ) : (
-                                                        <svg
-                                                            className="w-4 h-4 mr-2"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M9 12l2 2 4-4"
-                                                            />
-                                                        </svg>
-                                                    )}
-                                                    <span className="truncate">
-                                                        {updatingStatus
-                                                            ? 'Updating...'
-                                                            : invoice.status === 'APPROVED'
-                                                            ? 'Mark as Pending'
-                                                            : 'Approve Invoice'}
-                                                    </span>
-                                                </button>
-                                            )}
-
-                                            {/* Add Payment - Fifth (Primary Action) */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAddPaymentDialog(true)}
-                                                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
-                                            >
-                                                <svg
-                                                    className="w-4 h-4 mr-2"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                                    />
-                                                </svg>
-                                                <span className="truncate">Add Payment</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     {/* Invoice Header Card */}
                                     <div className="rounded-xl sm:rounded-2xl bg-white/95 backdrop-blur-xl border border-gray-200/30 shadow-sm overflow-visible">
                                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 sm:p-6">
@@ -927,10 +934,9 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                             </div>
                                             <div className="mt-4 lg:mt-0 lg:ml-4 space-y-3">
                                                 <div className="flex items-center justify-between lg:justify-end space-x-3">
-                                                    <h2 className="text-lg font-semibold text-gray-800">
+                                                    <h2 className="text-lg font-semibold text-gray-800 bg-slate-100 shadow-sm border border-slate-200 rounded-full px-2.5 py-0.5">
                                                         Invoice #{invoice.invoiceNum}
                                                     </h2>
-                                                    {invoiceStatusBadge(invoice.status)}
                                                 </div>
                                             </div>
                                         </div>
@@ -1655,6 +1661,179 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                             </div>
                                         </div>
 
+                                        {/* Driver Expenses */}
+                                        {invoice.expenses && invoice.expenses.length > 0 && (
+                                            <div className="px-4 py-4 sm:px-6 bg-gray-100/60 backdrop-blur-2xl border-b border-gray-200/40">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                                                            <svg
+                                                                className="w-4 h-4 text-white"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-sm font-semibold text-gray-900">
+                                                                Driver Expenses ({invoice.expenses.length})
+                                                            </h3>
+                                                            <p className="text-xs text-gray-600">
+                                                                Approved driver expenses
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-600 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-200/40">
+                                                        <span className="font-medium">Total: </span>
+                                                        <span className="font-bold text-gray-900">
+                                                            {formatCurrency(expensesTotal)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {invoice.expenses && invoice.expenses.length > 0 && (
+                                            <div className="px-4 py-5 sm:px-6">
+                                                {/* Mobile Expense Cards */}
+                                                <div className="block md:hidden space-y-3">
+                                                    {invoice.expenses.map((expense) => (
+                                                        <div
+                                                            key={expense.id}
+                                                            className="bg-white/30 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-sm hover:shadow-md transition-all duration-200"
+                                                        >
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                                                        <h4 className="font-semibold text-gray-900 text-sm">
+                                                                            {expense.description}
+                                                                        </h4>
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-600 space-y-1 pl-4">
+                                                                        {expense.category?.name && (
+                                                                            <p>Category: {expense.category.name}</p>
+                                                                        )}
+                                                                        {expense.vendorName && (
+                                                                            <p>Vendor: {expense.vendorName}</p>
+                                                                        )}
+                                                                        {expense.receiptDate && (
+                                                                            <p>
+                                                                                Date:{' '}
+                                                                                {new Date(
+                                                                                    expense.receiptDate,
+                                                                                ).toLocaleDateString()}
+                                                                            </p>
+                                                                        )}
+                                                                        {expense.approvedBy?.name && (
+                                                                            <p>
+                                                                                Approved by: {expense.approvedBy.name}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right ml-3">
+                                                                    <div className="text-xs text-gray-600 mb-0.5">
+                                                                        Amount
+                                                                    </div>
+                                                                    <div className="text-lg font-bold text-green-600">
+                                                                        {formatCurrency(Number(expense.amount))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Desktop Table */}
+                                                <div className="hidden md:block">
+                                                    <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/20 shadow-sm overflow-hidden">
+                                                        <div className="bg-white/40 backdrop-blur-2xl px-6 py-3 border-b border-white/30">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Description
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                        Amount
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            {invoice.expenses.map((expense, index) => {
+                                                                const isLastItem =
+                                                                    index === invoice.expenses.length - 1;
+                                                                const hasMultipleItems = invoice.expenses.length > 1;
+
+                                                                return (
+                                                                    <div
+                                                                        key={expense.id}
+                                                                        className={`px-6 py-4 hover:bg-white/20 transition-all duration-200 ${
+                                                                            hasMultipleItems && !isLastItem
+                                                                                ? 'border-b border-gray-200/80'
+                                                                                : ''
+                                                                        }`}
+                                                                    >
+                                                                        <div className="grid grid-cols-2 gap-4 items-center">
+                                                                            <div className="text-sm font-medium text-gray-900">
+                                                                                <div className="font-semibold mb-1">
+                                                                                    {expense.description}
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    {expense.category?.name && (
+                                                                                        <div className="text-xs text-gray-600">
+                                                                                            Category:{' '}
+                                                                                            {expense.category.name}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {expense.vendorName && (
+                                                                                        <div className="text-xs text-gray-600">
+                                                                                            Vendor: {expense.vendorName}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {expense.receiptDate && (
+                                                                                        <div className="text-xs text-gray-600">
+                                                                                            Date:{' '}
+                                                                                            {new Date(
+                                                                                                expense.receiptDate,
+                                                                                            ).toLocaleDateString()}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {expense.approvedBy?.name && (
+                                                                                        <div className="text-xs text-gray-600">
+                                                                                            Approved by:{' '}
+                                                                                            {expense.approvedBy.name}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <span className="text-sm font-bold text-green-600">
+                                                                                    {formatCurrency(
+                                                                                        Number(expense.amount),
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Line Items */}
                                         {invoice.lineItems.length > 0 && (
                                             <div className="px-4 py-4 sm:px-6 bg-gray-100/60 backdrop-blur-2xl border-b border-gray-200/40">
@@ -1811,6 +1990,19 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                                                 {formatCurrency(assignmentsTotal)}
                                                             </span>
                                                         </div>
+                                                        {invoice.expenses && invoice.expenses.length > 0 && (
+                                                            <div className="flex justify-between items-center text-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                                                    <span className="text-gray-700 font-medium">
+                                                                        Driver Expense(s) Total
+                                                                    </span>
+                                                                </div>
+                                                                <span className="font-semibold text-gray-900">
+                                                                    {formatCurrency(expensesTotal)}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                         <div className="flex justify-between items-center text-sm pb-4 border-b border-white/30">
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
@@ -2023,7 +2215,7 @@ const InvoiceDetailsPage: PageWithAuth = () => {
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </>
                     ) : (
                         <LoadingInvoice />
                     )}

@@ -169,7 +169,7 @@ const getLoadOptimized = async ({
                     chargeType: true,
                     chargeValue: true,
                     billedLoadRate: true,
-                    driver: { select: { id: true, name: true, email: true, phone: true } },
+                    driver: { select: { id: true, name: true, email: true, phone: true, active: true } },
                 },
             };
         }
@@ -280,7 +280,64 @@ const getLoadOptimized = async ({
                                     chargeType: true,
                                     chargeValue: true,
                                     billedLoadRate: true,
-                                    driver: { select: { id: true, name: true, email: true, phone: true } },
+                                    driver: {
+                                        select: { id: true, name: true, email: true, phone: true, active: true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
+        // OPTIMIZATION 6: Expenses with essential data only
+        if (expand.includes('expenses')) {
+            include.expenses = {
+                orderBy: { createdAt: 'desc' },
+                take: 20, // Limit initial expenses load
+                select: {
+                    id: true,
+                    amount: true,
+                    receiptDate: true,
+                    currencyCode: true,
+                    paidBy: true,
+                    approvalStatus: true,
+                    description: true,
+                    vendorName: true,
+                    createdAt: true,
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    driver: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                    documents: {
+                        take: 5, // Limit documents per expense
+                        select: {
+                            id: true,
+                            document: {
+                                select: {
+                                    id: true,
+                                    fileName: true,
+                                    fileType: true,
+                                    fileSize: true,
+                                    fileUrl: true,
                                 },
                             },
                         },

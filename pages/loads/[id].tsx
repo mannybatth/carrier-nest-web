@@ -16,11 +16,13 @@ const SimpleDialog = lazy(() => import('../../components/dialogs/SimpleDialog'))
 
 // Static imports for critical rendering path
 import Layout from '../../components/layout/Layout';
+import BreadCrumb from '../../components/layout/BreadCrumb';
 import LoadDetailsDocuments from '../../components/loads/load-details/LoadDetailsDocuments';
 import LoadDetailsInfo from '../../components/loads/load-details/LoadDetailsInfo';
 import LoadDetailsToolbar from '../../components/loads/load-details/LoadDetailsToolbar';
 import LoadRouteSection from '../../components/loads/load-details/LoadRouteSection';
 import LoadAssignmentsSection from '../../components/loads/load-details/LoadAssignmentsSection';
+import LoadExpensesSection from '../../components/loads/load-details/LoadExpensesSection';
 import ActionsDropdown from 'components/loads/load-details/ActionsDropdown';
 
 // Memoized components for performance optimization
@@ -31,6 +33,7 @@ const MemoizedLoadDetailsInfo = React.memo(LoadDetailsInfo);
 const MemoizedLoadDetailsDocuments = React.memo(LoadDetailsDocuments);
 const MemoizedLoadRouteSection = React.memo(LoadRouteSection);
 const MemoizedLoadAssignmentsSection = React.memo(LoadAssignmentsSection);
+const MemoizedLoadExpensesSection = React.memo(LoadExpensesSection);
 
 // Additional imports
 import LoadDetailsSkeleton from '../../components/skeletons/LoadDetailsSkeleton';
@@ -577,18 +580,15 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                 <div className="relative max-w-7xl py-2 mx-auto">
                     {downloadingDocs && <LoadingOverlay message="Downloading documents..." />}
 
-                    {/* Minimalistic Breadcrumb */}
-                    <div className="px-5 sm:px-6 md:px-8 mb-4">
-                        <nav className="text-sm text-gray-400">
-                            <span
-                                className="hover:text-gray-600 transition-colors cursor-pointer"
-                                onClick={() => router.push('/loads')}
-                            >
-                                Loads
-                            </span>
-                            <span className="mx-2 text-gray-300">/</span>
-                            <span className="text-gray-600">{load ? load.refNum : 'Loading...'}</span>
-                        </nav>
+                    {/* BreadCrumb */}
+                    <div className="px-5 sm:px-6 md:px-8 mb-0 md:mb-6">
+                        <BreadCrumb
+                            paths={[
+                                { label: 'Dashboard', href: '/' },
+                                { label: 'Loads', href: '/loads' },
+                                { label: 'Load Details' },
+                            ]}
+                        />
                     </div>
 
                     <div className="hidden px-5 mb-8 md:block sm:px-6 md:px-8 relative ">
@@ -599,7 +599,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         <h1 className="text-4xl font-black text-gray-900 tracking-tight">
                                             Load Details
                                         </h1>
-                                        <div className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                                        <div className="hidden lg:flex items-center space-x-2 text-sm font-medium text-gray-500">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
                                                 Order #{load?.refNum}
                                             </span>
@@ -622,6 +622,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                         <div className="bg-white/90 backdrop-blur-xl rounded-xl border border-gray-200/50 shadow-lg shadow-gray-900/5 p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
+                                    {/* Edit Load Button - Show "Edit" on small screens */}
                                     <button
                                         type="button"
                                         className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500/90 to-blue-600/90 backdrop-blur-xl rounded-xl border border-blue-400/30 hover:from-blue-600/95 hover:to-blue-700/95 hover:border-blue-300/40 focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-blue-100/30 transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none"
@@ -643,8 +644,11 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 />
                                             </svg>
                                         </div>
-                                        Edit Load
+                                        <span className="hidden lg:inline">Edit Load</span>
+                                        <span className="lg:hidden">Edit</span>
                                     </button>
+
+                                    {/* Add Assignment Button - Show icon only on smallest screens */}
                                     <button
                                         type="button"
                                         className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500/90 to-blue-600/90 backdrop-blur-xl rounded-xl border border-blue-400/30 hover:from-blue-600/95 hover:to-blue-700/95 hover:border-blue-300/40 focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-blue-100/30 transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none"
@@ -666,11 +670,53 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                                 />
                                             </svg>
                                         </div>
-                                        Add Assignment
+                                        <span className="hidden lg:inline">Add Assignment</span>
+                                        <span className="lg:hidden">
+                                            <svg
+                                                className="w-4 h-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 4v16m8-8H4"
+                                                />
+                                            </svg>
+                                        </span>
                                     </button>
+
+                                    {/* Add Expense Button - Hide on screens smaller than xl, subtle styling like Create Invoice */}
                                     <button
                                         type="button"
-                                        className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-50/70 hover:bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200/50 hover:border-slate-300/60 focus:ring-2 focus:ring-slate-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-slate-300/10 hover:shadow-md hover:shadow-slate-300/15 disabled:opacity-50 disabled:shadow-none"
+                                        className="hidden xl:inline-flex items-center px-4 py-2.5 text-sm font-medium text-blue-600 bg-slate-100/60 hover:bg-slate-100/95 backdrop-blur-sm rounded-xl border border-blue-200/50 hover:border-blue-300/60 focus:ring-2 focus:ring-blue-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-blue-300/10 hover:shadow-md hover:shadow-blue-300/15 disabled:opacity-50 disabled:shadow-none"
+                                        onClick={() => router.push(`/expenses/create?loadId=${loadId}`)}
+                                        disabled={!load}
+                                    >
+                                        <div className="flex items-center justify-center w-5 h-5 mr-2 rounded-lg bg-blue-100/60 backdrop-blur-sm">
+                                            <svg
+                                                className="w-3.5 h-3.5 text-blue-500"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        Add Expense
+                                    </button>
+
+                                    {/* Create Invoice Button - Hide on screens smaller than 2xl */}
+                                    <button
+                                        type="button"
+                                        className="hidden 2xl:inline-flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-50/70 hover:bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200/50 hover:border-slate-300/60 focus:ring-2 focus:ring-slate-300/20 focus:ring-offset-1 transition-all duration-200 shadow-sm shadow-slate-300/10 hover:shadow-md hover:shadow-slate-300/15 disabled:opacity-50 disabled:shadow-none"
                                         onClick={() => {
                                             if (load.invoice) {
                                                 actionHandlers.viewInvoice();
@@ -730,6 +776,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                         viewInvoiceClicked={actionHandlers.viewInvoice}
                                         createInvoiceClicked={actionHandlers.createInvoice}
                                         addAssignmentClicked={actionHandlers.addAssignment}
+                                        addExpenseClicked={() => router.push(`/expenses/create?loadId=${loadId}`)}
                                         downloadCombinedPDF={actionHandlers.downloadCombinedPDF}
                                         makeCopyOfLoadClicked={actionHandlers.makeCopyOfLoad}
                                         deleteLoadClicked={actionHandlers.deleteLoad}
@@ -770,6 +817,7 @@ const LoadDetailsPage: PageWithAuth<Props> = ({ loadId }: Props) => {
                                 editLegClicked={editLegClicked}
                                 openRouteInMapsClicked={openRouteInMapsClicked}
                             />
+                            <MemoizedLoadExpensesSection expenses={load.expenses || []} loadId={loadId} />
                             <Suspense
                                 fallback={
                                     <div className="flex items-center justify-center py-8 text-sm text-gray-500">

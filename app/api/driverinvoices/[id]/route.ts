@@ -76,6 +76,7 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                             email: true,
                             phone: true,
                             active: true,
+                            baseGuaranteeAmount: true,
                         },
                     },
                     carrier: {
@@ -164,6 +165,29 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                             createdAt: true,
                         },
                     },
+                    expenses: {
+                        select: {
+                            id: true,
+                            description: true,
+                            amount: true,
+                            receiptDate: true,
+                            approvalStatus: true,
+                            vendorName: true,
+                            category: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                            approvedBy: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                            createdAt: true,
+                        },
+                    },
                 },
             });
 
@@ -237,6 +261,7 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                         email: true,
                         phone: true,
                         active: true,
+                        baseGuaranteeAmount: true,
                     },
                 },
                 carrier: {
@@ -314,6 +339,30 @@ async function getDriverInvoice(req: NextAuthRequest, { params }: { params: { id
                         description: true,
                         amount: true,
                         createdAt: true,
+                    },
+                },
+                expenses: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        receiptDate: true,
+                        description: true,
+                        vendorName: true,
+                        approvalStatus: true,
+                        paidBy: true,
+                        approvedAt: true,
+                        category: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                        approvedBy: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
                 payments: {
@@ -450,6 +499,7 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
             invoiceNum, // new invoice number (if updating)
             assignments, // updated array of assignments with new billing details
             lineItems, // updated array of line items
+            expenses = [], // updated array of driver expenses
         } = body;
 
         if (!id) {
@@ -478,6 +528,65 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
                 { code: 400, errors: [{ message: 'Invoice number does not match the original invoice' }] },
                 { status: 400 },
             );
+        }
+
+        // Validate expenses if provided - ensure they're not attached to other invoices
+        if (expenses && expenses.length > 0) {
+            const expenseIds = expenses.map((e: any) => e.id);
+            const existingExpenses = await prisma.expense.findMany({
+                where: {
+                    id: { in: expenseIds },
+                    driverId,
+                    carrierId,
+                    approvalStatus: 'APPROVED',
+                    paidBy: 'DRIVER',
+                    OR: [
+                        { driverInvoiceId: null }, // Not attached to any invoice
+                        { driverInvoiceId: invoice.id }, // Already attached to this invoice (allowing re-selection)
+                    ],
+                },
+                select: { id: true },
+            });
+
+            if (existingExpenses.length !== expenseIds.length) {
+                return NextResponse.json(
+                    {
+                        code: 400,
+                        errors: [
+                            {
+                                message:
+                                    'One or more expenses are invalid, not approved, not driver-paid, or already attached to another invoice',
+                            },
+                        ],
+                    },
+                    { status: 400 },
+                );
+            }
+        }
+
+        // Validate expenses if provided
+        if (expenses && expenses.length > 0) {
+            const expenseIds = expenses.map((e: any) => e.id);
+            const existingExpenses = await prisma.expense.findMany({
+                where: {
+                    id: { in: expenseIds },
+                    driverId,
+                    carrierId,
+                    approvalStatus: 'APPROVED',
+                    paidBy: 'DRIVER', // Ensure only driver-paid expenses
+                },
+                select: { id: true },
+            });
+
+            if (existingExpenses.length !== expenseIds.length) {
+                return NextResponse.json(
+                    {
+                        code: 400,
+                        errors: [{ message: 'One or more expenses are invalid, not approved, or not driver-paid' }],
+                    },
+                    { status: 400 },
+                );
+            }
         }
 
         // Prepare base update data for invoice
@@ -609,8 +718,60 @@ async function updateDriverInvoice(req: NextAuthRequest, { params }: { params: {
 
         const lineItemsTotal = createdLineItems.reduce((acc, item) => acc.add(item.amount), new Prisma.Decimal(0));
 
-        // Calculate total with proper rounding
-        const totalAmount = assignmentTotal.add(lineItemsTotal).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        // Handle driver expenses connection and calculate total
+        let expensesTotal = new Prisma.Decimal(0);
+        if (expenses && expenses.length > 0) {
+            const expenseIds = expenses.map((e: any) => e.id);
+
+            // First, disconnect all previous expenses from this invoice
+            await prisma.expense.updateMany({
+                where: {
+                    driverInvoiceId: invoice.id,
+                },
+                data: {
+                    driverInvoiceId: null,
+                },
+            });
+
+            // Connect new expenses to the driver invoice
+            await prisma.expense.updateMany({
+                where: {
+                    id: { in: expenseIds },
+                    driverId,
+                    carrierId,
+                    approvalStatus: 'APPROVED',
+                    paidBy: 'DRIVER',
+                },
+                data: {
+                    driverInvoiceId: invoice.id,
+                },
+            });
+
+            // Calculate expenses total with proper financial rounding
+            expensesTotal = expenses.reduce((acc: Prisma.Decimal, expense: any) => {
+                const expenseAmount = new Prisma.Decimal(expense.amount).toDecimalPlaces(
+                    2,
+                    Prisma.Decimal.ROUND_HALF_UP,
+                );
+                return acc.add(expenseAmount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+            }, new Prisma.Decimal(0));
+        } else {
+            // If no expenses provided, disconnect all previous expenses
+            await prisma.expense.updateMany({
+                where: {
+                    driverInvoiceId: invoice.id,
+                },
+                data: {
+                    driverInvoiceId: null,
+                },
+            });
+        }
+
+        // Calculate total including expenses with proper rounding
+        const totalAmount = assignmentTotal
+            .add(lineItemsTotal)
+            .add(expensesTotal)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
         await prisma.driverInvoice.update({
             where: { id: invoice.id },
@@ -664,9 +825,10 @@ async function deleteDriverInvoice(req: NextAuthRequest, { params }: { params: {
         // Build transaction operations to:
         // 1. Delete all related payments for the invoice.
         // 2. Delete all invoice line items.
-        // 3. Clear billing fields in associated assignments.
-        // 4. Disconnect assignments from the invoice.
-        // 5. Delete the invoice record.
+        // 3. Disconnect expenses from the invoice.
+        // 4. Clear billing fields in associated assignments.
+        // 5. Disconnect assignments from the invoice.
+        // 6. Delete the invoice record.
         await prisma.$transaction([
             // Delete the payments associated with this invoice
             prisma.driverInvoicePayment.deleteMany({
@@ -675,6 +837,11 @@ async function deleteDriverInvoice(req: NextAuthRequest, { params }: { params: {
             // Delete the invoice line items
             prisma.driverInvoiceLineItem.deleteMany({
                 where: { invoiceId, carrierId },
+            }),
+            // Disconnect expenses from the invoice
+            prisma.expense.updateMany({
+                where: { driverInvoiceId: invoiceId },
+                data: { driverInvoiceId: null },
             }),
             // Clear billing fields on related assignments
             prisma.driverAssignment.updateMany({

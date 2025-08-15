@@ -11,6 +11,7 @@ import {
     CreditCardIcon,
     BanknotesIcon,
     FunnelIcon,
+    ReceiptPercentIcon,
 } from '@heroicons/react/24/outline';
 import {
     CurrencyDollarIcon as CurrencyDollarIconSolid,
@@ -23,6 +24,7 @@ import {
     CreditCardIcon as CreditCardIconSolid,
     BanknotesIcon as BanknotesIconSolid,
     FunnelIcon as FunnelIconSolid,
+    ReceiptPercentIcon as ReceiptPercentIconSolid,
 } from '@heroicons/react/24/solid';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -41,6 +43,12 @@ const navigation = [
         href: '/loads',
         icon: TruckIcon,
         iconSolid: TruckIconSolid,
+    },
+    {
+        name: 'Expenses',
+        href: '/expenses',
+        icon: ReceiptPercentIcon,
+        iconSolid: ReceiptPercentIconSolid,
     },
     {
         name: 'Invoices',

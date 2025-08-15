@@ -118,6 +118,28 @@ const expandedLoad = Prisma.validator<Prisma.LoadDefaultArgs>()({
         podDocuments: true,
         bolDocuments: true,
         rateconDocument: true,
+        expenses: {
+            include: {
+                category: true,
+                driver: {
+                    select: { id: true, name: true },
+                },
+                user: {
+                    select: { id: true, name: true },
+                },
+                createdBy: {
+                    select: { id: true, name: true },
+                },
+                approvedBy: {
+                    select: { id: true, name: true },
+                },
+                documents: {
+                    include: {
+                        document: true,
+                    },
+                },
+            },
+        },
     },
 });
 export type ExpandedLoad = Partial<Prisma.LoadGetPayload<typeof expandedLoad>> & {
@@ -238,6 +260,7 @@ const expandedRouteLeg = Prisma.validator<Prisma.RouteLegDefaultArgs>()({
                         name: true,
                         email: true,
                         phone: true,
+                        active: true,
                         devices: {
                             select: {
                                 fcmToken: true,
@@ -319,6 +342,7 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                 name: true,
                 email: true,
                 phone: true,
+                active: true,
                 devices: {
                     select: {
                         fcmToken: true,
@@ -349,6 +373,7 @@ const expandedDriverAssignment = Prisma.validator<Prisma.DriverAssignmentDefault
                                 name: true,
                                 email: true,
                                 phone: true,
+                                active: true,
                                 devices: {
                                     select: {
                                         fcmToken: true,
@@ -449,6 +474,82 @@ const expandedEquipment = Prisma.validator<Prisma.EquipmentDefaultArgs>()({
 });
 export type ExpandedEquipment = Partial<Prisma.EquipmentGetPayload<typeof expandedEquipment>>;
 
+/**
+ * Expense
+ */
+const expandedExpense = Prisma.validator<Prisma.ExpenseDefaultArgs>()({
+    include: {
+        category: true,
+        load: {
+            select: {
+                id: true,
+                refNum: true,
+                loadNum: true,
+                customer: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                shipper: {
+                    select: {
+                        id: true,
+                        name: true,
+                        city: true,
+                        state: true,
+                    },
+                },
+                receiver: {
+                    select: {
+                        id: true,
+                        name: true,
+                        city: true,
+                        state: true,
+                    },
+                },
+            },
+        },
+        driver: {
+            select: { id: true, name: true },
+        },
+        driverAssignment: {
+            select: {
+                id: true,
+                chargeType: true,
+                chargeValue: true,
+                load: {
+                    select: {
+                        id: true,
+                        refNum: true,
+                        loadNum: true,
+                    },
+                },
+            },
+        },
+        user: {
+            select: { id: true, name: true },
+        },
+        equipment: {
+            select: { id: true, equipmentNumber: true, make: true, model: true },
+        },
+        createdBy: {
+            select: { id: true, name: true },
+        },
+        approvedBy: {
+            select: { id: true, name: true },
+        },
+        updatedBy: {
+            select: { id: true, name: true },
+        },
+        documents: {
+            include: {
+                document: true,
+            },
+        },
+    },
+});
+export type ExpandedExpense = Partial<Prisma.ExpenseGetPayload<typeof expandedExpense>>;
+
 export function exclude<ExpandedLoad, Key extends keyof ExpandedLoad>(
     load: ExpandedLoad,
     keys: Key[],
@@ -471,6 +572,7 @@ const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>(
                 email: true,
                 phone: true,
                 active: true,
+                baseGuaranteeAmount: true,
             },
         },
 
@@ -561,6 +663,29 @@ const expandedDriverInvoice = Prisma.validator<Prisma.DriverInvoiceDefaultArgs>(
                 createdAt: true,
             },
         },
+        expenses: {
+            select: {
+                id: true,
+                description: true,
+                amount: true,
+                receiptDate: true,
+                approvalStatus: true,
+                vendorName: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                approvedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                createdAt: true,
+            },
+        },
     },
 });
 export type ExpandedDriverInvoice = Partial<Prisma.DriverInvoiceGetPayload<typeof expandedDriverInvoice>>;
@@ -644,6 +769,7 @@ export type NewDriverInvoice = {
     driverId: string;
     assignments: ExpandedDriverAssignment[];
     lineItems: DriverInvoiceLineItem[];
+    expenses?: any[]; // Driver-paid expenses to include in invoice
 };
 
 /**

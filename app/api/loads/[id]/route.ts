@@ -228,6 +228,7 @@ const getLoad = async ({
     const expandDocuments = expand.includes('documents');
     const expandCarrier = expand.includes('carrier');
     const expandRoute = expand.includes('route');
+    const expandExpenses = expand.includes('expenses');
 
     const load = await prisma.load.findFirst({
         where: {
@@ -398,6 +399,37 @@ const getLoad = async ({
                                               billedLoadRate: true,
                                           },
                                       },
+                                  },
+                              },
+                          },
+                      },
+                  }
+                : {}),
+            ...(expandExpenses
+                ? {
+                      expenses: {
+                          orderBy: {
+                              createdAt: 'desc',
+                          },
+                          include: {
+                              category: true,
+                              driver: {
+                                  select: {
+                                      id: true,
+                                      name: true,
+                                      email: true,
+                                  },
+                              },
+                              user: {
+                                  select: {
+                                      id: true,
+                                      name: true,
+                                      email: true,
+                                  },
+                              },
+                              documents: {
+                                  include: {
+                                      document: true,
                                   },
                               },
                           },

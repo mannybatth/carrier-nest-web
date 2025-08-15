@@ -118,6 +118,9 @@ export const PUT = auth(async (req: NextAuthRequest, context: { params: { id: st
             ...(driverData.perHourRate !== undefined && { perHourRate: driverData.perHourRate }),
             ...(driverData.defaultFixedPay !== undefined && { defaultFixedPay: driverData.defaultFixedPay }),
             ...(driverData.takeHomePercent !== undefined && { takeHomePercent: driverData.takeHomePercent }),
+            ...(driverData.baseGuaranteeAmount !== undefined && {
+                baseGuaranteeAmount: driverData.baseGuaranteeAmount,
+            }),
         },
     });
 

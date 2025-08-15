@@ -151,9 +151,12 @@ const LoadAssignmentsSection: React.FC<LoadAssignmentsSectionProps> = ({
                     <div className="space-y-6">
                         {load.route.routeLegs.map((leg, index) => {
                             const drivers = leg.driverAssignments.map((driver) => driver.driver);
-                            const hasInactiveDriver = leg.driverAssignments.some(
-                                (assignment) => !assignment.driver?.active,
-                            );
+
+                            // Debug logging to understand the issue
+                            const hasInactiveDriver = leg.driverAssignments.some((assignment) => {
+                                return assignment.driver && !assignment.driver.active;
+                            });
+
                             const locations = leg.locations;
                             const legStatus = leg.status;
                             const statusStyles = getStatusStyles(legStatus);
