@@ -85,6 +85,13 @@ module.exports = {
                 enter: 'enter 200ms ease-out',
                 'slide-in': 'slide-in 1.2s cubic-bezier(.41,.73,.51,1.02)',
                 leave: 'leave 150ms ease-in forwards',
+                'fade-in': 'animate-fade-in 0.6s ease-out',
+                'liquid-flow': 'liquid-flow 4s ease-in-out infinite',
+                'backdrop-blur': 'backdrop-blur 0.3s ease-out',
+                'gradient-shift': 'gradient-shift 3s ease-in-out infinite',
+                'slide-in-right': 'slide-in-right 0.5s ease-out',
+                'level-up-bounce': 'level-up-bounce 2s ease-in-out',
+                'xp-fill': 'xp-fill 0.8s ease-out',
             },
             keyframes: {
                 enter: {
@@ -98,6 +105,24 @@ module.exports = {
                 'slide-in': {
                     '0%': { transform: 'translateY(-100%)' },
                     '100%': { transform: 'translateY(0)' },
+                },
+                'animate-fade-in': {
+                    '0%': { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
+                    '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                },
+                'liquid-flow': {
+                    '0%, 100%': { transform: 'translateX(-2px) translateY(-1px)' },
+                    '25%': { transform: 'translateX(2px) translateY(-2px)' },
+                    '50%': { transform: 'translateX(3px) translateY(1px)' },
+                    '75%': { transform: 'translateX(-1px) translateY(2px)' },
+                },
+                'backdrop-blur': {
+                    '0%': { 'backdrop-filter': 'blur(0px)' },
+                    '100%': { 'backdrop-filter': 'blur(8px)' },
+                },
+                'gradient-shift': {
+                    '0%, 100%': { 'background-position': '0% 50%' },
+                    '50%': { 'background-position': '100% 50%' },
                 },
                 'accordion-down': {
                     from: { height: '0' },
