@@ -12,7 +12,8 @@
         "generate": "prisma generate",
         "studio": "prisma studio",
         "migrate": "prisma migrate dev",
-        "vercel-build": "prisma generate && prisma migrate deploy && next build"
+        "vercel-build": "prisma generate && prisma migrate deploy && next build",
+        "seed-expenses": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/seed-expenses.ts"
     },
     "prisma": {
         "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
