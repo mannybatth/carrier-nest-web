@@ -52,6 +52,9 @@ const EditDriver: PageWithAuth = () => {
         if (driver.takeHomePercent) {
             formHook.setValue('takeHomePercent', driver.takeHomePercent);
         }
+        if (driver.baseGuaranteeAmount) {
+            formHook.setValue('baseGuaranteeAmount', driver.baseGuaranteeAmount);
+        }
     }, [driver]);
 
     const submit = async (data: Driver) => {
@@ -68,6 +71,7 @@ const EditDriver: PageWithAuth = () => {
                 perHourRate: data.perHourRate ? new Prisma.Decimal(data.perHourRate) : null,
                 defaultFixedPay: data.defaultFixedPay ? new Prisma.Decimal(data.defaultFixedPay) : null,
                 takeHomePercent: data.takeHomePercent ? new Prisma.Decimal(data.takeHomePercent) : null,
+                baseGuaranteeAmount: data.baseGuaranteeAmount ? new Prisma.Decimal(data.baseGuaranteeAmount) : null,
             };
             const newDriver = await updateDriver(driver.id, driverData);
 
