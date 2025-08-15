@@ -61,41 +61,33 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
 
             {/* Invoice Summary Card */}
             <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4 sm:gap-0">
-                    <div>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Invoice Summary</h3>
-                        <p className="text-xs sm:text-sm text-gray-500">
-                            Period:{' '}
-                            {(() => {
-                                // Parse date correctly to avoid timezone issues
-                                const parseDate = (date: string | Date | null | undefined) => {
-                                    if (!date) return null;
-                                    if (typeof date === 'string') {
-                                        const parts = date.split('-');
-                                        if (parts.length === 3) {
-                                            const year = parseInt(parts[0], 10);
-                                            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-                                            const day = parseInt(parts[2], 10);
-                                            return new Date(year, month, day);
-                                        }
-                                        return new Date(date);
+                <div className="mb-4 sm:mb-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Invoice Summary</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                        Period:{' '}
+                        {(() => {
+                            // Parse date correctly to avoid timezone issues
+                            const parseDate = (date: string | Date | null | undefined) => {
+                                if (!date) return null;
+                                if (typeof date === 'string') {
+                                    const parts = date.split('-');
+                                    if (parts.length === 3) {
+                                        const year = parseInt(parts[0], 10);
+                                        const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                                        const day = parseInt(parts[2], 10);
+                                        return new Date(year, month, day);
                                     }
-                                    return date;
-                                };
+                                    return new Date(date);
+                                }
+                                return date;
+                            };
 
-                                const fromDate = parseDate(invoice.fromDate);
-                                const toDate = parseDate(invoice.toDate);
+                            const fromDate = parseDate(invoice.fromDate);
+                            const toDate = parseDate(invoice.toDate);
 
-                                return `${fromDate?.toLocaleDateString()} - ${toDate?.toLocaleDateString()}`;
-                            })()}
-                        </p>
-                    </div>
-                    <div className="text-right bg-green-50/80 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-green-200/30">
-                        <div className="text-xl sm:text-2xl font-bold text-green-600">
-                            {formatCurrency(totalAmount)}
-                        </div>
-                        <p className="text-xs sm:text-sm text-green-600 font-medium">Total Amount</p>
-                    </div>
+                            return `${fromDate?.toLocaleDateString()} - ${toDate?.toLocaleDateString()}`;
+                        })()}
+                    </p>
                 </div>
 
                 {/* Driver Information */}
@@ -149,10 +141,10 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
                                     Charge
                                 </th>
                                 <th className="py-3 sm:py-4 px-4 sm:px-6 text-left text-xs font-semibold text-gray-600 tracking-wide">
-                                    Amount
-                                </th>
-                                <th className="py-3 sm:py-4 px-4 sm:px-6 text-left text-xs font-semibold text-gray-600 tracking-wide">
                                     Status
+                                </th>
+                                <th className="py-3 sm:py-4 px-4 sm:px-6 text-right text-xs font-semibold text-gray-600 tracking-wide">
+                                    Amount
                                 </th>
                             </tr>
                         </thead>
@@ -234,13 +226,13 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-green-600">
-                                            {formatCurrency(calculatedAmount.toFixed(2))}
-                                        </td>
                                         <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm text-gray-700">
                                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                 Completed
                                             </span>
+                                        </td>
+                                        <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-green-600 text-right">
+                                            {formatCurrency(calculatedAmount.toFixed(2))}
                                         </td>
                                     </tr>
                                 );
@@ -248,6 +240,82 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Driver Expenses */}
+            <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6">
+                <div className="p-4 sm:p-6 border-b border-gray-200/30">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                            Driver Expenses ({(invoice as any).expenses?.length || 0})
+                        </h3>
+                    </div>
+                </div>
+                {(invoice as any).expenses && (invoice as any).expenses.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                            <thead>
+                                <tr className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-200/30">
+                                    <th className="py-3 sm:py-4 px-4 sm:px-6 text-left text-xs font-semibold text-gray-600 tracking-wide">
+                                        Description
+                                    </th>
+                                    <th className="py-3 sm:py-4 px-4 sm:px-6 text-right text-xs font-semibold text-gray-600 tracking-wide">
+                                        Amount
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white/50 backdrop-blur-sm">
+                                {(invoice as any).expenses.map((expense: any, index: number) => {
+                                    // Handle decimal serialization properly like other amounts
+                                    const expenseAmount = safeNumber(expense.amount);
+                                    const isLastItem = index === (invoice as any).expenses.length - 1;
+                                    const hasMultipleItems = (invoice as any).expenses.length > 1;
+
+                                    return (
+                                        <tr
+                                            key={expense.id}
+                                            className={`group hover:bg-blue-50/80 transition-all duration-200 ${
+                                                hasMultipleItems && !isLastItem ? 'border-b border-gray-300' : ''
+                                            }`}
+                                        >
+                                            <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm text-gray-900">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium">
+                                                            {expense.category?.name || 'Expense'}
+                                                        </span>
+                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                                                            Driver Paid
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">
+                                                        {expense.description || 'No description'}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                        <span>
+                                                            Date: {new Date(expense.receiptDate).toLocaleDateString()}
+                                                        </span>
+                                                        {expense.vendorName && (
+                                                            <span>Vendor: {expense.vendorName}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm text-right font-semibold text-green-600">
+                                                {formatCurrency(expenseAmount.toFixed(2))}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="p-4 sm:p-6 text-center">
+                        <p className="text-xs sm:text-sm text-gray-500 italic">No driver expenses included</p>
+                    </div>
+                )}
             </div>
 
             {/* Additional Line Items */}
@@ -302,6 +370,119 @@ export const InvoiceReview: React.FC<InvoiceReviewProps> = ({
                         <p className="text-xs sm:text-sm text-gray-500 italic">No additional line items</p>
                     </div>
                 )}
+            </div>
+
+            {/* Invoice Totals Summary */}
+            <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6">
+                <div className="p-4 sm:p-6 border-b border-gray-200/30">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Invoice Totals</h3>
+                    </div>
+                </div>
+                <div className="p-4 sm:p-6">
+                    {(() => {
+                        // Calculate assignments total
+                        const assignmentsTotal = (invoice.assignments as any[]).reduce(
+                            (total: number, assignment: any) => {
+                                let emptyMilesForAssignment = 0;
+                                if (assignment.emptyMiles && Number(assignment.emptyMiles) > 0) {
+                                    emptyMilesForAssignment = safeNumber(assignment.emptyMiles);
+                                } else {
+                                    const emptyMilesKey = Object.keys(emptyMiles).find((key) =>
+                                        key.startsWith(`${assignment.id}-to-`),
+                                    );
+                                    emptyMilesForAssignment = emptyMilesKey ? emptyMiles[emptyMilesKey] : 0;
+                                }
+                                const calculatedAmount = calculateAssignmentAmount(assignment, emptyMilesForAssignment);
+                                return total + calculatedAmount;
+                            },
+                            0,
+                        );
+
+                        // Calculate line items total
+                        const lineItemsTotal = (invoice.lineItems as any[]).reduce((total: number, item: any) => {
+                            return total + safeNumber(item.amount);
+                        }, 0);
+
+                        // Calculate driver expenses total
+                        const expensesTotal = (invoice as any).expenses
+                            ? (invoice as any).expenses.reduce((total: number, expense: any) => {
+                                  return total + safeNumber(expense.amount);
+                              }, 0)
+                            : 0;
+
+                        // Calculate grand total
+                        const grandTotal = assignmentsTotal + lineItemsTotal + expensesTotal;
+
+                        return (
+                            <div className="space-y-3">
+                                {/* Assignments Subtotal */}
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                        <span className="text-sm text-gray-700">
+                                            Assignments Subtotal ({invoice.assignments.length} items)
+                                        </span>
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-900">
+                                        {formatCurrency(assignmentsTotal.toFixed(2))}
+                                    </span>
+                                </div>
+
+                                {/* Driver Expenses Subtotal */}
+                                {(invoice as any).expenses && (invoice as any).expenses.length > 0 && (
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                            <span className="text-sm text-gray-700">
+                                                Driver Expenses Subtotal ({(invoice as any).expenses.length} items)
+                                            </span>
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {formatCurrency(expensesTotal.toFixed(2))}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Line Items Subtotal */}
+                                {invoice.lineItems.length > 0 && (
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
+                                            <span className="text-sm text-gray-700">
+                                                Additional Items Subtotal ({invoice.lineItems.length} items)
+                                            </span>
+                                        </div>
+                                        <span
+                                            className={`text-sm font-medium ${
+                                                lineItemsTotal >= 0 ? 'text-gray-900' : 'text-red-600'
+                                            }`}
+                                        >
+                                            {lineItemsTotal >= 0
+                                                ? formatCurrency(lineItemsTotal.toFixed(2))
+                                                : `(${formatCurrency(Math.abs(lineItemsTotal).toFixed(2))})`}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Grand Total */}
+                                <div className="flex justify-between items-center pt-4 border-t-2 border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                                        <span className="text-lg font-bold text-gray-900">Invoice Total</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-indigo-600">
+                                            {formatCurrency(grandTotal.toFixed(2))}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-0.5">Amount Due</div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
             </div>
 
             {/* Driver Notification Toggle */}
