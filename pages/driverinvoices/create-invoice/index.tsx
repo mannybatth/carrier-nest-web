@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircleIcon, ChevronRightIcon, UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
@@ -27,10 +25,12 @@ import { financialCalculation, financialAdd, calculateAssignmentAmount, safeNumb
 import AdditionalItems from 'components/driverinvoices/AdditionalItems';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
+import { useSession } from 'next-auth/react';
 
 const CreateDriverInvoicePage = () => {
     const router = useRouter();
     const { defaultCarrier } = useUserContext();
+    const { data: session } = useSession();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<NewDriverInvoice>({
@@ -409,7 +409,9 @@ const CreateDriverInvoicePage = () => {
                 return;
             }
 
-            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+            const approvalUrl = `${window.location.origin}/driverinvoices/${invoiceId}/approval${
+                defaultCarrier.carrierCode ? `?carrierCode=${encodeURIComponent(defaultCarrier.carrierCode)}` : ''
+            }`;
 
             // Prefer email if available, otherwise use SMS
             if (selectedDriver.email && selectedDriver.email.trim() !== '') {
@@ -425,6 +427,8 @@ const CreateDriverInvoicePage = () => {
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'create',
                     }),
                 });
                 notify({
@@ -445,6 +449,8 @@ const CreateDriverInvoicePage = () => {
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'create',
                     }),
                 });
                 notify({
