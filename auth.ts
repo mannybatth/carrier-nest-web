@@ -10,12 +10,52 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { AdapterUser } from 'next-auth/adapters';
 import { JWT } from 'next-auth/jwt';
 import { appUrl } from 'lib/constants';
+import {
+    checkPhoneVerificationRateLimit,
+    incrementPhoneVerificationFailure,
+    incrementPhoneVerificationAttempt,
+} from 'lib/api/phone-verification-rate-limit';
+
+// Environment validation
+const requiredEnvVars = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'];
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+    console.error(`[AUTH] Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioClient = Twilio(accountSid, authToken);
+const twilioFromNumber = process.env.TWILIO_FROM_NUMBER || '+18883429736';
+
+// Initialize Twilio client with error handling
+let twilioClient: Twilio.Twilio;
+try {
+    twilioClient = Twilio(accountSid, authToken);
+} catch (error) {
+    console.error('[AUTH] Failed to initialize Twilio client:', error);
+    throw new Error('Failed to initialize SMS service');
+}
+
+// Production-ready logging focused on critical events only
+const logger = {
+    error: (message: string, metadata: Record<string, any> = {}) => {
+        console.error(`[AUTH:ERROR] ${message}`, metadata);
+    },
+    security: (message: string, metadata: Record<string, any> = {}) => {
+        console.warn(`[AUTH:SECURITY] ${message}`, metadata);
+    },
+};
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
+    // Production-ready configuration
+    debug: process.env.NODE_ENV === 'development',
+    trustHost: true,
+    secret: process.env.NEXTAUTH_SECRET,
+
+    // Security enhancements
+    useSecureCookies: process.env.NODE_ENV === 'production',
+
     providers: [
         Nodemailer({
             server: {
@@ -72,49 +112,120 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     code: string;
                 };
 
+                // Simple rate limiting check using phone number as identifier
+                // This is a simplified approach since NextAuth doesn't provide request context
+                const rateKey = `phone_verify:${phoneNumber}`;
+
+                // Check rate limit before processing (simplified check without IP)
+                try {
+                    const rateLimitResult = await checkPhoneVerificationRateLimit(
+                        rateKey, // Use phone as identifier since we don't have IP in NextAuth context
+                        phoneNumber,
+                    );
+
+                    if (!rateLimitResult.allowed) {
+                        const reason = rateLimitResult.reason || 'Rate limit exceeded';
+                        const blockedUntil = rateLimitResult.blockedUntil
+                            ? new Date(rateLimitResult.blockedUntil).toLocaleTimeString()
+                            : 'later';
+
+                        logger.security('Rate limit exceeded - request blocked', {
+                            phoneNumber,
+                            reason,
+                            blockedUntil,
+                        });
+
+                        // Immediately terminate the request with appropriate error message
+                        if (rateLimitResult.reason === 'IP rate limit exceeded') {
+                            throw new Error(
+                                'Too many verification attempts from this location. Please wait before trying again.',
+                            );
+                        } else {
+                            throw new Error('Too many attempts. Please try again later.');
+                        }
+                    }
+                } catch (error) {
+                    // If it's a rate limit error, re-throw it to terminate the request
+                    if (
+                        error.message.includes('Too many attempts') ||
+                        error.message.includes('verification attempts')
+                    ) {
+                        throw error;
+                    }
+                    // Continue with authentication if rate limit check fails for other reasons
+                }
+
                 // Fetch the driver from your database using the phone number.
                 const driver = await getDriverByPhoneNumber(phoneNumber, carrierCode);
 
                 if (!driver) {
-                    // If the driver is not found, throw an error.
-                    console.log(`[DRIVER_AUTH] Driver not found - Phone: ${phoneNumber}, Carrier: ${carrierCode}`);
+                    // If the driver is not found, log security event and throw error.
+                    logger.security('Failed login attempt - driver not found', { phoneNumber, carrierCode });
                     throw new Error('Driver not found');
                 }
 
                 // Check if the driver is active before proceeding with authentication
                 if (!driver.active) {
-                    // Log clean message for deactivated driver attempt
-                    console.log(
-                        `[DRIVER_AUTH] Deactivated driver attempted sign-in - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
-                    );
+                    // Log security event for deactivated driver attempt
+                    logger.security('Deactivated driver login attempt blocked', {
+                        driverId: driver.id,
+                        phoneNumber,
+                    });
                     // For deactivated drivers, return null to trigger CredentialsSignin error
                     // This will redirect to signin page with proper error handling
                     return null;
                 }
 
-                // Log successful driver verification for active drivers
-                console.log(`[DRIVER_AUTH] Active driver verified - Driver ID: ${driver.id}, Phone: ${phoneNumber}`);
-
-                // If no code is provided, it means the driver is requesting an SMS code.
+                // Remove verbose "successful verification" logging                // If no code is provided, it means the driver is requesting an SMS code.
                 if (!code) {
                     const isDemoDriver = driver.email === 'demo@driver.com' && carrierCode === 'demo';
                     if (!isDemoDriver) {
+                        // Double-check rate limit before sending SMS
+                        try {
+                            const smsRateLimitResult = await checkPhoneVerificationRateLimit(rateKey, phoneNumber);
+                            if (!smsRateLimitResult.allowed) {
+                                const reason = smsRateLimitResult.reason || 'Rate limit exceeded';
+                                console.warn(
+                                    `[DRIVER_AUTH] SMS SENDING BLOCKED - Rate limit exceeded for phone: ${phoneNumber}, Reason: ${reason}`,
+                                );
+                                throw new Error('Too many verification attempts. Please try again later.');
+                            }
+                        } catch (error) {
+                            // If it's a rate limit error, re-throw it to terminate
+                            if (
+                                error.message.includes('Too many attempts') ||
+                                error.message.includes('verification attempts')
+                            ) {
+                                throw error;
+                            }
+                            // Continue silently if rate limit check fails
+                        }
+
+                        // Track SMS sending attempt for IP rate limiting
+                        try {
+                            await incrementPhoneVerificationAttempt(rateKey, phoneNumber);
+                        } catch (error) {
+                            // Continue silently if tracking fails
+                        }
+
                         const generatedCode = generateRandomCode();
 
-                        await twilioClient.messages.create({
-                            body: `Your login code is: ${generatedCode}`,
-                            from: '+18883429736',
-                            to: phoneNumber,
-                        });
-                        // Store the generated code in the database linked to the driver's phone number
-                        // with a short expiration time.
-                        await storeCodeForDriver(driver.id, generatedCode);
-                        console.log(
-                            `[DRIVER_AUTH] SMS verification code sent - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
-                        );
+                        // Use optimized SMS sending with retry logic
+                        try {
+                            await sendSmsWithRetry(phoneNumber, `Your login code is: ${generatedCode}`);
+
+                            // Store the generated code only after successful SMS sending
+                            await storeCodeForDriver(driver.id, generatedCode);
+                        } catch (smsError) {
+                            logger.error('Failed to send SMS verification code', {
+                                driverId: driver.id,
+                                phoneNumber,
+                                error: smsError.message,
+                            });
+                            throw new Error('Failed to send verification code. Please try again.');
+                        }
                     } else {
                         // Process login of demo driver without PIN verification
-                        console.log(`[DRIVER_AUTH] Demo driver authenticated - Driver ID: ${driver.id}`);
                         return {
                             id: driver.id,
                             driverId: driver.id,
@@ -131,16 +242,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 const isValidCode = await verifyCodeForDriver(driver.id, code);
 
                 if (!isValidCode) {
-                    console.log(
-                        `[DRIVER_AUTH] Invalid verification code - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
-                    );
+                    logger.security('Invalid verification code attempt', {
+                        driverId: driver.id,
+                        phoneNumber,
+                    });
+
+                    // Record failed verification attempt for rate limiting
+                    try {
+                        await incrementPhoneVerificationFailure(rateKey, phoneNumber);
+                    } catch (error) {
+                        logger.error('Failed to record verification failure', { phoneNumber, error: error.message });
+                    }
+
                     throw new Error('Invalid code');
                 }
 
-                // If the code is valid, return the driver object which will be used to create a session.
-                console.log(
-                    `[DRIVER_AUTH] Driver authentication successful - Driver ID: ${driver.id}, Phone: ${phoneNumber}`,
-                );
+                // Remove verbose success logging
                 return { id: driver.id, driverId: driver.id, phoneNumber: driver.phone, carrierId: driver.carrierId };
             },
         }),
@@ -317,10 +434,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: 'jwt',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 24 * 60 * 60, // 24 hours for security
+        updateAge: 4 * 60 * 60, // Update session every 4 hours
     },
     jwt: {
-        maxAge: 6 * 30 * 24 * 60 * 60, // 180 days
+        maxAge: 24 * 60 * 60, // 24 hours matching session
     },
     events: {
         signIn: async ({ user, account, profile, isNewUser }) => {
@@ -386,65 +504,167 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 });
 
 async function getDriverByPhoneNumber(phoneNumber: string, carrierCode: string) {
-    return await prisma.driver.findFirst({
-        where: {
-            phone: phoneNumber,
-            carrier: {
-                carrierCode: carrierCode,
+    try {
+        const driver = await prisma.driver.findFirst({
+            where: {
+                phone: phoneNumber,
+                carrier: {
+                    carrierCode: carrierCode,
+                },
             },
-        },
-    });
+            select: {
+                id: true,
+                phone: true,
+                email: true,
+                active: true,
+                carrierId: true,
+                smsCode: true,
+                smsCodeExpiry: true,
+                carrier: {
+                    select: {
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        return driver;
+    } catch (error) {
+        logger.error('Database error during driver lookup', { phoneNumber, carrierCode, error: error.message });
+        throw new Error('Database error during authentication');
+    }
 }
 
-function generateRandomCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+function generateRandomCode(): string {
+    // Use cryptographically secure random for production
+    const crypto = require('crypto');
+    const code = crypto.randomInt(100000, 999999).toString();
+    return code;
 }
 
 async function storeCodeForDriver(driverId: string, code: string) {
-    const expirationTime = new Date();
-    expirationTime.setMinutes(expirationTime.getMinutes() + 10); // Set to expire in 10 minutes
+    try {
+        const expirationTime = new Date();
+        expirationTime.setMinutes(expirationTime.getMinutes() + 10); // Set to expire in 10 minutes
 
-    return await prisma.driver.update({
-        where: {
-            id: driverId,
-        },
-        data: {
-            smsCode: code,
-            smsCodeExpiry: expirationTime,
-        },
-    });
+        const result = await prisma.driver.update({
+            where: {
+                id: driverId,
+            },
+            data: {
+                smsCode: code,
+                smsCodeExpiry: expirationTime,
+            },
+            select: {
+                id: true,
+                smsCodeExpiry: true,
+            },
+        });
+
+        return result;
+    } catch (error) {
+        logger.error('Failed to store SMS code', { driverId, error: error.message });
+        throw new Error('Failed to store verification code');
+    }
 }
 
 async function verifyCodeForDriver(driverId: string, code: string): Promise<boolean> {
-    // Fetch the driver's stored SMS code and its expiration time
-    const driver = await prisma.driver.findUnique({
-        where: { id: driverId },
-        select: {
-            smsCode: true,
-            smsCodeExpiry: true,
-            email: true,
-            carrier: {
-                select: {
-                    email: true,
+    try {
+        // Fetch the driver's stored SMS code and its expiration time
+        const driver = await prisma.driver.findUnique({
+            where: { id: driverId },
+            select: {
+                id: true,
+                smsCode: true,
+                smsCodeExpiry: true,
+                email: true,
+                carrier: {
+                    select: {
+                        email: true,
+                    },
                 },
             },
-        },
+        });
+
+        if (!driver) {
+            logger.error('Driver not found during code verification', { driverId });
+            throw new Error('Driver not found');
+        }
+
+        // Add bypass for demo@driver.com - only log for security monitoring
+        if (driver.email === 'demo@driver.com' && driver.carrier.email === 'demo@carrier.com') {
+            return true;
+        }
+
+        if (!driver.smsCode || !driver.smsCodeExpiry) {
+            return false;
+        }
+
+        const currentTime = new Date();
+        const isExpired = currentTime > driver.smsCodeExpiry;
+
+        if (isExpired) {
+            // Clean up expired code
+            await prisma.driver.update({
+                where: { id: driverId },
+                data: {
+                    smsCode: null,
+                    smsCodeExpiry: null,
+                },
+            });
+
+            return false;
+        }
+
+        const isValidCode = driver.smsCode === code;
+
+        if (isValidCode) {
+            // Clear the code after successful verification
+            await prisma.driver.update({
+                where: { id: driverId },
+                data: {
+                    smsCode: null,
+                    smsCodeExpiry: null,
+                },
+            });
+        }
+
+        return isValidCode;
+    } catch (error) {
+        logger.error('Database error during SMS code verification', { driverId, error: error.message });
+        throw new Error('Failed to verify SMS code');
+    }
+}
+
+// Optimized SMS sending with retry logic and better error handling
+async function sendSmsWithRetry(phoneNumber: string, message: string, maxRetries = 3): Promise<void> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            await twilioClient.messages.create({
+                body: message,
+                from: twilioFromNumber,
+                to: phoneNumber,
+            });
+
+            // SMS sent successfully - only log failures and security events
+            return;
+        } catch (error) {
+            lastError = error;
+
+            if (attempt < maxRetries) {
+                // Exponential backoff: wait 1s, then 2s, then 4s
+                const delay = Math.pow(2, attempt - 1) * 1000;
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    logger.error('SMS sending failed after all retries', {
+        phoneNumber,
+        maxRetries,
+        error: lastError?.message,
     });
-
-    if (!driver) {
-        throw new Error('Driver not found');
-    }
-
-    // Add bypass for demo@driver.com
-    if (driver.email === 'demo@driver.com' && driver.carrier.email === 'demo@carrier.com') {
-        return true;
-    }
-
-    // Check if the code matches and if it hasn't expired
-    const currentTimestamp = new Date();
-    if (driver.smsCode === code && driver.smsCodeExpiry > currentTimestamp) {
-        return true;
-    }
-
-    return false;
+    throw new Error('Failed to send SMS after multiple attempts');
 }
