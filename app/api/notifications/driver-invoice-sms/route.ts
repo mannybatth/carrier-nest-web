@@ -4,7 +4,8 @@ import Twilio from 'twilio';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { driverPhone, driverName, invoiceNum, approvalUrl, invoiceAmount, carrierName } = body;
+        const { driverPhone, driverName, invoiceNum, approvalUrl, invoiceAmount, carrierName, createdByName, action } =
+            body;
 
         if (!driverPhone || !driverName || !invoiceNum || !approvalUrl || !invoiceAmount) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -21,17 +22,19 @@ export async function POST(request: NextRequest) {
 
         const twilioClient = Twilio(accountSid, authToken);
 
-        // Create SMS message
-        const messageBody = createSMSMessage({
+        // Send SMS notification
+        const message = createSMSMessage({
             driverName,
             invoiceNum,
             approvalUrl,
             invoiceAmount,
-            carrierName: carrierName || 'CarrierNest',
+            carrierName,
+            createdByName,
+            action,
         });
 
         await twilioClient.messages.create({
-            body: messageBody,
+            body: message,
             from: '+18883429736', // Using the same number as in auth.ts
             to: driverPhone,
         });
@@ -49,12 +52,18 @@ function createSMSMessage(data: {
     approvalUrl: string;
     invoiceAmount: string;
     carrierName: string;
+    createdByName: string;
+    action?: string;
 }): string {
+    const actionText =
+        data.action === 'update' ? 'Your invoice has been updated' : 'Your invoice is ready for approval';
+
     return `Hi ${data.driverName}! 🚛
 
-Your invoice is ready for approval:
+${actionText}:
 💰 Amount: ${data.invoiceAmount}
 📄 Invoice #${data.invoiceNum}
+👤 Created by: ${data.createdByName}
 
 👆 Tap to review and approve:
 ${data.approvalUrl}
