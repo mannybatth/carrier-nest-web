@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { seedExpenseCategories } from './seed-expense-categories';
 
 const prisma = new PrismaClient();
 
@@ -94,6 +95,9 @@ async function main() {
             console.log(`Demo driver already exists for this carrier: ${demoDriver.name}`);
         }
     });
+
+    // Seed expense categories
+    await seedExpenseCategories();
 }
 
 main()
