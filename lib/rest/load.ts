@@ -55,7 +55,7 @@ export const getLoadsExpanded = async ({
 };
 
 export const getLoadById = async (id: string, driverId?: string, expandCarrier = false): Promise<ExpandedLoad> => {
-    let expand = 'customer,shipper,receiver,stops,invoice,driverAssignments,documents,route,additionalStops';
+    let expand = 'customer,shipper,receiver,stops,invoice,driverAssignments,documents,route,additionalStops,expenses';
     if (expandCarrier) {
         expand += ',carrier';
     }
