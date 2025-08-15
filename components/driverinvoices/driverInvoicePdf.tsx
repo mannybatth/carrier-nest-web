@@ -334,6 +334,11 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
 
     const lineItemsTotal = invoice.lineItems.reduce((sum, li) => sum + Number(li.amount), 0);
 
+    // Calculate expenses total
+    const expensesTotal = invoice.expenses
+        ? invoice.expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
+        : 0;
+
     // Unicode symbols as icon replacements
     const symbols = {
         document: '📄',
@@ -613,6 +618,76 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                     })}
                 </View>
 
+                {/* Driver Expenses */}
+                {invoice.expenses && invoice.expenses.length > 0 && (
+                    <View style={styles.section} wrap={false}>
+                        <Text style={styles.sectionTitle}>Driver Expenses</Text>
+                        {invoice.expenses.map((expense, index) => {
+                            // Build detailed description
+                            const descriptionParts = [];
+
+                            // Add category
+                            if (expense.category?.name) {
+                                descriptionParts.push(expense.category.name);
+                            }
+
+                            // Add description if available
+                            if (expense.description) {
+                                descriptionParts.push(expense.description);
+                            }
+
+                            // Add vendor name if available
+                            if (expense.vendorName) {
+                                descriptionParts.push(`Vendor: ${expense.vendorName}`);
+                            }
+
+                            // Add receipt date
+                            if (expense.receiptDate) {
+                                const receiptDate = new Date(expense.receiptDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: '2-digit',
+                                });
+                                descriptionParts.push(`Date: ${receiptDate}`);
+                            }
+
+                            // Add created at date
+                            if (expense.createdAt) {
+                                const createdDate = new Date(expense.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: '2-digit',
+                                });
+                                descriptionParts.push(`Submitted: ${createdDate}`);
+                            }
+
+                            const finalDescription =
+                                descriptionParts.length > 0 ? descriptionParts.join(' • ') : 'Expense';
+
+                            return (
+                                <View
+                                    key={expense.id}
+                                    style={
+                                        index + 1 !== invoice.expenses.length
+                                            ? styles.lineItemRow
+                                            : styles.lineItemLastRow
+                                    }
+                                >
+                                    <Text style={styles.lineItemDescription}>{finalDescription}</Text>
+                                    <Text
+                                        style={[
+                                            styles.lineItemAmount,
+                                            { color: Number(expense.amount) > 0 ? '#2eb82e' : '#e62e00' },
+                                        ]}
+                                    >
+                                        {formatCurrency(Number(expense.amount))}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
                 {/* Line Items */}
                 {invoice.lineItems.length > 0 && (
                     <View style={styles.section} wrap={false}>
@@ -645,15 +720,21 @@ export const DriverInvoicePDF: React.FC<{ invoice: ExpandedDriverInvoice }> = ({
                         <Text style={styles.totalsLabel}>Assignments Total</Text>
                         <Text style={styles.totalsValue}>{formatCurrency(assignmentsTotal)}</Text>
                     </View>
+                    {invoice.expenses && invoice.expenses.length > 0 && (
+                        <View style={styles.totalsRow}>
+                            <Text style={styles.totalsLabel}>Driver Expenses Total</Text>
+                            <Text style={styles.totalsValue}>{formatCurrency(expensesTotal)}</Text>
+                        </View>
+                    )}
                     <View style={styles.totalsRow}>
                         <Text style={styles.totalsLabel}>Line Items Total</Text>
-                        <Text style={[styles.totalsValue, { color: lineItemsTotal > 0 ? '#2eb82e' : '#e62e00' }]}>
-                            {formatCurrency(lineItemsTotal)}
-                        </Text>
+                        <Text style={styles.totalsValue}>{formatCurrency(lineItemsTotal)}</Text>
                     </View>
                     <View style={[styles.grandTotal, { marginTop: 8 }]}>
                         <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                        <Text style={styles.grandTotalValue}>{formatCurrency(Number(invoice.totalAmount))}</Text>
+                        <Text style={styles.grandTotalValue}>
+                            {formatCurrency(assignmentsTotal + expensesTotal + lineItemsTotal)}
+                        </Text>
                     </View>
                 </View>
 
