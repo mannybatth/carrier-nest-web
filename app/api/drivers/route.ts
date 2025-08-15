@@ -114,6 +114,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
                 perHourRate: driverData.perHourRate,
                 defaultFixedPay: driverData.defaultFixedPay,
                 takeHomePercent: driverData.takeHomePercent,
+                baseGuaranteeAmount: driverData.baseGuaranteeAmount,
                 carrier: {
                     connect: {
                         id: session.user.defaultCarrierId,
@@ -132,7 +133,7 @@ export const POST = auth(async (req: NextAuthRequest) => {
             { status: 200 },
         );
     } catch (error) {
-        console.log('driver post error', error);
+        console.error('driver post error', error);
         return NextResponse.json(
             {
                 code: 400,
