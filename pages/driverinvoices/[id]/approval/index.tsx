@@ -20,9 +20,12 @@ import { formatPhoneNumber } from 'lib/helpers/format';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import { signIn, useSession } from 'next-auth/react';
+import { PageWithAuth } from 'interfaces/auth';
 
-const DriverInvoiceApprovalPage = () => {
+const DriverInvoiceApprovalPage: PageWithAuth = () => {
     const router = useRouter();
+    const { data: session, status: sessionStatus } = useSession();
     const [invoice, setInvoice] = useState<ExpandedDriverInvoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [approving, setApproving] = useState(false);
@@ -31,14 +34,46 @@ const DriverInvoiceApprovalPage = () => {
     const [showPhoneVerification, setShowPhoneVerification] = useState(false);
     const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
     const [verificationError, setVerificationError] = useState('');
-    const [showInitialPhonePrompt, setShowInitialPhonePrompt] = useState(true);
+    const [showInitialPhonePrompt, setShowInitialPhonePrompt] = useState(false);
     const [initialPhoneInput, setInitialPhoneInput] = useState('');
+    const [initialCarrierCodeInput, setInitialCarrierCodeInput] = useState('');
     const [initialPhoneError, setInitialPhoneError] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // SMS Authentication states
+    const [showSmsVerification, setShowSmsVerification] = useState(false);
+    const [smsCode, setSmsCode] = useState('');
+    const [smsError, setSmsError] = useState('');
+    const [sendingSms, setSendingSms] = useState(false);
+    const [driverPhoneNumber, setDriverPhoneNumber] = useState('');
+    const [carrierCode, setCarrierCode] = useState('');
+
+    // Rate limiting states
+    const [isRateLimited, setIsRateLimited] = useState(false);
+    const [rateLimitMessage, setRateLimitMessage] = useState('');
+    const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
+
+    // Helper function to format remaining time
+    const formatRemainingTime = (until: number): string => {
+        const now = Date.now();
+        const remaining = until - now;
+
+        if (remaining <= 0) return '';
+
+        const minutes = Math.floor(remaining / (60 * 1000));
+        const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+
+        if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        }
+        return `${seconds}s`;
+    };
+
     const invoiceId = router.query.id as string;
 
     const [assignmentsTotal, setAssignmentsTotal] = useState(0);
     const [lineItemsTotal, setLineItemsTotal] = useState(0);
+    const [expensesTotal, setExpensesTotal] = useState(0);
 
     useEffect(() => {
         if (!invoice) return;
@@ -75,6 +110,16 @@ const DriverInvoiceApprovalPage = () => {
         });
 
         setLineItemsTotal(Number(lineItemsTotal.toFixed(2)));
+
+        let expensesTotal = 0;
+        // Add up expenses
+        if (invoice.expenses) {
+            invoice.expenses.forEach((expense) => {
+                expensesTotal += Number(expense.amount);
+            });
+        }
+
+        setExpensesTotal(Number(expensesTotal.toFixed(2)));
     }, [invoice]);
 
     // Get invoice data on mount
@@ -114,8 +159,13 @@ const DriverInvoiceApprovalPage = () => {
                 setIsAuthenticated(false);
             } else {
                 // Try with regular auth
-                invoiceData = await getDriverInvoiceById(invoiceId);
-                setIsAuthenticated(true);
+                try {
+                    invoiceData = await getDriverInvoiceById(invoiceId);
+                    setIsAuthenticated(true);
+                } catch (authError) {
+                    // If authentication fails, show phone prompt
+                    throw new Error('Authentication required');
+                }
             }
 
             setInvoice(invoiceData);
@@ -133,19 +183,245 @@ const DriverInvoiceApprovalPage = () => {
         }
     };
 
+    // Parse URL parameters on component mount
     useEffect(() => {
-        if (invoiceId) {
-            // First try without phone (authenticated access)
-            getInvoiceData();
+        if (router.isReady) {
+            const carrierCodeParam = router.query.carrierCode as string;
+            if (carrierCodeParam) {
+                setInitialCarrierCodeInput(carrierCodeParam);
+                setCarrierCode(carrierCodeParam);
+            }
         }
-    }, [invoiceId]);
+    }, [router.isReady, router.query.carrierCode]);
 
-    const handleInitialPhoneSubmit = () => {
+    useEffect(() => {
+        if (invoiceId && sessionStatus !== 'loading') {
+            // Check if user is authenticated
+            if (sessionStatus === 'authenticated' && session) {
+                // Try authenticated access first
+                getInvoiceData();
+            } else {
+                // No session, show phone prompt
+                setShowInitialPhonePrompt(true);
+                setLoading(false);
+            }
+        }
+    }, [invoiceId, sessionStatus]);
+
+    // Handle rate limit expiration
+    useEffect(() => {
+        if (isRateLimited && rateLimitUntil) {
+            const interval = setInterval(() => {
+                if (Date.now() > rateLimitUntil) {
+                    setIsRateLimited(false);
+                    setRateLimitMessage('');
+                    setRateLimitUntil(null);
+                    clearInterval(interval);
+                }
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [isRateLimited, rateLimitUntil]);
+
+    const handleInitialPhoneSubmit = async () => {
+        // Check if rate limited
+        if (isRateLimited) {
+            setInitialPhoneError(rateLimitMessage || 'Too many attempts. Please wait before trying again.');
+            return;
+        }
+
         if (!initialPhoneInput.trim()) {
             setInitialPhoneError('Please enter your phone number.');
             return;
         }
-        getInvoiceData(initialPhoneInput.trim());
+
+        // Only require carrier code input if not provided via URL
+        if (!router.query.carrierCode && !initialCarrierCodeInput.trim()) {
+            setInitialPhoneError('Please enter your carrier code.');
+            return;
+        }
+
+        // First try to get invoice with phone number to validate driver
+        try {
+            setSendingSms(true);
+            setInitialPhoneError('');
+
+            // Format phone number (remove non-digits and don't add +1 prefix)
+            let formattedPhone = initialPhoneInput.trim().replace(/\D/g, '');
+
+            // Remove leading 1 if present (US country code)
+            if (formattedPhone.startsWith('1') && formattedPhone.length === 11) {
+                formattedPhone = formattedPhone.substring(1);
+            }
+
+            // Use carrier code from URL if available, otherwise use manually entered one
+            const userCarrierCode = (router.query.carrierCode as string) || initialCarrierCodeInput.trim();
+
+            const urlWithPhone = `/api/driverinvoices/${invoiceId}?driverPhone=${encodeURIComponent(formattedPhone)}`;
+            const response = await fetch(urlWithPhone, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                if (response.status === 403) {
+                    setInitialPhoneError('Phone number does not match the driver for this invoice.');
+                } else if (response.status === 404) {
+                    setInitialPhoneError('Invoice not found. Please check the link and try again.');
+                } else {
+                    setInitialPhoneError(errorData.errors?.[0]?.message || 'Failed to verify phone number');
+                }
+                return;
+            }
+
+            const data = await response.json();
+            const invoiceData = data.data;
+
+            // Use the manually entered carrier code instead of extracting from invoice
+            const finalCarrierCode = userCarrierCode;
+
+            setCarrierCode(finalCarrierCode);
+            setDriverPhoneNumber(formattedPhone);
+
+            // Check if this is a demo driver (skip SMS for demo)
+            const isDemoDriver = invoiceData.driver?.email === 'demo@driver.com' && finalCarrierCode === 'demo';
+
+            if (isDemoDriver) {
+                // Skip SMS verification for demo driver
+                setInvoice(invoiceData);
+                setIsAuthenticated(false);
+                setShowInitialPhonePrompt(false);
+            } else {
+                // Send SMS verification code using NextAuth
+                await sendSmsVerificationCode(formattedPhone, finalCarrierCode);
+                setShowInitialPhonePrompt(false);
+                setShowSmsVerification(true);
+            }
+        } catch (error) {
+            setInitialPhoneError(error.message || 'Failed to verify phone number');
+        } finally {
+            setSendingSms(false);
+        }
+    };
+
+    const sendSmsVerificationCode = async (phoneNumber: string, carrierCode: string) => {
+        try {
+            // Use NextAuth signIn to trigger SMS sending (first step - no code provided)
+            const result = await signIn('driver_auth', {
+                phoneNumber,
+                carrierCode,
+                code: '', // Empty code triggers SMS sending
+                redirect: false,
+            });
+
+            if (result?.error) {
+                // Check for rate limiting errors
+                if (result.error.includes('Too many attempts')) {
+                    // Set rate limit state to prevent further attempts
+                    setIsRateLimited(true);
+                    setRateLimitMessage('Too many verification attempts. Please wait 30 minutes before trying again.');
+                    setRateLimitUntil(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+                    throw new Error('Too many verification attempts. Please wait before trying again.');
+                } else if (result.error.includes('IP rate limit exceeded')) {
+                    // Set rate limit state for IP-based limiting
+                    setIsRateLimited(true);
+                    setRateLimitMessage(
+                        'Too many verification attempts from this location. Please wait 1 hour before trying again.',
+                    );
+                    setRateLimitUntil(Date.now() + 60 * 60 * 1000); // 1 hour from now
+                    throw new Error(
+                        'Too many verification attempts from this location. Please wait before trying again.',
+                    );
+                }
+                throw new Error(result.error);
+            }
+
+            notify({
+                type: 'success',
+                title: 'Verification Code Sent',
+                message: 'Please check your phone for the 6-digit verification code.',
+            });
+        } catch (error) {
+            throw new Error(error.message || 'Failed to send verification code');
+        }
+    };
+
+    const handleSmsCodeSubmit = async () => {
+        // Check if rate limited
+        if (isRateLimited) {
+            setSmsError(rateLimitMessage || 'Too many attempts. Please wait before trying again.');
+            return;
+        }
+
+        if (!smsCode.trim() || smsCode.length !== 6) {
+            setSmsError('Please enter the 6-digit verification code.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setSmsError('');
+
+            // Use NextAuth signIn to verify the SMS code (second step - with code)
+            const result = await signIn('driver_auth', {
+                phoneNumber: driverPhoneNumber,
+                carrierCode,
+                code: smsCode,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                // Check for rate limiting errors
+                if (result.error.includes('Too many attempts')) {
+                    // Set rate limit state to prevent further attempts
+                    setIsRateLimited(true);
+                    setRateLimitMessage('Too many failed attempts. Please wait 30 minutes before trying again.');
+                    setRateLimitUntil(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+                    setSmsError('Too many failed attempts. Please wait before trying again.');
+                } else if (result.error.includes('IP rate limit exceeded')) {
+                    // Set rate limit state for IP-based limiting
+                    setIsRateLimited(true);
+                    setRateLimitMessage(
+                        'Too many verification attempts from this location. Please wait 1 hour before trying again.',
+                    );
+                    setRateLimitUntil(Date.now() + 60 * 60 * 1000); // 1 hour from now
+                    setSmsError('Too many verification attempts from this location. Please wait before trying again.');
+                } else {
+                    setSmsError('Invalid or expired verification code. Please try again.');
+                }
+                return;
+            }
+
+            // If successful, driver is now authenticated, fetch invoice data
+            await getInvoiceData(driverPhoneNumber);
+            setShowSmsVerification(false);
+
+            notify({
+                type: 'success',
+                title: 'Phone Verified Successfully',
+                message: 'You can now view and approve your invoice.',
+            });
+        } catch (error) {
+            setSmsError(error.message || 'Failed to verify code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendCode = async () => {
+        try {
+            setSendingSms(true);
+            setSmsError('');
+            await sendSmsVerificationCode(driverPhoneNumber, carrierCode);
+        } catch (error) {
+            setSmsError(error.message || 'Failed to resend verification code');
+        } finally {
+            setSendingSms(false);
+        }
     };
 
     const handleApproveInvoice = async () => {
@@ -343,71 +619,242 @@ const DriverInvoiceApprovalPage = () => {
         }
     };
 
-    if (loading) {
+    if (loading || sessionStatus === 'loading') {
         return <DriverInvoiceApprovalSkeleton />;
     }
 
     // Show initial phone prompt if not authenticated and no invoice loaded
     if (showInitialPhonePrompt && !invoice) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
-                <div className="max-w-md w-full mx-4">
-                    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 p-6">
-                        <div className="text-center mb-6">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
-                                <PhoneIcon className="h-6 w-6 text-blue-600" />
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="max-w-sm w-full">
+                    <div className="bg-white rounded-3xl shadow-lg p-8">
+                        {/* Header */}
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                <svg
+                                    className="w-8 h-8 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                                    />
+                                </svg>
                             </div>
-                            <h2 className="text-xl font-semibold text-gray-900 mb-2">Driver Verification Required</h2>
-                            <p className="text-sm text-gray-600">
-                                Please enter your phone number to view your invoice.
-                            </p>
+                            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Driver verification</h1>
+                            <p className="text-base text-gray-600">Enter your phone number to access your invoice</p>
                         </div>
 
-                        <div className="space-y-4">
+                        {/* Form */}
+                        <div className="space-y-4 mb-6">
+                            {/* Phone Number */}
                             <div>
                                 <label htmlFor="initialPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Phone Number
+                                    Phone number
                                 </label>
                                 <input
                                     type="tel"
                                     id="initialPhone"
                                     value={initialPhoneInput}
                                     onChange={(e) => {
-                                        // Only allow digits
                                         const digitsOnly = e.target.value.replace(/\D/g, '');
                                         setInitialPhoneInput(digitsOnly);
-                                        setInitialPhoneError(''); // Clear error when user types
+                                        setInitialPhoneError('');
                                     }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             handleInitialPhoneSubmit();
                                         }
                                     }}
-                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Enter your phone number (digits only)"
+                                    className="w-full h-12 px-4 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 text-base"
+                                    placeholder="(555) 123-4567"
                                     autoFocus
                                 />
-                                {initialPhoneError && (
-                                    <p className="mt-2 text-sm text-red-600 bg-red-50 rounded-lg p-2 border border-red-200/50">
-                                        {initialPhoneError}
-                                    </p>
-                                )}
                             </div>
 
+                            {/* Carrier Code (conditional) */}
+                            {!router.query.carrierCode && (
+                                <div>
+                                    <label
+                                        htmlFor="initialCarrierCode"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        Carrier code
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="initialCarrierCode"
+                                        value={initialCarrierCodeInput}
+                                        onChange={(e) => {
+                                            setInitialCarrierCodeInput(e.target.value.trim());
+                                            setInitialPhoneError('');
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleInitialPhoneSubmit();
+                                            }
+                                        }}
+                                        className="w-full h-12 px-4 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 text-base"
+                                        placeholder="demo"
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        Contact your carrier if you don&apos;t know your code
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Error Message */}
+                            {initialPhoneError && (
+                                <div className="p-3 bg-red-50 rounded-xl">
+                                    <p className="text-sm text-red-600 text-center">
+                                        {initialPhoneError}
+                                        {isRateLimited && rateLimitUntil && (
+                                            <span className="block mt-1 font-mono text-xs">
+                                                Try again in: {formatRemainingTime(rateLimitUntil)}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Button */}
+                        <button
+                            onClick={handleInitialPhoneSubmit}
+                            disabled={loading || sendingSms || isRateLimited}
+                            className="w-full h-12 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                            {loading || sendingSms ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            ) : isRateLimited ? (
+                                'Rate Limited - Please Wait'
+                            ) : (
+                                'Continue'
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show SMS verification prompt
+    if (showSmsVerification) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="max-w-sm w-full">
+                    <div className="bg-white rounded-3xl shadow-lg p-8">
+                        {/* Header */}
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                <svg
+                                    className="w-8 h-8 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                    />
+                                </svg>
+                            </div>
+                            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Enter verification code</h1>
+                            <p className="text-base text-gray-600 mb-1">We sent a code to</p>
+                            <p className="text-base font-medium text-gray-900">{driverPhoneNumber}</p>
+                        </div>
+
+                        {/* Code Input */}
+                        <div className="mb-6">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    id="smsCode"
+                                    maxLength={6}
+                                    value={smsCode}
+                                    onChange={(e) => {
+                                        const digitsOnly = e.target.value.replace(/\D/g, '');
+                                        setSmsCode(digitsOnly);
+                                        setSmsError('');
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && smsCode.length === 6) {
+                                            handleSmsCodeSubmit();
+                                        }
+                                    }}
+                                    className="w-full h-14 text-center text-2xl font-mono tracking-[0.5em] bg-gray-50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+                                    placeholder="000000"
+                                    autoFocus
+                                    style={{ letterSpacing: '0.5em', paddingLeft: '0.25em' }}
+                                />
+                            </div>
+                            {smsError && (
+                                <div className="mt-3 p-3 bg-red-50 rounded-xl">
+                                    <p className="text-sm text-red-600 text-center">
+                                        {smsError}
+                                        {isRateLimited && rateLimitUntil && (
+                                            <span className="block mt-1 font-mono text-xs">
+                                                Try again in: {formatRemainingTime(rateLimitUntil)}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
                             <button
-                                onClick={handleInitialPhoneSubmit}
-                                disabled={loading}
-                                className="w-full inline-flex justify-center items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                onClick={handleSmsCodeSubmit}
+                                disabled={loading || smsCode.length !== 6 || isRateLimited}
+                                className="w-full h-12 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                             >
-                                {loading ? <Spinner /> : 'View Invoice'}
+                                {loading ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                ) : isRateLimited ? (
+                                    'Rate Limited - Please Wait'
+                                ) : (
+                                    'Continue'
+                                )}
                             </button>
 
-                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200/50">
-                                <p className="text-xs text-blue-800">
-                                    <ShieldCheckIcon className="w-3 h-3 inline mr-1" />
-                                    Your phone number must match the driver on this invoice for security.
-                                </p>
+                            <div className="flex justify-between items-center">
+                                <button
+                                    onClick={() => {
+                                        setShowSmsVerification(false);
+                                        setShowInitialPhonePrompt(true);
+                                        setSmsCode('');
+                                        setSmsError('');
+                                    }}
+                                    className="text-blue-500 font-medium hover:text-blue-600 transition-colors"
+                                >
+                                    ← Back
+                                </button>
+
+                                <button
+                                    onClick={handleResendCode}
+                                    disabled={sendingSms || isRateLimited}
+                                    className="text-blue-500 font-medium hover:text-blue-600 transition-colors disabled:text-gray-400"
+                                >
+                                    {sendingSms ? 'Sending...' : isRateLimited ? 'Rate Limited' : 'Resend code'}
+                                </button>
                             </div>
+                        </div>
+
+                        {/* Footer Note */}
+                        <div className="mt-6 text-center">
+                            <p className="text-xs text-gray-500">Code expires in 10 minutes</p>
                         </div>
                     </div>
                 </div>
@@ -726,6 +1173,64 @@ const DriverInvoiceApprovalPage = () => {
                         </div>
                     </div>
 
+                    {/* Expenses (if any) */}
+                    {invoice.expenses && invoice.expenses.length > 0 && (
+                        <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg shadow-black/5 border border-white/50 p-4 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
+                            <h2 className="text-base font-semibold text-gray-900 mb-4">
+                                Expenses ({invoice.expenses.length})
+                            </h2>
+                            <div className="space-y-2">
+                                {invoice.expenses.map((expense) => (
+                                    <div
+                                        key={expense.id}
+                                        className="flex items-center justify-between py-3 px-3 bg-white/40 backdrop-blur-sm rounded-lg border border-white/30 hover:bg-white/60 transition-all duration-200"
+                                    >
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-gray-900">{expense.description}</p>
+                                            {expense.vendorName && (
+                                                <p className="text-xs text-gray-600">{expense.vendorName}</p>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {expense.category && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                        {expense.category.name}
+                                                    </span>
+                                                )}
+                                                {expense.receiptDate && (
+                                                    <span className="text-xs text-gray-500">
+                                                        {new Date(expense.receiptDate).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                                {expense.approvalStatus && (
+                                                    <span
+                                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                            expense.approvalStatus === 'APPROVED'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : expense.approvalStatus === 'PENDING'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                    >
+                                                        {expense.approvalStatus.toLowerCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900">
+                                                {Number(expense.amount) >= 0
+                                                    ? formatCurrency(expense.amount.toString())
+                                                    : `(${formatCurrency(
+                                                          Math.abs(Number(expense.amount)).toString(),
+                                                      )})`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Line Items (if any) */}
                     {invoice.lineItems.length > 0 && (
                         <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg shadow-black/5 border border-white/50 p-4 hover:shadow-xl hover:shadow-black/10 transition-all duration-300">
@@ -764,6 +1269,14 @@ const DriverInvoiceApprovalPage = () => {
                                     {formatCurrency(assignmentsTotal)}
                                 </span>
                             </div>
+                            {expensesTotal !== 0 && (
+                                <div className="flex items-center justify-between p-2 bg-white/40 backdrop-blur-sm rounded-lg border border-white/30">
+                                    <span className="text-sm text-gray-600">Expenses Total:</span>
+                                    <span className="text-sm font-medium text-gray-900">
+                                        {formatCurrency(expensesTotal)}
+                                    </span>
+                                </div>
+                            )}
                             {lineItemsTotal !== 0 && (
                                 <div className="flex items-center justify-between p-2 bg-white/40 backdrop-blur-sm rounded-lg border border-white/30">
                                     <span className="text-sm text-gray-600">Additional Items:</span>
@@ -991,5 +1504,8 @@ const DriverInvoiceApprovalPage = () => {
         </div>
     );
 };
+
+// Mark the approval page as public since drivers need to access it without authentication
+DriverInvoiceApprovalPage.authenticationEnabled = false;
 
 export default DriverInvoiceApprovalPage;
