@@ -1,7 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { CurrencyDollarIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { TrashIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
 import Decimal from 'decimal.js';
+
+// Skeleton component for expense loading
+const ExpenseSkeleton = () => {
+    return (
+        <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse">
+                    <div className="flex items-start justify-between p-4 bg-gray-50/80 backdrop-blur-sm border border-gray-200/30 rounded-xl">
+                        <div className="flex items-start gap-3 flex-1">
+                            <div className="flex-shrink-0 mt-1">
+                                <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <div className="h-4 bg-gray-300 rounded w-36"></div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                                            <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+                                        </div>
+                                    </div>
+                                    <div className="h-5 bg-gray-300 rounded w-16"></div>
+                                </div>
+                                <div className="h-3 bg-gray-200 rounded w-full max-w-xs"></div>
+                                <div className="flex items-center gap-4 text-xs">
+                                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 interface LineItem {
     id?: string;
@@ -27,6 +64,11 @@ interface AdditionalItemsProps {
     mode?: 'create' | 'edit';
     nextButtonText?: string;
     emptyMiles?: { [key: string]: number };
+    allDrivers?: any[]; // Available in create mode
+    // Expense loading props (received from parent)
+    approvedExpenses: any[];
+    loadingExpenses: boolean;
+    onRefreshExpenses?: () => void; // Function to refresh expenses
 }
 
 const AdditionalItems: React.FC<AdditionalItemsProps> = ({
@@ -42,6 +84,10 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     mode = 'create',
     nextButtonText = 'Review & Create Invoice',
     emptyMiles = {},
+    allDrivers = [],
+    approvedExpenses,
+    loadingExpenses,
+    onRefreshExpenses,
 }) => {
     // Edit state for line items - using index as ID for editing
     const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
@@ -54,12 +100,45 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     const [basePay, setBasePay] = useState<string>('');
     const [basePayInput, setBasePayInput] = useState<string>('');
     const [isAutoLoaded, setIsAutoLoaded] = useState<boolean>(false);
+    const [basePayEnabled, setBasePayEnabled] = useState<boolean>(false); // Toggle for base pay line item - default to false
+
+    // Expenses state (selected expenses - still managed internally)
+    const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
+
+    // Helper function to get current driver info
+    const getCurrentDriverInfo = () => {
+        if (mode === 'edit' && invoice.driver) {
+            return invoice.driver;
+        } else if (mode === 'create' && allDrivers.length > 0) {
+            return allDrivers.find((d) => d.id === invoice.driverId);
+        }
+        return null;
+    };
+
+    const currentDriver = getCurrentDriverInfo();
 
     // Load saved base pay for this driver on component mount
     useEffect(() => {
         if (invoice.driverId) {
+            // Get driver info based on mode
+            let driverInfo;
+            if (mode === 'edit' && invoice.driver) {
+                driverInfo = invoice.driver;
+            } else if (mode === 'create' && allDrivers.length > 0) {
+                driverInfo = allDrivers.find((d) => d.id === invoice.driverId);
+            }
+
+            // Check if driver has a baseGuaranteeAmount set
+            const driverBaseGuarantee = driverInfo?.baseGuaranteeAmount;
+            const hasBaseGuarantee = driverBaseGuarantee && Number(driverBaseGuarantee) > 0;
+
+            // Set toggle state based on whether driver has base guarantee
+            setBasePayEnabled(hasBaseGuarantee);
+
+            // First priority: saved localStorage value
             const savedBasePay = localStorage.getItem(`basePay_${invoice.driverId}`);
-            if (savedBasePay) {
+
+            if (savedBasePay && hasBaseGuarantee) {
                 const formattedAmount = parseFloat(savedBasePay).toFixed(2);
                 setBasePay(formattedAmount);
                 setBasePayInput(formattedAmount);
@@ -68,10 +147,47 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                 setTimeout(() => {
                     updateBasePayCalculation(formattedAmount);
                 }, 100);
+            } else if (hasBaseGuarantee) {
+                // Second priority: driver's baseGuaranteeAmount
+                const formattedAmount = Number(driverBaseGuarantee).toFixed(2);
+                setBasePay(formattedAmount);
+                setBasePayInput(formattedAmount);
+                setIsAutoLoaded(true);
+                // Apply the driver's base guarantee automatically after assignments are loaded
+                setTimeout(() => {
+                    updateBasePayCalculation(formattedAmount);
+                }, 100);
+            } else {
+                // No base guarantee - clear any saved values and disable
+                setBasePay('');
+                setBasePayInput('');
+                setIsAutoLoaded(false);
             }
         }
-    }, [invoice.driverId, invoice.assignments.length]); // Add assignments.length to ensure assignments are loaded
+    }, [invoice.driverId, invoice.fromDate, invoice.toDate, mode, invoice.id]); // Simplified dependencies
 
+    // Initialize selected expenses when editing an existing invoice
+    useEffect(() => {
+        if (mode === 'edit' && invoice.expenses && invoice.expenses.length > 0) {
+            const existingExpenseIds = invoice.expenses
+                .map((expense: any) => expense.id)
+                .filter((id: any): id is string => typeof id === 'string');
+            setSelectedExpenses(new Set(existingExpenseIds));
+        }
+    }, [mode, invoice.id]); // Changed dependency to invoice.id instead of invoice.expenses
+
+    // Function to update invoice expenses based on current selection
+    const updateInvoiceExpenses = (newSelectedExpenses: Set<string>) => {
+        setTimeout(() => {
+            const expensesToAdd = approvedExpenses.filter((expense) => newSelectedExpenses.has(expense.id));
+            setInvoice((prevInvoice) => ({
+                ...prevInvoice,
+                expenses: expensesToAdd,
+            }));
+        }, 0);
+    };
+
+    // Function to load approved expenses
     // Save base pay to localStorage whenever it changes
     const saveBasePayToStorage = (driverId: string, amount: string) => {
         if (driverId && amount) {
@@ -132,16 +248,18 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
 
     // Function to calculate and update line items based on base pay
     const updateBasePayCalculation = (basePayValue: string) => {
-        if (!basePayValue) {
-            // Remove base pay adjustment if no value
-            setInvoice((prevInvoice) => {
-                const updatedInvoice = { ...prevInvoice };
-                const filteredLineItems = updatedInvoice.lineItems.filter(
-                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
-                );
-                updatedInvoice.lineItems = filteredLineItems;
-                return updatedInvoice;
-            });
+        // Always remove existing base pay adjustment first
+        setInvoice((prevInvoice) => {
+            const updatedInvoice = { ...prevInvoice };
+            const filteredLineItems = updatedInvoice.lineItems.filter(
+                (item) => item.description !== 'Base Pay Guarantee Adjustment',
+            );
+            updatedInvoice.lineItems = filteredLineItems;
+            return updatedInvoice;
+        });
+
+        // If base pay is disabled or no value, just remove the adjustment
+        if (!basePayEnabled || !basePayValue) {
             return;
         }
 
@@ -166,11 +284,6 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
             setInvoice((prevInvoice) => {
                 const updatedInvoice = { ...prevInvoice };
 
-                // Remove any existing base pay adjustment
-                const filteredLineItems = updatedInvoice.lineItems.filter(
-                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
-                );
-
                 // Add new base pay adjustment at the beginning
                 const basePayLineItem = {
                     id: `base-pay-${Date.now()}`,
@@ -178,21 +291,12 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                     amount: new Decimal(difference.toFixed(2)),
                 };
 
-                updatedInvoice.lineItems = [basePayLineItem, ...filteredLineItems];
+                updatedInvoice.lineItems = [basePayLineItem, ...updatedInvoice.lineItems];
 
                 return updatedInvoice;
             });
-        } else {
-            // Remove base pay adjustment if not needed
-            setInvoice((prevInvoice) => {
-                const updatedInvoice = { ...prevInvoice };
-                const filteredLineItems = updatedInvoice.lineItems.filter(
-                    (item) => item.description !== 'Base Pay Guarantee Adjustment',
-                );
-                updatedInvoice.lineItems = filteredLineItems;
-                return updatedInvoice;
-            });
         }
+        // If difference <= 0, the adjustment has already been removed at the start of the function
     };
 
     // Handle input changes without triggering calculations
@@ -235,6 +339,15 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     const handleBasePayKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleBasePayFinish();
+        }
+    };
+
+    // Handle base pay guarantee toggle
+    const handleBasePayToggle = (enabled: boolean) => {
+        setBasePayEnabled(enabled);
+        // Immediately update calculation based on new toggle state
+        if (basePay) {
+            updateBasePayCalculation(basePay);
         }
     };
 
@@ -350,6 +463,69 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
     const handleNext = () => {
         onNextStep();
     };
+
+    // Handle expense selection
+    const handleExpenseToggle = (expenseId: string) => {
+        setSelectedExpenses((prev) => {
+            const newSelected = new Set(prev);
+            if (newSelected.has(expenseId)) {
+                newSelected.delete(expenseId);
+            } else {
+                newSelected.add(expenseId);
+            }
+
+            // Update invoice with new selection
+            updateInvoiceExpenses(newSelected);
+
+            return newSelected;
+        });
+    };
+
+    // Handle select all expenses
+    const handleSelectAllExpenses = () => {
+        const allExpenseIds = approvedExpenses.map((expense) => expense.id);
+        const newSelected = new Set(allExpenseIds);
+        setSelectedExpenses(newSelected);
+        updateInvoiceExpenses(newSelected);
+    };
+
+    // Handle clear all expenses
+    const handleClearAllExpenses = () => {
+        const newSelected = new Set<string>();
+        setSelectedExpenses(newSelected);
+        updateInvoiceExpenses(newSelected);
+    };
+
+    // Format date for display - Parse date correctly to avoid timezone issues
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+
+        // Parse date correctly to avoid timezone issues (same as InvoiceReview component)
+        const parseDate = (date: string | Date | null | undefined) => {
+            if (!date) return null;
+            if (typeof date === 'string') {
+                const parts = date.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                    const day = parseInt(parts[2], 10);
+                    return new Date(year, month, day);
+                }
+                return new Date(date);
+            }
+            return date;
+        };
+
+        const date = parseDate(dateString);
+        return date
+            ? date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+              })
+            : '';
+    };
+
     return (
         <div className="bg-gray-50 p-3 sm:p-6 rounded-lg">
             {/* Header */}
@@ -426,67 +602,281 @@ const AdditionalItems: React.FC<AdditionalItemsProps> = ({
                     </div>
                 </div>
 
-                {/* Base Pay Guarantee Section */}
-                <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Base Pay Guarantee</h3>
-                    </div>
-
-                    <div className="bg-gray-50/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4 sm:p-6 shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <div className="flex-1">
-                                <h4 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">
-                                    Set Minimum Guaranteed Pay
-                                </h4>
-                                <p className="text-xs sm:text-sm text-gray-600">
-                                    Set a minimum guaranteed amount the driver will make for this pay period.
-                                    <span className="block mt-1 text-gray-700">
-                                        Current assignment total: {formatCurrency(assignmentTotal.toFixed(2))}
-                                    </span>
-                                    {basePay && parseFloat(basePay) > assignmentTotal && (
-                                        <span className="block mt-1 font-medium text-green-700">
-                                            An adjustment of{' '}
-                                            {formatCurrency((parseFloat(basePay) - assignmentTotal).toFixed(2))} will be
-                                            added.
-                                        </span>
-                                    )}
-                                </p>
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                                        $
-                                    </span>
-                                    <input
-                                        type="text"
-                                        value={basePayInput}
-                                        onChange={(e) => handleBasePayInputChange(e.target.value)}
-                                        onBlur={handleBasePayFinish}
-                                        onKeyPress={handleBasePayKeyPress}
-                                        placeholder="0.00"
-                                        className="w-32 pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                {/* Driver Expenses */}
+                {invoice.driverId && invoice.fromDate && invoice.toDate && (
+                    <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm">
+                        <div className="p-4 sm:p-6 border-b border-gray-200/30">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                                        Driver Expenses
+                                    </h3>
                                 </div>
-                                {basePayInput && (
-                                    <button
-                                        onClick={() => {
-                                            setBasePay('');
-                                            setBasePayInput('');
-                                            setIsAutoLoaded(false);
-                                            updateBasePayCalculation('');
-                                            // Remove from localStorage
-                                            saveBasePayToStorage(invoice.driverId, '');
-                                        }}
-                                        className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {onRefreshExpenses && (
+                                        <button
+                                            onClick={onRefreshExpenses}
+                                            disabled={loadingExpenses}
+                                            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Refresh expenses"
+                                        >
+                                            <svg
+                                                className={`w-3 h-3 ${loadingExpenses ? 'animate-spin' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                />
+                                            </svg>
+                                            Refresh
+                                        </button>
+                                    )}
+                                    {!loadingExpenses && approvedExpenses.length > 0 && (
+                                        <>
+                                            <button
+                                                onClick={handleSelectAllExpenses}
+                                                className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                                            >
+                                                Select All
+                                            </button>
+                                            <button
+                                                onClick={handleClearAllExpenses}
+                                                className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                                            >
+                                                Clear All
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
+                            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                {mode === 'edit'
+                                    ? `Modify driver-paid expenses for this invoice. Currently attached expenses are pre-selected and marked.`
+                                    : `Select driver-paid expenses from ${formatDate(invoice.fromDate)} to ${formatDate(
+                                          invoice.toDate,
+                                      )} to include in this invoice.`}
+                            </p>
+                        </div>
+
+                        <div className="p-4 sm:p-6">
+                            {loadingExpenses ? (
+                                <ExpenseSkeleton />
+                            ) : approvedExpenses.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <div className="text-gray-400 mb-2">
+                                        <CurrencyDollarIcon className="h-12 w-12 mx-auto" />
+                                    </div>
+                                    <p className="text-gray-500 text-sm">
+                                        No approved driver-paid expenses found for this driver in the selected date
+                                        range.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {approvedExpenses.map((expense) => {
+                                        return (
+                                            <div
+                                                key={expense.id}
+                                                onClick={() => handleExpenseToggle(expense.id)}
+                                                className={`border rounded-lg p-3 transition-colors cursor-pointer ${
+                                                    selectedExpenses.has(expense.id)
+                                                        ? 'bg-blue-50 border-blue-200'
+                                                        : 'bg-white border-gray-200 hover:border-gray-300'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedExpenses.has(expense.id)}
+                                                        onClick={(e) => e.stopPropagation()} // Prevent double toggle
+                                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded pointer-events-none"
+                                                        readOnly
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-gray-900 text-sm">
+                                                                    {expense.category?.name || 'Expense'}
+                                                                </span>
+                                                                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                                                                    {expense.status}
+                                                                </span>
+                                                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                                                    Driver Paid
+                                                                </span>
+                                                                {/* Show if already attached to this invoice */}
+                                                                {mode === 'edit' &&
+                                                                    expense.driverInvoiceId === invoice.id && (
+                                                                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">
+                                                                            Already Attached
+                                                                        </span>
+                                                                    )}
+                                                            </div>
+                                                            <span className="font-semibold text-gray-900">
+                                                                {formatCurrency(expense.amount.toString())}
+                                                            </span>
+                                                        </div>
+                                                        <div className="mt-1">
+                                                            <p className="text-sm text-gray-600">
+                                                                {expense.description || 'No description'}
+                                                            </p>
+                                                            <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                                                                <span>Date: {formatDate(expense.receiptDate)}</span>
+                                                                {expense.vendorName && (
+                                                                    <span>Vendor: {expense.vendorName}</span>
+                                                                )}
+                                                                {expense.approvedBy && (
+                                                                    <span>Approved by: {expense.approvedBy.name}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Base Pay Guarantee Section - Show if driver exists */}
+                {currentDriver && (
+                    <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
+                        <div className={`flex items-center gap-2 ${basePayEnabled ? 'mb-4 sm:mb-6' : 'mb-2'}`}>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <div className="flex-1">
+                                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Base Pay Guarantee</h3>
+                                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                    Ensure minimum pay regardless of assignment value
+                                </p>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                                <span className="text-sm text-gray-600">{basePayEnabled ? 'Enabled' : 'Disabled'}</span>
+                                <button
+                                    onClick={() => handleBasePayToggle(!basePayEnabled)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                        basePayEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            basePayEnabled ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Collapsible content - only show when enabled */}
+                        {basePayEnabled && (
+                            <div className="bg-gray-50/80 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4 sm:p-6 shadow-sm mt-4">
+                                {/* Show notice for drivers without base guarantee */}
+                                {(!currentDriver.baseGuaranteeAmount ||
+                                    Number(currentDriver.baseGuaranteeAmount) === 0) && (
+                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-amber-800">
+                                                {currentDriver.name} does not have a base pay guarantee set in their
+                                                profile.
+                                            </span>
+                                            <Link
+                                                href={`/drivers/edit/${currentDriver.id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                                            >
+                                                <PencilIcon className="w-3 h-3 mr-1" />
+                                                Edit Driver
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">
+                                            {currentDriver.baseGuaranteeAmount &&
+                                            Number(currentDriver.baseGuaranteeAmount) > 0
+                                                ? 'Minimum Guaranteed Pay'
+                                                : 'Set Base Pay Guarantee'}
+                                        </h4>
+                                        <p className="text-xs sm:text-sm text-gray-600">
+                                            {currentDriver.baseGuaranteeAmount &&
+                                            Number(currentDriver.baseGuaranteeAmount) > 0 ? (
+                                                <>
+                                                    Driver&apos;s base guarantee: $
+                                                    {Number(currentDriver.baseGuaranteeAmount).toFixed(2)}
+                                                    <span className="block mt-1 text-gray-700">
+                                                        Current assignment total:{' '}
+                                                        {formatCurrency(assignmentTotal.toFixed(2))}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Enter a base pay guarantee amount for this invoice.
+                                                    <span className="block mt-1 text-gray-700">
+                                                        Current assignment total:{' '}
+                                                        {formatCurrency(assignmentTotal.toFixed(2))}
+                                                    </span>
+                                                </>
+                                            )}
+                                            {basePayEnabled && basePay && parseFloat(basePay) > assignmentTotal && (
+                                                <span className="block mt-1 font-medium text-green-700">
+                                                    An adjustment of{' '}
+                                                    {formatCurrency((parseFloat(basePay) - assignmentTotal).toFixed(2))}{' '}
+                                                    will be added.
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                                                $
+                                            </span>
+                                            <input
+                                                type="text"
+                                                value={basePayInput}
+                                                onChange={(e) => handleBasePayInputChange(e.target.value)}
+                                                onBlur={handleBasePayFinish}
+                                                onKeyPress={handleBasePayKeyPress}
+                                                placeholder={
+                                                    currentDriver.baseGuaranteeAmount &&
+                                                    Number(currentDriver.baseGuaranteeAmount) > 0
+                                                        ? Number(currentDriver.baseGuaranteeAmount).toFixed(2)
+                                                        : '0.00'
+                                                }
+                                                className="w-32 pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        {basePayInput && (
+                                            <button
+                                                onClick={() => {
+                                                    setBasePay('');
+                                                    setBasePayInput('');
+                                                    setIsAutoLoaded(false);
+                                                    updateBasePayCalculation('');
+                                                    // Remove from localStorage
+                                                    saveBasePayToStorage(invoice.driverId, '');
+                                                }}
+                                                className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Line Items */}
                 <div className="bg-white/95 backdrop-blur-xl border border-gray-200/30 rounded-xl sm:rounded-2xl shadow-sm">
