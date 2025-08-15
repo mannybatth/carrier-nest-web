@@ -11,7 +11,8 @@ import {
     XMarkIcon,
     ArrowPathIcon,
 } from '@heroicons/react/24/outline';
-import Table, { TableHeader, TableDataRow, Sort } from '../Table';
+import Table, { TableHeader, TableDataRow } from '../Table';
+import { Sort } from '../../interfaces/table';
 import ExpenseStatusBadge from './ExpenseStatusBadge';
 import ExpensePaidByBadge from './ExpensePaidByBadge';
 import { notify } from '../notifications/Notification';
@@ -329,7 +330,7 @@ const ExpensesTable: React.FC<Props> = ({
                                 className="text-sm font-medium text-gray-900 leading-tight"
                                 style={{
                                     display: '-webkit-box',
-                                    WebkitLineClamp: 2,
+                                    WebkitLineClamp: 1,
                                     WebkitBoxOrient: 'vertical',
                                     overflow: 'hidden',
                                 }}
