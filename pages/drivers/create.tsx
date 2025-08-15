@@ -31,10 +31,10 @@ const CreateDriver: PageWithAuth = () => {
                 perMileRate: new Prisma.Decimal(data.perMileRate),
                 perHourRate: new Prisma.Decimal(data.perHourRate),
                 takeHomePercent: new Prisma.Decimal(data.takeHomePercent),
+                baseGuaranteeAmount: data.baseGuaranteeAmount ? new Prisma.Decimal(data.baseGuaranteeAmount) : null,
             };
 
             const newDriver = await createDriver(driverData, sendSMS);
-            console.log('new driver', newDriver);
 
             notify({ title: 'New driver created', message: 'New driver created successfully' });
 
