@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserIcon } from '@heroicons/react/24/outline';
 import Layout from 'components/layout/Layout';
@@ -30,10 +28,12 @@ import AdditionalItems from 'components/driverinvoices/AdditionalItems';
 import { LoadingOverlay } from 'components/LoadingOverlay';
 import AssignmentSelector from 'components/driverinvoices/AssignmentSelector';
 import dayjs from 'dayjs';
+import { useSession } from 'next-auth/react';
 
 const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } }) => {
     const router = useRouter();
     const { defaultCarrier } = useUserContext();
+    const { data: session } = useSession();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [invoice, setInvoice] = useState<ExpandedDriverInvoice>(undefined);
@@ -461,8 +461,9 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                 console.error('Driver not found for notification');
                 return;
             }
-
-            const approvalUrl = `${window.location.origin}/driverinvoices/approval/${invoiceId}`;
+            const approvalUrl = `${window.location.origin}/driverinvoices/${invoiceId}/approval${
+                defaultCarrier.carrierCode ? `?carrierCode=${encodeURIComponent(defaultCarrier.carrierCode)}` : ''
+            }`;
 
             // Prefer email if available, otherwise use SMS
             if (selectedDriver.email && selectedDriver.email.trim() !== '') {
@@ -478,6 +479,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'update',
                     }),
                 });
                 notify({
@@ -498,6 +501,8 @@ const EditDriverInvoice: PageWithAuth = ({ params }: { params: { id: string } })
                         approvalUrl: approvalUrl,
                         invoiceAmount: formatCurrency(totalAmount),
                         carrierName: defaultCarrier?.name || 'CarrierNest',
+                        createdByName: session?.user?.name || 'CarrierNest Team',
+                        action: 'update',
                     }),
                 });
                 notify({
