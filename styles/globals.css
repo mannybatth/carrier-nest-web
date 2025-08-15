@@ -43,6 +43,87 @@
   }
 }
 
+/* Gamification animations */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes level-up-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0) scale(1);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0) scale(1.1);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0) scale(1.05);
+  }
+  90% {
+    transform: translate3d(0,-4px,0) scale(1);
+  }
+}
+
+@keyframes xp-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* Liquid Design Animations */
+@keyframes animate-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes liquid-flow {
+  0%, 100% {
+    transform: translateX(-2px) translateY(-1px);
+  }
+  25% {
+    transform: translateX(2px) translateY(-2px);
+  }
+  50% {
+    transform: translateX(3px) translateY(1px);
+  }
+  75% {
+    transform: translateX(-1px) translateY(2px);
+  }
+}
+
+@keyframes backdrop-blur {
+  0% {
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* Liquid Glass Animations */
 @keyframes shimmer {
   0% {
