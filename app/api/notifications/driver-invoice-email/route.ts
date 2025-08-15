@@ -4,7 +4,8 @@ import nodemailer from 'nodemailer';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { driverEmail, driverName, invoiceNum, approvalUrl, invoiceAmount, carrierName } = body;
+        const { driverEmail, driverName, invoiceNum, approvalUrl, invoiceAmount, carrierName, createdByName, action } =
+            body;
 
         if (!driverEmail || !driverName || !invoiceNum || !approvalUrl || !invoiceAmount) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -20,7 +21,11 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const subject = `New Invoice Ready for Approval - ${invoiceAmount}`;
+        // Dynamic subject based on action
+        const subject =
+            action === 'update'
+                ? `Invoice #${invoiceNum} Updated - ${invoiceAmount}`
+                : `New Invoice #${invoiceNum} Created - ${invoiceAmount}`;
 
         const htmlContent = createEmailTemplate({
             driverName,
@@ -28,6 +33,8 @@ export async function POST(request: NextRequest) {
             approvalUrl,
             invoiceAmount,
             carrierName: carrierName || 'CarrierNest',
+            createdByName: createdByName || 'CarrierNest Team',
+            action: action || 'create',
         });
 
         const textContent = createTextTemplate({
@@ -36,6 +43,8 @@ export async function POST(request: NextRequest) {
             approvalUrl,
             invoiceAmount,
             carrierName: carrierName || 'CarrierNest',
+            createdByName: createdByName || 'CarrierNest Team',
+            action: action || 'create',
         });
 
         await transport.sendMail({
@@ -59,6 +68,8 @@ function createEmailTemplate(data: {
     approvalUrl: string;
     invoiceAmount: string;
     carrierName: string;
+    createdByName: string;
+    action: string;
 }): string {
     return `
     <!DOCTYPE html>
@@ -118,22 +129,31 @@ function createEmailTemplate(data: {
                 position: relative;
                 z-index: 2;
             }
-            .header h1 {
-                font-size: 28px;
-                font-weight: 600;
+            .carrier-name {
+                font-size: 36px;
+                font-weight: 700;
                 color: white;
-                margin-bottom: 8px;
-                letter-spacing: -0.022em;
+                margin-bottom: 12px;
+                letter-spacing: -0.025em;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             }
-            .header p {
-                font-size: 17px;
-                color: rgba(255, 255, 255, 0.85);
+            .header-subtitle {
+                font-size: 15px;
+                color: rgba(255, 255, 255, 0.75);
                 font-weight: 400;
-                letter-spacing: -0.022em;
+                letter-spacing: -0.015em;
+                opacity: 0.9;
             }
             .content {
                 padding: 40px 32px;
                 text-align: center;
+            }
+            .content h2 {
+                font-size: 22px;
+                font-weight: 600;
+                color: #1d1d1f;
+                margin-bottom: 16px;
+                letter-spacing: -0.022em;
             }
             .amount-highlight {
                 background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
@@ -190,28 +210,54 @@ function createEmailTemplate(data: {
             <div class="email-container">
                 <div class="header">
                     <div class="header-content">
-                        <h1>Invoice Ready for Approval</h1>
-                        <p>Hi ${data.driverName}, you have a new invoice to review</p>
+                        <div class="carrier-name">${data.carrierName}</div>
+                        <p class="header-subtitle">${
+                            data.action === 'update' ? 'Invoice Updated' : 'Invoice Ready for Approval'
+                        }</p>
                     </div>
                 </div>
 
                 <div class="content">
-                    <h2>Your invoice is ready for approval</h2>
-                    <p>Invoice #${data.invoiceNum}</p>
+                    <div class="carrier-name" style="color: #1d1d1f; font-size: 36px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.025em;">${
+                        data.carrierName
+                    }</div>
+                    <h2>${
+                        data.action === 'update'
+                            ? 'Your updated invoice is ready for approval'
+                            : 'You have a new invoice ready for approval'
+                    }</h2>
+                    <p style="color: #1d1d1f; font-size: 18px; font-weight: 500; margin-bottom: 8px;">Invoice #${
+                        data.invoiceNum
+                    }</p>
+                    <p style="color: #86868b; font-size: 14px; margin-bottom: 16px;">
+                        ${
+                            data.action === 'update'
+                                ? `Updated by ${data.createdByName} • For ${data.driverName}`
+                                : `Created by ${data.createdByName} • For ${data.driverName}`
+                        }
+                    </p>
 
                     <div class="amount-highlight">
                         <div class="amount">${data.invoiceAmount}</div>
                         <p>Total Amount</p>
                     </div>
 
-                    <p>Please review and approve your invoice by clicking the button below:</p>
+                    <p>${
+                        data.action === 'update'
+                            ? 'Please review the changes and approve your updated invoice by clicking the button below:'
+                            : 'Please review and approve your new invoice by clicking the button below:'
+                    }</p>
 
                     <a href="${data.approvalUrl}" class="action-button">
-                        Review & Approve Invoice
+                        ${data.action === 'update' ? 'Review Changes & Approve' : 'Review & Approve Invoice'}
                     </a>
 
                     <p style="color: #86868b; font-size: 14px; margin-top: 24px;">
-                        This link will take you to a secure page where you can review the details and approve your invoice.
+                        ${
+                            data.action === 'update'
+                                ? 'This link will take you to a secure page where you can review the updated details and approve your invoice.'
+                                : 'This link will take you to a secure page where you can review the details and approve your invoice.'
+                        }
                     </p>
                 </div>            <div class="footer">
                 <p>This is an automated notification from ${data.carrierName}</p>
@@ -230,21 +276,40 @@ function createTextTemplate(data: {
     approvalUrl: string;
     invoiceAmount: string;
     carrierName: string;
+    createdByName: string;
+    action: string;
 }): string {
     return `
-INVOICE READY FOR APPROVAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${data.carrierName.toUpperCase()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Hi ${data.driverName},
+${data.action === 'update' ? 'INVOICE UPDATED' : 'NEW INVOICE CREATED'}
 
-You have a new invoice ready for approval:
+${data.driverName},
+
+${
+    data.action === 'update'
+        ? 'Your invoice has been updated and is ready for approval:'
+        : 'A new invoice has been created and is ready for your approval:'
+}
 
 Invoice #${data.invoiceNum}
+${data.action === 'update' ? 'Updated by:' : 'Created by:'} ${data.createdByName}
 Total Amount: ${data.invoiceAmount}
 
-Please review and approve your invoice by visiting:
+${
+    data.action === 'update'
+        ? 'Please review the changes and approve your updated invoice by visiting:'
+        : 'Please review and approve your new invoice by visiting:'
+}
 ${data.approvalUrl}
 
-This link will take you to a secure page where you can review the details and approve your invoice.
+${
+    data.action === 'update'
+        ? 'This link will take you to a secure page where you can review the updated details and approve your invoice.'
+        : 'This link will take you to a secure page where you can review the details and approve your invoice.'
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 This is an automated notification from ${data.carrierName}.
