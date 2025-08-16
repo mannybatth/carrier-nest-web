@@ -50,6 +50,44 @@ export const generateStandardizedFileName = (
 };
 
 /**
+ * Generates a standardized filename for expense documents
+ * Format: expense-{category}-datewithtimewithsecond.extension
+ *
+ * Examples:
+ * - expense-fuel-20250815-143025.pdf
+ * - expense-lodging-20250815-143026.jpg
+ * - expense-meals-20250815-143027.pdf
+ *
+ * @param originalFile - The original file being uploaded
+ * @param categoryName - The expense category name
+ * @returns Standardized filename string
+ */
+export const generateExpenseFileName = (originalFile: File, categoryName: string): string => {
+    // Get file extension
+    const fileExtension = originalFile.name.split('.').pop() || 'pdf';
+
+    // Sanitize category name (lowercase, remove spaces and special characters)
+    const sanitizedCategory = categoryName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric characters
+        .substring(0, 20); // Limit to 20 characters
+
+    // Generate timestamp with seconds
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const timestamp = `${year}${month}${day}-${hours}${minutes}${seconds}`;
+
+    // Generate expense filename: expense-{category}-datewithtimewithsecond.extension
+    return `expense-${sanitizedCategory}-${timestamp}.${fileExtension}`;
+};
+
+/**
  * Sanitizes a username by removing spaces and converting to lowercase
  *
  * @param name - The original name/username

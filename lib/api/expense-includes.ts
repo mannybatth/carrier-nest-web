@@ -93,4 +93,22 @@ export const EXPENSE_INCLUDE = {
             toDate: true,
         },
     },
+    documents: {
+        select: {
+            id: true,
+            expenseId: true,
+            documentId: true,
+            document: {
+                select: {
+                    id: true,
+                    fileName: true,
+                    mimeType: true,
+                    sizeBytes: true,
+                    storageUrl: true,
+                    uploadedBy: true,
+                    uploadedAt: true,
+                },
+            },
+        },
+    },
 };

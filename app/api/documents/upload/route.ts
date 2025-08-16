@@ -5,6 +5,11 @@ import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
+// Route segment config for handling large file uploads
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
+
 const storage = new Storage({
     projectId: process.env.GCP_PROJECT_ID,
     credentials: {
@@ -17,10 +22,14 @@ async function uploadFileToGCS(
     fileBuffer: Buffer,
     originalFileName: string,
     bucketName: string,
+    useOriginalName = false,
 ): Promise<{ gcsInputUri: string; uniqueFileName: string; originalFileName: string }> {
     try {
         const extension = path.extname(originalFileName).toLowerCase();
-        const uniqueFileName = `${Date.now()}-${uuidv4()}${extension}`;
+
+        // Use original filename if requested (for expense documents with custom naming)
+        // Otherwise generate a unique filename
+        const uniqueFileName = useOriginalName ? originalFileName : `${Date.now()}-${uuidv4()}${extension}`;
 
         const bucket = storage.bucket(bucketName);
         const blob = bucket.file(`documents/${uniqueFileName}`);
@@ -89,8 +98,14 @@ export async function POST(request: NextRequest) {
                     throw new Error('File too large (max 50MB)');
                 }
 
-                // Convert file to buffer
-                const fileBuffer = Buffer.from(await file.arrayBuffer());
+                // Convert file to buffer with error handling
+                let fileBuffer: Buffer;
+                try {
+                    fileBuffer = Buffer.from(await file.arrayBuffer());
+                } catch (bufferError) {
+                    console.error('Error converting file to buffer:', bufferError);
+                    throw new Error(`Failed to process file: ${file.name}`);
+                }
 
                 // Upload to Google Cloud Storage
                 const bucketName = process.env.GCP_LOAD_DOCS_BUCKET_NAME || 'carrier-nest-documents';
@@ -99,7 +114,10 @@ export async function POST(request: NextRequest) {
                     throw new Error('Google Cloud Storage credentials not configured');
                 }
 
-                const uploadResult = await uploadFileToGCS(fileBuffer, file.name, bucketName);
+                // Check if this is a renamed expense file (starts with "expense-")
+                const useOriginalName = file.name.startsWith('expense-');
+
+                const uploadResult = await uploadFileToGCS(fileBuffer, file.name, bucketName, useOriginalName);
 
                 // Create document record with real storage URL
                 const document = await prisma.document.create({

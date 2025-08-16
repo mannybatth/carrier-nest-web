@@ -11,7 +11,7 @@ import ExpenseForm from '../../../../components/expenses/ExpenseForm';
 import BreadCrumb from '../../../../components/layout/BreadCrumb';
 import PDFViewer from '../../../../components/PDFViewer';
 import SimpleDialog from '../../../../components/dialogs/SimpleDialog';
-import { uploadFileToGCS } from '../../../../lib/rest/uploadFile';
+import { generateExpenseFileName } from '../../../../lib/helpers/document-naming';
 import { ExpenseProvider, useExpenseContext } from '../../../../components/context/ExpenseContext';
 import { ExpandedExpense } from '../../../../interfaces/models';
 import { LoadingOverlay } from '../../../../components/LoadingOverlay';
@@ -43,6 +43,9 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
 
     // Ref to store initial data and prevent reinitialization during submission
     const initialDataRef = useRef<any>(null);
+
+    // AbortController ref for cancelling uploads
+    const uploadAbortControllerRef = useRef<AbortController | null>(null);
 
     // Create initial data that updates when expense loads but stays stable during submission
     const initialData = useMemo(() => {
@@ -100,6 +103,15 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
         }
     }, [expense]);
 
+    // Cleanup: abort any ongoing uploads when component unmounts
+    useEffect(() => {
+        return () => {
+            if (uploadAbortControllerRef.current) {
+                uploadAbortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
     const loadDocument = async (documentUrl: string) => {
         try {
             const response = await fetch(documentUrl);
@@ -145,12 +157,32 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
 
     const handleFileUpload = async (fileToUpload?: File) => {
         const file = fileToUpload || selectedFile;
-        if (!file) return;
+        if (!file || !expense?.category?.name) {
+            return;
+        }
+
+        // Cancel any existing upload
+        if (uploadAbortControllerRef.current) {
+            uploadAbortControllerRef.current.abort();
+        }
+
+        // Create new AbortController for this upload
+        const abortController = new AbortController();
+        uploadAbortControllerRef.current = abortController;
 
         setIsUploading(true);
         setUploadStatus('uploading');
 
         try {
+            // Generate the new filename based on expense category
+            const newFileName = generateExpenseFileName(file, expense.category.name);
+
+            // Create a new File object with the renamed filename
+            const renamedFile = new File([file], newFileName, {
+                type: file.type,
+                lastModified: file.lastModified,
+            });
+
             // Simulate realistic progress during upload
             const progressInterval = setInterval(() => {
                 setUploadProgress((prev) => {
@@ -159,53 +191,74 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
                 });
             }, 200);
 
-            const uploadResponse = await uploadFileToGCS(file);
+            // Use the documents upload API instead of direct GCS upload
+            const formData = new FormData();
+            formData.append('files', renamedFile);
+
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Upload timeout')), 300000); // 5 minutes
+            });
+
+            // Race between upload and timeout
+            const uploadResponse = (await Promise.race([
+                fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                    signal: abortController.signal,
+                    // Add timeout headers to help with large file uploads
+                    headers: {
+                        'X-Upload-Timeout': '300000', // 5 minutes
+                    },
+                }),
+                timeoutPromise,
+            ])) as Response;
 
             clearInterval(progressInterval);
             setUploadProgress(65);
 
-            if (!uploadResponse?.uniqueFileName) {
-                throw new Error('Upload response invalid');
+            if (!uploadResponse.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const uploadData = await uploadResponse.json();
+            if (!uploadData.documentIds || uploadData.documentIds.length === 0) {
+                throw new Error('No document ID returned from upload');
             }
 
             setUploadStatus('saving');
             setUploadProgress(80);
 
-            // Save the document to the expense
-            const documentData = {
-                fileName: uploadResponse.uniqueFileName,
-                originalFileName: file.name,
-                mimeType: file.type,
-                sizeBytes: file.size,
-                storageUrl: uploadResponse.gcsInputUri,
-            };
+            // Associate the uploaded document with the expense
+            const documentId = uploadData.documentIds[0];
 
             const response = await fetch(`/api/expenses/${expenseId}/documents`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(documentData),
+                body: JSON.stringify({ documentId }),
+                signal: abortController.signal,
             });
 
             if (!response.ok) {
-                throw new Error('Failed to save document to expense');
+                throw new Error('Failed to associate document with expense');
             }
 
-            const savedDocument = await response.json();
+            const savedAssociation = await response.json();
 
             setUploadProgress(100);
             setUploadStatus('success');
 
-            // Update local state
+            // Update local state - get the document from the association
             setExpense((prev: any) =>
                 prev
                     ? {
                           ...prev,
                           documents: [
                               {
-                                  id: savedDocument.id,
-                                  document: savedDocument.document,
+                                  id: savedAssociation.id,
+                                  document: savedAssociation.document,
                               },
                           ],
                       }
@@ -223,7 +276,18 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
         } catch (error) {
             console.error('Error uploading file:', error);
             setUploadStatus('error');
-            notify({ title: 'Failed to upload file', type: 'error' });
+
+            // Handle different types of errors
+            let errorMessage = 'Failed to upload file';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Upload was cancelled';
+            } else if (error.message?.includes('timeout')) {
+                errorMessage = 'Upload timeout - please try again';
+            } else if (error.message?.includes('network')) {
+                errorMessage = 'Network error - please check your connection';
+            }
+
+            notify({ title: errorMessage, type: 'error' });
 
             // Reset states after error
             setTimeout(() => {
@@ -232,6 +296,10 @@ const ExpenseEditPage = ({ expenseId }: Props) => {
             }, 3000);
         } finally {
             setIsUploading(false);
+            // Clear the abort controller reference
+            if (uploadAbortControllerRef.current === abortController) {
+                uploadAbortControllerRef.current = null;
+            }
         }
     };
 
