@@ -18,6 +18,8 @@ import { PageWithAuth } from '../../../interfaces/auth';
 import { useUserContext } from 'components/context/UserContext';
 import ExpenseForm from '../../../components/expenses/ExpenseForm';
 import FileUpload from '../../../components/FileUpload';
+import { generateExpenseFileName } from '../../../lib/helpers/document-naming';
+import { getCachedExpenseCategories } from '../../../lib/cache';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { getDriverById } from '../../../lib/rest/driver';
 import { getLoadById } from '../../../lib/rest/load';
@@ -29,6 +31,7 @@ const CreateExpensePage: PageWithAuth = () => {
 
     const [loading, setLoading] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [extractedData, setExtractedData] = useState<any>(null);
     const [extracting, setExtracting] = useState(false);
 
@@ -81,6 +84,20 @@ const CreateExpensePage: PageWithAuth = () => {
             }
         };
     }, [progressInterval]);
+
+    // Load expense categories
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const categoriesData = await getCachedExpenseCategories();
+                setCategories(categoriesData.categories || []);
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+                setCategories([]);
+            }
+        };
+        loadCategories();
+    }, []);
 
     // Check for URL parameters and fetch associated driver/load
     useEffect(() => {
@@ -503,8 +520,21 @@ const CreateExpensePage: PageWithAuth = () => {
             }
 
             if (filesToUpload.length > 0) {
+                // Find the category name for filename generation
+                const selectedCategory = categories.find((cat) => cat.id === expenseData.categoryId);
+                const categoryName = selectedCategory?.name || 'unknown';
+
+                // Rename files before uploading
+                const renamedFiles = filesToUpload.map((file) => {
+                    const newFileName = generateExpenseFileName(file, categoryName);
+                    return new File([file], newFileName, {
+                        type: file.type,
+                        lastModified: file.lastModified,
+                    });
+                });
+
                 const formData = new FormData();
-                filesToUpload.forEach((file) => {
+                renamedFiles.forEach((file) => {
                     formData.append('files', file);
                 });
 
