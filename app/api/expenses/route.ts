@@ -7,6 +7,7 @@ import { calcPaginationMetadata } from 'lib/pagination';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
 import { uploadFilesToGCS, getSuccessfulUploads, getFailedUploads } from 'lib/gcs-upload';
+import { EXPENSE_INCLUDE } from 'lib/api/expense-includes';
 
 const buildOrderBy = (sortBy: string, sortDir: string): Prisma.ExpenseOrderByWithRelationInput => {
     const direction = sortDir === 'asc' ? Prisma.SortOrder.asc : Prisma.SortOrder.desc;
@@ -388,24 +389,7 @@ export async function POST(request: NextRequest) {
                     createdById: session.user.id,
                     updatedById: session.user.id,
                 },
-                include: {
-                    category: true,
-                    load: {
-                        select: { id: true, refNum: true, loadNum: true },
-                    },
-                    driver: {
-                        select: { id: true, name: true },
-                    },
-                    user: {
-                        select: { id: true, name: true },
-                    },
-                    equipment: {
-                        select: { id: true, equipmentNumber: true, make: true, model: true },
-                    },
-                    createdBy: {
-                        select: { id: true, name: true },
-                    },
-                },
+                include: EXPENSE_INCLUDE,
             });
 
             // Link documents if provided
